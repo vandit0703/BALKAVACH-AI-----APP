@@ -1,0 +1,333 @@
+{
+  "@@locale": "en",
+  "appTitle": "Bal Kavach AI",
+  "brandEyebrow": "KIDS DIGITAL GUARDIAN",
+  "brandName": "Bal Kavach",
+  "brandSuffix": "AI",
+  "retry": "Try again",
+  "cancel": "Cancel",
+  "optional": "Optional",
+  "loading": "Loading…",
+  "errorGeneric": "Something went wrong. Please try again.",
+  "errorNetwork": "Can't reach Bal Kavach. Check your internet connection.",
+  "errorTimeout": "The server is taking a while. It may be waking up, so please try again.",
+  "errorSessionExpired": "Your session has ended. Please sign in again.",
+  "errorForbidden": "You don't have access to this.",
+  "errorNotFound": "We couldn't find that.",
+  "errorServer": "The server had a problem. Please try again soon.",
+  "welcomeTagline": "Safe Childhood, Smart Future • Play • Learn • Grow Together",
+  "welcomeMascotLabel": "Kavach Panda",
+  "welcomeBuddyLabel": "AI Buddy",
+  "welcomeBubble": "Namaste! Choose your language",
+  "welcomeSelectLanguage": "Select App Language",
+  "welcomeChangeAnytime": "You can change anytime",
+  "welcomeGetStarted": "Get Started",
+  "welcomeFooter": "Private • Ad-Free • 100% Parent Controlled",
+  "consentEyebrow": "BAL KAVACH ECOSYSTEM",
+  "consentTitle": "Parent Safety First",
+  "consentSubtitle": "Your child's digital wellbeing and safety are our highest priorities.",
+  "consentApprovalTitle": "Parent Approval Required",
+  "consentApprovalBody": "All child mission submissions and star reward redemptions require your explicit tap.",
+  "consentAdsTitle": "Zero Advertisements",
+  "consentAdsBody": "100% ad-free environment. No commercial trackers, marketing profiling, or third-party retargeting.",
+  "consentPrivateTitle": "Private Family Sanctuary",
+  "consentPrivateBody": "No public child directories and zero stranger communication.",
+  "consentGoalsTitle": "Parent-Controlled Goals",
+  "consentGoalsBody": "You set everyday missions and review every submission before stars are awarded.",
+  "consentCheckbox": "I confirm I am the parent or legal guardian and agree to the Terms of Service & Child Data Protection Policy.",
+  "consentCheckboxRequired": "Please confirm you are the parent or legal guardian to continue.",
+  "consentContinue": "I Agree & Continue",
+  "roleTitle": "Who is using Bal Kavach?",
+  "roleSubtitle": "Parents set up the family first. Children join through a parent.",
+  "roleParent": "I'm a Parent",
+  "roleParentBody": "Sign in, add your children, create missions and approve progress.",
+  "roleChild": "I'm a Child",
+  "roleChildBody": "Play missions after a parent starts child mode for you.",
+  "childStartTitle": "Ask a parent to help",
+  "childStartBody": "Child mode is started from a parent account. Ask your parent to sign in, choose your profile and tap “Start child mode”.",
+  "childStartParentSignIn": "Parent sign in",
+  "authHeroEyebrow": "PARENTAL SAFESPHERE GATE",
+  "authHeroCaption": "Dual-perspective guardianship & child well-being",
+  "authTitle": "Parent Login / Register",
+  "authSubtitle": "Secure access to your family's safety hub",
+  "authTabSignIn": "Sign in",
+  "authTabRegister": "Create account",
+  "authFullName": "Full name",
+  "authEmail": "Email",
+  "authPassword": "Password",
+  "authPasswordHint": "At least 12 characters",
+  "authShowPassword": "Show password",
+  "authHidePassword": "Hide password",
+  "authSignInButton": "Sign in",
+  "authRegisterButton": "Create account",
+  "authUnavailableMethods": "Phone OTP and Google sign-in are not available yet. Please use email and password.",
+  "authInvalidCredentials": "Email or password is incorrect.",
+  "authEmailInUse": "An account with this email already exists. Try signing in.",
+  "validationNameRequired": "Please enter a name.",
+  "validationNameTooShort": "Use at least 2 characters.",
+  "validationEmailInvalid": "Enter a valid email address.",
+  "validationPasswordRequired": "Please enter your password.",
+  "validationPasswordTooShort": "Use at least 12 characters.",
+  "validationTooLong": "Use at most {max} characters.",
+  "@validationTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "validationNumberRange": "Enter a number from {min} to {max}.",
+  "@validationNumberRange": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "parentHubTitle": "Parent Hub",
+  "parentGreeting": "Hello, {name}",
+  "@parentGreeting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "parentSignOut": "Sign out",
+  "familyCreateTitle": "Create your family",
+  "familyCreateBody": "Name your family to start adding children.",
+  "familyNameLabel": "Family name",
+  "familyCreateButton": "Create family",
+  "consentSyncFailed": "We couldn't save your consent record yet. We'll retry next time.",
+  "childrenTitle": "Your children",
+  "childrenEmpty": "No child profiles yet. Add your first child to get started.",
+  "childrenAdd": "Add child",
+  "childStartMode": "Start child mode",
+  "childModeConfirmTitle": "Start child mode for {name}?",
+  "@childModeConfirmTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "childModeConfirmBody": "This device will switch to {name}'s missions. To come back, a parent must sign in again.",
+  "@childModeConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "childModeConfirm": "Start",
+  "parentMissionsTitle": "Missions",
+  "parentMissionsEmpty": "No missions yet. Create the first one for your family.",
+  "parentMissionsNew": "New mission",
+  "missionForEveryone": "Everyone",
+  "missionAssignedTo": "For {name}",
+  "@missionAssignedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "createChildEyebrow": "PLAYFUL SAFETY",
+  "createChildTitle": "Add Your Child's Profile",
+  "createChildSubtitle": "Personalize daily habits, missions, and fun learning.",
+  "createChildName": "Child's name",
+  "createChildNameHint": "Preferred nickname",
+  "createChildDob": "Date of birth",
+  "createChildDobPick": "Select date",
+  "createChildDobClear": "Clear date",
+  "createChildAvatar": "Choose Avatar",
+  "createChildAvatarLocal": "The avatar is saved on this device only.",
+  "createChildLanguage": "Child's language",
+  "createChildSubmit": "Create {name}'s Profile",
+  "@createChildSubmit": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "createChildSubmitGeneric": "Create Profile",
+  "createChildSuccess": "Profile created",
+  "createMissionTitle": "New mission",
+  "createMissionName": "Mission title",
+  "createMissionDescription": "What should your child do?",
+  "createMissionCategory": "Category",
+  "createMissionNoCategory": "No category",
+  "createMissionAssign": "Who is it for?",
+  "createMissionStars": "Stars",
+  "createMissionXp": "XP",
+  "createMissionSubmit": "Create mission",
+  "createMissionSuccess": "Mission created",
+  "childHomeTitle": "Child Home",
+  "parentGate": "Parent Gate",
+  "parentGateTitle": "Leave child mode?",
+  "parentGateBody": "A parent will need to sign in again to continue.",
+  "parentGateLeave": "Leave",
+  "parentGateStay": "Stay",
+  "childHello": "Hello {name}!",
+  "@childHello": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "childLevel": "Lv {level}",
+  "@childLevel": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "childLevelName": "{name} • Quest Ready",
+  "@childLevelName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "childQuestReady": "Quest Ready",
+  "statStars": "Stars",
+  "statStreak": "Streak",
+  "statStreakValue": "{count, plural, =1{1 Day} other{{count} Day}}",
+  "@statStreakValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statXp": "XP",
+  "mascotReady": "Ready for today's adventures? 🚀",
+  "mascotMissionsLeft": "{count, plural, =0{All missions done. Amazing work!} =1{Complete 1 more mission to keep growing!} other{Complete {count} more missions to keep growing!}}",
+  "@mascotMissionsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todaysMissions": "Today's Missions",
+  "missionsDone": "{done} of {total} Done",
+  "@missionsDone": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "missionStart": "Start",
+  "missionsSeeAll": "See all missions",
+  "navHome": "Home",
+  "navMissions": "Missions",
+  "reviewsUnavailable": "Couldn't check for parent reviews right now.",
+  "missionsTitle": "Child Missions",
+  "missionsFilterAll": "All ({count})",
+  "@missionsFilterAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "missionsEmpty": "No missions yet. Ask your parent to add one!",
+  "missionsFilterEmpty": "No missions in this category.",
+  "pandaSays": "Panda Kavach says:",
+  "pandaEncourage": "\"Every mission you finish makes you stronger. Keep soaring!\"",
+  "statusPending": "Pending Approval",
+  "statusApproved": "Approved",
+  "statusRejected": "Not approved",
+  "statusResubmit": "Try again",
+  "missionStartMission": "Start Mission",
+  "missionDoAgain": "Do it again",
+  "missionStarsCount": "{count} Stars",
+  "@missionStarsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "missionXpCount": "{count} XP",
+  "@missionXpCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "missionDue": "Due {date}",
+  "@missionDue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "missionDetailTitle": "Mission details",
+  "missionWhatToDo": "What to do",
+  "missionNoDescription": "Your parent didn't add extra steps. Do your best and tell them about it!",
+  "missionEarn": "Earn {stars} stars by finishing this mission.",
+  "@missionEarn": {
+    "placeholders": {
+      "stars": {
+        "type": "int"
+      }
+    }
+  },
+  "missionWaitingButton": "Waiting for approval",
+  "missionNotFound": "This mission is no longer available.",
+  "submitTitle": "Complete Your Mission",
+  "submitEvidenceTitle": "Your Mission Evidence",
+  "submitPhotoUnavailable": "Photo proof isn't available yet. Tell your parent what you did instead.",
+  "submitNoteLabel": "Tell Mummy & Papa about it",
+  "submitNoteHint": "I drew a lion in the jungle!",
+  "submitPrivacy": "Only visible to your parents in their approval inbox.",
+  "submitPandaName": "Kavach Panda",
+  "submitPandaMessage": "Woohoo! Tap below to send this to Mummy & Papa!",
+  "submitButton": "Submit for Parent Approval",
+  "submitFooter": "Once approved, {stars} stars will be added to your treasure chest!",
+  "@submitFooter": {
+    "placeholders": {
+      "stars": {
+        "type": "int"
+      }
+    }
+  },
+  "submitNotAssigned": "This mission belongs to another child.",
+  "waitingTitle": "Sent to your parent!",
+  "waitingBody": "Waiting for parent approval. You'll see the result here when your parent reviews it.",
+  "waitingApprovedTitle": "Approved! 🎉",
+  "waitingApprovedBody": "+{stars} stars added to your treasure chest.",
+  "@waitingApprovedBody": {
+    "placeholders": {
+      "stars": {
+        "type": "int"
+      }
+    }
+  },
+  "waitingRejectedTitle": "Not approved this time",
+  "waitingRejectedBody": "Talk to your parent and try again later.",
+  "waitingResubmitTitle": "Let's try again",
+  "waitingResubmitBody": "Your parent asked you to redo this mission.",
+  "waitingCheckAgain": "Check again",
+  "waitingBackToMissions": "Back to missions",
+  "serverChecking": "Checking the Bal Kavach server…",
+  "serverOnline": "Server online",
+  "serverDbDown": "Server is up, but its database is unavailable. Sign-in may fail.",
+  "serverUnreachable": "Can't reach the server. It may be starting up.",
+  "serverStatusNote": "This only checks the connection, not every feature."
+}
