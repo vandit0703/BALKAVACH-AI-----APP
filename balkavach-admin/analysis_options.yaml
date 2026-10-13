@@ -1,0 +1,8 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    prefer_single_quotes: true
+    directives_ordering: true
+    avoid_dynamic_calls: true
+    use_build_context_synchronously: true

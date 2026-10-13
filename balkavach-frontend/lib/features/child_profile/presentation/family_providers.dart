@@ -47,18 +47,19 @@ final consentSyncProvider = FutureProvider.family<bool, String>((
   familyId,
 ) async {
   final prefs = ref.watch(appPreferencesProvider);
+  final version = ref.watch(consentVersionProvider);
   final acknowledged = ref.watch(
     onboardingControllerProvider.select((s) => s.consentAcknowledged),
   );
   if (!acknowledged) return false;
-  if (prefs.isConsentSynced(familyId, kConsentDocumentVersion)) return true;
+  if (prefs.isConsentSynced(familyId, version)) return true;
 
   final repository = ref.read(familyRepositoryProvider);
   final existing = await repository.listConsents(familyId);
   final hasRecord = existing.any(
     (c) =>
         c.consentType == kConsentType &&
-        c.documentVersion == kConsentDocumentVersion &&
+        c.documentVersion == version &&
         c.childId == null &&
         c.isActive,
   );
@@ -66,10 +67,10 @@ final consentSyncProvider = FutureProvider.family<bool, String>((
     await repository.recordConsent(
       familyId: familyId,
       consentType: kConsentType,
-      documentVersion: kConsentDocumentVersion,
+      documentVersion: version,
     );
   }
-  await prefs.markConsentSynced(familyId, kConsentDocumentVersion);
+  await prefs.markConsentSynced(familyId, version);
   return true;
 });
 

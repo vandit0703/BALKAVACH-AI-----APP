@@ -329,5 +329,822 @@
   "serverOnline": "Server online",
   "serverDbDown": "Server is up, but its database is unavailable. Sign-in may fail.",
   "serverUnreachable": "Can't reach the server. It may be starting up.",
-  "serverStatusNote": "This only checks the connection, not every feature."
+  "serverStatusNote": "This only checks the connection, not every feature.",
+  "familyMissing": "Create your family first on the Parent Hub.",
+  "filterAllChildren": "All children",
+  "someChild": "Your child",
+  "navRewards": "Rewards",
+  "navGarden": "Garden",
+  "edit": "Edit",
+  "saveChanges": "Save changes",
+  "approvalsAppBar": "Parent Missions",
+  "approvalsTitle": "Mission Approvals",
+  "approvalsSubtitle": "Review your child's offline triumphs and release star rewards.",
+  "approvalsActions": "{count, plural, =1{1 Action} other{{count} Actions}}",
+  "@approvalsActions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalsOpen": "Review submitted missions",
+  "approvalsPendingCount": "{count, plural, =0{Nothing waiting for review} =1{1 waiting for review} other{{count} waiting for review}}",
+  "@approvalsPendingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalsTabPending": "Pending",
+  "approvalsTabApproved": "Approved",
+  "approvalsTabRetry": "Retry",
+  "approvalsTruncated": "Showing the most recently submitted missions only. Older submissions may not appear.",
+  "approvalsPendingEmpty": "Nothing to review right now. New submissions will appear here.",
+  "approvalsApprovedEmpty": "No approved missions yet.",
+  "approvalsRetryEmpty": "No missions sent back for a retry.",
+  "approvalsMissionLabel": "Mission: {title}",
+  "@approvalsMissionLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalsMissionRemoved": "Removed mission",
+  "approvalsNoNote": "No note was added.",
+  "approvalsNoteFrom": "{name}'s Note",
+  "@approvalsNoteFrom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalsPrivacy": "Visible only to parents in your family.",
+  "approvalsProofImage": "Submitted photo",
+  "approvalsProofUnavailable": "The photo couldn't be loaded.",
+  "approvalsApprove": "Approve & Award +{stars} ⭐",
+  "@approvalsApprove": {
+    "placeholders": {
+      "stars": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalsAskRetry": "Ask to Retry ✏️",
+  "approvalsRetry": "Ask to retry",
+  "approvalsDecline": "Decline",
+  "approvalsRetryTitle": "Ask {name} to try again?",
+  "@approvalsRetryTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalsDeclineTitle": "Decline {name}'s submission?",
+  "@approvalsDeclineTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalsNoteLabel": "Note for your child (optional)",
+  "approvalsApprovedToast": "Approved! {stars} stars sent to {name}.",
+  "@approvalsApprovedToast": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "stars": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalsRetryToast": "{name} will be asked to try again.",
+  "@approvalsRetryToast": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "approvalsDeclinedToast": "Submission declined.",
+  "approvalsAlreadyReviewed": "This submission was already reviewed. The list has been refreshed.",
+  "approvalsStarsCredited": "+{count} Stars credited",
+  "@approvalsStarsCredited": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalsRetrySent": "Retry requested",
+  "approvalsTipTitle": "Praise Effort over Perfection",
+  "approvalsTipBody": "A quick cheer or a loving note when you review helps your child feel proud of the effort, not just the result.",
+  "reportsAppBar": "Parent Overview",
+  "reportsEyebrow": "Weekly Health & Growth",
+  "reportsWelcome": "Welcome, {name}",
+  "@reportsWelcome": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsOpen": "Stars, streaks and badges this week",
+  "childNameWithAge": "{name} (Age {age})",
+  "@childNameWithAge": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsMissionsDone": "Missions Done",
+  "reportsActiveDays": "{count, plural, =0{No active days yet} =1{1 active day this week} other{{count} active days this week}}",
+  "@reportsActiveDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsStarsAwarded": "Stars Awarded",
+  "reportsStarBalance": "Balance: {count} stars",
+  "@reportsStarBalance": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsStreak": "Day Streak",
+  "reportsLongestStreak": "Best: {count} days",
+  "@reportsLongestStreak": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsXpEarned": "XP Earned",
+  "reportsTotalXp": "{count} XP in total",
+  "@reportsTotalXp": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsLevel": "Level {level} {name}",
+  "@reportsLevel": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsChartTitle": "Weekly Missions Completed",
+  "reportsChartSubtitle": "Parent-approved missions per day",
+  "reportsNoActivity": "No approved missions this week yet.",
+  "reportsBestDay": "Best day: {day} ({count} completed)",
+  "@reportsBestDay": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsNoBadges": "No badges yet. They unlock as missions are approved.",
+  "reportsVerifiedTitle": "Parent-Verified Logs",
+  "reportsVerifiedBody": "All statistics reflect parent-approved missions only.",
+  "reportsCopySummary": "Copy Weekly Summary",
+  "reportsSummaryCopied": "Weekly summary copied",
+  "reportsSummaryText": "{name}, {range}: {missions} missions approved, {stars} stars and {xp} XP earned, {streak}-day streak.",
+  "@reportsSummaryText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "range": {
+        "type": "String"
+      },
+      "missions": {
+        "type": "int"
+      },
+      "stars": {
+        "type": "int"
+      },
+      "xp": {
+        "type": "int"
+      },
+      "streak": {
+        "type": "int"
+      }
+    }
+  },
+  "badgesTitle": "Badges & Trophies",
+  "badgesUnlocked": "{count} Unlocked",
+  "@badgesUnlocked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "badgesEmpty": "Finish missions to unlock your first badge!",
+  "badgeUnlockedOn": "Unlocked {date}",
+  "@badgeUnlockedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "familyManageAppBar": "Family Management",
+  "familyManageSubtitle": "Manage your child's profile, progress and child mode.",
+  "childProfileMissing": "This profile is no longer available.",
+  "backToParentHub": "Back to Parent Hub",
+  "childOpenProfile": "Open {name}'s profile",
+  "@childOpenProfile": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "availableStars": "{count} Available Stars",
+  "@availableStars": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "viewActivityHistory": "View Activity History",
+  "missionsApprovedRecently": "{count, plural, =0{No missions approved in the last 90 days} =1{1 mission approved in the last 90 days} other{{count} missions approved in the last 90 days}}",
+  "@missionsApprovedRecently": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "childModeHint": "Hand this device to {name}",
+  "@childModeHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "addAnotherChild": "+ Add Another Child",
+  "profileActive": "Active",
+  "profileAge": "Age: {age} yrs",
+  "@profileAge": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "editProfileTitle": "Edit profile",
+  "profileSaved": "Profile saved",
+  "removeChildTitle": "Remove Profile",
+  "removeChildBody": "Deactivates {name}'s profile and child mode. Missions, stars and progress stay stored on the server; permanent deletion is not available in the app yet.",
+  "@removeChildBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removeChildButton": "Remove {name}'s Profile",
+  "@removeChildButton": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removeChildConfirmTitle": "Remove {name}'s profile?",
+  "@removeChildConfirmTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removeChildConfirmBody": "{name} will no longer be able to use child mode, and the profile disappears from your family. Bal Kavach keeps the mission and star records on the server.",
+  "@removeChildConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removeChildConfirm": "Remove",
+  "removeChildDone": "{name}'s profile was removed.",
+  "@removeChildDone": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsAppBar": "Parent Settings",
+  "settingsFamilyAccount": "Family Account",
+  "settingsPrimaryAdmin": "FAMILY OWNER",
+  "settingsLinkedChildren": "Linked Explorers",
+  "settingsSafety": "Safety & Approvals",
+  "settingsApprovalTitle": "Parent approval required",
+  "settingsApprovalBody": "Every mission and reward request waits for your review before stars change.",
+  "settingsAlwaysOn": "Always on",
+  "settingsPreferences": "App & Privacy Preferences",
+  "settingsLanguage": "App Language",
+  "settingsChange": "Change",
+  "settingsPush": "Push notifications",
+  "settingsPushBody": "Preference saved to your account",
+  "settingsEmail": "Email notifications",
+  "settingsEmailBody": "Bal Kavach doesn't send emails yet.",
+  "settingsPrivacyTitle": "Privacy & Consent",
+  "settingsPrivacyBody": "Consent you gave for your family, as stored by Bal Kavach.",
+  "settingsNoConsents": "No consent records yet.",
+  "settingsConsentRow": "Parent & guardian terms • version {version} • {date} • {status}",
+  "@settingsConsentRow": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsConsentActive": "Active",
+  "settingsConsentRevoked": "Revoked",
+  "settingsLogOut": "Log Out",
+  "settingsFooter": "Bal Kavach AI • Made for Indian families",
+  "rewardsTitle": "Child Rewards",
+  "rewardsVault": "Bal Kavach Vault",
+  "rewardsBalance": "Current Star Balance",
+  "rewardsBalanceSemantics": "{count} stars in your vault",
+  "@rewardsBalanceSemantics": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rewardsStreak": "{count, plural, =0{Start a streak today!} =1{1 Day Streak!} other{{count} Days Streak!}}",
+  "@rewardsStreak": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rewardsCatalog": "Treasure Catalog",
+  "rewardsCatalogSoonTitle": "The treasure shop is coming soon",
+  "rewardsCatalogSoonBody": "Keep collecting stars! Ask Mummy or Papa which treats your stars can unlock.",
+  "rewardsMyRequests": "My reward requests",
+  "rewardsRequest": "Reward request",
+  "rewardsRequestsUnavailable": "Couldn't load your reward requests right now.",
+  "rewardsFulfilled": "Ready to enjoy",
+  "rewardsCancelled": "Cancelled",
+  "gardenTitle": "Mindful Garden",
+  "gardenOwner": "{name}'s Mindful Garden",
+  "@gardenOwner": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "gardenStage": "Stage: {stage}",
+  "@gardenStage": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "gardenStageSeed": "Little Seed",
+  "gardenStageSprout": "Tiny Sprout",
+  "gardenStageSapling": "Happy Mango Sapling",
+  "gardenStageTree": "Blooming Tree",
+  "gardenNextStage": "{count, plural, =1{1 more approved mission to reach {stage}} other{{count} more approved missions to reach {stage}}}",
+  "@gardenNextStage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "gardenFullBloom": "Your garden is in full bloom this week! 🌳",
+  "gardenGrowsHint": "Grows every time Mummy & Papa approve your missions this week.",
+  "gardenImageLabel": "Kavach Panda watering the garden",
+  "gardenWeeklyMissions": "{count, plural, =1{1 Mission} other{{count} Missions}}",
+  "@gardenWeeklyMissions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gardenWeeklyBody": "Approved this week to grow your garden",
+  "gardenMilestones": "Decorations & Milestones",
+  "gardenMilestonesCount": "{done} / {total} Collected",
+  "@gardenMilestonesCount": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "milestoneRainbow": "Rainbow Arch",
+  "milestoneSunflower": "Sunflower Patch",
+  "milestoneBirdhouse": "Birdhouse",
+  "milestoneFountain": "Fairy Fountain",
+  "milestoneActive": "ACTIVE",
+  "milestoneUnlocked": "Unlocked",
+  "milestoneEarned": "Unlocked by a {days}-day streak",
+  "@milestoneEarned": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "milestoneLocked": "Reach a {days}-day streak to unlock",
+  "@milestoneLocked": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "gardenTipTitle": "Panda's Mindful Tip",
+  "gardenTipBody": "\"Just 30 minutes of outdoor play keeps your mind fresh and happy!\"",
+  "editMissionTitle": "Edit mission",
+  "createMissionDue": "Due date",
+  "createMissionDuePick": "Set due date",
+  "createMissionDueClear": "Clear due date",
+  "missionSaved": "Mission saved",
+  "removeMissionButton": "Remove mission",
+  "removeMissionConfirmTitle": "Remove this mission?",
+  "removeMissionConfirmBody": "\"{title}\" will disappear for your children. Missions already sent for review stay on record.",
+  "@removeMissionConfirmBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "removeMissionConfirm": "Remove",
+  "removeMissionDone": "Mission removed",
+  "parentMissionEdit": "Edit mission {title}",
+  "@parentMissionEdit": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "showMore": "Show more",
+  "approvalsPartial": "{count, plural, =1{1 mission could not be loaded, so its submissions may be missing.} other{{count} missions could not be loaded, so their submissions may be missing.}}",
+  "@approvalsPartial": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalsUnread": "Some updates are older than the app can load. Older submissions may not appear.",
+  "submitAddPhoto": "Add a photo",
+  "submitTakePhoto": "Take a photo",
+  "submitChoosePhoto": "Choose from gallery",
+  "submitRemovePhoto": "Remove photo",
+  "submitPhotoReady": "Photo ready to send",
+  "submitPhotoPreview": "Preview of your photo",
+  "submitPhotoHelp": "A photo helps your parent check your mission. You can also just write a note.",
+  "submitPhotoPickFailed": "We couldn't open the camera or gallery. Check the app's permission in Settings.",
+  "submitUploading": "Sending your photo…",
+  "errorPhotoTooLarge": "That photo is too large. Try a smaller one.",
+  "errorPhotoUnsupported": "Please use a JPEG, PNG or WebP photo.",
+  "errorPhotoQuota": "You have photos that were not sent yet. Send a mission first.",
+  "errorPhotoStorage": "Photos can't be saved right now. Try again, or send a note instead.",
+  "errorAlreadyPending": "This mission is already waiting for your parent to check.",
+  "errorAlreadyCompleted": "You have already completed this mission. Well done!",
+  "historyTitle": "Your tries",
+  "historyAttempt": "Try {number}",
+  "@historyAttempt": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "historyParentNote": "Note from your parent",
+  "statusPendingShort": "Waiting",
+  "statusApprovedShort": "Approved",
+  "statusRejectedShort": "Try again",
+  "statusResubmitShort": "Send again",
+  "approvalsProofZoom": "Tap to enlarge",
+  "close": "Close",
+  "rewardsCatalogEmpty": "No rewards yet. Ask your parent to add some!",
+  "rewardsAsk": "Ask for this",
+  "rewardsNeedMore": "{count, plural, =1{1 more star to go} other{{count} more stars to go}}",
+  "@rewardsNeedMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rewardsAlreadyAsked": "Waiting for your parent",
+  "rewardsConfirmTitle": "Ask for {name}?",
+  "@rewardsConfirmTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardsConfirmBody": "This uses {count} stars if your parent says yes. Nothing is taken until then.",
+  "@rewardsConfirmBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rewardsConfirmYes": "Yes, ask",
+  "rewardsAsked": "Request sent to your parent!",
+  "rewardsCancelRequest": "Cancel request",
+  "rewardsRequestCancelled": "Request cancelled",
+  "rewardsParentNote": "Parent's note: {note}",
+  "@rewardsParentNote": {
+    "placeholders": {
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardsRequestNamed": "Request for {name}",
+  "@rewardsRequestNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "errorNotEnoughStars": "There aren't enough stars for this.",
+  "errorRewardPending": "That reward was already asked for.",
+  "errorRewardUnavailable": "That reward isn't available any more.",
+  "parentRewardsTitle": "Rewards",
+  "parentRewardsSubtitle": "Choose rewards and answer requests",
+  "parentRewardsRequestsCount": "{count, plural, =0{No requests waiting} =1{1 request waiting} other{{count} requests waiting}}",
+  "@parentRewardsRequestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rewardsTabCatalog": "Rewards",
+  "rewardsTabRequests": "Requests",
+  "rewardsRequestsEmpty": "No requests waiting.",
+  "rewardsAddReward": "Add reward",
+  "rewardsEditReward": "Edit reward",
+  "rewardsFormName": "Reward name",
+  "rewardsFormDescription": "Description",
+  "rewardsFormCost": "Star cost",
+  "rewardsFormType": "Type",
+  "rewardTypeCustom": "Something special",
+  "rewardTypeGift": "Gift",
+  "rewardTypeBook": "Book",
+  "rewardTypeOutdoor": "Outdoor activity",
+  "rewardTypeScreenTime": "Screen time",
+  "rewardsRemove": "Remove reward",
+  "rewardsRemoveConfirm": "Remove {name}? Children will no longer see it.",
+  "@rewardsRemoveConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardsSaved": "Reward saved",
+  "rewardsRemoved": "Reward removed",
+  "rewardsAskedBy": "{child} asked for {reward}",
+  "@rewardsAskedBy": {
+    "placeholders": {
+      "child": {
+        "type": "String"
+      },
+      "reward": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardsApprove": "Approve ({count} stars)",
+  "@rewardsApprove": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rewardsDecline": "Decline",
+  "rewardsMarkGiven": "Mark as given",
+  "rewardsCancelRefund": "Cancel and return stars",
+  "rewardsApprovedToast": "Approved. {count} stars were taken.",
+  "@rewardsApprovedToast": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rewardsDeclinedToast": "Request declined",
+  "rewardsGivenToast": "Marked as given",
+  "rewardsRefundedToast": "Cancelled and stars returned",
+  "rewardsAlreadyReviewed": "This request was already handled.",
+  "rewardsNoteOptional": "Note for your child (optional)",
+  "rewardsDeclineTitle": "Decline this request?",
+  "save": "Save",
+  "reportsPreviousWeek": "Previous week",
+  "reportsNextWeek": "Next week",
+  "reportsThisWeek": "This week",
+  "reportsCategoriesTitle": "By activity",
+  "reportsCategoriesEmpty": "No approved missions this week yet.",
+  "reportsCategoryCount": "{count, plural, =1{1 mission} other{{count} missions}}",
+  "@reportsCategoryCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsUncategorised": "Other",
+  "reportsPendingNote": "{count, plural, =1{1 mission waiting for your review} other{{count} missions waiting for your review}}",
+  "@reportsPendingNote": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsRetryNote": "{count, plural, =1{1 mission needs another try} other{{count} missions need another try}}",
+  "@reportsRetryNote": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportsTimezoneNote": "Days follow {zone} time.",
+  "@reportsTimezoneNote": {
+    "placeholders": {
+      "zone": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsShare": "Share progress",
+  "reportsShareSubject": "{name}'s weekly progress",
+  "@reportsShareSubject": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsShareFailed": "Couldn't open sharing. Try Copy instead.",
+  "maintenanceDefault": "Bal Kavach is being updated. Some things may not work for a while.",
+  "settingsTimezone": "Time zone",
+  "settingsTimezoneBody": "Decides which day a mission counts for in reports and streaks. Saved to your family.",
+  "settingsTimezoneUseDevice": "Use this phone's time zone ({zone})",
+  "@settingsTimezoneUseDevice": {
+    "placeholders": {
+      "zone": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsTimezoneSaved": "Time zone saved",
+  "settingsSavedWhereTitle": "What is saved where",
+  "settingsSavedAccount": "Saved to your account: language, push choice, family time zone, consent.",
+  "settingsSavedDevice": "Saved on this phone only: each child's avatar picture.",
+  "settingsPrivacySafetyTitle": "Privacy & safety",
+  "safetyPointFamilyOnly": "Missions, photos and progress can only be seen by your family's parents and by the child they belong to.",
+  "safetyPointPhotos": "Photos are checked, resized and stripped of location details before they are saved.",
+  "safetyPointChildMode": "Child mode never has your email or password and cannot open parent screens.",
+  "safetyPointApprovals": "Stars, XP and rewards only change after a parent decides.",
+  "safetyPointNotifications": "Notifications never show your child's name or mission details.",
+  "safetyPointNoAds": "Bal Kavach shows no ads.",
+  "childSignOutDevices": "Sign out on all devices",
+  "childSignOutDevicesBody": "Ends {name}'s sign-in everywhere, for example on a lost tablet.",
+  "@childSignOutDevicesBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "childSignOutDevicesDone": "Signed out on all devices",
+  "childSignOutDevicesConfirm": "Sign out",
+  "navLearn": "Learn",
+  "learnTitle": "Learn & Watch",
+  "learnAll": "All",
+  "learnEmpty": "Nothing to learn here yet. Check back soon!",
+  "learnOpen": "Open",
+  "learnOpensOutside": "Opens in your browser or the video app.",
+  "learnOpenFailed": "We couldn't open that link.",
+  "learnLocked": "Ask your parent to unlock this with a reward.",
+  "learnNotReady": "This one isn't ready to play yet.",
+  "learnTypeVideo": "Video",
+  "learnTypeArticle": "Article",
+  "learnTypeLink": "Link",
+  "learnTypeDocument": "Document",
+  "learnTypeActivity": "Activity",
+  "learnCategoryLearning": "Learning",
+  "learnCategoryStories": "Stories",
+  "learnCategoryScience": "Science",
+  "learnCategoryCreativity": "Creativity",
+  "learnCategoryHealthyHabits": "Healthy Habits",
+  "learnMore": "Load more",
+  "gardenCollection": "Garden collection",
+  "gardenCollectionCount": "{unlocked} of {total} unlocked",
+  "@gardenCollectionCount": {
+    "placeholders": {
+      "unlocked": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "gardenServerStage": "Garden size: {name}",
+  "@gardenServerStage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "gardenXpToNext": "{count} XP until it grows again",
+  "@gardenXpToNext": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gardenStageYoungTree": "Young tree",
+  "gardenStageBlossom": "In blossom",
+  "gardenStageOrchard": "Orchard",
+  "gardenItemFirstMission": "Little fence",
+  "gardenItemMissionMaster": "Garden gate",
+  "gardenItemStarCollector": "Star lantern",
+  "gardenItemXpClimber": "Flower bed",
+  "gardenItemThreeDayStreak": "Rainbow",
+  "gardenItemWeekWarrior": "Fountain",
+  "gardenItemLocked": "Earn the “{badge}” badge to unlock",
+  "@gardenItemLocked": {
+    "placeholders": {
+      "badge": {
+        "type": "String"
+      }
+    }
+  },
+  "gardenItemUnknown": "Garden surprise",
+  "createMissionIdeas": "Choose from ideas",
+  "createMissionIdeasTitle": "Mission ideas",
+  "createMissionIdeasEmpty": "No ideas available right now.",
+  "createMissionIdeasHint": "You can change anything before saving."
 }

@@ -70,6 +70,8 @@ class Session {
     required this.expiresAt,
     required this.user,
     this.childId,
+    this.refreshToken,
+    this.refreshExpiresAt,
   });
 
   /// Parses the backend `TokenResponse`.
@@ -81,6 +83,8 @@ class Session {
     expiresAt: DateTime.parse(json['expires_at'] as String).toUtc(),
     user: AppUser.fromJson(json['user'] as Map<String, dynamic>),
     childId: childId,
+    refreshToken: json['refresh_token'] as String?,
+    refreshExpiresAt: _parseOptionalDate(json['refresh_expires_at']),
   );
 
   factory Session.fromJson(Map<String, dynamic> json) => Session(
@@ -88,12 +92,27 @@ class Session {
     expiresAt: DateTime.parse(json['expires_at'] as String).toUtc(),
     user: AppUser.fromJson(json['user'] as Map<String, dynamic>),
     childId: json['child_id'] as String?,
+    refreshToken: json['refresh_token'] as String?,
+    refreshExpiresAt: _parseOptionalDate(json['refresh_expires_at']),
   );
+
+  static DateTime? _parseOptionalDate(Object? value) =>
+      value is String ? DateTime.parse(value).toUtc() : null;
 
   final String accessToken;
   final DateTime expiresAt;
   final AppUser user;
   final String? childId;
+
+  /// Long-lived token that renews [accessToken]. `null` for sessions issued
+  /// by a server without refresh support (they end when [expiresAt] passes).
+  final String? refreshToken;
+  final DateTime? refreshExpiresAt;
+
+  bool get canRefresh => refreshToken != null;
+
+  bool refreshExpiredAt(DateTime now) =>
+      refreshExpiresAt != null && !now.toUtc().isBefore(refreshExpiresAt!);
 
   bool get isParent => user.role == UserRole.parent;
   bool get isChild => user.role == UserRole.child && childId != null;
@@ -105,6 +124,18 @@ class Session {
     expiresAt: expiresAt,
     user: user ?? this.user,
     childId: childId,
+    refreshToken: refreshToken,
+    refreshExpiresAt: refreshExpiresAt,
+  );
+
+  /// The same device session after a token refresh: new tokens, same child.
+  Session renewedWith(Session refreshed) => Session(
+    accessToken: refreshed.accessToken,
+    expiresAt: refreshed.expiresAt,
+    user: refreshed.user,
+    childId: childId,
+    refreshToken: refreshed.refreshToken ?? refreshToken,
+    refreshExpiresAt: refreshed.refreshExpiresAt ?? refreshExpiresAt,
   );
 
   Map<String, dynamic> toJson() => {
@@ -112,6 +143,8 @@ class Session {
     'expires_at': expiresAt.toIso8601String(),
     'user': user.toJson(),
     'child_id': childId,
+    'refresh_token': refreshToken,
+    'refresh_expires_at': refreshExpiresAt?.toIso8601String(),
   };
 
   @override
@@ -120,8 +153,17 @@ class Session {
       other.accessToken == accessToken &&
       other.expiresAt == expiresAt &&
       other.user == user &&
-      other.childId == childId;
+      other.childId == childId &&
+      other.refreshToken == refreshToken &&
+      other.refreshExpiresAt == refreshExpiresAt;
 
   @override
-  int get hashCode => Object.hash(accessToken, expiresAt, user, childId);
+  int get hashCode => Object.hash(
+    accessToken,
+    expiresAt,
+    user,
+    childId,
+    refreshToken,
+    refreshExpiresAt,
+  );
 }

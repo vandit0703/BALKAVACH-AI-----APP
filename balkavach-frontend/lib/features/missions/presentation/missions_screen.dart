@@ -7,8 +7,10 @@ import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/async/refresh_quietly.dart';
 import '../../../shared/models/app_assets.dart';
 import '../../../shared/widgets/gamification.dart';
+import '../../../shared/widgets/lazy_list_page.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../domain/mission_models.dart';
 import '../domain/mission_status.dart';
@@ -36,7 +38,7 @@ class _MissionsScreenState extends ConsumerState<MissionsScreen> {
         ..invalidate(childMissionsProvider)
         ..invalidate(childNotificationsProvider)
         ..invalidate(taskCategoriesProvider);
-      await _settle(ref.read(childMissionsProvider.future));
+      await refreshQuietly(ref.read(childMissionsProvider.future));
     }
 
     return RefreshIndicator(
@@ -73,95 +75,71 @@ class _MissionsScreenState extends ConsumerState<MissionsScreen> {
         ? missions
         : missions.where((m) => m.categoryId == _categoryFilter).toList();
 
+    Widget card(Mission mission) => MissionCard(
+      key: Key('mission.${mission.id}'),
+      mission: mission,
+      category: byId[mission.categoryId],
+      status: snapshot?.statusOf(mission.id) ?? MissionStatus.notStarted,
+      onOpen: () => context.push(AppRoutes.childMission(mission.id)),
+    );
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final columns = constraints.maxWidth >= 720 ? 2 : 1;
-        return ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            ResponsiveContent(
-              maxWidth: columns == 2 ? ContentWidth.wide : ContentWidth.list,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                spacing: AppSpacing.md,
+        // One list row holds `columns` cards, so the list stays lazy.
+        final rows = (visible.length / columns).ceil();
+        return LazyListPage(
+          maxWidth: columns == 2 ? ContentWidth.wide : ContentWidth.list,
+          header: [
+            if (snapshot != null && !snapshot.reviewsAvailable)
+              InlineNotice(message: l10n.reviewsUnavailable),
+            if (usedCategories.isNotEmpty)
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
                 children: [
-                  if (snapshot != null && !snapshot.reviewsAvailable)
-                    InlineNotice(message: l10n.reviewsUnavailable),
-                  if (usedCategories.isNotEmpty)
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.sm,
-                      children: [
-                        _FilterChip(
-                          label: l10n.missionsFilterAll(missions.length),
-                          selected: _categoryFilter == null,
-                          onTap: () => setState(() => _categoryFilter = null),
-                        ),
-                        for (final category in usedCategories)
-                          _FilterChip(
-                            label: category.name,
-                            selected: _categoryFilter == category.id,
-                            onTap: () =>
-                                setState(() => _categoryFilter = category.id),
-                          ),
-                      ],
-                    ),
-                  if (missions.isEmpty)
-                    EmptyView(message: l10n.missionsEmpty)
-                  else if (visible.isEmpty)
-                    EmptyView(message: l10n.missionsFilterEmpty)
-                  else
-                    _Grid(
-                      columns: columns,
-                      children: [
-                        for (final mission in visible)
-                          MissionCard(
-                            key: Key('mission.${mission.id}'),
-                            mission: mission,
-                            category: byId[mission.categoryId],
-                            status:
-                                snapshot?.statusOf(mission.id) ??
-                                MissionStatus.notStarted,
-                            onOpen: () => context.push(
-                              AppRoutes.childMission(mission.id),
-                            ),
-                          ),
-                      ],
-                    ),
-                  MascotBubble(
-                    image: AppImages.pandaMissions,
-                    title: l10n.pandaSays,
-                    message: l10n.pandaEncourage,
+                  _FilterChip(
+                    label: l10n.missionsFilterAll(missions.length),
+                    selected: _categoryFilter == null,
+                    onTap: () => setState(() => _categoryFilter = null),
                   ),
+                  for (final category in usedCategories)
+                    _FilterChip(
+                      label: category.name,
+                      selected: _categoryFilter == category.id,
+                      onTap: () =>
+                          setState(() => _categoryFilter = category.id),
+                    ),
                 ],
               ),
-            ),
+            if (missions.isEmpty)
+              EmptyView(message: l10n.missionsEmpty)
+            else if (visible.isEmpty)
+              EmptyView(message: l10n.missionsFilterEmpty),
           ],
-        );
-      },
-    );
-  }
-}
-
-class _Grid extends StatelessWidget {
-  const _Grid({required this.columns, required this.children});
-
-  final int columns;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    if (columns == 1) {
-      return Column(spacing: AppSpacing.md, children: children);
-    }
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = (constraints.maxWidth - AppSpacing.md) / 2;
-        return Wrap(
-          spacing: AppSpacing.md,
-          runSpacing: AppSpacing.md,
-          children: [
-            for (final c in children) SizedBox(width: width, child: c),
+          itemCount: rows,
+          itemBuilder: (context, row) {
+            final first = row * columns;
+            if (columns == 1) return card(visible[first]);
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: AppSpacing.md,
+              children: [
+                Expanded(child: card(visible[first])),
+                Expanded(
+                  child: first + 1 < visible.length
+                      ? card(visible[first + 1])
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            );
+          },
+          footer: [
+            MascotBubble(
+              image: AppImages.pandaMissions,
+              title: l10n.pandaSays,
+              message: l10n.pandaEncourage,
+            ),
           ],
         );
       },
@@ -192,15 +170,5 @@ class _FilterChip extends StatelessWidget {
         color: selected ? context.colors.onPrimary : context.colors.onSurface,
       ),
     );
-  }
-}
-
-/// Waits for a refresh to finish. Failures are already shown by the
-/// provider's error state, so they must not escape the RefreshIndicator.
-Future<void> _settle(Future<Object?> refresh) async {
-  try {
-    await refresh;
-  } on Object {
-    // Rendered by the watching widget.
   }
 }

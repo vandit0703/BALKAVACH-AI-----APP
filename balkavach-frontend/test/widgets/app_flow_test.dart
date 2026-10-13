@@ -58,9 +58,16 @@ void main() {
     expect(find.text('Who is using Bal Kavach?'), findsOneWidget);
     expect(h.prefs.acknowledgedConsentVersion, '2026-10-draft');
     expect(
-      h.backend.requests,
+      h.backend.requests.where((r) => r.uri.path != '/api/v1/app-config'),
       isEmpty,
-      reason: 'onboarding is local until a family exists',
+      reason:
+          'onboarding is local until a family exists; only the public '
+          'configuration is fetched',
+    );
+    expect(
+      h.backend.requests.every((r) => !r.headers.containsKey('Authorization')),
+      isTrue,
+      reason: 'the configuration request carries no credentials',
     );
 
     await _tap(tester, find.byKey(const Key('role.child')));
@@ -168,9 +175,13 @@ void main() {
     );
 
     await _tap(tester, find.byKey(const Key('mission.start')));
+    // Photo proof is real now: the child can take or choose a photo, and the
+    // note stays optional.
+    expect(find.byKey(const Key('submit.photo.camera')), findsOneWidget);
+    expect(find.byKey(const Key('submit.photo.gallery')), findsOneWidget);
     expect(
       find.text(
-        'Photo proof isn\'t available yet. Tell your parent what you did instead.',
+        'A photo helps your parent check your mission. You can also just write a note.',
       ),
       findsOneWidget,
     );

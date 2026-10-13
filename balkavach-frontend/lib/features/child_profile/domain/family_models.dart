@@ -99,6 +99,7 @@ class ConsentRecord {
     required this.documentVersion,
     required this.accepted,
     this.childId,
+    this.acceptedAt,
     this.revokedAt,
   });
 
@@ -109,6 +110,9 @@ class ConsentRecord {
     consentType: json['consent_type'] as String,
     documentVersion: json['document_version'] as String,
     accepted: json['accepted'] as bool,
+    acceptedAt: json['accepted_at'] == null
+        ? null
+        : DateTime.parse(json['accepted_at'] as String),
     revokedAt: json['revoked_at'] == null
         ? null
         : DateTime.parse(json['revoked_at'] as String),
@@ -120,6 +124,7 @@ class ConsentRecord {
   final String consentType;
   final String documentVersion;
   final bool accepted;
+  final DateTime? acceptedAt;
   final DateTime? revokedAt;
 
   bool get isActive => accepted && revokedAt == null;

@@ -15,10 +15,23 @@ class Settings(BaseSettings):
 	jwt_secret_key: str | None = Field(default=None, repr=False)
 	jwt_algorithm: str = "HS256"
 	access_token_expire_minutes: int = Field(default=30, ge=1, le=1440)
+	refresh_token_expire_days: int = Field(default=30, ge=1, le=365)
+	child_refresh_token_expire_days: int = Field(default=14, ge=1, le=90)
 	cors_origins: list[str] = Field(default_factory=list)
 	video_playback_provider: str | None = None
 	notification_provider: str | None = None
+	fcm_service_account_json: str | None = Field(default=None, repr=False)
+	fcm_service_account_file: str | None = None
 	allow_schema_migrations: bool = False
+	storage_provider: str = "local"
+	upload_dir: str = "uploads"
+	max_upload_bytes: int = Field(default=5_000_000, ge=1024, le=20_000_000)
+	max_unattached_uploads: int = Field(default=10, ge=1, le=100)
+	s3_bucket: str | None = None
+	s3_endpoint_url: str | None = None
+	s3_region: str | None = None
+	s3_access_key_id: str | None = Field(default=None, repr=False)
+	s3_secret_access_key: str | None = Field(default=None, repr=False)
 	log_level: str = "INFO"
 
 

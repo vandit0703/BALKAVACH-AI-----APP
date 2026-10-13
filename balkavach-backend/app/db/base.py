@@ -50,6 +50,11 @@ MODEL_TABLES = {
 	"UserAdminRole": "user_admin_roles",
 	"AdminRole": "admin_roles",
 	"AuditLog": "audit_logs",
+	"AuthSession": "auth_sessions",
+	"DeviceToken": "device_tokens",
+	"ProofUpload": "proof_uploads",
+	"PresetTask": "preset_tasks",
+	"AppSetting": "app_settings",
 }
 
 _prepare_lock = RLock()

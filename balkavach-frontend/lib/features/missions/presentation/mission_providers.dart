@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/api_exception.dart';
 import '../../../core/storage/app_preferences.dart';
+import '../../../shared/media/photo_picker.dart';
 import '../../authentication/presentation/session_controller.dart';
 import '../data/missions_repository.dart';
 import '../domain/mission_models.dart';
@@ -21,8 +22,10 @@ final taskCategoriesProvider = FutureProvider<List<TaskCategory>>((ref) {
 
 /// Missions visible to the signed-in child.
 final childMissionsProvider = FutureProvider<List<Mission>>((ref) {
-  // Recompute when a different child signs in on this device.
-  ref.watch(activeChildIdProvider);
+  // Recompute when a different child signs in on this device. Without a
+  // child session there is nothing to fetch (and no token to send).
+  final childId = ref.watch(activeChildIdProvider);
+  if (childId == null) return const <Mission>[];
   return ref.watch(missionsRepositoryProvider).listMissions();
 });
 
@@ -84,6 +87,22 @@ class MissionStatusSnapshot {
       statuses[taskId] ?? MissionStatus.notStarted;
 }
 
+/// The child's own attempts as the server records them.
+final mySubmissionsProvider = FutureProvider<List<TaskSubmission>>((ref) {
+  final childId = ref.watch(activeChildIdProvider);
+  if (childId == null) return const <TaskSubmission>[];
+  ref.watch(submissionLogRevisionProvider);
+  return ref.watch(missionsRepositoryProvider).listMySubmissions();
+});
+
+/// Attempts at one mission, newest first.
+final missionAttemptsProvider =
+    FutureProvider.family<List<TaskSubmission>, String>((ref, taskId) async {
+      final all = await ref.watch(mySubmissionsProvider.future);
+      return all.where((s) => s.taskId == taskId).toList()
+        ..sort((a, b) => b.submissionNumber.compareTo(a.submissionNumber));
+    });
+
 final missionStatusesProvider = FutureProvider<MissionStatusSnapshot>((
   ref,
 ) async {
@@ -93,6 +112,16 @@ final missionStatusesProvider = FutureProvider<MissionStatusSnapshot>((
   }
   // Re-read whenever a submission is added (see MissionSubmitController).
   ref.watch(submissionLogRevisionProvider);
+  try {
+    final submissions = await ref.watch(mySubmissionsProvider.future);
+    return MissionStatusSnapshot(
+      statuses: resolveStatusesFromSubmissions(submissions),
+      reviewsAvailable: true,
+    );
+  } on ApiException {
+    // Older server without the endpoint, or offline: fall back to what this
+    // device sent plus the child's review notifications.
+  }
   final records = ref.watch(submissionLogProvider).read(childId);
   try {
     final notifications = await ref.watch(childNotificationsProvider.future);
@@ -131,7 +160,19 @@ class MissionSubmitController extends AsyncNotifier<TaskSubmission?> {
   @override
   TaskSubmission? build() => null;
 
-  Future<TaskSubmission?> submit(String taskId, {String? note}) async {
+  /// An uploaded photo that has not been attached to a mission yet. Kept so a
+  /// retry after a failed submit does not upload the same photo again.
+  String? _uploadedPhotoId;
+  PickedPhoto? _uploadedPhoto;
+
+  Future<TaskSubmission?> submit(
+    String taskId, {
+    String? note,
+    PickedPhoto? photo,
+  }) async {
+    // A second tap while the first request is in flight must not create a
+    // second submission.
+    if (state.isLoading) return null;
     final childId = ref.read(activeChildIdProvider);
     if (childId == null) {
       state = const AsyncError(
@@ -141,11 +182,25 @@ class MissionSubmitController extends AsyncNotifier<TaskSubmission?> {
       return null;
     }
     state = const AsyncLoading();
-    final result = await AsyncValue.guard(
-      () => ref
-          .read(missionsRepositoryProvider)
-          .submitMission(taskId, note: note),
-    );
+    final result = await AsyncValue.guard(() async {
+      final repository = ref.read(missionsRepositoryProvider);
+      String? uploadId;
+      if (photo != null) {
+        if (!identical(photo, _uploadedPhoto) || _uploadedPhotoId == null) {
+          _uploadedPhotoId = await repository.uploadProof(photo);
+          _uploadedPhoto = photo;
+        }
+        uploadId = _uploadedPhotoId;
+      }
+      final submission = await repository.submitMission(
+        taskId,
+        note: note,
+        uploadId: uploadId,
+      );
+      _uploadedPhotoId = null;
+      _uploadedPhoto = null;
+      return submission;
+    });
     if (!ref.mounted) return result.value;
     final submission = result.value;
     if (submission != null) {
@@ -172,4 +227,15 @@ final childMissionProvider = FutureProvider.family<Mission?, String>((
 ) async {
   final missions = await ref.watch(childMissionsProvider.future);
   return missions.where((m) => m.id == taskId).firstOrNull;
+});
+
+/// Mission ideas for the create-mission form. Failing to load them never
+/// blocks creating a mission by hand.
+final missionPresetsProvider = FutureProvider<List<MissionPreset>>((ref) async {
+  ref.watch(sessionUserIdProvider);
+  try {
+    return await ref.watch(missionsRepositoryProvider).listPresets();
+  } on ApiException {
+    return const [];
+  }
 });

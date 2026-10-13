@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.db.base import get_model
 from app.db.session import get_db
+from app.core.permissions import expand_permissions
 from app.core.security import decode_access_token
+from app.services.session_service import is_session_revoked
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -22,6 +24,10 @@ def get_current_user(
 		user_id = UUID(payload["sub"])
 	except (KeyError, TypeError, ValueError) as error:
 		raise HTTPException(status_code=401, detail="Invalid access token") from error
+
+	sid = payload.get("sid")
+	if sid is not None and is_session_revoked(session, sid):
+		raise HTTPException(status_code=401, detail="Session has ended", headers={"WWW-Authenticate": "Bearer"})
 
 	User = get_model("User")
 	user = session.query(User).filter(User.id == user_id, User.is_active.is_(True)).one_or_none()
@@ -73,10 +79,7 @@ def require_admin_permission(permission: str):
 		)
 		granted: set[str] = set()
 		for (permissions,) in assignments:
-			if isinstance(permissions, dict):
-				granted.update(key for key, enabled in permissions.items() if enabled is True)
-			elif isinstance(permissions, list):
-				granted.update(item for item in permissions if isinstance(item, str))
+			granted |= expand_permissions(permissions)
 		if permission not in granted and "*" not in granted:
 			raise HTTPException(status_code=403, detail="Required administrator permission is missing")
 		return user

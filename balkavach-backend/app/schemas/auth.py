@@ -29,4 +29,10 @@ class TokenResponse(BaseModel):
 	access_token: str
 	token_type: str = "bearer"
 	expires_at: datetime
+	refresh_token: str | None = None
+	refresh_expires_at: datetime | None = None
 	user: UserPublic
+
+
+class RefreshRequest(BaseModel):
+	refresh_token: str = Field(min_length=20, max_length=200)

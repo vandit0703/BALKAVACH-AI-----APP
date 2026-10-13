@@ -26,7 +26,10 @@ Dio createApiDio({
       headers: const {'Accept': 'application/json'},
     ),
   );
-  dio.interceptors.addAll([AuthInterceptor(tokens), RedactingLogInterceptor()]);
+  dio.interceptors.addAll([
+    AuthInterceptor(tokens, retryClient: dio),
+    RedactingLogInterceptor(),
+  ]);
   return dio;
 }
 

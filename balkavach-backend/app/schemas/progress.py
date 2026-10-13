@@ -25,6 +25,19 @@ class BadgePublic(BaseModel):
 		return utc_aware(value)
 
 
+class GardenItemPublic(BaseModel):
+	key: str
+	badge: str
+	unlocked: bool
+
+
+class GardenPublic(BaseModel):
+	stage: int
+	stage_key: str
+	xp_to_next_stage: int | None
+	items: list[GardenItemPublic]
+
+
 class ProgressPublic(BaseModel):
 	child_id: UUID
 	star_balance: int
@@ -35,3 +48,45 @@ class ProgressPublic(BaseModel):
 	longest_streak: int
 	activity_days: list[ActivityDayPublic]
 	badges: list[BadgePublic]
+	garden: GardenPublic | None = None
+
+
+class ReportTotals(BaseModel):
+	completed_tasks: int
+	stars_earned: int
+	xp_earned: int
+
+
+class ReportDay(ReportTotals):
+	date: date
+
+
+class ReportCategory(ReportTotals):
+	category_id: UUID | None
+	name: str
+
+
+class ReportRecentItem(BaseModel):
+	title: str
+	reviewed_at: datetime
+	stars_earned: int
+	xp_earned: int
+
+	@field_serializer("reviewed_at")
+	def serialize_reviewed_at(self, value: datetime) -> datetime:
+		return utc_aware(value)
+
+
+class WeeklyReportPublic(BaseModel):
+	child_id: UUID
+	timezone: str
+	period_start: date
+	period_end: date
+	totals: ReportTotals
+	days: list[ReportDay]
+	categories: list[ReportCategory]
+	pending_submissions: int
+	rejected_submissions: int
+	current_streak: int
+	longest_streak: int
+	recent_approved: list[ReportRecentItem]

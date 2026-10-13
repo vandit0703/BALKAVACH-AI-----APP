@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
 from app.utils import utc_aware
 
@@ -14,6 +14,8 @@ class UserSettingsUpdate(BaseModel):
 
 
 class UserSettingsPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     user_id: UUID
     language_code: str
     push_enabled: bool
@@ -31,8 +33,19 @@ class FamilySettingsUpdate(BaseModel):
     reward_settings: dict[str, Any] | None = Field(default=None, max_length=100)
     video_settings: dict[str, Any] | None = Field(default=None, max_length=100)
 
+    @field_validator("mission_settings")
+    @classmethod
+    def validate_timezone(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
+        from app.services.timezone_service import TIMEZONE_SETTING_KEY, parse_timezone
+
+        if value and TIMEZONE_SETTING_KEY in value:
+            parse_timezone(value[TIMEZONE_SETTING_KEY])
+        return value
+
 
 class FamilySettingsPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     family_id: UUID
     default_language: str
     mission_settings: dict[str, Any]

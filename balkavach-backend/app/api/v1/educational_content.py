@@ -31,6 +31,18 @@ def _has_active_entitlement(session: Session, child_id: UUID, content) -> bool:
     return False
 
 
+def _may_expose_url(item) -> bool:
+    """A URL is shown unless playback must be authorised by the server.
+
+    Hosted videos (a video/collection row) and entitlement-gated content go through
+    the playback-session API. An admin-curated external link (for example a YouTube
+    URL with no hosted video behind it) is just a link, so the child gets it.
+    """
+    if item.requires_entitlement:
+        return False
+    return not (item.video_id or item.collection_id)
+
+
 @router.get("", response_model=list[EducationalContentPublic])
 def list_educational_content(
     limit: int = Query(default=30, ge=1, le=100),
@@ -67,7 +79,7 @@ def list_educational_content(
                 content_type=item.content_type,
                 category_id=item.category_id,
                 language_code=item.language_code,
-                content_url=item.content_url if not item.requires_entitlement and item.content_type != "video" else None,
+                content_url=item.content_url if _may_expose_url(item) else None,
                 thumbnail_url=item.thumbnail_url,
                 video_id=item.video_id,
                 collection_id=item.collection_id,

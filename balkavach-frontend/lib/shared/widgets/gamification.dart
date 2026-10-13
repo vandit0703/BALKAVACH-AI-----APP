@@ -5,10 +5,18 @@ import '../../core/theme/app_spacing.dart';
 
 /// Gold capsule with a star and a count ("⭐ 10").
 class StarPill extends StatelessWidget {
-  const StarPill({required this.count, this.prefix = '', super.key});
+  const StarPill({
+    required this.count,
+    this.prefix = '',
+    this.label,
+    super.key,
+  });
 
   final int count;
   final String prefix;
+
+  /// Replaces the "`prefix``count`" text, e.g. "240 Available Stars".
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +35,7 @@ class StarPill extends StatelessWidget {
             const SizedBox(width: 4),
             Flexible(
               child: Text(
-                '$prefix$count',
+                label ?? '$prefix$count',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: context.text.labelLarge?.copyWith(

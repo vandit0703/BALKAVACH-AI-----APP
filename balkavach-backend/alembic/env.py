@@ -32,6 +32,8 @@ def run_migrations_online() -> None:
 	)
 	with connectable.connect() as connection:
 		prepare_models(connection)
+		# Reflection autobegins a transaction; end it so Alembic owns (and commits) its own.
+		connection.commit()
 		context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
 		with context.begin_transaction():
 			context.run_migrations()

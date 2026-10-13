@@ -121,6 +121,7 @@ class _Body extends ConsumerWidget {
           ),
         ),
         ?missionStatusChip(context, status),
+        _AttemptHistory(taskId: mission.id),
         PrimaryButton(
           key: const Key('mission.start'),
           label: switch (status) {
@@ -169,8 +170,14 @@ class _Hero extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Color(0x00041B3C), Color(0xB3041B3C)],
-                    stops: [0.3, 1],
+                    // Dark enough behind the whole title block, however many
+                    // lines it wraps to (WCAG contrast for white text).
+                    colors: [
+                      Color(0x00041B3C),
+                      Color(0xB3041B3C),
+                      Color(0xEB041B3C),
+                    ],
+                    stops: [0.1, 0.45, 1],
                   ),
                 ),
               ),
@@ -216,6 +223,75 @@ class _Hero extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The child's earlier tries at this mission, with the parent's notes.
+class _AttemptHistory extends ConsumerWidget {
+  const _AttemptHistory({required this.taskId});
+
+  final String taskId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final attempts = ref.watch(missionAttemptsProvider(taskId)).value;
+    if (attempts == null || attempts.isEmpty) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    return AppCard(
+      key: const Key('mission.history'),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: AppSpacing.md,
+        children: [
+          Text(l10n.historyTitle, style: context.text.headlineSmall),
+          for (final attempt in attempts)
+            MergeSemantics(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: AppSpacing.xs,
+                children: [
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.xs,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        l10n.historyAttempt(attempt.submissionNumber),
+                        style: context.text.titleSmall,
+                      ),
+                      EyebrowPill(
+                        label: switch (MissionStatus.fromSubmissionStatus(
+                          attempt.status,
+                        )) {
+                          MissionStatus.approved => l10n.statusApprovedShort,
+                          MissionStatus.rejected => l10n.statusRejectedShort,
+                          MissionStatus.resubmissionRequested =>
+                            l10n.statusResubmitShort,
+                          _ => l10n.statusPendingShort,
+                        },
+                      ),
+                      Text(
+                        DateFormat.MMMd(
+                          locale,
+                        ).add_jm().format(attempt.submittedAt.toLocal()),
+                        style: context.text.bodySmall,
+                      ),
+                    ],
+                  ),
+                  if (attempt.reviewNote != null &&
+                      attempt.reviewNote!.trim().isNotEmpty)
+                    Text(
+                      '${l10n.historyParentNote}: ${attempt.reviewNote!.trim()}',
+                      style: context.text.bodyMedium,
+                    ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

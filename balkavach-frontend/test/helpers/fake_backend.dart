@@ -76,7 +76,7 @@ Dio createTestDio(FakeBackend backend, AccessTokenStore tokens) {
   final dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
   dio.httpClientAdapter = backend;
   dio.interceptors.addAll([
-    AuthInterceptor(tokens),
+    AuthInterceptor(tokens, retryClient: dio),
     RedactingLogInterceptor(sink: (_) {}),
   ]);
   return dio;

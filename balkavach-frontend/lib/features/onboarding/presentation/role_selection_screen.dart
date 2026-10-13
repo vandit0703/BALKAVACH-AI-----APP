@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/responsive/breakpoints.dart';
@@ -10,15 +11,19 @@ import '../../../shared/models/app_assets.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/brand_header.dart';
 import '../../../shared/widgets/buttons.dart';
+import '../../../shared/widgets/state_views.dart';
+import '../../authentication/presentation/session_controller.dart';
 
 /// Not in the Stitch export; composed from its components. A child cannot sign
 /// in directly: the backend issues child sessions only to a signed-in parent.
-class RoleSelectionScreen extends StatelessWidget {
+class RoleSelectionScreen extends ConsumerWidget {
   const RoleSelectionScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final sessionEnded = ref.watch(sessionEndedProvider);
+    void dismiss() => ref.read(sessionEndedProvider.notifier).clear();
     final wide = !WindowSize.of(context).isCompact;
     final cards = [
       _RoleCard(
@@ -28,7 +33,10 @@ class RoleSelectionScreen extends StatelessWidget {
         iconColor: context.colors.primary,
         title: l10n.roleParent,
         body: l10n.roleParentBody,
-        onTap: () => context.go(AppRoutes.parentAuth),
+        onTap: () {
+          dismiss();
+          context.go(AppRoutes.parentAuth);
+        },
       ),
       _RoleCard(
         key: const Key('role.child'),
@@ -37,7 +45,10 @@ class RoleSelectionScreen extends StatelessWidget {
         iconColor: context.colors.onSecondaryContainer,
         title: l10n.roleChild,
         body: l10n.roleChildBody,
-        onTap: () => context.go(AppRoutes.childStart),
+        onTap: () {
+          dismiss();
+          context.go(AppRoutes.childStart);
+        },
       ),
     ];
 
@@ -51,6 +62,15 @@ class RoleSelectionScreen extends StatelessWidget {
               spacing: AppSpacing.md,
               children: [
                 const BrandWordmark(),
+                if (sessionEnded)
+                  Semantics(
+                    liveRegion: true,
+                    child: InlineNotice(
+                      key: const Key('role.sessionEnded'),
+                      icon: Icons.lock_clock_rounded,
+                      message: l10n.errorSessionExpired,
+                    ),
+                  ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(l10n.roleTitle, style: context.text.headlineMedium),
                 Text(

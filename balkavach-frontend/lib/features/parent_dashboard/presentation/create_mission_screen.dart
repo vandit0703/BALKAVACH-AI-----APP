@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/errors/api_exception.dart';
 import '../../../core/responsive/breakpoints.dart';
@@ -17,10 +18,15 @@ import '../../missions/data/missions_repository.dart';
 import '../../missions/domain/mission_models.dart';
 import '../../missions/presentation/mission_providers.dart';
 
-/// Parent creates a mission via `POST /api/v1/tasks`. Due dates and repeat
-/// rules exist in the API but are left for the parent-dashboard slice.
+/// Parent creates a mission (`POST /api/v1/tasks`) or, when [mission] is
+/// given, edits it (`PATCH /api/v1/tasks/{id}`) or removes it
+/// (`DELETE /api/v1/tasks/{id}`, which only deactivates it).
+///
+/// Repeat rules exist in the API but are not part of any Stitch design.
 class CreateMissionScreen extends ConsumerStatefulWidget {
-  const CreateMissionScreen({super.key});
+  const CreateMissionScreen({this.mission, super.key});
+
+  final Mission? mission;
 
   @override
   ConsumerState<CreateMissionScreen> createState() =>
@@ -29,13 +35,23 @@ class CreateMissionScreen extends ConsumerStatefulWidget {
 
 class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _title = TextEditingController();
-  final _description = TextEditingController();
-  final _stars = TextEditingController(text: '10');
-  final _xp = TextEditingController(text: '20');
-  String? _categoryId;
-  String? _childId;
+  late final _title = TextEditingController(text: widget.mission?.title);
+  late final _description = TextEditingController(
+    text: widget.mission?.description,
+  );
+  late final _stars = TextEditingController(
+    text: '${widget.mission?.starReward ?? 10}',
+  );
+  late final _xp = TextEditingController(
+    text: '${widget.mission?.xpReward ?? 20}',
+  );
+  late String? _categoryId = widget.mission?.categoryId;
+  late String? _childId = widget.mission?.assignedChildId;
+  late DateTime? _dueAt = widget.mission?.dueAt?.toLocal();
   bool _busy = false;
+  bool _removing = false;
+
+  bool get _editing => widget.mission != null;
 
   @override
   void dispose() {
@@ -46,7 +62,82 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
     super.dispose();
   }
 
+  Future<void> _chooseIdea() async {
+    final l10n = AppLocalizations.of(context);
+    final presets = ref.read(missionPresetsProvider.future);
+    final chosen = await showModalBottomSheet<MissionPreset>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => FutureBuilder<List<MissionPreset>>(
+        future: presets,
+        builder: (context, snapshot) {
+          final items = snapshot.data;
+          return SafeArea(
+            child: items == null
+                ? const Padding(
+                    padding: EdgeInsets.all(AppSpacing.xl),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : ListView(
+                    shrinkWrap: true,
+                    children: [
+                      ListTile(
+                        title: Text(
+                          l10n.createMissionIdeasTitle,
+                          style: context.text.titleLarge,
+                        ),
+                        subtitle: Text(l10n.createMissionIdeasHint),
+                      ),
+                      if (items.isEmpty)
+                        ListTile(title: Text(l10n.createMissionIdeasEmpty)),
+                      for (final preset in items)
+                        ListTile(
+                          key: Key('idea.${preset.id}'),
+                          title: Text(preset.title),
+                          subtitle: Text(
+                            [
+                              ?preset.categoryName,
+                              '${preset.suggestedStars} ★ · ${preset.suggestedXp} XP',
+                            ].join(' · '),
+                          ),
+                          onTap: () => Navigator.pop(context, preset),
+                        ),
+                    ],
+                  ),
+          );
+        },
+      ),
+    );
+    if (chosen == null || !mounted) return;
+    setState(() {
+      _title.text = chosen.title;
+      _description.text = chosen.description ?? '';
+      _stars.text = '${chosen.suggestedStars}';
+      _xp.text = '${chosen.suggestedXp}';
+      _categoryId = chosen.categoryId;
+    });
+  }
+
+  Future<void> _pickDue() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dueAt ?? now,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 2, now.month, now.day),
+    );
+    // A date, not a time: missions are due by the end of that day.
+    if (picked != null) {
+      setState(
+        () => _dueAt = DateTime(picked.year, picked.month, picked.day, 23, 59),
+      );
+    }
+  }
+
   Future<void> _submit() async {
+    if (_busy || _removing) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _busy = true);
     try {
@@ -55,24 +146,32 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
       if (family == null) {
         throw const NotFoundException(message: 'Family not found');
       }
-      await ref
-          .read(missionsRepositoryProvider)
-          .createMission(
-            NewMission(
-              familyId: family.id,
-              title: _title.text,
-              description: _description.text,
-              categoryId: _categoryId,
-              assignedChildId: _childId,
-              starReward: int.tryParse(_stars.text.trim()) ?? 0,
-              xpReward: int.tryParse(_xp.text.trim()) ?? 0,
-            ),
-          );
-      ref.invalidate(familyMissionsProvider(family.id));
+      final input = NewMission(
+        familyId: family.id,
+        title: _title.text,
+        description: _description.text,
+        categoryId: _categoryId,
+        assignedChildId: _childId,
+        starReward: int.tryParse(_stars.text.trim()) ?? 0,
+        xpReward: int.tryParse(_xp.text.trim()) ?? 0,
+        dueAt: _dueAt,
+      );
+      final repository = ref.read(missionsRepositoryProvider);
+      if (_editing) {
+        await repository.updateMission(widget.mission!.id, input);
+      } else {
+        await repository.createMission(input);
+      }
+      ref
+        ..invalidate(familyMissionsProvider(family.id))
+        ..invalidate(childMissionsProvider);
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).createMissionSuccess),
+          content: Text(
+            _editing ? l10n.missionSaved : l10n.createMissionSuccess,
+          ),
         ),
       );
       await Navigator.maybePop(context);
@@ -80,6 +179,52 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
       if (mounted) showErrorSnackBar(context, error);
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _remove() async {
+    final mission = widget.mission;
+    if (mission == null || _busy || _removing) return;
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded),
+        title: Text(l10n.removeMissionConfirmTitle),
+        content: Text(l10n.removeMissionConfirmBody(mission.title)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            key: const Key('mission.remove.confirm'),
+            style: FilledButton.styleFrom(
+              backgroundColor: context.colors.error,
+              foregroundColor: context.colors.onError,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.removeMissionConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _removing = true);
+    try {
+      await ref.read(missionsRepositoryProvider).deactivateMission(mission.id);
+      ref
+        ..invalidate(familyMissionsProvider(mission.familyId))
+        ..invalidate(childMissionsProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.removeMissionDone)));
+      await Navigator.maybePop(context);
+    } on ApiException catch (error) {
+      if (mounted) showErrorSnackBar(context, error);
+    } finally {
+      if (mounted) setState(() => _removing = false);
     }
   }
 
@@ -94,15 +239,26 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
         : ref.watch(familyChildrenProvider(family.id)).value ??
               const <ChildProfile>[];
     final digitsOnly = [FilteringTextInputFormatter.digitsOnly];
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    final busy = _busy || _removing;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.createMissionTitle)),
+      appBar: AppBar(
+        title: Text(_editing ? l10n.editMissionTitle : l10n.createMissionTitle),
+      ),
       body: Form(
         key: _formKey,
         child: ScrollablePage(
           maxWidth: ContentWidth.form,
           spacing: AppSpacing.lg,
           children: [
+            if (!_editing)
+              SecondaryButton(
+                key: const Key('mission.ideas'),
+                label: l10n.createMissionIdeas,
+                icon: Icons.lightbulb_outline_rounded,
+                onPressed: busy ? null : _chooseIdea,
+              ),
             AppTextField(
               fieldKey: const Key('mission.title'),
               label: l10n.createMissionName,
@@ -122,8 +278,12 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
               minLines: 3,
             ),
             _Dropdown<String?>(
+              // New key once the list loads, so the saved value shows.
+              key: ValueKey('category-${categories.length}'),
               label: l10n.createMissionCategory,
-              value: _categoryId,
+              value: categories.any((c) => c.id == _categoryId)
+                  ? _categoryId
+                  : null,
               items: {
                 null: l10n.createMissionNoCategory,
                 for (final c in categories) c.id: c.name,
@@ -131,13 +291,59 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
               onChanged: (v) => setState(() => _categoryId = v),
             ),
             _Dropdown<String?>(
+              key: ValueKey('assignee-${children.length}'),
               label: l10n.createMissionAssign,
-              value: _childId,
+              value: children.any((c) => c.id == _childId) ? _childId : null,
               items: {
                 null: l10n.missionForEveryone,
                 for (final c in children) c.id: c.displayName,
               },
               onChanged: (v) => setState(() => _childId = v),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: AppSpacing.sm,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.createMissionDue,
+                        style: context.text.titleSmall,
+                      ),
+                    ),
+                    Text(
+                      l10n.optional,
+                      style: context.text.labelMedium?.copyWith(
+                        color: context.colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    SecondaryButton(
+                      key: const Key('mission.due'),
+                      icon: Icons.event_rounded,
+                      label: _dueAt == null
+                          ? l10n.createMissionDuePick
+                          : DateFormat.yMMMd(locale).format(_dueAt!),
+                      onPressed: busy ? null : _pickDue,
+                    ),
+                    if (_dueAt != null)
+                      TextButton(
+                        key: const Key('mission.due.clear'),
+                        onPressed: busy
+                            ? null
+                            : () => setState(() => _dueAt = null),
+                        child: Text(l10n.createMissionDueClear),
+                      ),
+                  ],
+                ),
+              ],
             ),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,15 +375,83 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
             ),
             PrimaryButton(
               key: const Key('mission.submit'),
-              label: l10n.createMissionSubmit,
-              icon: Icons.add_task_rounded,
+              label: _editing ? l10n.saveChanges : l10n.createMissionSubmit,
+              icon: _editing ? Icons.check_rounded : Icons.add_task_rounded,
               loading: _busy,
-              onPressed: family == null ? null : _submit,
+              onPressed: family == null || _removing ? null : _submit,
             ),
+            if (_editing)
+              TextButton.icon(
+                key: const Key('mission.remove'),
+                style: TextButton.styleFrom(
+                  foregroundColor: context.colors.error,
+                  minimumSize: const Size.fromHeight(AppTouch.parentMin),
+                ),
+                onPressed: busy ? null : _remove,
+                icon: _removing
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.delete_outline_rounded),
+                label: Text(l10n.removeMissionButton),
+              ),
           ],
         ),
       ),
     );
+  }
+}
+
+/// Route target for `/parent/missions/:taskId/edit`: finds the mission among
+/// the family's missions, then shows the form. A mission that no longer
+/// exists (removed elsewhere) shows a message instead of an empty form.
+class EditMissionScreen extends ConsumerWidget {
+  const EditMissionScreen({required this.taskId, super.key});
+
+  final String taskId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final family = ref.watch(currentFamilyProvider);
+    Widget scaffold(Widget body) => Scaffold(
+      appBar: AppBar(title: Text(l10n.editMissionTitle)),
+      body: body,
+    );
+
+    return switch (family) {
+      AsyncData(value: final f?) => switch (ref.watch(
+        familyMissionsProvider(f.id),
+      )) {
+        AsyncData(:final value) => switch (value
+            .where((m) => m.id == taskId)
+            .firstOrNull) {
+          final Mission mission => CreateMissionScreen(
+            key: ValueKey(mission.id),
+            mission: mission,
+          ),
+          null => scaffold(
+            Center(child: EmptyView(message: l10n.missionNotFound)),
+          ),
+        },
+        AsyncError(:final error) => scaffold(
+          ErrorView(
+            error: error,
+            onRetry: () => ref.invalidate(familyMissionsProvider(f.id)),
+          ),
+        ),
+        _ => scaffold(const LoadingView()),
+      },
+      AsyncData() => scaffold(EmptyView(message: l10n.familyMissing)),
+      AsyncError(:final error) => scaffold(
+        ErrorView(
+          error: error,
+          onRetry: () => ref.invalidate(currentFamilyProvider),
+        ),
+      ),
+      _ => scaffold(const LoadingView()),
+    };
   }
 }
 
@@ -187,6 +461,7 @@ class _Dropdown<T> extends StatelessWidget {
     required this.value,
     required this.items,
     required this.onChanged,
+    super.key,
   });
 
   final String label;

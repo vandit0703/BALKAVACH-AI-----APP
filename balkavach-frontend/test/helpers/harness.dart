@@ -4,6 +4,7 @@ import 'package:balkavach_app/core/storage/app_preferences.dart';
 import 'package:balkavach_app/core/theme/app_theme.dart';
 import 'package:balkavach_app/features/authentication/data/session_storage.dart';
 import 'package:balkavach_app/features/authentication/domain/session.dart';
+import 'package:balkavach_app/features/authentication/presentation/session_controller.dart';
 import 'package:balkavach_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -64,6 +65,7 @@ class Harness {
   final InMemorySessionStorage storage;
 
   List<Override> get overrides => [
+    clockProvider.overrideWithValue(() => Fx.now),
     appPreferencesProvider.overrideWithValue(prefs),
     sessionStorageProvider.overrideWithValue(storage),
     apiDioProvider.overrideWith(

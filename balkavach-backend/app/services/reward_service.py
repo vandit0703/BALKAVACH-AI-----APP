@@ -8,8 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import APIError
 from app.db.base import get_model
-from app.schemas.reward import RewardCreate, RedemptionReview
+from app.schemas.reward import RewardCreate, RewardUpdate, RedemptionReview
 from app.services.ledger_service import star_balance
+from app.services.notification_service import create_notification, family_parent_ids
 from app.utils import utc_naive
 
 
@@ -72,6 +73,27 @@ def create_reward(session: Session, parent, request: RewardCreate):
 	return reward
 
 
+def update_reward(session: Session, parent, reward_id: UUID, request: RewardUpdate):
+	Reward = get_model("Reward")
+	reward = session.query(Reward).filter(Reward.id == reward_id).with_for_update().one_or_none()
+	if reward is None:
+		raise HTTPException(status_code=404, detail="Reward not found")
+	_family_membership(session, reward.family_id, parent.id)
+	updates = request.model_dump(exclude_unset=True)
+	for required in ("name", "star_cost", "is_active"):
+		if required in updates and updates[required] is None:
+			raise APIError(422, "invalid_reward", f"{required} cannot be cleared")
+	if "name" in updates:
+		updates["name"] = updates["name"].strip()
+	if "image_url" in updates:
+		updates["image_url"] = str(updates["image_url"]) if updates["image_url"] else None
+	for field, value in updates.items():
+		setattr(reward, field, value)
+	session.commit()
+	session.refresh(reward)
+	return reward
+
+
 def request_redemption(session: Session, child, reward_id: UUID, idempotency_key: str):
 	ChildProfile = get_model("ChildProfile")
 	locked_child = session.query(ChildProfile).filter(
@@ -105,8 +127,14 @@ def request_redemption(session: Session, child, reward_id: UUID, idempotency_key
 		).scalar()
 		if used >= reward.max_uses:
 			raise APIError(409, "reward_unavailable", "This reward is no longer available")
-	balance = star_balance(session, child.id)
-	if balance < reward.star_cost:
+	pending = session.query(RedemptionRequest.reward_id, RedemptionRequest.star_cost_at_request).filter(
+		RedemptionRequest.child_id == child.id,
+		RedemptionRequest.status == "pending",
+	).all()
+	if any(pending_reward_id == reward.id for pending_reward_id, _ in pending):
+		raise APIError(409, "redemption_pending", "This reward has already been requested")
+	available = star_balance(session, child.id) - sum(cost for _, cost in pending)
+	if available < reward.star_cost:
 		raise APIError(409, "insufficient_stars", "There are not enough stars for this reward")
 
 	redemption = RedemptionRequest(
@@ -119,6 +147,16 @@ def request_redemption(session: Session, child, reward_id: UUID, idempotency_key
 	)
 	session.add(redemption)
 	try:
+		session.flush()
+		for parent_id in family_parent_ids(session, child.family_id):
+			create_notification(
+				session,
+				parent_id,
+				"reward_requested",
+				"Reward requested",
+				f"{child.display_name} asked for {reward.name}.",
+				redemption_id=redemption.id,
+			)
 		session.commit()
 		session.refresh(redemption)
 	except IntegrityError:
@@ -280,15 +318,4 @@ def cancel_redemption(session: Session, redemption_id: UUID, actor, parent_actio
 
 
 def _notify(session: Session, recipient_id, notification_type: str, title: str, message: str, redemption_id, now) -> None:
-	Notification = get_model("Notification")
-	session.add(
-		Notification(
-			recipient_user_id=recipient_id,
-			notification_type=notification_type,
-			title=title,
-			message=message,
-			related_redemption_id=redemption_id,
-			is_read=False,
-			created_at=now,
-		)
-	)
+	create_notification(session, recipient_id, notification_type, title, message, redemption_id=redemption_id, now=now)

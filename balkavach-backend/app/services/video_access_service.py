@@ -17,6 +17,14 @@ MAX_HEARTBEAT_ELAPSED_SECONDS = 30
 PLAYBACK_URL_TTL_SECONDS = 60
 
 
+def _naive(value: datetime | None) -> datetime | None:
+	"""Timestamps loaded from PostgreSQL (timestamptz) are timezone-aware, while this
+	module computes with naive UTC "now" values; comparing the two raises TypeError."""
+	if value is None or value.tzinfo is None:
+		return value
+	return utc_naive(value)
+
+
 def accepted_heartbeat_seconds(previous: datetime, now: datetime, remaining: int) -> int:
 	elapsed = (now - previous).total_seconds()
 	if elapsed < 0:
@@ -46,7 +54,7 @@ def _matches_entitlement(session: Session, entitlement, video_id: UUID) -> bool:
 def _issue_url(provider, video, session_id: UUID, now: datetime, remaining: int, entitlement_expires_at):
 	expires_at = now + timedelta(seconds=min(PLAYBACK_URL_TTL_SECONDS, remaining))
 	if entitlement_expires_at is not None:
-		expires_at = min(expires_at, entitlement_expires_at)
+		expires_at = min(expires_at, _naive(entitlement_expires_at))
 	try:
 		return provider.issue_playback_url(video, session_id, utc_aware(expires_at))
 	except Exception as error:
@@ -97,9 +105,9 @@ def start_playback(session: Session, child, request: PlaybackStartRequest) -> Pl
 		).with_for_update().one_or_none()
 		if entitlement is None or entitlement.status != "active":
 			raise APIError(403, "entitlement_unavailable", "Video access is no longer available")
-		if entitlement.valid_from > now:
+		if _naive(entitlement.valid_from) > now:
 			raise APIError(403, "entitlement_unavailable", "Video access is not valid yet")
-		if entitlement.expires_at is not None and entitlement.expires_at <= now:
+		if entitlement.expires_at is not None and _naive(entitlement.expires_at) <= now:
 			entitlement.status = "expired"
 			active_session.status = "expired"
 			active_session.ended_at = now
@@ -191,7 +199,7 @@ def record_heartbeat(session: Session, child, session_id: UUID) -> PlaybackHeart
 		watch.ended_at = now
 		session.commit()
 		raise HTTPException(status_code=403, detail="Video entitlement is no longer active")
-	if entitlement.expires_at is not None and entitlement.expires_at <= now:
+	if entitlement.expires_at is not None and _naive(entitlement.expires_at) <= now:
 		entitlement.status = "expired"
 		watch.status = "expired"
 		watch.ended_at = now
@@ -207,7 +215,7 @@ def record_heartbeat(session: Session, child, session_id: UUID) -> PlaybackHeart
 		_revoke_provider_playback(session_id)
 		raise HTTPException(status_code=403, detail="Video is no longer published")
 
-	previous_heartbeat = watch.last_heartbeat_at or watch.started_at
+	previous_heartbeat = _naive(watch.last_heartbeat_at or watch.started_at)
 	remaining = entitlement.granted_seconds - entitlement.consumed_seconds
 	accepted = accepted_heartbeat_seconds(previous_heartbeat, now, remaining)
 	entitlement.consumed_seconds += accepted

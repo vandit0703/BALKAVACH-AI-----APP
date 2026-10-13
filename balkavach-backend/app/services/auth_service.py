@@ -4,9 +4,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import APIError
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.security import hash_password, verify_password
 from app.db.base import get_model
-from app.schemas.auth import LoginRequest, RegistrationRequest, TokenResponse, UserPublic
+from app.schemas.auth import LoginRequest, RegistrationRequest, TokenResponse
+from app.services.session_service import start_session
 
 
 def register_parent(session: Session, request: RegistrationRequest) -> TokenResponse:
@@ -26,12 +27,12 @@ def register_parent(session: Session, request: RegistrationRequest) -> TokenResp
 	session.add(user)
 	try:
 		session.flush()
-		token, expires_at = create_access_token(str(user.id))
+		response = start_session(session, user)
 		session.commit()
 	except IntegrityError as error:
 		session.rollback()
 		raise APIError(409, "account_conflict", "An account with these details already exists") from error
-	return TokenResponse(access_token=token, expires_at=expires_at, user=UserPublic.model_validate(user))
+	return response
 
 
 def authenticate_user(session: Session, request: LoginRequest) -> TokenResponse:
@@ -41,7 +42,7 @@ def authenticate_user(session: Session, request: LoginRequest) -> TokenResponse:
 	if user is None or not user.password_hash or not verify_password(request.password, user.password_hash):
 		raise APIError(401, "invalid_credentials", "Email or password is incorrect")
 
-	token, expires_at = create_access_token(str(user.id))
 	user.last_login_at = datetime.now(timezone.utc).replace(tzinfo=None)
+	response = start_session(session, user)
 	session.commit()
-	return TokenResponse(access_token=token, expires_at=expires_at, user=UserPublic.model_validate(user))
+	return response

@@ -236,6 +236,27 @@ class _LanguageTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final foreground = selected ? colors.onPrimary : colors.onSurface;
+    void select() =>
+        RadioGroup.maybeOf<String>(context)?.onChanged(option.code);
+    // One labelled, checkable node per language: a screen reader announces
+    // "ગુજરાતી, Gujarati, selected" instead of an unnamed radio button.
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      inMutuallyExclusiveGroup: true,
+      checked: selected,
+      label: '${option.name}. ${option.subtitle}',
+      onTap: select,
+      child: _tile(context, colors, foreground, select),
+    );
+  }
+
+  Widget _tile(
+    BuildContext context,
+    ColorScheme colors,
+    Color foreground,
+    VoidCallback select,
+  ) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       decoration: BoxDecoration(
@@ -249,8 +270,7 @@ class _LanguageTile extends StatelessWidget {
         type: MaterialType.transparency,
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          onTap: () =>
-              RadioGroup.maybeOf<String>(context)?.onChanged(option.code),
+          onTap: select,
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md,

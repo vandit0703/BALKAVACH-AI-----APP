@@ -18,22 +18,51 @@ class ChildShell extends StatelessWidget {
   final String location;
   final Widget child;
 
-  int get _index => location.startsWith(AppRoutes.childMissions) ? 1 : 0;
+  static const _tabs = [
+    AppRoutes.childHome,
+    AppRoutes.childMissions,
+    AppRoutes.childRewards,
+    AppRoutes.childGarden,
+    AppRoutes.childLearn,
+  ];
 
-  void _go(BuildContext context, int index) =>
-      context.go(index == 0 ? AppRoutes.childHome : AppRoutes.childMissions);
+  int get _index {
+    for (var i = _tabs.length - 1; i > 0; i--) {
+      if (location.startsWith(_tabs[i])) return i;
+    }
+    return 0;
+  }
+
+  void _go(BuildContext context, int index) => context.go(_tabs[index]);
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final expanded = WindowSize.of(context) == WindowSize.expanded;
-    final title = _index == 0 ? l10n.childHomeTitle : l10n.missionsTitle;
+    final title = [
+      l10n.childHomeTitle,
+      l10n.missionsTitle,
+      l10n.rewardsTitle,
+      l10n.gardenTitle,
+      l10n.learnTitle,
+    ][_index];
     final destinations = [
       (Icons.home_outlined, Icons.home_rounded, l10n.navHome),
       (
         Icons.rocket_launch_outlined,
         Icons.rocket_launch_rounded,
         l10n.navMissions,
+      ),
+      (Icons.stars_outlined, Icons.stars_rounded, l10n.navRewards),
+      (
+        Icons.local_florist_outlined,
+        Icons.local_florist_rounded,
+        l10n.navGarden,
+      ),
+      (
+        Icons.play_circle_outline_rounded,
+        Icons.play_circle_rounded,
+        l10n.navLearn,
       ),
     ];
 

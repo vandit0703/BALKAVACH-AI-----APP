@@ -65,3 +65,20 @@ class RedemptionPublic(BaseModel):
 	@field_serializer("requested_at", "reviewed_at", "fulfilled_at")
 	def serialize_timestamp(self, value: datetime | None) -> datetime | None:
 		return utc_aware(value) if value else None
+
+
+class RewardUpdate(BaseModel):
+	name: str | None = Field(default=None, min_length=2, max_length=180)
+	description: str | None = Field(default=None, max_length=3000)
+	star_cost: int | None = Field(default=None, gt=0, le=100000)
+	image_url: HttpUrl | None = None
+	max_uses: int | None = Field(default=None, gt=0)
+	is_active: bool | None = None
+
+
+class RedemptionDetailPublic(RedemptionPublic):
+	"""A redemption joined with the names a parent needs to review it."""
+
+	family_id: UUID
+	reward_name: str
+	child_name: str

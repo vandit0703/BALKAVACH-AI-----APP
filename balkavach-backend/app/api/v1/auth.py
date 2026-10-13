@@ -1,14 +1,14 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, require_parent
-from app.core.security import create_access_token
 from app.db.base import get_model
 from app.db.session import get_db
-from app.schemas.auth import LoginRequest, RegistrationRequest, TokenResponse, UserPublic
+from app.schemas.auth import LoginRequest, RefreshRequest, RegistrationRequest, TokenResponse, UserPublic
 from app.services.auth_service import authenticate_user, register_parent
+from app.services.session_service import revoke, revoke_user_sessions, rotate, start_session
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -57,5 +57,44 @@ def issue_child_session(
 	).one_or_none()
 	if child_user is None:
 		raise HTTPException(status_code=404, detail="Child profile not found")
-	token, expires_at = create_access_token(str(child_user.id))
-	return TokenResponse(access_token=token, expires_at=expires_at, user=UserPublic.model_validate(child_user))
+	response = start_session(session, child_user, issued_by=parent.id)
+	session.commit()
+	return response
+
+
+def _owned_child_user(session: Session, parent, child_id: UUID):
+	ChildProfile = get_model("ChildProfile")
+	child = session.query(ChildProfile).filter(ChildProfile.id == child_id).one_or_none()
+	if child is None:
+		raise HTTPException(status_code=404, detail="Child profile not found")
+	FamilyMember = get_model("FamilyMember")
+	if not session.query(FamilyMember.id).filter(
+		FamilyMember.family_id == child.family_id,
+		FamilyMember.user_id == parent.id,
+		FamilyMember.is_active.is_(True),
+	).first():
+		raise HTTPException(status_code=404, detail="Child profile not found")
+	return child
+
+
+@router.delete("/children/{child_id}/sessions", status_code=status.HTTP_204_NO_CONTENT)
+def revoke_child_sessions(
+	child_id: UUID,
+	parent=Depends(require_parent),
+	session: Session = Depends(get_db),
+) -> Response:
+	"""End every signed-in device of one child (e.g. a lost tablet)."""
+	child = _owned_child_user(session, parent, child_id)
+	revoke_user_sessions(session, child.user_id)
+	return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh(request: RefreshRequest, session: Session = Depends(get_db)) -> TokenResponse:
+	return rotate(session, request.refresh_token)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(request: RefreshRequest, session: Session = Depends(get_db)) -> Response:
+	revoke(session, request.refresh_token)
+	return Response(status_code=status.HTTP_204_NO_CONTENT)

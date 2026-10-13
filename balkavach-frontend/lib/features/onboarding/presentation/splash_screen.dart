@@ -14,19 +14,22 @@ class SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
+      // Scrolls instead of overflowing on very short windows.
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ShieldLogo(size: 112, semanticLabel: l10n.appTitle),
-            const SizedBox(height: AppSpacing.lg),
-            Text(l10n.appTitle, style: context.text.headlineMedium),
-            const SizedBox(height: AppSpacing.lg),
-            const SizedBox.square(
-              dimension: 28,
-              child: CircularProgressIndicator(strokeWidth: 3),
-            ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ShieldLogo(size: 112, semanticLabel: l10n.appTitle),
+              const SizedBox(height: AppSpacing.lg),
+              Text(l10n.appTitle, style: context.text.headlineMedium),
+              const SizedBox(height: AppSpacing.lg),
+              const SizedBox.square(
+                dimension: 28,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              ),
+            ],
+          ),
         ),
       ),
     );

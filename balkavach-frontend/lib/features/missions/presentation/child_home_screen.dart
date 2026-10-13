@@ -7,6 +7,7 @@ import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/async/refresh_quietly.dart';
 import '../../../shared/models/app_assets.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/buttons.dart';
@@ -38,7 +39,7 @@ class ChildHomeScreen extends ConsumerWidget {
         ..invalidate(childProgressProvider(childId))
         ..invalidate(childMissionsProvider)
         ..invalidate(childNotificationsProvider);
-      await _settle(ref.read(childMissionsProvider.future));
+      await refreshQuietly(ref.read(childMissionsProvider.future));
     }
 
     return RefreshIndicator(
@@ -353,15 +354,5 @@ class _NextMissionRow extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-/// Waits for a refresh to finish. Failures are already shown by the
-/// provider's error state, so they must not escape the RefreshIndicator.
-Future<void> _settle(Future<Object?> refresh) async {
-  try {
-    await refresh;
-  } on Object {
-    // Rendered by the watching widget.
   }
 }

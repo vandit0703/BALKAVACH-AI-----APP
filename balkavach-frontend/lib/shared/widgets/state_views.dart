@@ -9,6 +9,10 @@ import 'buttons.dart';
 
 /// User-facing text for any error thrown by a repository.
 String describeError(AppLocalizations l10n, Object error) {
+  if (error is ApiException) {
+    final byCode = _messageForCode(l10n, error.code);
+    if (byCode != null) return byCode;
+  }
   return switch (error) {
     NetworkException() => l10n.errorNetwork,
     RequestTimeoutException() => l10n.errorTimeout,
@@ -19,6 +23,20 @@ String describeError(AppLocalizations l10n, Object error) {
     _ => l10n.errorGeneric,
   };
 }
+
+/// Specific messages for backend error codes a screen can act on.
+String? _messageForCode(AppLocalizations l10n, String? code) => switch (code) {
+  'submission_pending' => l10n.errorAlreadyPending,
+  'task_already_completed' => l10n.errorAlreadyCompleted,
+  'upload_too_large' => l10n.errorPhotoTooLarge,
+  'unsupported_image' => l10n.errorPhotoUnsupported,
+  'too_many_uploads' => l10n.errorPhotoQuota,
+  'storage_unavailable' => l10n.errorPhotoStorage,
+  'insufficient_stars' => l10n.errorNotEnoughStars,
+  'redemption_pending' => l10n.errorRewardPending,
+  'reward_unavailable' => l10n.errorRewardUnavailable,
+  _ => null,
+};
 
 class LoadingView extends StatelessWidget {
   const LoadingView({this.label, super.key});

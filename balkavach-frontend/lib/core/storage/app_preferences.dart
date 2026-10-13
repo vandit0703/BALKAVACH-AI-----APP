@@ -11,6 +11,7 @@ class AppPreferences {
 
   static const _languageKey = 'app.language_code';
   static const _consentVersionKey = 'onboarding.consent_version';
+  static const _currentConsentKey = 'config.consent_version';
   static const _consentSyncedPrefix = 'consent.synced.';
   static const _avatarPrefix = 'child.avatar.';
   static const _submissionsPrefix = 'child.submissions.';
@@ -26,6 +27,12 @@ class AppPreferences {
 
   Future<void> setAcknowledgedConsentVersion(String version) =>
       _prefs.setString(_consentVersionKey, version);
+
+  /// The newest consent version the server announced, kept for offline use.
+  String? get currentConsentVersion => _prefs.getString(_currentConsentKey);
+
+  Future<void> setCurrentConsentVersion(String version) =>
+      _prefs.setString(_currentConsentKey, version);
 
   /// Whether the consent for [version] was recorded on the server for
   /// [familyId].

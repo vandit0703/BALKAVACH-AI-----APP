@@ -20,7 +20,11 @@ import '../data/family_repository.dart';
 import '../domain/family_models.dart';
 import 'family_providers.dart';
 
-const _languageNames = {'en': 'English', 'gu': 'ગુજરાતી', 'hi': 'हिन्दी'};
+const _languageNames = {
+  'en': 'English',
+  'gu': 'àª—à«àªœàª°àª¾àª¤à«€',
+  'hi': 'à¤¹à¤¿à¤¨à¥à¤¦à¥€',
+};
 
 /// Add Your Child's Profile. Sends only fields the backend stores
 /// (`display_name`, `date_of_birth`, `preferred_language`). Age bracket and
@@ -190,7 +194,7 @@ class _CreateChildScreenState extends ConsumerState<CreateChildScreen> {
                   ),
               ],
             ),
-            _AvatarPicker(
+            AvatarPicker(
               selected: _avatar,
               onSelected: (option) => setState(() => _avatar = option),
             ),
@@ -281,8 +285,12 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _AvatarPicker extends StatelessWidget {
-  const _AvatarPicker({required this.selected, required this.onSelected});
+class AvatarPicker extends StatelessWidget {
+  const AvatarPicker({
+    required this.selected,
+    required this.onSelected,
+    super.key,
+  });
 
   final ChildAvatarOption selected;
   final ValueChanged<ChildAvatarOption> onSelected;

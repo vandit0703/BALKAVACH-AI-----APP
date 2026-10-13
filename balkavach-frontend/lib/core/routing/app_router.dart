@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/approvals/presentation/approvals_screen.dart';
 import '../../features/authentication/presentation/parent_auth_screen.dart';
 import '../../features/authentication/presentation/session_controller.dart';
+import '../../features/child_profile/presentation/child_profile_screen.dart';
 import '../../features/child_profile/presentation/create_child_screen.dart';
+import '../../features/garden/presentation/garden_screen.dart';
+import '../../features/learning/data/learning_repository.dart';
+import '../../features/learning/presentation/learning_screen.dart';
 import '../../features/missions/presentation/child_home_screen.dart';
 import '../../features/missions/presentation/child_shell.dart';
 import '../../features/missions/presentation/mission_detail_screen.dart';
@@ -18,6 +23,11 @@ import '../../features/onboarding/presentation/splash_screen.dart';
 import '../../features/onboarding/presentation/welcome_screen.dart';
 import '../../features/parent_dashboard/presentation/create_mission_screen.dart';
 import '../../features/parent_dashboard/presentation/parent_home_screen.dart';
+import '../../features/progress/presentation/weekly_report_screen.dart';
+import '../../features/rewards/presentation/parent_rewards_screen.dart';
+import '../../features/rewards/presentation/reward_form_screen.dart';
+import '../../features/rewards/presentation/rewards_screen.dart';
+import '../../features/settings/presentation/parent_settings_screen.dart';
 import 'app_routes.dart';
 import 'route_guard.dart';
 
@@ -77,9 +87,47 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'children/new',
             builder: (_, _) => const CreateChildScreen(),
           ),
+          // After `children/new` so "new" is not read as an id.
+          GoRoute(
+            path: 'children/:childId',
+            builder: (_, state) =>
+                ChildProfileScreen(childId: state.pathParameters['childId']!),
+          ),
           GoRoute(
             path: 'missions/new',
             builder: (_, _) => const CreateMissionScreen(),
+          ),
+          GoRoute(
+            path: 'missions/:taskId/edit',
+            builder: (_, state) =>
+                EditMissionScreen(taskId: state.pathParameters['taskId']!),
+          ),
+          GoRoute(
+            path: 'approvals',
+            builder: (_, _) => const ApprovalsScreen(),
+          ),
+          GoRoute(
+            path: 'reports',
+            builder: (_, state) => WeeklyReportScreen(
+              initialChildId: state.uri.queryParameters['child'],
+            ),
+          ),
+          GoRoute(
+            path: 'settings',
+            builder: (_, _) => const ParentSettingsScreen(),
+          ),
+          GoRoute(
+            path: 'rewards',
+            builder: (_, _) => const ParentRewardsScreen(),
+            routes: [
+              GoRoute(path: 'new', builder: (_, _) => const RewardFormScreen()),
+              GoRoute(
+                path: ':rewardId/edit',
+                builder: (_, state) => RewardFormScreen(
+                  rewardId: state.pathParameters['rewardId'],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -120,6 +168,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         ),
                       ),
                     ],
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: 'rewards',
+                pageBuilder: (_, _) =>
+                    const NoTransitionPage(child: RewardsScreen()),
+              ),
+              GoRoute(
+                path: 'garden',
+                pageBuilder: (_, _) =>
+                    const NoTransitionPage(child: GardenScreen()),
+              ),
+              GoRoute(
+                path: 'learn',
+                pageBuilder: (_, _) =>
+                    const NoTransitionPage(child: LearningScreen()),
+                routes: [
+                  GoRoute(
+                    path: ':itemId',
+                    parentNavigatorKey: _rootKey,
+                    // The list passes the item along; a deep link without it
+                    // returns to the list.
+                    redirect: (_, state) => state.extra is LearningItem
+                        ? null
+                        : AppRoutes.childLearn,
+                    builder: (_, state) => LearningDetailScreen(
+                      item: state.extra! as LearningItem,
+                    ),
                   ),
                 ],
               ),

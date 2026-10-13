@@ -28,10 +28,16 @@ abstract final class Fx {
     Map<String, Object?>? user,
     String accessToken = 'parent.jwt.token',
     String expiresAt = '2100-01-01T00:00:00Z',
+    String? refreshToken,
+    String? refreshExpiresAt,
   }) => {
     'access_token': accessToken,
     'token_type': 'bearer',
     'expires_at': expiresAt,
+    'refresh_token': ?refreshToken,
+    'refresh_expires_at': ?(refreshToken == null
+        ? null
+        : (refreshExpiresAt ?? '2100-01-01T00:00:00Z')),
     'user': user ?? Fx.user(),
   };
 
@@ -72,17 +78,19 @@ abstract final class Fx {
     String? description = 'Read one story and tell us your favourite part.',
     int stars = 10,
     String? categoryId = Fx.categoryId,
+    String? dueAt,
+    String? assignedChildId,
   }) => {
     'id': id,
     'family_id': familyId,
     'category_id': categoryId,
     'created_by': parentUserId,
-    'assigned_child_id': null,
+    'assigned_child_id': assignedChildId,
     'title': title,
     'description': description,
     'star_reward': stars,
     'xp_reward': 20,
-    'due_at': null,
+    'due_at': dueAt,
     'is_active': true,
     'created_at': '2026-10-02T08:00:00Z',
   };
@@ -93,17 +101,24 @@ abstract final class Fx {
     String status = 'pending',
     String proofType = 'note',
     String? note = 'I read it!',
+    int number = 1,
+    String? proofUrl,
+    String? taskTitle,
+    String? reviewNote,
+    String submittedAt = '2026-10-12T09:00:00Z',
   }) => {
     'id': id,
     'task_id': taskId,
     'child_id': childId,
-    'submission_number': 1,
+    'submission_number': number,
     'proof_type': proofType,
-    'proof_url': null,
+    'proof_url': proofUrl,
     'proof_note': note,
     'status': status,
-    'submitted_at': '2026-10-12T09:00:00Z',
+    'submitted_at': submittedAt,
     'reviewed_at': null,
+    'task_title': ?taskTitle,
+    'review_note': ?reviewNote,
   };
 
   static Map<String, Object?> notification({
@@ -125,16 +140,122 @@ abstract final class Fx {
     'created_at': createdAt,
   };
 
-  static Map<String, Object?> progress() => {
+  /// "Today" for every test that uses the harness (see [Harness]).
+  static final now = DateTime(2026, 10, 12, 12);
+
+  static Map<String, Object?> progress({
+    List<Map<String, Object?>> activityDays = const [],
+    List<Map<String, Object?>> badges = const [],
+    int currentStreak = 5,
+    int longestStreak = 9,
+    Map<String, Object?>? garden,
+  }) => {
     'child_id': childId,
     'star_balance': 240,
     'total_xp': 420,
     'level_number': 4,
     'level_name': 'Explorer',
-    'current_streak': 5,
-    'longest_streak': 9,
-    'activity_days': <Object?>[],
-    'badges': <Object?>[],
+    'current_streak': currentStreak,
+    'longest_streak': longestStreak,
+    'activity_days': activityDays,
+    'badges': badges,
+    'garden': ?garden,
+  };
+
+  static Map<String, Object?> activityDay(
+    String date, {
+    int tasks = 1,
+    int stars = 10,
+    int xp = 20,
+  }) => {
+    'activity_date': date,
+    'completed_tasks': tasks,
+    'stars_earned': stars,
+    'xp_earned': xp,
+  };
+
+  static Map<String, Object?> badge({
+    String id = '99999999-9999-4999-8999-999999999999',
+    String name = 'Bookworm',
+    String? description = 'Read 15 bedtime stories',
+  }) => {
+    'badge_id': id,
+    'name': name,
+    'description': description,
+    'icon_url': null,
+    'unlocked_at': '2026-10-10T09:00:00Z',
+  };
+
+  static const rewardId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  static const redemptionId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+  static Map<String, Object?> redemption({
+    String status = 'pending',
+    int cost = 50,
+    String id = redemptionId,
+    String rewardId = Fx.rewardId,
+    String? reviewNote,
+    String? rewardName,
+    String? childName,
+  }) => {
+    'id': id,
+    'reward_id': rewardId,
+    'child_id': childId,
+    'star_cost_at_request': cost,
+    'status': status,
+    'review_note': reviewNote,
+    'requested_at': '2026-10-11T09:00:00Z',
+    'reviewed_at': null,
+    'fulfilled_at': null,
+    if (rewardName != null) 'family_id': familyId,
+    'reward_name': ?rewardName,
+    'child_name': ?childName,
+  };
+
+  static Map<String, Object?> reward({
+    String id = rewardId,
+    String name = 'Ice cream',
+    int cost = 50,
+    String? description = 'One scoop after dinner',
+    String type = 'custom',
+  }) => {
+    'id': id,
+    'family_id': familyId,
+    'name': name,
+    'description': description,
+    'reward_type': type,
+    'star_cost': cost,
+    'image_url': null,
+    'video_id': null,
+    'video_collection_id': null,
+    'access_duration_seconds': null,
+    'access_validity_seconds': null,
+    'max_uses': null,
+    'is_active': true,
+  };
+
+  static Map<String, Object?> userSettings({
+    bool push = true,
+    bool email = true,
+  }) => {
+    'user_id': parentUserId,
+    'language_code': 'en',
+    'push_enabled': push,
+    'email_notifications_enabled': email,
+    'updated_at': null,
+  };
+
+  static Map<String, Object?> consent() => {
+    'id': 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    'family_id': familyId,
+    'child_id': null,
+    'parent_user_id': parentUserId,
+    'consent_type': 'parent_guardian_terms',
+    'document_version': '2026-10-draft',
+    'accepted': true,
+    'accepted_at': '2026-10-12T09:00:00Z',
+    'revoked_at': null,
+    'created_at': '2026-10-12T09:00:00Z',
   };
 
   static Session parentSession() => Session.fromTokenResponse(token());

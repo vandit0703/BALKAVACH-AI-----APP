@@ -123,7 +123,7 @@ def _grant_stars(session, child_id, amount=50):
 
 def test_auth_registration_and_login_on_isolated_database(isolated_test_session, monkeypatch):
     monkeypatch.setattr(settings, "jwt_secret_key", "integration-test-secret-that-is-long-enough")
-    email = f"registration-{uuid4().hex}@example.test"
+    email = f"registration-{uuid4().hex}@example.com"
     registration = RegistrationRequest(full_name="Test Parent", email=email, password="a-long-integration-password")
 
     created = register_parent(isolated_test_session, registration)
@@ -290,6 +290,7 @@ def test_playback_heartbeat_consumes_no_more_than_entitlement(isolated_test_sess
         status="active",
     )
     isolated_test_session.add(entitlement)
+    isolated_test_session.flush()
     WatchSession = get_model("VideoWatchSession")
     watch = WatchSession(
         child_id=child.id,

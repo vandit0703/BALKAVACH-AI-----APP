@@ -55,3 +55,32 @@ def isolated_test_session(isolated_test_engine):
         session.close()
         transaction.rollback()
         connection.close()
+
+@pytest.fixture
+def api(isolated_test_session, monkeypatch):
+    """HTTP client wired to the rolled-back test transaction."""
+    from fastapi.testclient import TestClient
+
+    from app.core.config import settings
+    from app.db.session import get_db
+    from app.main import app
+    from tests.harness import ApiHarness
+
+    monkeypatch.setattr(settings, "jwt_secret_key", "integration-test-secret-that-is-long-enough")
+    from app.services.push_service import deliver_ready
+
+    def _get_db():
+        # Mirrors app.db.session.get_db: deliver pushes after success, and always discard
+        # uncommitted work (production closes the session, which rolls back).
+        try:
+            yield isolated_test_session
+            deliver_ready(isolated_test_session)
+        finally:
+            isolated_test_session.rollback()
+
+    app.dependency_overrides[get_db] = _get_db
+    try:
+        with TestClient(app) as client:
+            yield ApiHarness(client, isolated_test_session)
+    finally:
+        app.dependency_overrides.pop(get_db, None)

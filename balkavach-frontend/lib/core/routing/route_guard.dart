@@ -24,6 +24,11 @@ String? resolveRedirect({
           : AppRoutes.childHome;
     }
     if (session.isParent) {
+      // A new consent document version must be accepted again before the
+      // parent continues (the device only stores the last accepted version).
+      if (!onboarding.consentAcknowledged) {
+        return location == AppRoutes.consent ? null : AppRoutes.consent;
+      }
       return _isWithin(location, AppRoutes.parentHome)
           ? null
           : AppRoutes.parentHome;

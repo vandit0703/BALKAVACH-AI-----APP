@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.db.base import get_model
+from app.services.garden_service import build_garden
 from app.services.ledger_service import star_balance, xp_total
 
 
@@ -44,10 +45,12 @@ def get_progress(session: Session, child_id: UUID) -> dict:
 		.order_by(ChildBadge.unlocked_at.desc())
 		.all()
 	)
+	total_xp = xp_total(session, child_id)
 	return {
 		"child_id": child_id,
 		"star_balance": star_balance(session, child_id),
-		"total_xp": xp_total(session, child_id),
+		"total_xp": total_xp,
+		"garden": build_garden(total_xp, {badge.name for _, badge in badges}),
 		"level_number": level.level_number if level else None,
 		"level_name": level.name if level else None,
 		"current_streak": streak.current_streak if streak else 0,
@@ -63,12 +66,12 @@ def get_progress(session: Session, child_id: UUID) -> dict:
 		],
 		"badges": [
 			{
-				"badge_id": earned.Badge.id,
-				"name": earned.Badge.name,
-				"description": earned.Badge.description,
-				"icon_url": earned.Badge.icon_url,
-				"unlocked_at": earned.ChildBadge.unlocked_at,
+				"badge_id": badge.id,
+				"name": badge.name,
+				"description": badge.description,
+				"icon_url": badge.icon_url,
+				"unlocked_at": child_badge.unlocked_at,
 			}
-			for earned in badges
+			for child_badge, badge in badges
 		],
 	}

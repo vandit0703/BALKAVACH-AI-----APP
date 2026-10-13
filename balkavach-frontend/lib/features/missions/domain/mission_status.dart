@@ -18,6 +18,15 @@ enum MissionStatus {
     _ => null,
   };
 
+  /// Maps `TaskSubmissionPublic.status`.
+  static MissionStatus fromSubmissionStatus(String status) => switch (status) {
+    'pending' => MissionStatus.pending,
+    'approved' => MissionStatus.approved,
+    'rejected' => MissionStatus.rejected,
+    'resubmission_requested' => MissionStatus.resubmissionRequested,
+    _ => MissionStatus.notStarted,
+  };
+
   bool get isReviewed =>
       this == approved || this == rejected || this == resubmissionRequested;
 }
@@ -118,4 +127,25 @@ Map<String, MissionStatus> resolveMissionStatuses({
     if (!reviewIsNewer) statuses[taskId] = MissionStatus.pending;
   }
   return statuses;
+}
+
+/// Status per task from the child's own submissions (`GET
+/// /tasks/submissions/mine`): the newest attempt of each task decides.
+Map<String, MissionStatus> resolveStatusesFromSubmissions(
+  List<TaskSubmission> submissions,
+) {
+  final newest = <String, TaskSubmission>{};
+  for (final submission in submissions) {
+    final existing = newest[submission.taskId];
+    if (existing == null ||
+        submission.submissionNumber > existing.submissionNumber ||
+        (submission.submissionNumber == existing.submissionNumber &&
+            submission.submittedAt.isAfter(existing.submittedAt))) {
+      newest[submission.taskId] = submission;
+    }
+  }
+  return {
+    for (final entry in newest.entries)
+      entry.key: MissionStatus.fromSubmissionStatus(entry.value.status),
+  };
 }

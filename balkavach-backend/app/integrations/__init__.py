@@ -14,21 +14,30 @@ class VideoPlaybackProvider(Protocol):
 
 
 class PushNotificationProvider(Protocol):
-	def send(self, user_id: UUID, title: str, message: str, payload: dict) -> None: ...
+	def send(self, token: str, title: str, body: str, data: dict[str, str]) -> str:
+		"""Return "ok", "invalid_token", "retry" or "error"; must not raise for provider failures."""
+		...
+
+
+_push_providers: dict[str, PushNotificationProvider] = {}
 
 
 def get_push_notification_provider() -> PushNotificationProvider | None:
 	provider_path = settings.notification_provider
 	if not provider_path:
 		return None
+	cached = _push_providers.get(provider_path)
+	if cached is not None:
+		return cached
 	try:
 		module_name, factory_name = provider_path.split(":", 1)
 		factory = getattr(import_module(module_name), factory_name)
 		provider = factory()
-	except (ImportError, AttributeError, ValueError) as error:
+	except (ImportError, AttributeError, ValueError, OSError) as error:
 		raise APIError(503, "push_unavailable", "Configured notification provider could not be loaded") from error
 	if not callable(getattr(provider, "send", None)):
 		raise APIError(503, "push_unavailable", "Configured notification provider is incomplete")
+	_push_providers[provider_path] = provider
 	return provider
 
 

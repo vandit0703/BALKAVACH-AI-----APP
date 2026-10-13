@@ -23,3 +23,6 @@ def get_db() -> Generator[Session, None, None]:
 		raise HTTPException(status_code=503, detail="Database is not configured")
 	with SessionLocal() as session:
 		yield session
+		from app.services.push_service import deliver_ready
+
+		deliver_ready(session)

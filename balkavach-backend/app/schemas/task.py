@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_serializer, field_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_serializer, field_validator, model_validator
 
 from app.utils import utc_aware
 
@@ -84,7 +84,16 @@ class TaskPublic(BaseModel):
 class TaskSubmissionCreate(BaseModel):
 	proof_type: Literal["none", "note", "image", "video", "file"] = "none"
 	proof_url: HttpUrl | None = None
+	proof_upload_id: UUID | None = None
 	proof_note: str | None = Field(default=None, max_length=2000)
+
+	@model_validator(mode="after")
+	def image_proof_needs_a_photo(self):
+		if self.proof_type == "image" and self.proof_upload_id is None and self.proof_url is None:
+			raise ValueError("An image proof needs an uploaded photo (proof_upload_id)")
+		if self.proof_upload_id is not None and self.proof_type != "image":
+			raise ValueError("proof_upload_id is only valid with proof_type image")
+		return self
 
 
 class TaskSubmissionPublic(BaseModel):
@@ -109,3 +118,21 @@ class TaskSubmissionPublic(BaseModel):
 class TaskReviewCreate(BaseModel):
 	decision: Literal["approved", "rejected", "resubmission_requested"]
 	review_note: str | None = Field(default=None, max_length=2000)
+
+
+class PendingSubmissionPublic(TaskSubmissionPublic):
+	"""A submission joined with what a reviewer needs to decide without more requests."""
+
+	family_id: UUID
+	task_title: str
+	category_name: str | None
+	child_name: str
+	star_reward: int
+	xp_reward: int
+
+
+class MySubmissionPublic(TaskSubmissionPublic):
+	"""A child's own submission with the task title and the parent's feedback."""
+
+	task_title: str
+	review_note: str | None

@@ -8,6 +8,7 @@ import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/media/photo_picker.dart';
 import '../../../shared/models/app_assets.dart';
 import '../../../shared/validation/validators.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -18,9 +19,9 @@ import '../../../shared/widgets/state_views.dart';
 import '../domain/mission_models.dart';
 import 'mission_providers.dart';
 
-/// Complete Your Mission (Stitch `complete_your_mission`). Sends a `note`
-/// proof (or `none`). Photo evidence is shown as unavailable because the API
-/// has no upload endpoint (B2).
+/// Complete Your Mission (Stitch `complete_your_mission`). The child can add
+/// a real photo (uploaded to the server, then attached to the submission), a
+/// note, both, or neither.
 class MissionSubmitScreen extends ConsumerStatefulWidget {
   const MissionSubmitScreen({required this.taskId, super.key});
 
@@ -34,6 +35,21 @@ class MissionSubmitScreen extends ConsumerStatefulWidget {
 class _MissionSubmitScreenState extends ConsumerState<MissionSubmitScreen> {
   final _formKey = GlobalKey<FormState>();
   final _note = TextEditingController();
+  PickedPhoto? _photo;
+  bool _pickFailed = false;
+
+  Future<void> _pick(PhotoSource source) async {
+    try {
+      final photo = await ref.read(photoPickerProvider).pick(source);
+      if (!mounted) return;
+      setState(() {
+        _pickFailed = false;
+        if (photo != null) _photo = photo;
+      });
+    } on PhotoPickException {
+      if (mounted) setState(() => _pickFailed = true);
+    }
+  }
 
   @override
   void dispose() {
@@ -45,7 +61,7 @@ class _MissionSubmitScreenState extends ConsumerState<MissionSubmitScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final submission = await ref
         .read(missionSubmitControllerProvider.notifier)
-        .submit(widget.taskId, note: _note.text);
+        .submit(widget.taskId, note: _note.text, photo: _photo);
     if (!mounted || submission == null) return;
     context.pushReplacement(AppRoutes.childMissionWaiting(widget.taskId));
   }
@@ -77,9 +93,12 @@ class _MissionSubmitScreenState extends ConsumerState<MissionSubmitScreen> {
                       title: l10n.submitEvidenceTitle,
                       icon: Icons.add_photo_alternate_outlined,
                     ),
-                    InlineNotice(
-                      icon: Icons.no_photography_outlined,
-                      message: l10n.submitPhotoUnavailable,
+                    _PhotoSection(
+                      photo: _photo,
+                      busy: busy,
+                      failed: _pickFailed,
+                      onPick: _pick,
+                      onRemove: () => setState(() => _photo = null),
                     ),
                     AppTextField(
                       fieldKey: const Key('submit.note'),
@@ -187,6 +206,107 @@ class _MissionBanner extends StatelessWidget {
           Text(mission.title, style: context.text.headlineMedium),
         ],
       ),
+    );
+  }
+}
+
+class _PhotoSection extends StatelessWidget {
+  const _PhotoSection({
+    required this.photo,
+    required this.busy,
+    required this.failed,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  final PickedPhoto? photo;
+  final bool busy;
+  final bool failed;
+  final Future<void> Function(PhotoSource source) onPick;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final chosen = photo;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: AppSpacing.sm,
+      children: [
+        if (chosen == null)
+          Text(
+            l10n.submitPhotoHelp,
+            style: context.text.bodyMedium?.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
+          )
+        else ...[
+          Semantics(
+            image: true,
+            label: l10n.submitPhotoPreview,
+            child: ClipRRect(
+              borderRadius: AppRadius.card,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 240),
+                child: Image.memory(
+                  chosen.bytes,
+                  key: const Key('submit.photo.preview'),
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  excludeFromSemantics: true,
+                  gaplessPlayback: true,
+                ),
+              ),
+            ),
+          ),
+          Text(
+            l10n.submitPhotoReady,
+            style: context.text.labelLarge?.copyWith(
+              color: context.colors.primary,
+            ),
+          ),
+        ],
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            SecondaryButton(
+              key: const Key('submit.photo.camera'),
+              label: chosen == null
+                  ? l10n.submitTakePhoto
+                  : l10n.submitAddPhoto,
+              icon: Icons.photo_camera_outlined,
+              onPressed: busy ? null : () => onPick(PhotoSource.camera),
+            ),
+            SecondaryButton(
+              key: const Key('submit.photo.gallery'),
+              label: l10n.submitChoosePhoto,
+              icon: Icons.photo_library_outlined,
+              onPressed: busy ? null : () => onPick(PhotoSource.gallery),
+            ),
+            if (chosen != null)
+              TextButton.icon(
+                key: const Key('submit.photo.remove'),
+                onPressed: busy ? null : onRemove,
+                icon: const Icon(Icons.delete_outline_rounded),
+                label: Text(l10n.submitRemovePhoto),
+              ),
+          ],
+        ),
+        if (failed)
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              l10n.submitPhotoPickFailed,
+              key: const Key('submit.photo.error'),
+              style: context.text.bodySmall?.copyWith(
+                color: context.colors.error,
+              ),
+            ),
+          ),
+        if (busy && chosen != null)
+          Text(l10n.submitUploading, style: context.text.bodySmall),
+      ],
     );
   }
 }

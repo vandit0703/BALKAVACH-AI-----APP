@@ -52,6 +52,32 @@ class AuthRepository {
     return AppUser.fromJson(response.data!);
   });
 
+  /// `POST /api/v1/auth/refresh`. Rotates the refresh token; 401
+  /// `invalid_refresh_token` / `refresh_token_reused` end the session.
+  Future<Session> refresh(String refreshToken) => guardApi(() async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/auth/refresh',
+      data: {'refresh_token': refreshToken},
+      options: Options(extra: _unauthenticated),
+    );
+    return Session.fromTokenResponse(response.data!);
+  });
+
+  /// `POST /api/v1/auth/logout`: ends the server-side session. Idempotent.
+  Future<void> logout(String refreshToken) => guardApi(() async {
+    await _dio.post<void>(
+      '/api/v1/auth/logout',
+      data: {'refresh_token': refreshToken},
+      options: Options(extra: _unauthenticated),
+    );
+  });
+
+  /// `DELETE /api/v1/auth/children/{child_id}/sessions` (parent): signs the
+  /// child out on every device.
+  Future<void> endChildSessions(String childId) => guardApi(() async {
+    await _dio.delete<void>('/api/v1/auth/children/$childId/sessions');
+  });
+
   /// `POST /api/v1/auth/children/{child_id}/session` (parent token).
   Future<Session> startChildSession(String childId) => guardApi(() async {
     final response = await _dio.post<Map<String, dynamic>>(

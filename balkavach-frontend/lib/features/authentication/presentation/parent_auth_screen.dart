@@ -243,7 +243,12 @@ class _Hero extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0x00041B3C), Color(0xCC041B3C)],
+                  colors: [
+                    Color(0x00041B3C),
+                    Color(0xD9041B3C),
+                    Color(0xF2041B3C),
+                  ],
+                  stops: [0.1, 0.55, 1],
                 ),
               ),
             ),

@@ -47,6 +47,31 @@ class FamilyRepository {
         return ChildProfile.fromJson(response.data!);
       });
 
+  /// `PATCH /api/v1/families/{id}/children/{child_id}`. Only fields the
+  /// backend stores are sent.
+  Future<ChildProfile> updateChild(
+    String familyId,
+    String childId, {
+    required String displayName,
+    DateTime? dateOfBirth,
+  }) => guardApi(() async {
+    final response = await _dio.patch<Map<String, dynamic>>(
+      '/api/v1/families/$familyId/children/$childId',
+      data: {
+        'display_name': displayName.trim(),
+        if (dateOfBirth != null) 'date_of_birth': formatIsoDate(dateOfBirth),
+      },
+    );
+    return ChildProfile.fromJson(response.data!);
+  });
+
+  /// `DELETE /api/v1/families/{id}/children/{child_id}`. The backend
+  /// deactivates the profile and its login; records are kept.
+  Future<void> deactivateChild(String familyId, String childId) =>
+      guardApi(() async {
+        await _dio.delete<void>('/api/v1/families/$familyId/children/$childId');
+      });
+
   /// `GET /api/v1/settings/families/{id}/consents`.
   Future<List<ConsentRecord>> listConsents(String familyId) =>
       guardApi(() async {

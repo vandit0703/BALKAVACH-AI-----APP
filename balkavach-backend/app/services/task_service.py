@@ -9,7 +9,10 @@ from app.core.exceptions import APIError
 from app.db.base import get_model
 from app.schemas.task import TaskReviewCreate, TaskSubmissionCreate
 from app.services.ledger_service import star_balance, xp_total
+from app.services.notification_service import create_notification, family_parent_ids
 from app.services.progress_service import badge_qualifies
+from app.services.timezone_service import local_today
+from app.services.upload_service import claim_upload_for_submission, proof_url
 from app.utils import utc_naive
 
 
@@ -22,6 +25,17 @@ def submit_completion(session: Session, task_id: UUID, child, request: TaskSubmi
 	if task.assigned_child_id is not None and task.assigned_child_id != child.id:
 		raise APIError(403, "task_not_assigned", "Task is assigned to another child")
 
+	existing_statuses = {
+		row[0]
+		for row in session.query(TaskSubmission.status)
+		.filter(TaskSubmission.task_id == task_id, TaskSubmission.child_id == child.id)
+		.all()
+	}
+	if "pending" in existing_statuses:
+		raise APIError(409, "submission_pending", "This mission is already waiting for review")
+	if "approved" in existing_statuses and task.repeat_rule is None:
+		raise APIError(409, "task_already_completed", "This mission has already been completed")
+
 	last_submission = (
 		session.query(TaskSubmission.submission_number)
 		.filter(TaskSubmission.task_id == task_id, TaskSubmission.child_id == child.id)
@@ -33,38 +47,26 @@ def submit_completion(session: Session, task_id: UUID, child, request: TaskSubmi
 		child_id=child.id,
 		submission_number=(last_submission[0] + 1) if last_submission else 1,
 		proof_type=request.proof_type,
-		proof_url=str(request.proof_url) if request.proof_url else None,
+		proof_url=proof_url(request.proof_upload_id)
+		if request.proof_upload_id
+		else (str(request.proof_url) if request.proof_url else None),
 		proof_note=request.proof_note,
 		status="pending",
 		submitted_at=utc_naive(datetime.now(timezone.utc)),
 	)
 	session.add(submission)
-	FamilyMember = get_model("FamilyMember")
-	User = get_model("User")
-	Notification = get_model("Notification")
-	parent_ids = (
-		session.query(User.id)
-		.join(FamilyMember, FamilyMember.user_id == User.id)
-		.filter(
-			FamilyMember.family_id == task.family_id,
-			FamilyMember.is_active.is_(True),
-			User.role == "parent",
-			User.is_active.is_(True),
-		)
-		.all()
-	)
-	for (parent_id,) in parent_ids:
-		session.add(
-			Notification(
-				recipient_user_id=parent_id,
-				notification_type="task_submitted",
-				title="Task submitted for review",
-				message=f"{child.display_name} submitted {task.title}.",
-				related_task_id=task.id,
-				related_submission_id=submission.id,
-				is_read=False,
-				created_at=utc_naive(datetime.now(timezone.utc)),
-			)
+	session.flush()
+	if request.proof_upload_id:
+		claim_upload_for_submission(session, child, request.proof_upload_id, submission.id)
+	for parent_id in family_parent_ids(session, task.family_id):
+		create_notification(
+			session,
+			parent_id,
+			"task_submitted",
+			"Task submitted for review",
+			f"{child.display_name} submitted {task.title}.",
+			task_id=task.id,
+			submission_id=submission.id,
 		)
 	try:
 		session.commit()
@@ -171,7 +173,7 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 				)
 				child.current_level_id = level.id
 
-		activity_date = datetime.now(timezone.utc).date()
+		activity_date = local_today(session, task.family_id)
 		ChildActivityDay = get_model("ChildActivityDay")
 		activity_insert = pg_insert(ChildActivityDay).values(
 			child_id=child.id,
@@ -195,7 +197,6 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 		Badge = get_model("Badge")
 		ChildBadge = get_model("ChildBadge")
 		ChildStreak = get_model("ChildStreak")
-		Notification = get_model("Notification")
 		approved_tasks = session.query(func.count(TaskSubmission.id)).filter(
 			TaskSubmission.child_id == child.id,
 			TaskSubmission.status == "approved",
@@ -223,15 +224,13 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 		for badge in session.query(Badge).filter(Badge.is_active.is_(True)).all():
 			if badge_qualifies(badge.criteria_type, badge.criteria_value, criteria_values) and badge.id not in unlocked_ids:
 				session.add(ChildBadge(child_id=child.id, badge_id=badge.id, unlocked_at=now))
-				session.add(
-					Notification(
-						recipient_user_id=child.user_id,
-						notification_type="badge_unlocked",
-						title="New badge unlocked",
-						message=f"You earned {badge.name}.",
-						is_read=False,
-						created_at=now,
-					)
+				create_notification(
+					session,
+					child.user_id,
+					"badge_unlocked",
+					"New badge unlocked",
+					f"You earned {badge.name}.",
+					now=now,
 				)
 		streak_insert = pg_insert(ChildStreak).values(
 			child_id=child.id,
@@ -257,20 +256,17 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 			)
 		)
 
-	Notification = get_model("Notification")
 	ChildProfile = get_model("ChildProfile")
 	child = session.query(ChildProfile).filter(ChildProfile.id == submission.child_id).one()
-	session.add(
-		Notification(
-			recipient_user_id=child.user_id,
-			notification_type=f"task_{request.decision}",
-			title="Task reviewed",
-			message=request.review_note or f"Your task was {request.decision.replace('_', ' ')}.",
-			related_task_id=task.id,
-			related_submission_id=submission.id,
-			is_read=False,
-			created_at=now,
-		)
+	create_notification(
+		session,
+		child.user_id,
+		f"task_{request.decision}",
+		"Task reviewed",
+		request.review_note or f"Your task was {request.decision.replace('_', ' ')}.",
+		task_id=task.id,
+		submission_id=submission.id,
+		now=now,
 	)
 	try:
 		session.commit()

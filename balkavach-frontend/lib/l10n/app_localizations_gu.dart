@@ -643,4 +643,1188 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get serverStatusNote => 'આ ફક્ત કનેક્શન તપાસે છે, દરેક સુવિધા નહીં.';
+
+  @override
+  String get familyMissing => 'પહેલા Parent Hub પર તમારું પરિવાર બનાવો.';
+
+  @override
+  String get filterAllChildren => 'બધા બાળકો';
+
+  @override
+  String get someChild => 'તમારું બાળક';
+
+  @override
+  String get navRewards => 'ઇનામ';
+
+  @override
+  String get navGarden => 'બગીચો';
+
+  @override
+  String get edit => 'ફેરફાર';
+
+  @override
+  String get saveChanges => 'ફેરફાર સાચવો';
+
+  @override
+  String get approvalsAppBar => 'પેરેન્ટ મિશન';
+
+  @override
+  String get approvalsTitle => 'મિશન મંજૂરી';
+
+  @override
+  String get approvalsSubtitle =>
+      'તમારા બાળકની સિદ્ધિઓ જુઓ અને સ્ટાર ઇનામ આપો.';
+
+  @override
+  String approvalsActions(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count કાર્ય',
+      one: '1 કાર્ય',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get approvalsOpen => 'મોકલેલા મિશન જુઓ';
+
+  @override
+  String approvalsPendingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count સમીક્ષા બાકી',
+      one: '1 સમીક્ષા બાકી',
+      zero: 'સમીક્ષા માટે કંઈ બાકી નથી',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get approvalsTabPending => 'બાકી';
+
+  @override
+  String get approvalsTabApproved => 'મંજૂર';
+
+  @override
+  String get approvalsTabRetry => 'ફરી';
+
+  @override
+  String get approvalsTruncated =>
+      'ફક્ત તાજેતરના મિશન બતાવ્યા છે. જૂના મિશન કદાચ ન દેખાય.';
+
+  @override
+  String get approvalsPendingEmpty =>
+      'હમણાં સમીક્ષા માટે કંઈ નથી. નવા મિશન અહીં દેખાશે.';
+
+  @override
+  String get approvalsApprovedEmpty => 'હજુ કોઈ મિશન મંજૂર નથી.';
+
+  @override
+  String get approvalsRetryEmpty =>
+      'ફરી કરવા માટે કોઈ મિશન પાછું મોકલ્યું નથી.';
+
+  @override
+  String approvalsMissionLabel(String title) {
+    return 'મિશન: $title';
+  }
+
+  @override
+  String get approvalsMissionRemoved => 'દૂર કરેલું મિશન';
+
+  @override
+  String get approvalsNoNote => 'કોઈ નોંધ ઉમેરી નથી.';
+
+  @override
+  String approvalsNoteFrom(String name) {
+    return '$nameની નોંધ';
+  }
+
+  @override
+  String get approvalsPrivacy => 'ફક્ત તમારા પરિવારના માતા-પિતા જોઈ શકે છે.';
+
+  @override
+  String get approvalsProofImage => 'મોકલેલો ફોટો';
+
+  @override
+  String get approvalsProofUnavailable => 'ફોટો લોડ થઈ શક્યો નહીં.';
+
+  @override
+  String approvalsApprove(int stars) {
+    return 'મંજૂર કરો અને +$stars ⭐ આપો';
+  }
+
+  @override
+  String get approvalsAskRetry => 'ફરી કરવા કહો ✏️';
+
+  @override
+  String get approvalsRetry => 'ફરી કરવા કહો';
+
+  @override
+  String get approvalsDecline => 'નામંજૂર';
+
+  @override
+  String approvalsRetryTitle(String name) {
+    return '$nameને ફરી પ્રયાસ કરવા કહેશો?';
+  }
+
+  @override
+  String approvalsDeclineTitle(String name) {
+    return '$nameનું મિશન નામંજૂર કરશો?';
+  }
+
+  @override
+  String get approvalsNoteLabel => 'બાળક માટે નોંધ (વૈકલ્પિક)';
+
+  @override
+  String approvalsApprovedToast(String name, int stars) {
+    return 'મંજૂર! $nameને $stars સ્ટાર મોકલ્યા.';
+  }
+
+  @override
+  String approvalsRetryToast(String name) {
+    return '$nameને ફરી પ્રયાસ કરવા કહેવામાં આવશે.';
+  }
+
+  @override
+  String get approvalsDeclinedToast => 'મિશન નામંજૂર થયું.';
+
+  @override
+  String get approvalsAlreadyReviewed =>
+      'આ મિશનની સમીક્ષા થઈ ચૂકી છે. યાદી તાજી કરી છે.';
+
+  @override
+  String approvalsStarsCredited(int count) {
+    return '+$count સ્ટાર જમા';
+  }
+
+  @override
+  String get approvalsRetrySent => 'ફરી કરવા કહ્યું';
+
+  @override
+  String get approvalsTipTitle => 'પરફેક્શન કરતાં પ્રયત્નની પ્રશંસા કરો';
+
+  @override
+  String get approvalsTipBody =>
+      'સમીક્ષા વખતે નાની શાબાશી કે પ્રેમભરી નોંધ બાળકને તેના પ્રયત્ન પર ગર્વ અનુભવાવે છે.';
+
+  @override
+  String get reportsAppBar => 'પેરેન્ટ ઝાંખી';
+
+  @override
+  String get reportsEyebrow => 'સાપ્તાહિક આરોગ્ય અને વિકાસ';
+
+  @override
+  String reportsWelcome(String name) {
+    return 'સ્વાગત છે, $name';
+  }
+
+  @override
+  String get reportsOpen => 'આ અઠવાડિયાના સ્ટાર, સ્ટ્રીક અને બેજ';
+
+  @override
+  String childNameWithAge(String name, int age) {
+    return '$name (ઉંમર $age)';
+  }
+
+  @override
+  String get reportsMissionsDone => 'પૂર્ણ મિશન';
+
+  @override
+  String reportsActiveDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'આ અઠવાડિયે $count સક્રિય દિવસ',
+      one: 'આ અઠવાડિયે 1 સક્રિય દિવસ',
+      zero: 'હજુ કોઈ સક્રિય દિવસ નથી',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reportsStarsAwarded => 'આપેલા સ્ટાર';
+
+  @override
+  String reportsStarBalance(int count) {
+    return 'બેલેન્સ: $count સ્ટાર';
+  }
+
+  @override
+  String get reportsStreak => 'દિવસ સ્ટ્રીક';
+
+  @override
+  String reportsLongestStreak(int count) {
+    return 'શ્રેષ્ઠ: $count દિવસ';
+  }
+
+  @override
+  String get reportsXpEarned => 'મેળવેલ XP';
+
+  @override
+  String reportsTotalXp(int count) {
+    return 'કુલ $count XP';
+  }
+
+  @override
+  String reportsLevel(int level, String name) {
+    return 'લેવલ $level $name';
+  }
+
+  @override
+  String get reportsChartTitle => 'સાપ્તાહિક પૂર્ણ મિશન';
+
+  @override
+  String get reportsChartSubtitle => 'દરરોજ માતા-પિતાએ મંજૂર કરેલા મિશન';
+
+  @override
+  String get reportsNoActivity => 'આ અઠવાડિયે હજુ કોઈ મિશન મંજૂર નથી.';
+
+  @override
+  String reportsBestDay(String day, int count) {
+    return 'શ્રેષ્ઠ દિવસ: $day ($count પૂર્ણ)';
+  }
+
+  @override
+  String get reportsNoBadges => 'હજુ કોઈ બેજ નથી. મિશન મંજૂર થતાં બેજ ખુલશે.';
+
+  @override
+  String get reportsVerifiedTitle => 'માતા-પિતા દ્વારા ચકાસાયેલ';
+
+  @override
+  String get reportsVerifiedBody =>
+      'બધા આંકડા ફક્ત માતા-પિતાએ મંજૂર કરેલા મિશન પર આધારિત છે.';
+
+  @override
+  String get reportsCopySummary => 'સાપ્તાહિક સારાંશ કૉપિ કરો';
+
+  @override
+  String get reportsSummaryCopied => 'સાપ્તાહિક સારાંશ કૉપિ થયો';
+
+  @override
+  String reportsSummaryText(
+    String name,
+    String range,
+    int missions,
+    int stars,
+    int xp,
+    int streak,
+  ) {
+    return '$name, $range: $missions મિશન મંજૂર, $stars સ્ટાર અને $xp XP મેળવ્યા, $streak દિવસની સ્ટ્રીક.';
+  }
+
+  @override
+  String get badgesTitle => 'બેજ અને ટ્રોફી';
+
+  @override
+  String badgesUnlocked(int count) {
+    return '$count ખુલ્યા';
+  }
+
+  @override
+  String get badgesEmpty => 'પહેલો બેજ ખોલવા માટે મિશન પૂરા કરો!';
+
+  @override
+  String badgeUnlockedOn(String date) {
+    return '$dateએ ખુલ્યો';
+  }
+
+  @override
+  String get familyManageAppBar => 'પરિવાર વ્યવસ્થા';
+
+  @override
+  String get familyManageSubtitle =>
+      'તમારા બાળકની પ્રોફાઇલ, પ્રગતિ અને ચાઇલ્ડ મોડ સંભાળો.';
+
+  @override
+  String get childProfileMissing => 'આ પ્રોફાઇલ હવે ઉપલબ્ધ નથી.';
+
+  @override
+  String get backToParentHub => 'Parent Hub પર પાછા';
+
+  @override
+  String childOpenProfile(String name) {
+    return '$nameની પ્રોફાઇલ ખોલો';
+  }
+
+  @override
+  String availableStars(int count) {
+    return '$count ઉપલબ્ધ સ્ટાર';
+  }
+
+  @override
+  String get viewActivityHistory => 'પ્રવૃત્તિ ઇતિહાસ જુઓ';
+
+  @override
+  String missionsApprovedRecently(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'છેલ્લા 90 દિવસમાં $count મિશન મંજૂર',
+      one: 'છેલ્લા 90 દિવસમાં 1 મિશન મંજૂર',
+      zero: 'છેલ્લા 90 દિવસમાં કોઈ મિશન મંજૂર નથી',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String childModeHint(String name) {
+    return 'આ ડિવાઇસ $nameને આપો';
+  }
+
+  @override
+  String get addAnotherChild => '+ બીજું બાળક ઉમેરો';
+
+  @override
+  String get profileActive => 'સક્રિય';
+
+  @override
+  String profileAge(int age) {
+    return 'ઉંમર: $age વર્ષ';
+  }
+
+  @override
+  String get editProfileTitle => 'પ્રોફાઇલ બદલો';
+
+  @override
+  String get profileSaved => 'પ્રોફાઇલ સાચવી';
+
+  @override
+  String get removeChildTitle => 'પ્રોફાઇલ દૂર કરો';
+
+  @override
+  String removeChildBody(String name) {
+    return '$nameની પ્રોફાઇલ અને ચાઇલ્ડ મોડ બંધ થશે. મિશન, સ્ટાર અને પ્રગતિ સર્વર પર રહેશે; કાયમી ડિલીટ હજુ એપમાં ઉપલબ્ધ નથી.';
+  }
+
+  @override
+  String removeChildButton(String name) {
+    return '$nameની પ્રોફાઇલ દૂર કરો';
+  }
+
+  @override
+  String removeChildConfirmTitle(String name) {
+    return '$nameની પ્રોફાઇલ દૂર કરશો?';
+  }
+
+  @override
+  String removeChildConfirmBody(String name) {
+    return '$name હવે ચાઇલ્ડ મોડ વાપરી શકશે નહીં અને પ્રોફાઇલ પરિવારમાંથી દૂર થશે. મિશન અને સ્ટારના રેકોર્ડ સર્વર પર રહેશે.';
+  }
+
+  @override
+  String get removeChildConfirm => 'દૂર કરો';
+
+  @override
+  String removeChildDone(String name) {
+    return '$nameની પ્રોફાઇલ દૂર થઈ.';
+  }
+
+  @override
+  String get settingsAppBar => 'પેરેન્ટ સેટિંગ્સ';
+
+  @override
+  String get settingsFamilyAccount => 'પરિવાર એકાઉન્ટ';
+
+  @override
+  String get settingsPrimaryAdmin => 'પરિવાર માલિક';
+
+  @override
+  String get settingsLinkedChildren => 'જોડાયેલા બાળકો';
+
+  @override
+  String get settingsSafety => 'સુરક્ષા અને મંજૂરી';
+
+  @override
+  String get settingsApprovalTitle => 'માતા-પિતાની મંજૂરી જરૂરી';
+
+  @override
+  String get settingsApprovalBody =>
+      'સ્ટાર બદલાય તે પહેલાં દરેક મિશન અને ઇનામ વિનંતી તમારી સમીક્ષાની રાહ જુએ છે.';
+
+  @override
+  String get settingsAlwaysOn => 'હંમેશા ચાલુ';
+
+  @override
+  String get settingsPreferences => 'એપ અને ગોપનીયતા પસંદગી';
+
+  @override
+  String get settingsLanguage => 'એપ ભાષા';
+
+  @override
+  String get settingsChange => 'બદલો';
+
+  @override
+  String get settingsPush => 'પુશ સૂચનાઓ';
+
+  @override
+  String get settingsPushBody => 'પસંદગી તમારા એકાઉન્ટમાં સાચવી';
+
+  @override
+  String get settingsEmail => 'ઇમેઇલ સૂચનાઓ';
+
+  @override
+  String get settingsEmailBody => 'બાલ કવચ હજી ઇમેઇલ મોકલતું નથી.';
+
+  @override
+  String get settingsPrivacyTitle => 'ગોપનીયતા અને સંમતિ';
+
+  @override
+  String get settingsPrivacyBody =>
+      'તમે પરિવાર માટે આપેલી સંમતિ, જે Bal Kavach પાસે સાચવેલી છે.';
+
+  @override
+  String get settingsNoConsents => 'હજુ કોઈ સંમતિ રેકોર્ડ નથી.';
+
+  @override
+  String settingsConsentRow(String version, String date, String status) {
+    return 'માતા-પિતા/વાલી શરતો • આવૃત્તિ $version • $date • $status';
+  }
+
+  @override
+  String get settingsConsentActive => 'સક્રિય';
+
+  @override
+  String get settingsConsentRevoked => 'પાછી ખેંચી';
+
+  @override
+  String get settingsLogOut => 'લૉગ આઉટ';
+
+  @override
+  String get settingsFooter => 'Bal Kavach AI • ભારતીય પરિવારો માટે';
+
+  @override
+  String get rewardsTitle => 'બાળ ઇનામ';
+
+  @override
+  String get rewardsVault => 'Bal Kavach તિજોરી';
+
+  @override
+  String get rewardsBalance => 'હાલનું સ્ટાર બેલેન્સ';
+
+  @override
+  String rewardsBalanceSemantics(int count) {
+    return 'તમારી તિજોરીમાં $count સ્ટાર';
+  }
+
+  @override
+  String rewardsStreak(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count દિવસની સ્ટ્રીક!',
+      one: '1 દિવસની સ્ટ્રીક!',
+      zero: 'આજે સ્ટ્રીક શરૂ કરો!',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get rewardsCatalog => 'ખજાનો';
+
+  @override
+  String get rewardsCatalogSoonTitle => 'ખજાનાની દુકાન જલ્દી આવે છે';
+
+  @override
+  String get rewardsCatalogSoonBody =>
+      'સ્ટાર ભેગા કરતા રહો! મમ્મી-પપ્પાને પૂછો કે સ્ટારથી કયા ઇનામ મળી શકે.';
+
+  @override
+  String get rewardsMyRequests => 'મારી ઇનામ વિનંતીઓ';
+
+  @override
+  String get rewardsRequest => 'ઇનામ વિનંતી';
+
+  @override
+  String get rewardsRequestsUnavailable =>
+      'હમણાં ઇનામ વિનંતીઓ લોડ થઈ શકી નહીં.';
+
+  @override
+  String get rewardsFulfilled => 'માણવા તૈયાર';
+
+  @override
+  String get rewardsCancelled => 'રદ';
+
+  @override
+  String get gardenTitle => 'માઇન્ડફુલ બગીચો';
+
+  @override
+  String gardenOwner(String name) {
+    return '$nameનો માઇન્ડફુલ બગીચો';
+  }
+
+  @override
+  String gardenStage(String stage) {
+    return 'તબક્કો: $stage';
+  }
+
+  @override
+  String get gardenStageSeed => 'નાનું બીજ';
+
+  @override
+  String get gardenStageSprout => 'નાનો અંકુર';
+
+  @override
+  String get gardenStageSapling => 'ખુશ કેરીનો છોડ';
+
+  @override
+  String get gardenStageTree => 'ખીલેલું વૃક્ષ';
+
+  @override
+  String gardenNextStage(int count, String stage) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$stage સુધી પહોંચવા $count વધુ મંજૂર મિશન',
+      one: '$stage સુધી પહોંચવા 1 વધુ મંજૂર મિશન',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gardenFullBloom => 'આ અઠવાડિયે તમારો બગીચો પૂરો ખીલ્યો છે! 🌳';
+
+  @override
+  String get gardenGrowsHint =>
+      'આ અઠવાડિયે મમ્મી-પપ્પા મિશન મંજૂર કરે ત્યારે બગીચો વધે છે.';
+
+  @override
+  String get gardenImageLabel => 'કવચ પાંડા બગીચાને પાણી આપે છે';
+
+  @override
+  String gardenWeeklyMissions(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count મિશન',
+      one: '1 મિશન',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gardenWeeklyBody => 'બગીચો વધારવા આ અઠવાડિયે મંજૂર થયા';
+
+  @override
+  String get gardenMilestones => 'શણગાર અને સિદ્ધિઓ';
+
+  @override
+  String gardenMilestonesCount(int done, int total) {
+    return '$done / $total મળ્યા';
+  }
+
+  @override
+  String get milestoneRainbow => 'મેઘધનુષ્ય કમાન';
+
+  @override
+  String get milestoneSunflower => 'સૂરજમુખીનો ક્યારો';
+
+  @override
+  String get milestoneBirdhouse => 'પક્ષીઘર';
+
+  @override
+  String get milestoneFountain => 'પરી ફુવારો';
+
+  @override
+  String get milestoneActive => 'સક્રિય';
+
+  @override
+  String get milestoneUnlocked => 'ખુલ્યું';
+
+  @override
+  String milestoneEarned(int days) {
+    return '$days દિવસની સ્ટ્રીકથી ખુલ્યું';
+  }
+
+  @override
+  String milestoneLocked(int days) {
+    return 'ખોલવા $days દિવસની સ્ટ્રીક મેળવો';
+  }
+
+  @override
+  String get gardenTipTitle => 'પાંડાની ટિપ';
+
+  @override
+  String get gardenTipBody =>
+      '\"બહાર 30 મિનિટ રમવાથી મન તાજું અને ખુશ રહે છે!\"';
+
+  @override
+  String get editMissionTitle => 'મિશન બદલો';
+
+  @override
+  String get createMissionDue => 'છેલ્લી તારીખ';
+
+  @override
+  String get createMissionDuePick => 'તારીખ નક્કી કરો';
+
+  @override
+  String get createMissionDueClear => 'તારીખ કાઢી નાખો';
+
+  @override
+  String get missionSaved => 'મિશન સાચવ્યું';
+
+  @override
+  String get removeMissionButton => 'મિશન દૂર કરો';
+
+  @override
+  String get removeMissionConfirmTitle => 'આ મિશન દૂર કરશો?';
+
+  @override
+  String removeMissionConfirmBody(String title) {
+    return '\"$title\" તમારા બાળકોને દેખાશે નહીં. સમીક્ષા માટે મોકલેલા મિશન રેકોર્ડમાં રહેશે.';
+  }
+
+  @override
+  String get removeMissionConfirm => 'દૂર કરો';
+
+  @override
+  String get removeMissionDone => 'મિશન દૂર થયું';
+
+  @override
+  String parentMissionEdit(String title) {
+    return 'મિશન $title બદલો';
+  }
+
+  @override
+  String get showMore => 'વધુ બતાવો';
+
+  @override
+  String approvalsPartial(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count મિશન લોડ થયા નહીં, તેથી તેમના જવાબ ખૂટતા હોઈ શકે.',
+      one: '1 મિશન લોડ થયું નહીં, તેથી તેના જવાબ ખૂટતા હોઈ શકે.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get approvalsUnread =>
+      'કેટલાક અપડેટ એપ લોડ કરી શકે તેનાથી જૂના છે. જૂના જવાબ કદાચ ન દેખાય.';
+
+  @override
+  String get submitAddPhoto => 'ફોટો ઉમેરો';
+
+  @override
+  String get submitTakePhoto => 'ફોટો લો';
+
+  @override
+  String get submitChoosePhoto => 'ગૅલેરીમાંથી પસંદ કરો';
+
+  @override
+  String get submitRemovePhoto => 'ફોટો હટાવો';
+
+  @override
+  String get submitPhotoReady => 'ફોટો મોકલવા તૈયાર';
+
+  @override
+  String get submitPhotoPreview => 'તમારા ફોટાનું પૂર્વાવલોકન';
+
+  @override
+  String get submitPhotoHelp =>
+      'ફોટો તમારા માતા-પિતાને મિશન ચકાસવામાં મદદ કરે છે. તમે ફક્ત નોંધ પણ લખી શકો છો.';
+
+  @override
+  String get submitPhotoPickFailed =>
+      'અમે કૅમેરા અથવા ગૅલેરી ખોલી શક્યા નહીં. સેટિંગ્સમાં ઍપની પરવાનગી તપાસો.';
+
+  @override
+  String get submitUploading => 'તમારો ફોટો મોકલી રહ્યા છીએ…';
+
+  @override
+  String get errorPhotoTooLarge => 'આ ફોટો ખૂબ મોટો છે. નાનો ફોટો પસંદ કરો.';
+
+  @override
+  String get errorPhotoUnsupported =>
+      'કૃપા કરીને JPEG, PNG અથવા WebP ફોટો પસંદ કરો.';
+
+  @override
+  String get errorPhotoQuota =>
+      'તમારા કેટલાક ફોટા હજી મોકલ્યા નથી. પહેલાં કોઈ મિશન મોકલો.';
+
+  @override
+  String get errorPhotoStorage =>
+      'હમણાં ફોટા સાચવી શકાતા નથી. ફરી પ્રયત્ન કરો અથવા નોંધ મોકલો.';
+
+  @override
+  String get errorAlreadyPending =>
+      'આ મિશન પહેલેથી માતા-પિતાની ચકાસણીની રાહમાં છે.';
+
+  @override
+  String get errorAlreadyCompleted =>
+      'તમે આ મિશન પહેલેથી પૂરું કરી દીધું છે. શાબાશ!';
+
+  @override
+  String get historyTitle => 'તમારા પ્રયત્નો';
+
+  @override
+  String historyAttempt(int number) {
+    return 'પ્રયત્ન $number';
+  }
+
+  @override
+  String get historyParentNote => 'માતા-પિતાની નોંધ';
+
+  @override
+  String get statusPendingShort => 'રાહ જોઈ રહ્યું છે';
+
+  @override
+  String get statusApprovedShort => 'મંજૂર';
+
+  @override
+  String get statusRejectedShort => 'ફરી પ્રયત્ન કરો';
+
+  @override
+  String get statusResubmitShort => 'ફરી મોકલો';
+
+  @override
+  String get approvalsProofZoom => 'મોટું કરવા ટૅપ કરો';
+
+  @override
+  String get close => 'બંધ કરો';
+
+  @override
+  String get rewardsCatalogEmpty => 'હજી કોઈ ઇનામ નથી. માતા-પિતાને ઉમેરવા કહો!';
+
+  @override
+  String get rewardsAsk => 'આ માટે પૂછો';
+
+  @override
+  String rewardsNeedMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count વધુ તારા જોઈએ',
+      one: '1 વધુ તારો જોઈએ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get rewardsAlreadyAsked => 'માતા-પિતાના જવાબની રાહ';
+
+  @override
+  String rewardsConfirmTitle(String name) {
+    return '$name માટે પૂછવું છે?';
+  }
+
+  @override
+  String rewardsConfirmBody(int count) {
+    return 'જો માતા-પિતા હા કહેશે તો $count તારા વપરાશે. ત્યાં સુધી કંઈ કપાશે નહીં.';
+  }
+
+  @override
+  String get rewardsConfirmYes => 'હા, પૂછો';
+
+  @override
+  String get rewardsAsked => 'માતા-પિતાને વિનંતી મોકલી!';
+
+  @override
+  String get rewardsCancelRequest => 'વિનંતી રદ કરો';
+
+  @override
+  String get rewardsRequestCancelled => 'વિનંતી રદ થઈ';
+
+  @override
+  String rewardsParentNote(String note) {
+    return 'માતા-પિતાની નોંધ: $note';
+  }
+
+  @override
+  String rewardsRequestNamed(String name) {
+    return '$name માટે વિનંતી';
+  }
+
+  @override
+  String get errorNotEnoughStars => 'આ માટે પૂરતા તારા નથી.';
+
+  @override
+  String get errorRewardPending => 'આ ઇનામ માટે પહેલેથી પૂછ્યું છે.';
+
+  @override
+  String get errorRewardUnavailable => 'આ ઇનામ હવે ઉપલબ્ધ નથી.';
+
+  @override
+  String get parentRewardsTitle => 'ઇનામ';
+
+  @override
+  String get parentRewardsSubtitle => 'ઇનામ પસંદ કરો અને વિનંતીઓનો જવાબ આપો';
+
+  @override
+  String parentRewardsRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count વિનંતીઓ રાહમાં',
+      one: '1 વિનંતી રાહમાં',
+      zero: 'કોઈ વિનંતી રાહમાં નથી',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get rewardsTabCatalog => 'ઇનામ';
+
+  @override
+  String get rewardsTabRequests => 'વિનંતીઓ';
+
+  @override
+  String get rewardsRequestsEmpty => 'કોઈ વિનંતી રાહમાં નથી.';
+
+  @override
+  String get rewardsAddReward => 'ઇનામ ઉમેરો';
+
+  @override
+  String get rewardsEditReward => 'ઇનામ બદલો';
+
+  @override
+  String get rewardsFormName => 'ઇનામનું નામ';
+
+  @override
+  String get rewardsFormDescription => 'વર્ણન';
+
+  @override
+  String get rewardsFormCost => 'તારાની કિંમત';
+
+  @override
+  String get rewardsFormType => 'પ્રકાર';
+
+  @override
+  String get rewardTypeCustom => 'કંઈક ખાસ';
+
+  @override
+  String get rewardTypeGift => 'ભેટ';
+
+  @override
+  String get rewardTypeBook => 'પુસ્તક';
+
+  @override
+  String get rewardTypeOutdoor => 'બહારની પ્રવૃત્તિ';
+
+  @override
+  String get rewardTypeScreenTime => 'સ્ક્રીન સમય';
+
+  @override
+  String get rewardsRemove => 'ઇનામ હટાવો';
+
+  @override
+  String rewardsRemoveConfirm(String name) {
+    return '$name હટાવવું? બાળકો તેને નહીં જુએ.';
+  }
+
+  @override
+  String get rewardsSaved => 'ઇનામ સાચવ્યું';
+
+  @override
+  String get rewardsRemoved => 'ઇનામ હટાવ્યું';
+
+  @override
+  String rewardsAskedBy(String child, String reward) {
+    return '$child એ $reward માંગ્યું';
+  }
+
+  @override
+  String rewardsApprove(int count) {
+    return 'મંજૂર કરો ($count તારા)';
+  }
+
+  @override
+  String get rewardsDecline => 'ના પાડો';
+
+  @override
+  String get rewardsMarkGiven => 'આપ્યું તરીકે ચિહ્નિત કરો';
+
+  @override
+  String get rewardsCancelRefund => 'રદ કરો અને તારા પાછા આપો';
+
+  @override
+  String rewardsApprovedToast(int count) {
+    return 'મંજૂર. $count તારા કપાયા.';
+  }
+
+  @override
+  String get rewardsDeclinedToast => 'વિનંતી નામંજૂર કરી';
+
+  @override
+  String get rewardsGivenToast => 'આપ્યું તરીકે ચિહ્નિત કર્યું';
+
+  @override
+  String get rewardsRefundedToast => 'રદ કર્યું અને તારા પાછા આપ્યા';
+
+  @override
+  String get rewardsAlreadyReviewed => 'આ વિનંતી પહેલેથી પૂરી થઈ ગઈ છે.';
+
+  @override
+  String get rewardsNoteOptional => 'બાળક માટે નોંધ (વૈકલ્પિક)';
+
+  @override
+  String get rewardsDeclineTitle => 'આ વિનંતી નામંજૂર કરવી છે?';
+
+  @override
+  String get save => 'સાચવો';
+
+  @override
+  String get reportsPreviousWeek => 'પાછલું અઠવાડિયું';
+
+  @override
+  String get reportsNextWeek => 'આગલું અઠવાડિયું';
+
+  @override
+  String get reportsThisWeek => 'આ અઠવાડિયું';
+
+  @override
+  String get reportsCategoriesTitle => 'પ્રવૃત્તિ મુજબ';
+
+  @override
+  String get reportsCategoriesEmpty => 'આ અઠવાડિયે હજી કોઈ મંજૂર મિશન નથી.';
+
+  @override
+  String reportsCategoryCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count મિશન',
+      one: '1 મિશન',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reportsUncategorised => 'અન્ય';
+
+  @override
+  String reportsPendingNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count મિશન તમારી સમીક્ષાની રાહ જોઈ રહ્યા છે',
+      one: '1 મિશન તમારી સમીક્ષાની રાહ જોઈ રહ્યું છે',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String reportsRetryNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count મિશન ફરી કરવાના છે',
+      one: '1 મિશન ફરી કરવાનું છે',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String reportsTimezoneNote(String zone) {
+    return 'દિવસો $zone સમય મુજબ છે.';
+  }
+
+  @override
+  String get reportsShare => 'પ્રગતિ શેર કરો';
+
+  @override
+  String reportsShareSubject(String name) {
+    return '$name ની સાપ્તાહિક પ્રગતિ';
+  }
+
+  @override
+  String get reportsShareFailed =>
+      'શેર ખુલી શક્યું નહીં. તેના બદલે કૉપિ કરી જુઓ.';
+
+  @override
+  String get maintenanceDefault =>
+      'બાલ કવચ અપડેટ થઈ રહ્યું છે. થોડા સમય માટે કેટલીક બાબતો કામ ન કરે.';
+
+  @override
+  String get settingsTimezone => 'સમય ઝોન';
+
+  @override
+  String get settingsTimezoneBody =>
+      'રિપોર્ટ અને સ્ટ્રીકમાં મિશન કયા દિવસે ગણાય તે નક્કી કરે છે. તમારા પરિવાર માટે સાચવેલું છે.';
+
+  @override
+  String settingsTimezoneUseDevice(String zone) {
+    return 'આ ફોનનો સમય ઝોન વાપરો ($zone)';
+  }
+
+  @override
+  String get settingsTimezoneSaved => 'સમય ઝોન સાચવ્યો';
+
+  @override
+  String get settingsSavedWhereTitle => 'શું ક્યાં સચવાય છે';
+
+  @override
+  String get settingsSavedAccount =>
+      'તમારા ખાતામાં સચવાય છે: ભાષા, પુશની પસંદગી, પરિવારનો સમય ઝોન, સંમતિ.';
+
+  @override
+  String get settingsSavedDevice =>
+      'ફક્ત આ ફોન પર સચવાય છે: દરેક બાળકની અવતાર તસવીર.';
+
+  @override
+  String get settingsPrivacySafetyTitle => 'ગોપનીયતા અને સુરક્ષા';
+
+  @override
+  String get safetyPointFamilyOnly =>
+      'મિશન, ફોટા અને પ્રગતિ ફક્ત તમારા પરિવારના માતા-પિતા અને સંબંધિત બાળક જ જોઈ શકે છે.';
+
+  @override
+  String get safetyPointPhotos =>
+      'ફોટા સાચવતાં પહેલાં તપાસાય છે, નાના કરાય છે અને તેમાંથી સ્થળની માહિતી કાઢી નખાય છે.';
+
+  @override
+  String get safetyPointChildMode =>
+      'બાળ મોડમાં તમારો ઇમેઇલ કે પાસવર્ડ ક્યારેય હોતો નથી અને તે માતા-પિતાની સ્ક્રીન ખોલી શકતો નથી.';
+
+  @override
+  String get safetyPointApprovals =>
+      'તારા, XP અને ઇનામ ત્યારે જ બદલાય છે જ્યારે માતા-પિતા નિર્ણય લે છે.';
+
+  @override
+  String get safetyPointNotifications =>
+      'સૂચનાઓમાં તમારા બાળકનું નામ કે મિશનની વિગતો ક્યારેય દેખાતી નથી.';
+
+  @override
+  String get safetyPointNoAds => 'બાલ કવચ કોઈ જાહેરાત બતાવતું નથી.';
+
+  @override
+  String get childSignOutDevices => 'બધા ઉપકરણો પર સાઇન આઉટ કરો';
+
+  @override
+  String childSignOutDevicesBody(String name) {
+    return '$name નું સાઇન-ઇન બધે બંધ કરે છે, જેમ કે ખોવાયેલા ટૅબ્લેટ પર.';
+  }
+
+  @override
+  String get childSignOutDevicesDone => 'બધા ઉપકરણો પર સાઇન આઉટ થયું';
+
+  @override
+  String get childSignOutDevicesConfirm => 'સાઇન આઉટ';
+
+  @override
+  String get navLearn => 'શીખો';
+
+  @override
+  String get learnTitle => 'શીખો અને જુઓ';
+
+  @override
+  String get learnAll => 'બધા';
+
+  @override
+  String get learnEmpty => 'અહીં હજી શીખવા માટે કંઈ નથી. થોડી વારમાં ફરી જુઓ!';
+
+  @override
+  String get learnOpen => 'ખોલો';
+
+  @override
+  String get learnOpensOutside => 'તમારા બ્રાઉઝર અથવા વીડિયો ઍપમાં ખુલશે.';
+
+  @override
+  String get learnOpenFailed => 'અમે તે લિંક ખોલી શક્યા નહીં.';
+
+  @override
+  String get learnLocked => 'આને ઇનામથી અનલૉક કરાવવા માતા-પિતાને પૂછો.';
+
+  @override
+  String get learnNotReady => 'આ હજી ચલાવવા તૈયાર નથી.';
+
+  @override
+  String get learnTypeVideo => 'વીડિયો';
+
+  @override
+  String get learnTypeArticle => 'લેખ';
+
+  @override
+  String get learnTypeLink => 'લિંક';
+
+  @override
+  String get learnTypeDocument => 'દસ્તાવેજ';
+
+  @override
+  String get learnTypeActivity => 'પ્રવૃત્તિ';
+
+  @override
+  String get learnCategoryLearning => 'શીખવું';
+
+  @override
+  String get learnCategoryStories => 'વાર્તાઓ';
+
+  @override
+  String get learnCategoryScience => 'વિજ્ઞાન';
+
+  @override
+  String get learnCategoryCreativity => 'સર્જનાત્મકતા';
+
+  @override
+  String get learnCategoryHealthyHabits => 'તંદુરસ્ત ટેવો';
+
+  @override
+  String get learnMore => 'વધુ બતાવો';
+
+  @override
+  String get gardenCollection => 'બગીચાનો સંગ્રહ';
+
+  @override
+  String gardenCollectionCount(int unlocked, int total) {
+    return '$total માંથી $unlocked ખુલ્યા';
+  }
+
+  @override
+  String gardenServerStage(String name) {
+    return 'બગીચાનું કદ: $name';
+  }
+
+  @override
+  String gardenXpToNext(int count) {
+    return 'ફરી વધવા માટે $count XP બાકી';
+  }
+
+  @override
+  String get gardenStageYoungTree => 'નાનું વૃક્ષ';
+
+  @override
+  String get gardenStageBlossom => 'ખીલેલું વૃક્ષ';
+
+  @override
+  String get gardenStageOrchard => 'બગીચો';
+
+  @override
+  String get gardenItemFirstMission => 'નાની વાડ';
+
+  @override
+  String get gardenItemMissionMaster => 'બગીચાનો દરવાજો';
+
+  @override
+  String get gardenItemStarCollector => 'તારા ફાનસ';
+
+  @override
+  String get gardenItemXpClimber => 'ફૂલોની ક્યારી';
+
+  @override
+  String get gardenItemThreeDayStreak => 'મેઘધનુષ';
+
+  @override
+  String get gardenItemWeekWarrior => 'ફુવારો';
+
+  @override
+  String gardenItemLocked(String badge) {
+    return 'અનલૉક કરવા માટે “$badge” બેજ જીતો';
+  }
+
+  @override
+  String get gardenItemUnknown => 'બગીચાની સરપ્રાઇઝ';
+
+  @override
+  String get createMissionIdeas => 'સૂચનોમાંથી પસંદ કરો';
+
+  @override
+  String get createMissionIdeasTitle => 'મિશનના સૂચનો';
+
+  @override
+  String get createMissionIdeasEmpty => 'હમણાં કોઈ સૂચન ઉપલબ્ધ નથી.';
+
+  @override
+  String get createMissionIdeasHint => 'સાચવતાં પહેલાં તમે કંઈ પણ બદલી શકો છો.';
 }

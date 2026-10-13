@@ -7,12 +7,20 @@ import 'access_token_store.dart';
 /// token (login, register).
 const kAuthenticatedExtra = 'authenticated';
 
-/// Adds `Authorization: Bearer` from [AccessTokenStore] and reports 401s on
-/// authenticated requests so the session can be cleared.
+/// Request option key: set on the retried copy of a request so a second 401
+/// ends the session instead of refreshing again.
+const kRetriedExtra = 'retried_after_refresh';
+
+/// Adds `Authorization: Bearer` from [AccessTokenStore]. On a 401 for an
+/// authenticated request it renews the session once and replays the request;
+/// only if the session cannot be renewed is the user reported as signed out.
 class AuthInterceptor extends Interceptor {
-  AuthInterceptor(this._tokens);
+  AuthInterceptor(this._tokens, {this.retryClient});
 
   final AccessTokenStore _tokens;
+
+  /// Client used to replay a request after the session was renewed.
+  final Dio? retryClient;
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
@@ -27,11 +35,43 @@ class AuthInterceptor extends Interceptor {
   }
 
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    final sentToken = err.requestOptions.headers.containsKey('Authorization');
-    if (err.response?.statusCode == 401 && sentToken) {
-      _tokens.reportUnauthorized();
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    final options = err.requestOptions;
+    final sentToken = options.headers.containsKey('Authorization');
+    if (err.response?.statusCode != 401 || !sentToken) {
+      handler.next(err);
+      return;
     }
+    final client = retryClient;
+    final canRetry =
+        client != null &&
+        options.extra[kRetriedExtra] != true &&
+        options.extra[kAuthenticatedExtra] != false &&
+        _tokens.refresher != null;
+    if (canRetry) {
+      final outcome = await _tokens.refreshOnce();
+      if (outcome == RefreshOutcome.refreshed) {
+        final replay = options.copyWith(
+          headers: {...options.headers}..remove('Authorization'),
+          extra: {...options.extra, kRetriedExtra: true},
+        );
+        try {
+          handler.resolve(await client.fetch<dynamic>(replay));
+        } on DioException catch (retryError) {
+          handler.next(retryError);
+        }
+        return;
+      }
+      if (outcome == RefreshOutcome.unavailable) {
+        // Offline while renewing: surface the failure, keep the session.
+        handler.next(err);
+        return;
+      }
+    }
+    _tokens.reportUnauthorized();
     handler.next(err);
   }
 }

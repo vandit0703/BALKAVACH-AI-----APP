@@ -1,12 +1,14 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/runtime_config.dart';
 import '../../../core/storage/app_preferences.dart';
 
-/// Version of the parent consent text shown on the consent screen.
+/// Built-in fallback for the version of the parent consent text.
 ///
-/// Recorded on the server as `document_version`. Legal must confirm the real
-/// value before launch (docs/api-integration-matrix.md, B11).
+/// The live value comes from the server (`/app-config`, edited in the admin
+/// panel) and is cached on the device; this default is only used before the
+/// first successful fetch. Legal must confirm the real value before launch.
 const kConsentDocumentVersion = '2026-10-draft';
 const kConsentType = 'parent_guardian_terms';
 
@@ -31,6 +33,15 @@ class OnboardingState {
   int get hashCode => Object.hash(languageCode, consentAcknowledged);
 }
 
+/// The consent version parents must have accepted right now: the server's
+/// (once fetched), else the last one this device saw, else the built-in one.
+final consentVersionProvider = Provider<String>((ref) {
+  final fetched = ref.watch(runtimeConfigProvider).value?.parentTermsVersion;
+  return fetched ??
+      ref.watch(appPreferencesProvider).currentConsentVersion ??
+      kConsentDocumentVersion;
+});
+
 class OnboardingController extends Notifier<OnboardingState> {
   @override
   OnboardingState build() {
@@ -39,7 +50,7 @@ class OnboardingController extends Notifier<OnboardingState> {
     return OnboardingState(
       languageCode: kSupportedLanguageCodes.contains(code) ? code : null,
       consentAcknowledged:
-          prefs.acknowledgedConsentVersion == kConsentDocumentVersion,
+          prefs.acknowledgedConsentVersion == ref.watch(consentVersionProvider),
     );
   }
 
@@ -57,7 +68,7 @@ class OnboardingController extends Notifier<OnboardingState> {
   Future<void> acknowledgeConsent() async {
     await ref
         .read(appPreferencesProvider)
-        .setAcknowledgedConsentVersion(kConsentDocumentVersion);
+        .setAcknowledgedConsentVersion(ref.read(consentVersionProvider));
     state = OnboardingState(
       languageCode: state.languageCode,
       consentAcknowledged: true,

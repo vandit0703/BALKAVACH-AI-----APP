@@ -19,7 +19,7 @@ from app.schemas.admin import (
 	EducationalContentPublic,
 	UserStatusUpdate,
 )
-from app.schemas.auth import UserPublic
+from app.schemas.admin_manage import AdminUserPublic
 from app.services.admin_service import record_audit
 from app.utils import utc_naive
 
@@ -52,31 +52,13 @@ def dashboard(
 	)
 
 
-@router.get("/users", response_model=list[UserPublic])
-def list_users(
-	limit: int = Query(default=50, ge=1, le=100),
-	offset: int = Query(default=0, ge=0),
-	role: str | None = None,
-	admin=Depends(require_admin_permission("users:read")),
-	session: Session = Depends(get_db),
-) -> list[UserPublic]:
-	User = get_model("User")
-	query = session.query(User)
-	if role:
-		if role not in {"parent", "child", "admin", "staff"}:
-			raise HTTPException(status_code=422, detail="Invalid user role filter")
-		query = query.filter(User.role == role)
-	rows = query.order_by(User.created_at.desc(), User.id).offset(offset).limit(limit).all()
-	return [UserPublic.model_validate(user) for user in rows]
-
-
-@router.patch("/users/{user_id}/status", response_model=UserPublic)
+@router.patch("/users/{user_id}/status", response_model=AdminUserPublic)
 def set_user_status(
 	user_id: UUID,
 	request: UserStatusUpdate,
 	admin=Depends(require_admin_permission("users:write")),
 	session: Session = Depends(get_db),
-) -> UserPublic:
+) -> AdminUserPublic:
 	if user_id == admin.id and not request.is_active:
 		raise HTTPException(status_code=409, detail="Administrators cannot deactivate their own account")
 	User = get_model("User")
@@ -94,7 +76,7 @@ def set_user_status(
 	)
 	session.commit()
 	session.refresh(user)
-	return UserPublic.model_validate(user)
+	return AdminUserPublic.model_validate(user)
 
 
 @router.get("/roles", response_model=list[AdminRolePublic])

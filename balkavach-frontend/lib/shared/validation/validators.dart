@@ -18,6 +18,9 @@ class Validators {
   /// `ChildCreate.display_name`: 1–100 chars.
   String? childName(String? value) => _name(value, min: 1, max: 100);
 
+  /// `RewardCreate.name`: 2–180 chars.
+  String? rewardName(String? value) => _name(value, min: 2, max: 180);
+
   /// `TaskCreate.title`: 2–180 chars.
   String? missionTitle(String? value) => _name(value, min: 2, max: 180);
 
@@ -52,6 +55,19 @@ class Validators {
     final v = value?.trim() ?? '';
     if (v.isEmpty) return null;
     final parsed = int.tryParse(v);
+    if (parsed == null || parsed < min || parsed > max) {
+      return _l10n.validationNumberRange(min, max);
+    }
+    return null;
+  }
+
+  /// Whole number within [min]..[max]; empty is an error.
+  String? requiredIntRange(
+    String? value, {
+    required int min,
+    required int max,
+  }) {
+    final parsed = int.tryParse(value?.trim() ?? '');
     if (parsed == null || parsed < min || parsed > max) {
       return _l10n.validationNumberRange(min, max);
     }
