@@ -3,6 +3,7 @@
 import pytest
 
 from app.cli import create_admin
+from app.core.permissions import expand_permissions
 from app.db.base import get_model
 
 
@@ -85,12 +86,24 @@ def test_create_admin_cli_helper(isolated_test_session):
     assert user.email == "boss@example.com" and user.role == "admin"
     UserAdminRole = get_model("UserAdminRole")
     assert isolated_test_session.query(UserAdminRole).filter(UserAdminRole.user_id == user.id).count() == 1
+    AdminRole = get_model("AdminRole")
+    role = (
+        isolated_test_session.query(AdminRole)
+        .join(UserAdminRole, UserAdminRole.admin_role_id == AdminRole.id)
+        .filter(UserAdminRole.user_id == user.id)
+        .one()
+    )
+    assert role.name == "super_admin" and "*" in expand_permissions(role.permissions)
     with pytest.raises(ValueError):
         create_admin(isolated_test_session, "boss@example.com", "Dup", "a-very-long-password")
     with pytest.raises(ValueError):
         create_admin(isolated_test_session, "short@example.com", "Short", "short")
     with pytest.raises(ValueError):
         create_admin(isolated_test_session, "role@example.com", "Role", "a-very-long-password", "no_such_role")
+    with pytest.raises(ValueError, match="lacks required admin permissions"):
+        create_admin(isolated_test_session, "manager@example.com", "Manager", "a-very-long-password", "content_manager")
+    User = get_model("User")
+    assert isolated_test_session.query(User.id).filter(User.email == "manager@example.com").first() is None
 
 
 def test_admin_created_by_cli_can_sign_in_and_use_the_panel(api, isolated_test_session):
@@ -99,4 +112,8 @@ def test_admin_created_by_cli_can_sign_in_and_use_the_panel(api, isolated_test_s
     assert login.status_code == 200
     token = login.json()["access_token"]
     assert login.json()["user"]["role"] == "admin"
+    admin_me = api.get("/admin/me", token)
+    assert admin_me.status_code == 200
+    assert admin_me.json()["roles"] == ["super_admin"]
+    assert admin_me.json()["permissions"] == ["*"]
     assert api.get("/admin/dashboard", token).status_code == 200

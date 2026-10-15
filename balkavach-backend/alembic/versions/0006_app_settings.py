@@ -20,16 +20,17 @@ depends_on = None
 
 
 def upgrade() -> None:
-	op.create_table(
-		"app_settings",
-		sa.Column("key", sa.String(length=80), nullable=False),
-		sa.Column("value", postgresql.JSONB(), nullable=False),
-		sa.Column("updated_by", postgresql.UUID(as_uuid=True), nullable=True),
-		sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-		sa.PrimaryKeyConstraint("key", name="app_settings_pkey"),
-		sa.ForeignKeyConstraint(["updated_by"], ["users.id"], ondelete="SET NULL", name="app_settings_updated_by_fkey"),
-	)
+	if not sa.inspect(op.get_bind()).has_table("app_settings"):
+		op.create_table(
+			"app_settings",
+			sa.Column("key", sa.String(length=80), nullable=False),
+			sa.Column("value", postgresql.JSONB(), nullable=False),
+			sa.Column("updated_by", postgresql.UUID(as_uuid=True), nullable=True),
+			sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+			sa.PrimaryKeyConstraint("key", name="app_settings_pkey"),
+			sa.ForeignKeyConstraint(["updated_by"], ["users.id"], ondelete="SET NULL", name="app_settings_updated_by_fkey"),
+		)
 
 
 def downgrade() -> None:
-	op.drop_table("app_settings")
+	raise RuntimeError("Downgrade is disabled to prevent deleting persisted application settings or existing schema")
