@@ -30,6 +30,21 @@ class Validators {
     return null;
   }
 
+  String? loginIdentifier(String? value) {
+    final v = value?.trim() ?? '';
+    if (v.isEmpty) return _l10n.validationEmailInvalid;
+    if (v.length > 254) return _l10n.validationTooLong(254);
+    return null;
+  }
+
+  String? childUsername(String? value) {
+    final v = value?.trim() ?? '';
+    if (!RegExp(r'^[a-zA-Z][a-zA-Z0-9._-]{2,31}$').hasMatch(v)) {
+      return _l10n.validationUsernameInvalid;
+    }
+    return null;
+  }
+
   /// Login accepts any non-empty password (max 128).
   String? loginPassword(String? value) {
     final v = value ?? '';

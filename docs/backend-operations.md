@@ -10,7 +10,7 @@ no uploads, no presets, no app config, until the tables exist). Even so, apply
 the migrations first:
 
 1. Back up the database (Neon: create a branch or use point-in-time restore).
-2. Review `balkavach-backend/alembic/versions/0001…0006` (below).
+2. Review `balkavach-backend/alembic/versions/0001…0007` (below).
 3. Run the migrations with the guard lifted for that one run:
 
    ```bash
@@ -39,8 +39,9 @@ before scheduling any database operation.
 | `0004_proof_uploads` | Creates `proof_uploads`: `id UUID NOT NULL DEFAULT gen_random_uuid()` PK; non-null UUID `family_id`, `child_id`, `uploaded_by` cascade FKs; `content_type VARCHAR(40) NOT NULL`; `size_bytes INTEGER NOT NULL`; `sha256 VARCHAR(64) NOT NULL`; `storage_key VARCHAR(255) NOT NULL` unique; nullable UUID `submission_id` FK set null; non-null `created_at TIMESTAMPTZ DEFAULT now()`; `size_bytes > 0` check; child index. It stores metadata only, not photo bytes. | Alembic-tracked repeat only. Downgrade drops authorization/integrity metadata and makes stored objects inaccessible through the API; it does not delete object-store files, so it can leave orphaned objects and incur storage cost. |
 | `0005_preset_tasks` | Creates `preset_tasks`: `id UUID NOT NULL DEFAULT gen_random_uuid()` PK; nullable UUID `category_id` and `created_by` FKs set null; `title VARCHAR(180) NOT NULL`; nullable `description TEXT`; `language_code VARCHAR(10) NOT NULL DEFAULT 'en'`; non-null integer suggested star/XP rewards defaulting to 1/10; non-null integer `age_min`/`age_max` defaulting to 3/17; `is_active BOOLEAN NOT NULL DEFAULT true`; non-null `created_at`/`updated_at TIMESTAMPTZ DEFAULT now()`; nonnegative rewards and valid-age-range checks; category index. | Alembic-tracked repeat only. Downgrade drops all admin-created presets. |
 | `0006_app_settings` | Creates `app_settings`: `key VARCHAR(80) NOT NULL` PK; `value JSONB NOT NULL`; nullable UUID `updated_by` FK to users with `ON DELETE SET NULL`; non-null `updated_at TIMESTAMPTZ DEFAULT now()`. It does not insert initial settings; the service uses code defaults until values are written. | Alembic-tracked repeat only. Downgrade drops all database overrides; code defaults then apply. |
+| `0007_child_credentials` | Adds nullable `users.username VARCHAR(32)` and `users.password_encrypted TEXT`; creates the unique expression index `uq_users_username` on `lower(username)`. Existing users, including children without credentials, remain unchanged. | Alembic-tracked and additive. Downgrade is intentionally disabled to preserve credentials and user data. Child password hashes continue to use the existing password-hash field; encrypted retrieval requires `CHILD_CREDENTIALS_ENCRYPTION_KEY`. |
 
-The revisions are a strict chain: 0001 → 0002 → 0003 → 0004 → 0005 → 0006.
+The revisions are a strict chain: 0001 → 0002 → 0003 → 0004 → 0005 → 0006 → 0007.
 Only 0001 is data-only. The DDL revisions do not use `IF NOT EXISTS`; do not
 execute revision functions manually or treat them as independently repeatable.
 For PostgreSQL, Alembic runs them within its migration transaction, but that
@@ -60,8 +61,11 @@ successful commit behavior still requires a staging/scratch execution.
 See `balkavach-backend/.env.example` for the complete annotated list. New in this
 release: `REFRESH_TOKEN_EXPIRE_DAYS`, `CHILD_REFRESH_TOKEN_EXPIRE_DAYS`,
 `FCM_SERVICE_ACCOUNT_JSON` / `_FILE`, `STORAGE_PROVIDER`, `UPLOAD_DIR`,
-`MAX_UPLOAD_BYTES`, `MAX_UNATTACHED_UPLOADS`, `S3_*`. No secret belongs in the
-Flutter apps.
+`MAX_UPLOAD_BYTES`, `MAX_UNATTACHED_UPLOADS`, `S3_*`, and
+`CHILD_CREDENTIALS_ENCRYPTION_KEY`. Generate this as a Fernet key, store it in
+the deployment secret manager, and keep it stable across restarts and deploys;
+without it, child credential creation and retrieval return a configuration
+error. No secret belongs in the Flutter apps.
 
 ## 3. Roles and permissions
 

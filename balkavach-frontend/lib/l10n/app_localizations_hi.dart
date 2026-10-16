@@ -188,6 +188,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get authEmail => 'ईमेल';
 
   @override
+  String get authEmailOrUsername => 'ईमेल या उपयोगकर्ता नाम';
+
+  @override
   String get authPassword => 'पासवर्ड';
 
   @override
@@ -210,7 +213,8 @@ class AppLocalizationsHi extends AppLocalizations {
       'फ़ोन OTP और Google साइन-इन अभी उपलब्ध नहीं हैं। कृपया ईमेल और पासवर्ड इस्तेमाल करें।';
 
   @override
-  String get authInvalidCredentials => 'ईमेल या पासवर्ड गलत है।';
+  String get authInvalidCredentials =>
+      'ईमेल, उपयोगकर्ता नाम या पासवर्ड गलत है।';
 
   @override
   String get authEmailInUse =>
@@ -227,6 +231,10 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get validationPasswordRequired => 'कृपया पासवर्ड दर्ज करें।';
+
+  @override
+  String get validationUsernameInvalid =>
+      '3-32 अक्षर इस्तेमाल करें: शुरुआत अक्षर से करें, फिर अक्षर, अंक, डॉट, अंडरस्कोर या हाइफ़न इस्तेमाल करें।';
 
   @override
   String get validationPasswordTooShort => 'कम से कम 12 अक्षर लिखें।';
@@ -327,6 +335,50 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get createChildNameHint => 'पसंदीदा उपनाम';
+
+  @override
+  String get createChildUsername => 'उपयोगकर्ता नाम';
+
+  @override
+  String get createChildPassword => 'पासवर्ड';
+
+  @override
+  String get createChildCredentialsButton => 'उपयोगकर्ता नाम और पासवर्ड दिखाएं';
+
+  @override
+  String get createChildCredentialsTitle => 'बच्चे की साइन-इन जानकारी';
+
+  @override
+  String get createChildCredentialsMissing =>
+      'इस बच्चे की साइन-इन जानकारी अभी नहीं है। अभी सेट करें।';
+
+  @override
+  String get createChildCredentialsSetup => 'क्रेडेंशियल सेट करें';
+
+  @override
+  String get createChildCredentialsSave => 'क्रेडेंशियल सहेजें';
+
+  @override
+  String get createChildCredentialsSaved => 'बच्चे के क्रेडेंशियल अपडेट हुए';
+
+  @override
+  String get createChildCredentialsUnavailable =>
+      'क्रेडेंशियल लोड नहीं हो सके। फिर से कोशिश करें।';
+
+  @override
+  String get createChildCredentialsClose => 'बंद करें';
+
+  @override
+  String get createChildCredentialsUsername => 'उपयोगकर्ता नाम';
+
+  @override
+  String get createChildCredentialsPassword => 'पासवर्ड';
+
+  @override
+  String get createChildCredentialsShowPassword => 'पासवर्ड दिखाएं';
+
+  @override
+  String get createChildCredentialsHidePassword => 'पासवर्ड छिपाएं';
 
   @override
   String get createChildDob => 'जन्म तिथि';

@@ -40,6 +40,8 @@ class CreateChildScreen extends ConsumerStatefulWidget {
 class _CreateChildScreenState extends ConsumerState<CreateChildScreen> {
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
+  final _username = TextEditingController();
+  final _password = TextEditingController();
   DateTime? _dob;
   ChildAvatarOption _avatar = ChildAvatarOption.explorer;
   late String _language =
@@ -56,6 +58,8 @@ class _CreateChildScreenState extends ConsumerState<CreateChildScreen> {
   @override
   void dispose() {
     _name.dispose();
+    _username.dispose();
+    _password.dispose();
     super.dispose();
   }
 
@@ -72,6 +76,7 @@ class _CreateChildScreenState extends ConsumerState<CreateChildScreen> {
   }
 
   Future<void> _submit() async {
+    if (_busy) return;
     setState(() => _fieldErrors = const {});
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _busy = true);
@@ -87,6 +92,8 @@ class _CreateChildScreenState extends ConsumerState<CreateChildScreen> {
             family.id,
             NewChildProfile(
               displayName: _name.text,
+              username: _username.text,
+              password: _password.text,
               preferredLanguage: _language,
               dateOfBirth: _dob,
             ),
@@ -108,6 +115,8 @@ class _CreateChildScreenState extends ConsumerState<CreateChildScreen> {
         _fieldErrors = {for (final e in error.fieldErrors) e.field: e.message};
       });
       if (_fieldErrors.isEmpty) showErrorSnackBar(context, error);
+    } on ConflictException catch (error) {
+      if (mounted) setState(() => _fieldErrors = {'username': error.message});
     } on ApiException catch (error) {
       if (mounted) showErrorSnackBar(context, error);
     } finally {
@@ -144,6 +153,28 @@ class _CreateChildScreenState extends ConsumerState<CreateChildScreen> {
               maxLength: 100,
               textInputAction: TextInputAction.done,
               errorText: _fieldErrors['display_name'],
+            ),
+            AppTextField(
+              fieldKey: const Key('child.username'),
+              label: l10n.createChildUsername,
+              controller: _username,
+              validator: Validators(l10n).childUsername,
+              maxLength: 32,
+              textInputAction: TextInputAction.next,
+              errorText: _fieldErrors['username'],
+            ),
+            AppTextField(
+              fieldKey: const Key('child.password'),
+              label: l10n.createChildPassword,
+              controller: _password,
+              validator: Validators(l10n).newPassword,
+              obscure: true,
+              showObscureToggle: true,
+              showPasswordLabel: l10n.authShowPassword,
+              hidePasswordLabel: l10n.authHidePassword,
+              maxLength: 128,
+              textInputAction: TextInputAction.next,
+              errorText: _fieldErrors['password'],
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

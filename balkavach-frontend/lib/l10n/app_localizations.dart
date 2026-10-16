@@ -424,6 +424,12 @@ abstract class AppLocalizations {
   /// **'Email'**
   String get authEmail;
 
+  /// No description provided for @authEmailOrUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'Email or username'**
+  String get authEmailOrUsername;
+
   /// No description provided for @authPassword.
   ///
   /// In en, this message translates to:
@@ -469,7 +475,7 @@ abstract class AppLocalizations {
   /// No description provided for @authInvalidCredentials.
   ///
   /// In en, this message translates to:
-  /// **'Email or password is incorrect.'**
+  /// **'Email, username, or password is incorrect.'**
   String get authInvalidCredentials;
 
   /// No description provided for @authEmailInUse.
@@ -501,6 +507,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please enter your password.'**
   String get validationPasswordRequired;
+
+  /// No description provided for @validationUsernameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Use 3-32 characters: start with a letter, then use letters, numbers, dots, underscores, or hyphens.'**
+  String get validationUsernameInvalid;
 
   /// No description provided for @validationPasswordTooShort.
   ///
@@ -669,6 +681,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preferred nickname'**
   String get createChildNameHint;
+
+  /// No description provided for @createChildUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get createChildUsername;
+
+  /// No description provided for @createChildPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get createChildPassword;
+
+  /// No description provided for @createChildCredentialsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Username & Password'**
+  String get createChildCredentialsButton;
+
+  /// No description provided for @createChildCredentialsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Child sign-in details'**
+  String get createChildCredentialsTitle;
+
+  /// No description provided for @createChildCredentialsMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This child does not have sign-in details yet. Set them up now.'**
+  String get createChildCredentialsMissing;
+
+  /// No description provided for @createChildCredentialsSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up credentials'**
+  String get createChildCredentialsSetup;
+
+  /// No description provided for @createChildCredentialsSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save credentials'**
+  String get createChildCredentialsSave;
+
+  /// No description provided for @createChildCredentialsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Child credentials updated'**
+  String get createChildCredentialsSaved;
+
+  /// No description provided for @createChildCredentialsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Credentials could not be loaded. Please try again.'**
+  String get createChildCredentialsUnavailable;
+
+  /// No description provided for @createChildCredentialsClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get createChildCredentialsClose;
+
+  /// No description provided for @createChildCredentialsUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get createChildCredentialsUsername;
+
+  /// No description provided for @createChildCredentialsPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get createChildCredentialsPassword;
+
+  /// No description provided for @createChildCredentialsShowPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get createChildCredentialsShowPassword;
+
+  /// No description provided for @createChildCredentialsHidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get createChildCredentialsHidePassword;
 
   /// No description provided for @createChildDob.
   ///

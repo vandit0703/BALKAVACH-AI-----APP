@@ -55,13 +55,20 @@ class ApiHarness:
         return response.json()
 
     def create_child(self, parent_token: str, family_id: str, name: str = "Kid") -> dict:
-        response = self.post(f"/families/{family_id}/children", parent_token, {"display_name": name})
+        username = f"kid-{uuid4().hex[:12]}"
+        response = self.post(
+            f"/families/{family_id}/children",
+            parent_token,
+            {"display_name": name, "username": username, "password": PASSWORD},
+        )
         assert response.status_code == 201, response.text
         child = response.json()
         session = self.post(f"/auth/children/{child['id']}/session", parent_token)
         assert session.status_code == 200, session.text
         child["token"] = session.json()["access_token"]
         child["user_id"] = session.json()["user"]["id"]
+        child["username"] = username
+        child["password"] = PASSWORD
         return child
 
     def family_with_child(self, child_name: str = "Kid") -> dict:

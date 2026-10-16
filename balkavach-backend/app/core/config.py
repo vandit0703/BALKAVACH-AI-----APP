@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 	debug: bool = False
 	database_url: str | None = Field(default=None, repr=False)
 	jwt_secret_key: str | None = Field(default=None, repr=False)
+	child_credentials_encryption_key: str | None = Field(default=None, repr=False)
 	jwt_algorithm: str = "HS256"
 	access_token_expire_minutes: int = Field(default=30, ge=1, le=1440)
 	refresh_token_expire_days: int = Field(default=30, ge=1, le=365)

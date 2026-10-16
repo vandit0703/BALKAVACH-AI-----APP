@@ -76,7 +76,10 @@ def test_parent_child_mission_reward_journey(world):
                           json={"token": "p" * 40, "platform": "android"}).status_code == 204
 
     # 3: child profile linked to the family; 5: parent starts child mode -> child-only credentials
-    child = api.post(f"/families/{family['id']}/children", parent, {"display_name": "Asha", "date_of_birth": "2018-05-01"}).json()
+    child = api.post(f"/families/{family['id']}/children", parent, {
+        "display_name": "Asha", "date_of_birth": "2018-05-01",
+        "username": "journey-asha", "password": PASSWORD,
+    }).json()
     child_session = api.post(f"/auth/children/{child['id']}/session", parent).json()
     kid = child_session["access_token"]
     assert child_session["user"]["role"] == "child"

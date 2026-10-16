@@ -47,6 +47,30 @@ class FamilyRepository {
         return ChildProfile.fromJson(response.data!);
       });
 
+  /// `GET /api/v1/families/{id}/children/{child_id}/credentials`.
+  Future<ChildCredentials> getChildCredentials(
+    String familyId,
+    String childId,
+  ) => guardApi(() async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/v1/families/$familyId/children/$childId/credentials',
+    );
+    return ChildCredentials.fromJson(response.data!);
+  });
+
+  /// Parent-authorized setup/reset for children created before credentials.
+  Future<void> setChildCredentials({
+    required String familyId,
+    required String childId,
+    required String username,
+    required String password,
+  }) => guardApi(() async {
+    await _dio.put<void>(
+      '/api/v1/families/$familyId/children/$childId/credentials',
+      data: {'username': username.trim().toLowerCase(), 'password': password},
+    );
+  });
+
   /// `PATCH /api/v1/families/{id}/children/{child_id}`. Only fields the
   /// backend stores are sent.
   Future<ChildProfile> updateChild(

@@ -89,6 +89,20 @@ class ChildProfile {
   int get hashCode => Object.hash(id, displayName, dateOfBirth, isActive);
 }
 
+@immutable
+class ChildCredentials {
+  const ChildCredentials({required this.username, required this.password});
+
+  factory ChildCredentials.fromJson(Map<String, dynamic> json) =>
+      ChildCredentials(
+        username: json['username'] as String,
+        password: json['password'] as String,
+      );
+
+  final String username;
+  final String password;
+}
+
 /// `ConsentPublic`.
 @immutable
 class ConsentRecord {
@@ -136,15 +150,21 @@ class NewChildProfile {
   const NewChildProfile({
     required this.displayName,
     required this.preferredLanguage,
+    required this.username,
+    required this.password,
     this.dateOfBirth,
   });
 
   final String displayName;
   final String preferredLanguage;
+  final String username;
+  final String password;
   final DateTime? dateOfBirth;
 
   Map<String, dynamic> toJson() => {
     'display_name': displayName.trim(),
+    'username': username.trim().toLowerCase(),
+    'password': password,
     'preferred_language': preferredLanguage,
     if (dateOfBirth != null) 'date_of_birth': formatIsoDate(dateOfBirth!),
   };

@@ -116,6 +116,76 @@ def test_wrong_password_and_duplicate_email(api):
     assert weak.status_code == 422
 
 
+def test_child_credentials_are_hashed_encrypted_and_retrievable_only_by_parent(api, isolated_test_session):
+    ctx = api.family_with_child()
+    child = ctx["child"]
+    path = f"/families/{ctx['family']['id']}/children/{child['id']}/credentials"
+
+    response = api.get(path, ctx["parent"]["token"])
+    assert response.status_code == 200
+    assert response.json() == {"username": child["username"], "password": PASSWORD}
+    User = get_model("User")
+    user = isolated_test_session.query(User).filter(User.id == child["user_id"]).one()
+    assert user.password_hash != PASSWORD
+    assert user.password_encrypted != PASSWORD
+    assert PASSWORD not in user.password_hash and PASSWORD not in user.password_encrypted
+
+    other = api.family_with_child()
+    denied = api.get(path, other["parent"]["token"])
+    assert denied.status_code == 404
+    assert PASSWORD not in denied.text
+
+    login = api.post("/auth/login", json={"username": child["username"], "password": PASSWORD})
+    assert login.status_code == 200, login.text
+    assert login.json()["user"]["role"] == "child"
+
+
+def test_child_creation_requires_valid_unique_credentials(api):
+    parent = api.register_parent()
+    family = api.create_family(parent["token"])
+    path = f"/families/{family['id']}/children"
+    assert api.post(path, parent["token"], {"display_name": "Missing"}).status_code == 422
+    assert api.post(path, parent["token"], {
+        "display_name": "Invalid", "username": "bad user", "password": PASSWORD,
+    }).status_code == 422
+    assert api.post(path, parent["token"], {
+        "display_name": "Weak", "username": "validkid", "password": "short",
+    }).status_code == 422
+
+    payload = {"display_name": "First", "username": "sharedkid", "password": PASSWORD}
+    created = api.post(path, parent["token"], payload)
+    assert created.status_code == 201, created.text
+    assert "username" not in created.json() and "password" not in created.json()
+    duplicate = api.post(path, parent["token"], {**payload, "display_name": "Second"})
+    assert duplicate.status_code == 409
+    assert duplicate.json()["error"]["code"] == "username_in_use"
+
+
+def test_legacy_child_can_be_assigned_credentials(api, isolated_test_session):
+    ctx = api.family_with_child()
+    child = ctx["child"]
+    User = get_model("User")
+    user = isolated_test_session.query(User).filter(User.id == child["user_id"]).one()
+    user.username = None
+    user.password_encrypted = None
+    isolated_test_session.commit()
+    path = f"/families/{ctx['family']['id']}/children/{child['id']}/credentials"
+
+    missing = api.get(path, ctx["parent"]["token"])
+    assert missing.status_code == 404
+    assert missing.json()["error"]["code"] == "child_credentials_missing"
+
+    updated = api.client.put(
+        f"/api/v1{path}",
+        headers=api.auth(ctx["parent"]["token"]),
+        json={"username": "legacykid", "password": PASSWORD},
+    )
+    assert updated.status_code == 204, updated.text
+    assert api.get(path, ctx["parent"]["token"]).json() == {
+        "username": "legacykid", "password": PASSWORD,
+    }
+
+
 def test_sign_in_still_works_when_the_sessions_table_is_not_migrated(api, monkeypatch):
     monkeypatch.setattr("app.services.session_service._auth_session_model", lambda: None)
     parent = api.register_parent()

@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 
 class RegistrationRequest(BaseModel):
@@ -11,8 +11,19 @@ class RegistrationRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-	email: EmailStr
+	email: EmailStr | None = None
+	username: str | None = Field(default=None, min_length=3, max_length=32)
 	password: str = Field(min_length=1, max_length=128)
+
+	@model_validator(mode="after")
+	def require_login_identifier(self):
+		if (self.email is None) == (self.username is None):
+			raise ValueError("provide exactly one of email or username")
+		if self.username is not None:
+			from app.core.child_credentials import normalize_username
+
+			self.username = normalize_username(self.username)
+		return self
 
 
 class UserPublic(BaseModel):

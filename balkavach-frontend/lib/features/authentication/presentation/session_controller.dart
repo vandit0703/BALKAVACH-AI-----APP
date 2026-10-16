@@ -112,10 +112,14 @@ class SessionController extends AsyncNotifier<Session?> {
     }
   }
 
-  Future<void> signIn({required String email, required String password}) async {
+  Future<void> signIn({
+    String? identifier,
+    String? email,
+    required String password,
+  }) async {
     final session = await ref
         .read(authRepositoryProvider)
-        .login(email: email, password: password);
+        .login(identifier: identifier, email: email, password: password);
     await _adopt(session);
   }
 

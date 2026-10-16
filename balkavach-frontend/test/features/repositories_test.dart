@@ -44,6 +44,23 @@ void main() {
       },
     );
 
+    test(
+      'child username login uses the existing authentication endpoint',
+      () async {
+        backend.reply('POST', '/api/v1/auth/login', Fx.childToken());
+        final session = await repo().login(
+          identifier: 'aarav7',
+          password: 'a-secure-child-password',
+        );
+
+        expect(backend.requests.single.data, {
+          'username': 'aarav7',
+          'password': 'a-secure-child-password',
+        });
+        expect(session.user.role, UserRole.child);
+      },
+    );
+
     test('invalid credentials surface the backend code', () async {
       backend.on(
         'POST',
@@ -126,38 +143,66 @@ void main() {
   group('FamilyRepository', () {
     FamilyRepository repo() => FamilyRepository(createTestDio(backend, tokens));
 
-    test('createChild sends only stored fields with an ISO date', () async {
-      backend.reply(
-        'POST',
-        '/api/v1/families/${Fx.familyId}/children',
-        Fx.child(),
-        status: 201,
-      );
-      final child = await repo().createChild(
-        Fx.familyId,
-        NewChildProfile(
-          displayName: '  Aarav ',
-          preferredLanguage: 'gu',
-          dateOfBirth: DateTime(2019, 5, 4),
-        ),
-      );
-      expect(backend.requests.single.data, {
-        'display_name': 'Aarav',
-        'preferred_language': 'gu',
-        'date_of_birth': '2019-05-04',
-      });
-      expect(child.id, Fx.childId);
-      expect(child.dateOfBirth, DateTime(2019, 5, 4));
-    });
+    test(
+      'createChild sends child details and credentials with an ISO date',
+      () async {
+        backend.reply(
+          'POST',
+          '/api/v1/families/${Fx.familyId}/children',
+          Fx.child(),
+          status: 201,
+        );
+        final child = await repo().createChild(
+          Fx.familyId,
+          NewChildProfile(
+            displayName: '  Aarav ',
+            preferredLanguage: 'gu',
+            username: 'Aarav_7',
+            password: 'a-secure-child-password',
+            dateOfBirth: DateTime(2019, 5, 4),
+          ),
+        );
+        expect(backend.requests.single.data, {
+          'display_name': 'Aarav',
+          'username': 'aarav_7',
+          'password': 'a-secure-child-password',
+          'preferred_language': 'gu',
+          'date_of_birth': '2019-05-04',
+        });
+        expect(child.id, Fx.childId);
+        expect(child.dateOfBirth, DateTime(2019, 5, 4));
+      },
+    );
 
     test('omits date_of_birth when not provided', () {
       expect(
         const NewChildProfile(
           displayName: 'A',
           preferredLanguage: 'en',
+          username: 'kid123',
+          password: 'a-secure-child-password',
         ).toJson(),
-        {'display_name': 'A', 'preferred_language': 'en'},
+        {
+          'display_name': 'A',
+          'username': 'kid123',
+          'password': 'a-secure-child-password',
+          'preferred_language': 'en',
+        },
       );
+    });
+
+    test('gets credentials only through the dedicated endpoint', () async {
+      backend.reply(
+        'GET',
+        '/api/v1/families/${Fx.familyId}/children/${Fx.childId}/credentials',
+        {'username': 'aarav7', 'password': 'a-secure-child-password'},
+      );
+      final credentials = await repo().getChildCredentials(
+        Fx.familyId,
+        Fx.childId,
+      );
+      expect(credentials.username, 'aarav7');
+      expect(credentials.password, 'a-secure-child-password');
     });
 
     test('lists families and children', () async {

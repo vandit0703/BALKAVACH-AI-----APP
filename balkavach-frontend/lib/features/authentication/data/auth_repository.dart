@@ -15,15 +15,23 @@ class AuthRepository {
   static const _unauthenticated = {kAuthenticatedExtra: false};
 
   /// `POST /api/v1/auth/login`. 401 `invalid_credentials` on bad input.
-  Future<Session> login({required String email, required String password}) =>
-      guardApi(() async {
-        final response = await _dio.post<Map<String, dynamic>>(
-          '/api/v1/auth/login',
-          data: {'email': email.trim(), 'password': password},
-          options: Options(extra: _unauthenticated),
-        );
-        return Session.fromTokenResponse(response.data!);
-      });
+  Future<Session> login({
+    String? identifier,
+    String? email,
+    required String password,
+  }) => guardApi(() async {
+    final loginIdentifier = identifier ?? email ?? '';
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/auth/login',
+      data: {
+        if (loginIdentifier.contains('@')) 'email': loginIdentifier.trim(),
+        if (!loginIdentifier.contains('@')) 'username': loginIdentifier.trim(),
+        'password': password,
+      },
+      options: Options(extra: _unauthenticated),
+    );
+    return Session.fromTokenResponse(response.data!);
+  });
 
   /// `POST /api/v1/auth/register` (parents only). 409 `email_in_use`.
   Future<Session> register({

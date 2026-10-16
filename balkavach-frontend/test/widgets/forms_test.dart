@@ -81,7 +81,10 @@ void main() {
       await tester.tap(find.byKey(const Key('auth.submit')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('auth.error')), findsOneWidget);
-      expect(find.text('Email or password is incorrect.'), findsOneWidget);
+      expect(
+        find.text('Email, username, or password is incorrect.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('successful sign-in stores the session', (tester) async {
@@ -151,7 +154,7 @@ void main() {
 
   group('CreateChildScreen', () {
     testWidgets(
-      'requires a name and creates the child with avatar stored locally',
+      'requires name and credentials, then creates the child with avatar stored locally',
       (tester) async {
         final h = await Harness.create(
           session: Fx.parentSession(),
@@ -173,8 +176,50 @@ void main() {
         await tester.tap(find.byKey(const Key('child.submit')));
         await tester.pumpAndSettle();
         expect(find.text('Please enter a name.'), findsOneWidget);
+        expect(find.textContaining('Use 3-32 characters'), findsOneWidget);
+        expect(find.text('Please enter your password.'), findsOneWidget);
 
         await tester.enterText(find.byKey(const Key('child.name')), 'Aarav');
+        await tester.enterText(
+          find.byKey(const Key('child.username')),
+          'aarav7',
+        );
+        await tester.enterText(
+          find.byKey(const Key('child.password')),
+          'a-secure-child-password',
+        );
+        expect(
+          tester
+              .widget<EditableText>(
+                find.descendant(
+                  of: find.byKey(const Key('child.password')),
+                  matching: find.byType(EditableText),
+                ),
+              )
+              .obscureText,
+          isTrue,
+        );
+        final passwordField = find.byKey(const Key('child.password'));
+        await tester.ensureVisible(passwordField);
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.descendant(
+            of: passwordField,
+            matching: find.byType(IconButton),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<EditableText>(
+                find.descendant(
+                  of: find.byKey(const Key('child.password')),
+                  matching: find.byType(EditableText),
+                ),
+              )
+              .obscureText,
+          isFalse,
+        );
         await tester.ensureVisible(find.byKey(const Key('avatar.astro')));
         await tester.tap(find.byKey(const Key('avatar.astro')));
         await tester.pumpAndSettle();
@@ -188,6 +233,8 @@ void main() {
             .single;
         expect(request.data, {
           'display_name': 'Aarav',
+          'username': 'aarav7',
+          'password': 'a-secure-child-password',
           'preferred_language': 'en',
         });
         expect(h.prefs.childAvatarKey(Fx.childId), 'astro');

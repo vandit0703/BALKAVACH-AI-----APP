@@ -70,7 +70,12 @@ void main() {
     final family = await families.createFamily('Live Family');
     final child = await families.createChild(
       family.id,
-      const NewChildProfile(displayName: 'Live Kid', preferredLanguage: 'en'),
+      const NewChildProfile(
+        displayName: 'Live Kid',
+        preferredLanguage: 'en',
+        username: 'live-kid',
+        password: 'live-contract-child-password',
+      ),
     );
     final kidSession = await auth.startChildSession(child.id);
     expect(kidSession.user.role.name, 'child');

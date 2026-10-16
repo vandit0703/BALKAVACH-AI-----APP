@@ -58,7 +58,10 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
     final controller = ref.read(sessionControllerProvider.notifier);
     try {
       if (_mode == _AuthMode.signIn) {
-        await controller.signIn(email: _email.text, password: _password.text);
+        await controller.signIn(
+          identifier: _email.text,
+          password: _password.text,
+        );
       } else {
         await controller.register(
           fullName: _name.text,
@@ -155,13 +158,22 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
                       ),
                     AppTextField(
                       fieldKey: const Key('auth.email'),
-                      label: l10n.authEmail,
+                      label: registering
+                          ? l10n.authEmail
+                          : l10n.authEmailOrUsername,
                       controller: _email,
-                      validator: validators.email,
-                      keyboardType: TextInputType.emailAddress,
+                      validator: registering
+                          ? validators.email
+                          : validators.loginIdentifier,
+                      keyboardType: registering
+                          ? TextInputType.emailAddress
+                          : TextInputType.text,
                       textInputAction: TextInputAction.next,
-                      autofillHints: const [AutofillHints.email],
-                      errorText: _fieldErrors['email'],
+                      autofillHints: registering
+                          ? const [AutofillHints.email]
+                          : const [AutofillHints.username],
+                      errorText:
+                          _fieldErrors['email'] ?? _fieldErrors['username'],
                     ),
                     AppTextField(
                       fieldKey: const Key('auth.password'),

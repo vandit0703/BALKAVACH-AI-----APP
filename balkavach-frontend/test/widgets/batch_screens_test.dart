@@ -377,6 +377,42 @@ void main() {
       expect(find.text('Age: 7 yrs'), findsOneWidget);
     });
 
+    testWidgets(
+      'retrieves credentials on demand, masks password, and clears on close',
+      (tester) async {
+        final h = await _parent();
+        h.backend.reply('GET', '$_childPath/credentials', {
+          'username': 'aarav7',
+          'password': 'a-secure-child-password',
+        });
+        await openProfile(tester, h);
+
+        expect(find.byKey(const Key('profile.credentials')), findsOneWidget);
+        await _tap(tester, find.byKey(const Key('profile.credentials')));
+        expect(find.text('aarav7'), findsOneWidget);
+        expect(
+          tester
+              .widget<SelectableText>(
+                find.byKey(const Key('credential.value.Password')),
+              )
+              .data,
+          '••••••••',
+        );
+
+        await _tap(
+          tester,
+          find.byKey(const Key('credentials.password.toggle')),
+        );
+        expect(find.text('a-secure-child-password'), findsOneWidget);
+        await _tap(tester, find.text('Close'));
+        expect(find.text('a-secure-child-password'), findsNothing);
+        expect(
+          h.backend.requestsTo('GET', '$_childPath/credentials'),
+          hasLength(1),
+        );
+      },
+    );
+
     testWidgets('editing saves the name and keeps the avatar on device', (
       tester,
     ) async {

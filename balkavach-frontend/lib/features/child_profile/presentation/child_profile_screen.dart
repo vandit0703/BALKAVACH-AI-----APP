@@ -195,6 +195,19 @@ class _Profile extends ConsumerWidget {
                         onTap: () =>
                             confirmAndStartChildMode(context, ref, child),
                       ),
+                      OutlinedButton.icon(
+                        key: const Key('profile.credentials'),
+                        onPressed: () => showDialog<void>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) => _ChildCredentialsDialog(
+                            familyId: familyId,
+                            child: child,
+                          ),
+                        ),
+                        icon: const Icon(Icons.key_rounded),
+                        label: Text(l10n.createChildCredentialsButton),
+                      ),
                     ],
                   ),
                 ),
@@ -238,6 +251,251 @@ class _Profile extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _ChildCredentialsDialog extends ConsumerStatefulWidget {
+  const _ChildCredentialsDialog({required this.familyId, required this.child});
+
+  final String familyId;
+  final ChildProfile child;
+
+  @override
+  ConsumerState<_ChildCredentialsDialog> createState() =>
+      _ChildCredentialsDialogState();
+}
+
+class _ChildCredentialsDialogState
+    extends ConsumerState<_ChildCredentialsDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _username = TextEditingController();
+  final _password = TextEditingController();
+  ChildCredentials? _credentials;
+  bool _loading = true;
+  bool _saving = false;
+  bool _showPassword = false;
+  bool _needsSetup = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _credentials = null;
+    _username.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final credentials = await ref
+          .read(familyRepositoryProvider)
+          .getChildCredentials(widget.familyId, widget.child.id);
+      if (mounted) {
+        setState(() {
+          _credentials = credentials;
+          _needsSetup = false;
+        });
+      }
+    } on NotFoundException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _credentials = null;
+        _needsSetup = error.code == 'child_credentials_missing';
+        _error = _needsSetup
+            ? null
+            : describeError(AppLocalizations.of(context), error);
+      });
+    } on ApiException catch (error) {
+      if (mounted) {
+        setState(() {
+          _needsSetup = false;
+          _error = describeError(AppLocalizations.of(context), error);
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _save() async {
+    if (_saving || !(_formKey.currentState?.validate() ?? false)) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(familyRepositoryProvider)
+          .setChildCredentials(
+            familyId: widget.familyId,
+            childId: widget.child.id,
+            username: _username.text,
+            password: _password.text,
+          );
+      _password.clear();
+      _username.clear();
+      await _load();
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  void _close() {
+    _credentials = null;
+    _password.clear();
+    _username.clear();
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final validators = Validators(l10n);
+    final credentials = _credentials;
+    return AlertDialog(
+      title: Text(l10n.createChildCredentialsTitle),
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: _loading
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 28),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : _error != null && !_needsSetup
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    InlineNotice(message: _error!),
+                    TextButton.icon(
+                      onPressed: _load,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: Text(l10n.retry),
+                    ),
+                  ],
+                )
+              : credentials != null
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: AppSpacing.md,
+                  children: [
+                    _CredentialValue(
+                      label: l10n.createChildCredentialsUsername,
+                      value: credentials.username,
+                    ),
+                    _CredentialValue(
+                      label: l10n.createChildCredentialsPassword,
+                      value: _showPassword ? credentials.password : '••••••••',
+                      trailing: IconButton(
+                        key: const Key('credentials.password.toggle'),
+                        tooltip: _showPassword
+                            ? l10n.createChildCredentialsHidePassword
+                            : l10n.createChildCredentialsShowPassword,
+                        onPressed: () =>
+                            setState(() => _showPassword = !_showPassword),
+                        icon: Icon(
+                          _showPassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: AppSpacing.md,
+                    children: [
+                      Text(l10n.createChildCredentialsMissing),
+                      AppTextField(
+                        fieldKey: const Key('credentials.username'),
+                        label: l10n.createChildUsername,
+                        controller: _username,
+                        validator: validators.childUsername,
+                        maxLength: 32,
+                      ),
+                      AppTextField(
+                        fieldKey: const Key('credentials.password'),
+                        label: l10n.createChildPassword,
+                        controller: _password,
+                        validator: validators.newPassword,
+                        obscure: true,
+                        showObscureToggle: true,
+                        showPasswordLabel: l10n.authShowPassword,
+                        hidePasswordLabel: l10n.authHidePassword,
+                        maxLength: 128,
+                      ),
+                      if (_error != null) InlineNotice(message: _error!),
+                      FilledButton.icon(
+                        key: const Key('credentials.save'),
+                        onPressed: _saving ? null : _save,
+                        icon: _saving
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.save_outlined),
+                        label: Text(l10n.createChildCredentialsSave),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _close,
+          child: Text(l10n.createChildCredentialsClose),
+        ),
+      ],
+    );
+  }
+}
+
+class _CredentialValue extends StatelessWidget {
+  const _CredentialValue({
+    required this.label,
+    required this.value,
+    this.trailing,
+  });
+
+  final String label;
+  final String value;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(label, style: context.text.labelLarge),
+      Row(
+        children: [
+          Expanded(
+            child: SelectableText(value, key: Key('credential.value.$label')),
+          ),
+          trailing ?? const SizedBox.shrink(),
+        ],
+      ),
+    ],
+  );
 }
 
 class _ProfileHeader extends ConsumerWidget {

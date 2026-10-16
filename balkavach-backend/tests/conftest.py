@@ -1,6 +1,7 @@
 import os
 
 import pytest
+from cryptography.fernet import Fernet
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
@@ -67,6 +68,11 @@ def api(isolated_test_session, monkeypatch):
     from tests.harness import ApiHarness
 
     monkeypatch.setattr(settings, "jwt_secret_key", "integration-test-secret-that-is-long-enough")
+    monkeypatch.setattr(
+        settings,
+        "child_credentials_encryption_key",
+        Fernet.generate_key().decode("ascii"),
+    )
     from app.services.push_service import deliver_ready
 
     def _get_db():
