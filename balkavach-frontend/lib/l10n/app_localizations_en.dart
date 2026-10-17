@@ -1901,4 +1901,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get createMissionIdeasHint => 'You can change anything before saving.';
+
+  @override
+  String get validationFieldInvalid => 'Please check this field and try again.';
+
+  @override
+  String get errorUsernameTaken => 'That username is already taken.';
 }

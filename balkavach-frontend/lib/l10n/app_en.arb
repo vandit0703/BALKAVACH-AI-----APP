@@ -1167,5 +1167,7 @@
   "createMissionIdeas": "Choose from ideas",
   "createMissionIdeasTitle": "Mission ideas",
   "createMissionIdeasEmpty": "No ideas available right now.",
-  "createMissionIdeasHint": "You can change anything before saving."
+  "createMissionIdeasHint": "You can change anything before saving.",
+  "validationFieldInvalid": "Please check this field and try again.",
+  "errorUsernameTaken": "That username is already taken."
 }

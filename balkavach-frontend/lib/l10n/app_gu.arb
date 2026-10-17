@@ -514,5 +514,7 @@
   "createMissionIdeas": "સૂચનોમાંથી પસંદ કરો",
   "createMissionIdeasTitle": "મિશનના સૂચનો",
   "createMissionIdeasEmpty": "હમણાં કોઈ સૂચન ઉપલબ્ધ નથી.",
-  "createMissionIdeasHint": "સાચવતાં પહેલાં તમે કંઈ પણ બદલી શકો છો."
+  "createMissionIdeasHint": "સાચવતાં પહેલાં તમે કંઈ પણ બદલી શકો છો.",
+  "validationFieldInvalid": "કૃપા કરી આ માહિતી તપાસો અને ફરી પ્રયાસ કરો.",
+  "errorUsernameTaken": "આ યુઝરનેમ પહેલેથી વપરાયેલું છે."
 }

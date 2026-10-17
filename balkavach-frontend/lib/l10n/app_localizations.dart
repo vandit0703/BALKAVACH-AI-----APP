@@ -3196,6 +3196,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You can change anything before saving.'**
   String get createMissionIdeasHint;
+
+  /// No description provided for @validationFieldInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check this field and try again.'**
+  String get validationFieldInvalid;
+
+  /// No description provided for @errorUsernameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'That username is already taken.'**
+  String get errorUsernameTaken;
 }
 
 class _AppLocalizationsDelegate

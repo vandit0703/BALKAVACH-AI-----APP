@@ -1902,4 +1902,11 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get createMissionIdeasHint =>
       'सेव करने से पहले आप कुछ भी बदल सकते हैं।';
+
+  @override
+  String get validationFieldInvalid =>
+      'कृपया इस जानकारी को जाँचें और फिर से कोशिश करें।';
+
+  @override
+  String get errorUsernameTaken => 'यह यूज़रनेम पहले से इस्तेमाल में है।';
 }

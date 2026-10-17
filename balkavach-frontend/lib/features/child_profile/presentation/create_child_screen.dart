@@ -22,8 +22,8 @@ import 'family_providers.dart';
 
 const _languageNames = {
   'en': 'English',
-  'gu': 'àª—à«àªœàª°àª¾àª¤à«€',
-  'hi': 'à¤¹à¤¿à¤¨à¥à¤¦à¥€',
+  'gu': 'ગુજરાતી',
+  'hi': 'हिन्दी',
 };
 
 /// Add Your Child's Profile. Sends only fields the backend stores
@@ -112,11 +112,21 @@ class _CreateChildScreenState extends ConsumerState<CreateChildScreen> {
     } on ValidationException catch (error) {
       if (!mounted) return;
       setState(() {
-        _fieldErrors = {for (final e in error.fieldErrors) e.field: e.message};
+        final l10n = AppLocalizations.of(context);
+        _fieldErrors = {
+          for (final e in error.fieldErrors)
+            e.field: l10n.validationFieldInvalid,
+        };
       });
       if (_fieldErrors.isEmpty) showErrorSnackBar(context, error);
-    } on ConflictException catch (error) {
-      if (mounted) setState(() => _fieldErrors = {'username': error.message});
+    } on ConflictException {
+      if (mounted) {
+        setState(
+          () => _fieldErrors = {
+            'username': AppLocalizations.of(context).errorUsernameTaken,
+          },
+        );
+      }
     } on ApiException catch (error) {
       if (mounted) {
         final l10n = AppLocalizations.of(context);

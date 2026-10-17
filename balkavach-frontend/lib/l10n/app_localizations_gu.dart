@@ -1897,4 +1897,11 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get createMissionIdeasHint => 'સાચવતાં પહેલાં તમે કંઈ પણ બદલી શકો છો.';
+
+  @override
+  String get validationFieldInvalid =>
+      'કૃપા કરી આ માહિતી તપાસો અને ફરી પ્રયાસ કરો.';
+
+  @override
+  String get errorUsernameTaken => 'આ યુઝરનેમ પહેલેથી વપરાયેલું છે.';
 }

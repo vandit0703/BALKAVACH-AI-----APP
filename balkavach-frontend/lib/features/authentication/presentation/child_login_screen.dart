@@ -57,7 +57,8 @@ class _ChildLoginScreenState extends ConsumerState<ChildLoginScreen> {
       setState(() {
         if (error is ValidationException) {
           _fieldErrors = {
-            for (final field in error.fieldErrors) field.field: field.message,
+            for (final field in error.fieldErrors)
+              field.field: AppLocalizations.of(context).validationFieldInvalid,
           };
           _formError = _fieldErrors.isEmpty
               ? describeError(AppLocalizations.of(context), error)

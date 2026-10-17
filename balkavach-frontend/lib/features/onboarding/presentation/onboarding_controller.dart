@@ -81,10 +81,10 @@ final onboardingControllerProvider =
       OnboardingController.new,
     );
 
-/// App locale; `null` until a language is chosen (system locale is used).
-final appLocaleProvider = Provider<Locale?>((ref) {
+/// App locale: the saved choice, else English until one is chosen.
+final appLocaleProvider = Provider<Locale>((ref) {
   final code = ref.watch(
     onboardingControllerProvider.select((s) => s.languageCode),
   );
-  return code == null ? null : Locale(code);
+  return Locale(code ?? 'en');
 });

@@ -79,7 +79,8 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
         };
         if (error is ValidationException) {
           _fieldErrors = {
-            for (final e in error.fieldErrors) e.field: e.message,
+            for (final e in error.fieldErrors)
+              e.field: l10n.validationFieldInvalid,
           };
           _formError = _fieldErrors.isEmpty ? l10n.errorGeneric : null;
         }

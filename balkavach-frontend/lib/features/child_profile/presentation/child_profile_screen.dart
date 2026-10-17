@@ -352,7 +352,10 @@ class _ChildCredentialsDialogState
       _username.clear();
       await _load();
     } on ApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted) {
+        final message = describeError(AppLocalizations.of(context), error);
+        setState(() => _error = message);
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -877,7 +880,11 @@ class _EditSheetState extends ConsumerState<_EditSheet> {
     } on ValidationException catch (error) {
       if (!mounted) return;
       setState(() {
-        _fieldErrors = {for (final e in error.fieldErrors) e.field: e.message};
+        final l10n = AppLocalizations.of(context);
+        _fieldErrors = {
+          for (final e in error.fieldErrors)
+            e.field: l10n.validationFieldInvalid,
+        };
       });
       if (_fieldErrors.isEmpty) showErrorSnackBar(context, error);
     } on ApiException catch (error) {

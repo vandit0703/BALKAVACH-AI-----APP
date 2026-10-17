@@ -145,7 +145,12 @@ void main() {
       await tester.ensureVisible(find.byKey(const Key('auth.submit')));
       await tester.tap(find.byKey(const Key('auth.submit')));
       await tester.pumpAndSettle();
-      expect(find.text('The domain name is not valid'), findsOneWidget);
+      // Server field messages are English-only; the screen shows localized text.
+      expect(find.text('The domain name is not valid'), findsNothing);
+      expect(
+        find.text('Please check this field and try again.'),
+        findsOneWidget,
+      );
     });
   });
 
