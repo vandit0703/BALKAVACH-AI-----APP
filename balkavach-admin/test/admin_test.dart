@@ -463,7 +463,7 @@ void main() {
           '/api/v1/tasks/categories',
           (_) => Reply.error(
             409,
-            'http_error',
+            'category_conflict',
             'A task category with that name already exists',
           ),
         );
@@ -472,8 +472,9 @@ void main() {
       await tapKey(tester, 'categories.add');
       await tester.enterText(find.byKey(const Key('field.name')), 'Learning');
       await tapKey(tester, 'form.submit');
+      // Known backend codes are shown as localized text, not the raw English.
       expect(
-        find.text('A task category with that name already exists'),
+        find.text('A category with that name already exists.'),
         findsOneWidget,
       );
     });

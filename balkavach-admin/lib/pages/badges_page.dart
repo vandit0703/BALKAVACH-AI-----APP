@@ -3,14 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api.dart';
 import '../core/session.dart';
+import '../l10n/app_localizations.dart';
 import '../ui/widgets.dart';
-
-const _criteria = {
-  'approved_tasks': 'Approved missions',
-  'total_stars': 'Total stars',
-  'total_xp': 'Total XP',
-  'current_streak': 'Day streak',
-};
 
 class BadgesPage extends ConsumerStatefulWidget {
   const BadgesPage({super.key});
@@ -22,94 +16,79 @@ class BadgesPage extends ConsumerStatefulWidget {
 class _BadgesPageState extends ConsumerState<BadgesPage> {
   int _reload = 0;
 
+  Map<String, String> _criteria(AppLocalizations l10n) => {
+    'approved_tasks': l10n.badgeCriteriaApprovedTasks,
+    'total_stars': l10n.badgeCriteriaTotalStars,
+    'total_xp': l10n.badgeCriteriaTotalXp,
+    'current_streak': l10n.badgeCriteriaStreak,
+  };
+
+  List<FormFieldSpec> _fields(
+    AppLocalizations l10n, [
+    Map<String, dynamic>? row,
+  ]) => [
+    FormFieldSpec(
+      key: 'name',
+      label: l10n.fieldName,
+      required: true,
+      maxLength: 100,
+      initial: row?['name'],
+    ),
+    FormFieldSpec(
+      key: 'description',
+      label: l10n.fieldDescription,
+      kind: FieldKind.multiline,
+      maxLength: 2000,
+      initial: row?['description'],
+    ),
+    FormFieldSpec(
+      key: 'criteria_type',
+      label: l10n.badgeEarnedBy,
+      kind: FieldKind.choice,
+      required: true,
+      options: _criteria(l10n),
+      initial: row?['criteria_type'],
+    ),
+    FormFieldSpec(
+      key: 'threshold',
+      label: l10n.badgeAmountNeeded,
+      kind: FieldKind.integer,
+      required: true,
+      min: 1,
+      max: 1000000,
+      initial: (row?['criteria_value'] as Map<String, dynamic>?)?['threshold'],
+    ),
+    if (row != null)
+      FormFieldSpec(
+        key: 'is_active',
+        label: l10n.badgeCanBeEarned,
+        kind: FieldKind.toggle,
+        initial: row['is_active'],
+      ),
+  ];
+
   Future<void> _create() async {
+    final l10n = AppLocalizations.of(context);
     final values = await showFormDialog(
       context,
-      title: 'New badge',
-      fields: const [
-        FormFieldSpec(
-          key: 'name',
-          label: 'Name',
-          required: true,
-          maxLength: 100,
-        ),
-        FormFieldSpec(
-          key: 'description',
-          label: 'Description',
-          kind: FieldKind.multiline,
-          maxLength: 2000,
-        ),
-        FormFieldSpec(
-          key: 'criteria_type',
-          label: 'Earned by',
-          kind: FieldKind.choice,
-          required: true,
-          options: _criteria,
-        ),
-        FormFieldSpec(
-          key: 'threshold',
-          label: 'Amount needed',
-          kind: FieldKind.integer,
-          required: true,
-          min: 1,
-          max: 1000000,
-        ),
-      ],
+      title: l10n.badgeNewTitle,
+      fields: _fields(l10n),
     );
     if (values == null || !mounted) return;
     final done = await runAction(
       context,
       () => ref.read(adminApiProvider).post('/api/v1/admin/badges', values),
-      success: 'Badge created',
+      success: l10n.badgeCreated,
     );
     if (done) setState(() => _reload++);
   }
 
   Future<void> _edit(Map<String, dynamic> row) async {
-    final threshold =
-        (row['criteria_value'] as Map<String, dynamic>?)?['threshold'];
+    final l10n = AppLocalizations.of(context);
     final values = await showFormDialog(
       context,
-      title: 'Edit badge',
-      fields: [
-        FormFieldSpec(
-          key: 'name',
-          label: 'Name',
-          required: true,
-          maxLength: 100,
-          initial: row['name'],
-        ),
-        FormFieldSpec(
-          key: 'description',
-          label: 'Description',
-          kind: FieldKind.multiline,
-          maxLength: 2000,
-          initial: row['description'],
-        ),
-        FormFieldSpec(
-          key: 'criteria_type',
-          label: 'Earned by',
-          kind: FieldKind.choice,
-          required: true,
-          options: _criteria,
-          initial: row['criteria_type'],
-        ),
-        FormFieldSpec(
-          key: 'threshold',
-          label: 'Amount needed',
-          kind: FieldKind.integer,
-          required: true,
-          min: 1,
-          max: 1000000,
-          initial: threshold,
-        ),
-        FormFieldSpec(
-          key: 'is_active',
-          label: 'Can be earned',
-          kind: FieldKind.toggle,
-          initial: row['is_active'],
-        ),
-      ],
+      title: l10n.badgeEditTitle,
+      fields: _fields(l10n, row),
     );
     if (values == null || !mounted) return;
     final done = await runAction(
@@ -117,27 +96,28 @@ class _BadgesPageState extends ConsumerState<BadgesPage> {
       () => ref
           .read(adminApiProvider)
           .patch('/api/v1/admin/badges/${row['id']}', values),
-      success: 'Badge saved',
+      success: l10n.badgeSaved,
     );
     if (done) setState(() => _reload++);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final canWrite = ref.watch(sessionProvider)?.can('badges:write') ?? false;
+    final criteria = _criteria(l10n);
     return ListView(
       children: [
         PageHeader(
-          title: 'Badges',
-          subtitle:
-              'Awarded automatically when a child reaches the amount. Garden decorations unlock with the default badges.',
+          title: l10n.badgesTitle,
+          subtitle: l10n.badgesSubtitle,
           actions: [
             if (canWrite)
               FilledButton.icon(
                 key: const Key('badges.add'),
                 onPressed: _create,
                 icon: const Icon(Icons.add_rounded),
-                label: const Text('New badge'),
+                label: Text(l10n.badgeNewTitle),
               ),
           ],
         ),
@@ -149,22 +129,30 @@ class _BadgesPageState extends ConsumerState<BadgesPage> {
                 .getList('/api/v1/admin/badges');
             return all.skip(offset).take(limit).toList();
           },
-          columns: const ['Name', 'Earned by', 'Amount', 'Status', ''],
+          columns: [
+            l10n.colName,
+            l10n.badgeEarnedBy,
+            l10n.colAmount,
+            l10n.colStatus,
+            '',
+          ],
           cells: (context, row, reload) => [
             Text('${row['name']}'),
-            Text('${_criteria[row['criteria_type']] ?? row['criteria_type']}'),
+            Text('${criteria[row['criteria_type']] ?? row['criteria_type']}'),
             Text(
               '${(row['criteria_value'] as Map<String, dynamic>?)?['threshold'] ?? '—'}',
             ),
             StatusPill(
-              label: row['is_active'] == true ? 'Active' : 'Off',
+              label: row['is_active'] == true
+                  ? l10n.statusActive
+                  : l10n.statusOff,
               good: row['is_active'] == true,
             ),
             if (canWrite)
               TextButton(
                 key: Key('badge.edit.${row['id']}'),
                 onPressed: () => _edit(row),
-                child: const Text('Edit'),
+                child: Text(l10n.actionEdit),
               )
             else
               const SizedBox.shrink(),

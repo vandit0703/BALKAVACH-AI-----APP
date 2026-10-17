@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api.dart';
 import '../core/session.dart';
+import '../l10n/app_localizations.dart';
 import '../ui/widgets.dart';
 
 class RewardsPage extends ConsumerWidget {
@@ -10,28 +11,25 @@ class RewardsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final canWrite = ref.watch(sessionProvider)?.can('rewards:write') ?? false;
     return ListView(
       children: [
-        const PageHeader(
-          title: 'Rewards',
-          subtitle:
-              'Rewards created by families. Parents manage their own; hide one here if needed.',
-        ),
+        PageHeader(title: l10n.rewardsTitle, subtitle: l10n.rewardsSubtitle),
         PagedTable(
-          emptyMessage: 'No rewards yet.',
+          emptyMessage: l10n.rewardsEmpty,
           fetch: (offset, limit) => ref
               .read(adminApiProvider)
               .getList(
                 '/api/v1/admin/rewards',
                 query: {'limit': limit, 'offset': offset},
               ),
-          columns: const [
-            'Reward',
-            'Family',
-            'Type',
-            'Star cost',
-            'Status',
+          columns: [
+            l10n.colReward,
+            l10n.colFamily,
+            l10n.colType,
+            l10n.colStarCost,
+            l10n.colStatus,
             '',
           ],
           cells: (context, row, reload) {
@@ -41,16 +39,24 @@ class RewardsPage extends ConsumerWidget {
               Text('${row['family_name']}'),
               Text('${row['reward_type']}'),
               Text('${row['star_cost']}'),
-              StatusPill(label: active ? 'Active' : 'Hidden', good: active),
+              StatusPill(
+                label: active ? l10n.statusActive : l10n.statusHidden,
+                good: active,
+              ),
               if (canWrite)
                 TextButton(
                   key: Key('reward.toggle.${row['id']}'),
                   onPressed: () async {
                     final ok = await confirm(
                       context,
-                      title: active ? 'Hide reward?' : 'Show reward?',
-                      body: '"${row['name']}" from ${row['family_name']}.',
-                      confirmLabel: active ? 'Hide' : 'Show',
+                      title: active
+                          ? l10n.rewardHideTitle
+                          : l10n.rewardShowTitle,
+                      body: l10n.rewardConfirmBody(
+                        '${row['name']}',
+                        '${row['family_name']}',
+                      ),
+                      confirmLabel: active ? l10n.actionHide : l10n.actionShow,
                     );
                     if (!ok || !context.mounted) return;
                     final done = await runAction(
@@ -59,11 +65,11 @@ class RewardsPage extends ConsumerWidget {
                         '/api/v1/admin/rewards/${row['id']}/active',
                         {'is_active': !active},
                       ),
-                      success: active ? 'Reward hidden' : 'Reward shown',
+                      success: active ? l10n.rewardHidden : l10n.rewardShown,
                     );
                     if (done) reload();
                   },
-                  child: Text(active ? 'Hide' : 'Show'),
+                  child: Text(active ? l10n.actionHide : l10n.actionShow),
                 )
               else
                 const SizedBox.shrink(),
@@ -88,30 +94,35 @@ class _RedemptionsPageState extends ConsumerState<RedemptionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final statuses = {
+      'pending': l10n.redemptionPending,
+      'approved': l10n.redemptionApproved,
+      'rejected': l10n.redemptionDeclined,
+      'fulfilled': l10n.redemptionGiven,
+      'cancelled': l10n.redemptionCancelled,
+    };
     return ListView(
       children: [
-        const PageHeader(
-          title: 'Reward requests',
-          subtitle:
-              'Read-only. Parents approve or decline their own children\'s requests.',
+        PageHeader(
+          title: l10n.redemptionsTitle,
+          subtitle: l10n.redemptionsSubtitle,
         ),
-        DropdownButton<String>(
-          key: const Key('redemptions.status'),
-          value: _status,
-          items: const [
-            DropdownMenuItem(value: '', child: Text('All statuses')),
-            DropdownMenuItem(value: 'pending', child: Text('Pending')),
-            DropdownMenuItem(value: 'approved', child: Text('Approved')),
-            DropdownMenuItem(value: 'rejected', child: Text('Declined')),
-            DropdownMenuItem(value: 'fulfilled', child: Text('Given')),
-            DropdownMenuItem(value: 'cancelled', child: Text('Cancelled')),
-          ],
-          onChanged: (v) => setState(() => _status = v ?? ''),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: FilterDropdown(
+              fieldKey: const Key('redemptions.status'),
+              value: _status,
+              options: {'': l10n.redemptionAllStatuses, ...statuses},
+              onChanged: (v) => setState(() => _status = v),
+            ),
+          ),
         ),
-        const SizedBox(height: 12),
         PagedTable(
           reloadKey: _status,
-          emptyMessage: 'No reward requests.',
+          emptyMessage: l10n.redemptionsEmpty,
           fetch: (offset, limit) => ref
               .read(adminApiProvider)
               .getList(
@@ -122,13 +133,13 @@ class _RedemptionsPageState extends ConsumerState<RedemptionsPage> {
                   if (_status.isNotEmpty) 'status': _status,
                 },
               ),
-          columns: const [
-            'Reward',
-            'Child',
-            'Family',
-            'Stars',
-            'Status',
-            'Requested',
+          columns: [
+            l10n.colReward,
+            l10n.colChild,
+            l10n.colFamily,
+            l10n.colStars,
+            l10n.colStatus,
+            l10n.colRequested,
           ],
           cells: (context, row, reload) => [
             Text('${row['reward_name']}'),
@@ -136,10 +147,10 @@ class _RedemptionsPageState extends ConsumerState<RedemptionsPage> {
             Text('${row['family_name']}'),
             Text('${row['star_cost_at_request']}'),
             StatusPill(
-              label: '${row['status']}',
+              label: statuses['${row['status']}'] ?? '${row['status']}',
               good: row['status'] != 'rejected' && row['status'] != 'cancelled',
             ),
-            Text(shortDate(row['requested_at'])),
+            Text(shortDate(context, row['requested_at'])),
           ],
         ),
       ],

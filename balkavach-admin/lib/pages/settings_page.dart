@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api.dart';
+import '../core/locale.dart';
 import '../core/session.dart';
+import '../l10n/app_localizations.dart';
 import '../ui/widgets.dart';
 
-/// Application-wide settings the mobile app reads at start-up.
+/// Application-wide settings the mobile app reads at start-up, plus this
+/// panel's own language.
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
@@ -30,29 +33,30 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       );
 
   Future<void> _editConsent(Map<String, dynamic> row) async {
+    final l10n = AppLocalizations.of(context);
     final current = (row['value'] as Map<String, dynamic>?) ?? const {};
     final values = await showFormDialog(
       context,
-      title: 'Consent document version',
+      title: l10n.settingsConsentTitle,
       fields: [
         FormFieldSpec(
           key: 'parent_guardian_terms',
-          label: 'Parent / guardian terms version',
+          label: l10n.settingsConsentField,
           required: true,
           maxLength: 40,
           initial: current['parent_guardian_terms'],
-          help:
-              'Changing this asks every parent to accept again on their next launch.',
+          help: l10n.settingsConsentHelp,
         ),
       ],
     );
     if (values == null || !mounted) return;
     final ok = await confirm(
       context,
-      title: 'Ask all parents to accept again?',
-      body:
-          'The new version "${values['parent_guardian_terms']}" will be shown to every parent. Confirm that legal has approved the text.',
-      confirmLabel: 'Publish version',
+      title: l10n.settingsConsentConfirmTitle,
+      body: l10n.settingsConsentConfirmBody(
+        '${values['parent_guardian_terms']}',
+      ),
+      confirmLabel: l10n.settingsConsentPublish,
     );
     if (!ok || !mounted) return;
     final done = await runAction(
@@ -66,30 +70,31 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           },
         },
       ),
-      success: 'Consent version published',
+      success: l10n.settingsConsentPublished,
     );
     if (done) _reload();
   }
 
   Future<void> _editMaintenance(Map<String, dynamic> row) async {
+    final l10n = AppLocalizations.of(context);
     final current = (row['value'] as Map<String, dynamic>?) ?? const {};
     final values = await showFormDialog(
       context,
-      title: 'Maintenance notice',
+      title: l10n.settingsMaintenanceTitle,
       fields: [
         FormFieldSpec(
           key: 'enabled',
-          label: 'Show a banner in the app',
+          label: l10n.settingsMaintenanceShow,
           kind: FieldKind.toggle,
           initial: current['enabled'] == true,
         ),
         FormFieldSpec(
           key: 'message',
-          label: 'Message',
+          label: l10n.settingsMaintenanceMessage,
           kind: FieldKind.multiline,
           maxLength: 300,
           initial: current['message'],
-          help: 'Leave empty for the default sentence',
+          help: l10n.settingsMaintenanceHelp,
         ),
       ],
     );
@@ -103,75 +108,103 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               'message': (values['message'] as String?) ?? '',
             },
           }),
-      success: 'Maintenance notice saved',
+      success: l10n.settingsMaintenanceSaved,
     );
     if (done) _reload();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final canWrite = ref.watch(sessionProvider)?.can('settings:write') ?? false;
+    final language = ref.watch(localeProvider).languageCode;
     return ListView(
       children: [
-        const PageHeader(
-          title: 'Settings',
-          subtitle: 'Read by the mobile app every time it starts',
+        PageHeader(title: l10n.settingsTitle, subtitle: l10n.settingsSubtitle),
+        SectionCard(
+          title: l10n.settingsLanguageTitle,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.settingsLanguageHelp),
+              const SizedBox(height: 12),
+              SegmentedButton<String>(
+                key: const Key('settings.language'),
+                showSelectedIcon: false,
+                segments: [
+                  for (final e in kLanguageNames.entries)
+                    ButtonSegment(
+                      value: e.key,
+                      label: Text(
+                        e.value,
+                        key: Key('settings.language.${e.key}'),
+                      ),
+                    ),
+                ],
+                selected: {language},
+                onSelectionChanged: (v) =>
+                    ref.read(localeProvider.notifier).choose(v.first),
+              ),
+            ],
+          ),
         ),
-        FutureBuilder<List<Map<String, dynamic>>>(
+        const SizedBox(height: 16),
+        AsyncBody<List<Map<String, dynamic>>>(
           future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return ErrorBox(error: snapshot.error!, onRetry: _reload);
-            }
-            final rows = snapshot.data;
-            if (rows == null) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
+          onRetry: _reload,
+          builder: (context, rows) {
             final consent = _find(rows, 'consent_versions');
             final maintenance = _find(rows, 'maintenance');
             final versions =
                 (consent['value'] as Map<String, dynamic>?) ?? const {};
             final maint =
                 (maintenance['value'] as Map<String, dynamic>?) ?? const {};
+            final message = maint['message'] as String?;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Card(
                   child: ListTile(
                     key: const Key('settings.consent'),
-                    title: const Text('Consent document version'),
+                    contentPadding: const EdgeInsets.all(16),
+                    title: Text(l10n.settingsConsentTitle),
                     subtitle: Text(
-                      'Parent / guardian terms: ${versions['parent_guardian_terms'] ?? '—'}'
-                      '${consent['overridden'] == true ? '' : '  (built-in draft: legal must confirm)'}',
+                      l10n.settingsConsentSummary(
+                            '${versions['parent_guardian_terms'] ?? '—'}',
+                          ) +
+                          (consent['overridden'] == true
+                              ? ''
+                              : '  ${l10n.settingsConsentDraft}'),
                     ),
                     trailing: canWrite
                         ? FilledButton.tonal(
                             key: const Key('settings.consent.edit'),
                             onPressed: () => _editConsent(consent),
-                            child: const Text('Change'),
+                            child: Text(l10n.actionChange),
                           )
                         : null,
                   ),
                 ),
+                const SizedBox(height: 12),
                 Card(
                   child: ListTile(
                     key: const Key('settings.maintenance'),
-                    title: const Text('Maintenance notice'),
+                    contentPadding: const EdgeInsets.all(16),
+                    title: Text(l10n.settingsMaintenanceTitle),
                     subtitle: Text(
                       maint['enabled'] == true
-                          ? 'Showing: ${(maint['message'] as String?)?.isNotEmpty == true ? maint['message'] : 'default message'}'
-                          : 'Off',
+                          ? l10n.settingsMaintenanceShowing(
+                              message != null && message.isNotEmpty
+                                  ? message
+                                  : l10n.settingsMaintenanceDefault,
+                            )
+                          : l10n.statusOff,
                     ),
                     trailing: canWrite
                         ? FilledButton.tonal(
                             key: const Key('settings.maintenance.edit'),
                             onPressed: () => _editMaintenance(maintenance),
-                            child: const Text('Change'),
+                            child: Text(l10n.actionChange),
                           )
                         : null,
                   ),

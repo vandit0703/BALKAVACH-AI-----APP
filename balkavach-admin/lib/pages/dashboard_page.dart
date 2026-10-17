@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../core/api.dart';
 import '../core/session.dart';
+import '../l10n/app_localizations.dart';
 import '../ui/widgets.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
@@ -36,18 +38,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       children: [
         PageHeader(
-          title: 'Dashboard',
-          subtitle: 'A snapshot of how Bal Kavach is being used',
+          title: l10n.dashboardTitle,
+          subtitle: l10n.dashboardSubtitle,
           actions: [
             SegmentedButton<int>(
               key: const Key('dashboard.range'),
-              segments: const [
-                ButtonSegment(value: 7, label: Text('7 days')),
-                ButtonSegment(value: 30, label: Text('30 days')),
-                ButtonSegment(value: 90, label: Text('90 days')),
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(value: 7, label: Text(l10n.range7)),
+                ButtonSegment(value: 30, label: Text(l10n.range30)),
+                ButtonSegment(value: 90, label: Text(l10n.range90)),
               ],
               selected: {_days},
               onSelectionChanged: (value) {
@@ -57,23 +61,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             ),
           ],
         ),
-        FutureBuilder<_Data>(
+        AsyncBody<_Data>(
           future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return ErrorBox(error: snapshot.error!, onRetry: _reload);
-            }
-            final data = snapshot.data;
-            if (data == null) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
-            return _Body(data: data);
-          },
+          onRetry: _reload,
+          builder: (context, data) => _Body(data: data),
         ),
       ],
     );
@@ -87,60 +78,188 @@ class _Data {
   final Map<String, dynamic>? analytics;
 }
 
-class _Body extends StatelessWidget {
+class _Body extends ConsumerWidget {
   const _Body({required this.data});
 
   final _Data data;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final session = ref.watch(sessionProvider);
     final counts = data.counts;
-    final tiles = <(String, String, int)>[
-      ('users', 'Users', counts['users'] as int? ?? 0),
-      ('families', 'Families', counts['families'] as int? ?? 0),
-      ('children', 'Active children', counts['children'] as int? ?? 0),
-      ('tasks', 'Active missions', counts['active_tasks'] as int? ?? 0),
-      ('videos', 'Published videos', counts['published_videos'] as int? ?? 0),
+    int count(String key) => counts[key] as int? ?? 0;
+    // (key, label, value, icon, destination, permission to open it)
+    final tiles = <(String, String, int, IconData, String, String)>[
+      (
+        'users',
+        l10n.tileUsers,
+        count('users'),
+        Icons.people_outline_rounded,
+        '/users',
+        'users:read',
+      ),
+      (
+        'families',
+        l10n.tileFamilies,
+        count('families'),
+        Icons.family_restroom_rounded,
+        '/families',
+        'families:read',
+      ),
+      (
+        'children',
+        l10n.tileChildren,
+        count('children'),
+        Icons.child_care_rounded,
+        '/families',
+        'families:read',
+      ),
+      (
+        'tasks',
+        l10n.tileMissions,
+        count('active_tasks'),
+        Icons.task_alt_rounded,
+        '/missions',
+        'tasks:read',
+      ),
+      (
+        'videos',
+        l10n.tileVideos,
+        count('published_videos'),
+        Icons.play_circle_outline_rounded,
+        '/content',
+        'content:read',
+      ),
       (
         'redemptions',
-        'Pending reward requests',
-        counts['pending_redemptions'] as int? ?? 0,
+        l10n.tileRedemptions,
+        count('pending_redemptions'),
+        Icons.inbox_rounded,
+        '/redemptions',
+        'redemptions:read',
       ),
     ];
     final analytics = data.analytics;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            for (final (key, label, value) in tiles)
-              SizedBox(
-                width: 200,
-                child: Card(
-                  key: Key('tile.$key'),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '$value',
-                          style: Theme.of(context).textTheme.headlineMedium,
-                        ),
-                        Text(label),
-                      ],
+        LayoutBuilder(
+          builder: (context, box) {
+            final columns = box.maxWidth >= 900
+                ? 3
+                : box.maxWidth >= 520
+                ? 2
+                : 1;
+            const gap = 12.0;
+            final width = (box.maxWidth - gap * (columns - 1)) / columns;
+            return Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                for (final (key, label, value, icon, path, permission) in tiles)
+                  SizedBox(
+                    width: width,
+                    child: StatCard(
+                      key: Key('tile.$key'),
+                      icon: icon,
+                      label: label,
+                      value: '$value',
+                      highlight: key == 'redemptions' && value > 0,
+                      onTap: session?.can(permission) ?? false
+                          ? () => context.go(path)
+                          : null,
                     ),
                   ),
-                ),
-              ),
-          ],
+              ],
+            );
+          },
         ),
+        const SizedBox(height: 16),
+        const _SystemStatus(),
         if (analytics != null) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _Activity(analytics: analytics),
         ],
+      ],
+    );
+  }
+}
+
+/// Live API and database availability from the public health endpoints.
+class _SystemStatus extends ConsumerStatefulWidget {
+  const _SystemStatus();
+
+  @override
+  ConsumerState<_SystemStatus> createState() => _SystemStatusState();
+}
+
+class _SystemStatusState extends ConsumerState<_SystemStatus> {
+  late Future<(bool, bool)> _future = _check();
+
+  Future<(bool, bool)> _check() async {
+    final api = ref.read(adminApiProvider);
+    Future<bool> ok(String path) async {
+      try {
+        await api.anonymousGet(path);
+        return true;
+      } on ApiError {
+        return false;
+      }
+    }
+
+    final results = await Future.wait([ok('/health'), ok('/ready')]);
+    return (results[0], results[1]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return SectionCard(
+      title: l10n.systemTitle,
+      trailing: IconButton(
+        key: const Key('system.refresh'),
+        tooltip: l10n.systemRefresh,
+        icon: const Icon(Icons.refresh_rounded),
+        onPressed: () => setState(() => _future = _check()),
+      ),
+      child: FutureBuilder<(bool, bool)>(
+        future: _future,
+        builder: (context, snapshot) {
+          final data = snapshot.data;
+          if (data == null) return Text(l10n.systemChecking);
+          final (api, database) = data;
+          return Wrap(
+            key: const Key('system.status'),
+            spacing: 24,
+            runSpacing: 8,
+            children: [
+              _StatusLine(label: l10n.systemApi, up: api),
+              _StatusLine(label: l10n.systemDatabase, up: database),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _StatusLine extends StatelessWidget {
+  const _StatusLine({required this.label, required this.up});
+
+  final String label;
+  final bool up;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(label),
+        StatusPill(label: up ? l10n.systemUp : l10n.systemDown, good: up),
       ],
     );
   }
@@ -153,6 +272,7 @@ class _Activity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final totals = analytics['totals'] as Map<String, dynamic>;
     final daily = (analytics['daily'] as List<dynamic>)
         .cast<Map<String, dynamic>>();
@@ -165,90 +285,145 @@ class _Activity extends StatelessWidget {
       return value > m ? value : m;
     });
     final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Last ${analytics['period_days']} days',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 24,
-          runSpacing: 4,
-          key: const Key('analytics.totals'),
-          children: [
-            Text('New users: ${totals['new_users']}'),
-            Text('Submissions: ${totals['submissions']}'),
-            Text('Approvals: ${totals['approvals']}'),
-            Text('Rejections: ${totals['rejections']}'),
-            Text('Reward requests: ${totals['redemptions']}'),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Semantics(
-          label: 'Daily submissions chart',
-          child: SizedBox(
-            height: 120,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                for (final day in daily)
-                  Expanded(
-                    child: Tooltip(
-                      message:
-                          '${day['date']}: ${day['submissions']} submitted, ${day['approvals']} approved',
-                      child: Align(
-                        alignment: Alignment.bottomCenter,
-                        child: FractionallySizedBox(
-                          heightFactor:
-                              ((day['submissions'] as int? ?? 0) / peak).clamp(
-                                0.02,
-                                1.0,
+    final text = Theme.of(context).textTheme;
+    final statusLabels = {
+      'pending': l10n.redemptionPending,
+      'approved': l10n.redemptionApproved,
+      'rejected': l10n.redemptionDeclined,
+      'fulfilled': l10n.redemptionGiven,
+      'cancelled': l10n.redemptionCancelled,
+    };
+    final totalChips = [
+      l10n.activityNewUsers('${totals['new_users']}'),
+      l10n.activitySubmissions('${totals['submissions']}'),
+      l10n.activityApprovals('${totals['approvals']}'),
+      l10n.activityRejections('${totals['rejections']}'),
+      l10n.activityRedemptions('${totals['redemptions']}'),
+    ];
+    return SectionCard(
+      title: l10n.activityTitle('${analytics['period_days']}'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            key: const Key('analytics.totals'),
+            children: [
+              for (final label in totalChips)
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    child: Text(label, style: text.labelMedium),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Text(l10n.activityChartTitle, style: text.titleSmall),
+          Text(
+            l10n.activityPeak('$peak'),
+            style: text.bodySmall?.copyWith(color: scheme.outline),
+          ),
+          const SizedBox(height: 8),
+          Semantics(
+            label: l10n.activityChartTitle,
+            child: SizedBox(
+              height: 120,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  for (final day in daily)
+                    Expanded(
+                      child: Tooltip(
+                        message: l10n.activityDayTooltip(
+                          '${day['date']}',
+                          '${day['submissions']}',
+                          '${day['approvals']}',
+                        ),
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: FractionallySizedBox(
+                            heightFactor:
+                                ((day['submissions'] as int? ?? 0) / peak)
+                                    .clamp(0.02, 1.0),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 1),
+                              decoration: BoxDecoration(
+                                color: scheme.primaryContainer,
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(3),
+                                ),
                               ),
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 1),
-                            color: scheme.primary,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 32,
-          runSpacing: 12,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Reward requests by status',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                for (final entry in statuses.entries)
-                  Text('${entry.key}: ${entry.value}'),
-              ],
+          if (daily.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    child: Text(
+                      '${daily.first['date']}',
+                      overflow: TextOverflow.ellipsis,
+                      style: text.bodySmall?.copyWith(color: scheme.outline),
+                    ),
+                  ),
+                  Flexible(
+                    child: Text(
+                      '${daily.last['date']}',
+                      overflow: TextOverflow.ellipsis,
+                      style: text.bodySmall?.copyWith(color: scheme.outline),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Top categories (approved missions)',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                if (top.isEmpty) const Text('No approved missions yet.'),
-                for (final row in top)
-                  Text('${row['name']}: ${row['approved_tasks']}'),
-              ],
-            ),
-          ],
-        ),
-      ],
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 48,
+            runSpacing: 16,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.activityByStatus, style: text.titleSmall),
+                  const SizedBox(height: 4),
+                  for (final entry in statuses.entries)
+                    Text(
+                      '${statusLabels[entry.key] ?? entry.key}: ${entry.value}',
+                    ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.activityTopCategories, style: text.titleSmall),
+                  const SizedBox(height: 4),
+                  if (top.isEmpty) Text(l10n.activityNoApproved),
+                  for (final row in top)
+                    Text('${row['name']}: ${row['approved_tasks']}'),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

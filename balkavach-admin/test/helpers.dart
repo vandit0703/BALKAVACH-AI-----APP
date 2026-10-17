@@ -3,10 +3,12 @@ import 'dart:typed_data';
 
 import 'package:balkavach_admin/app.dart';
 import 'package:balkavach_admin/core/api.dart';
+import 'package:balkavach_admin/core/locale.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Reply {
   const Reply(this.status, [this.body]);
@@ -151,7 +153,10 @@ Future<ProviderContainer> pumpAdmin(
   FakeServer server, {
   Size size = const Size(1400, 900),
   bool signedIn = true,
+  Map<String, Object> storedPrefs = const {},
 }) async {
+  SharedPreferences.setMockInitialValues(storedPrefs);
+  final prefs = await SharedPreferences.getInstance();
   tester.view
     ..physicalSize = size
     ..devicePixelRatio = 1;
@@ -161,6 +166,7 @@ Future<ProviderContainer> pumpAdmin(
     overrides: [
       tokenStoreProvider.overrideWithValue(tokens),
       dioProvider.overrideWithValue(testDio(server, tokens)),
+      languagePrefsProvider.overrideWithValue(prefs),
     ],
   );
   addTearDown(container.dispose);

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api.dart';
 import '../core/session.dart';
+import '../l10n/app_localizations.dart';
 import '../ui/widgets.dart';
 
 class FamiliesPage extends ConsumerStatefulWidget {
@@ -32,44 +33,26 @@ class _FamiliesPageState extends ConsumerState<FamiliesPage> {
         builder: (context) => _FamilyDialog(detail: detail),
       );
     } on ApiError catch (error) {
-      if (mounted) showMessage(context, ErrorBox.describe(error));
+      if (mounted) showError(context, error);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       children: [
-        const PageHeader(
-          title: 'Families',
-          subtitle: 'Households, their parents and children',
+        PageHeader(title: l10n.familiesTitle, subtitle: l10n.familiesSubtitle),
+        FilterBar(
+          searchKey: const Key('families.search'),
+          applyKey: const Key('families.apply'),
+          searchLabel: l10n.familiesSearch,
+          controller: _search,
+          onSearch: (v) => setState(() => _query = v),
         ),
-        Row(
-          children: [
-            SizedBox(
-              width: 280,
-              child: TextField(
-                key: const Key('families.search'),
-                controller: _search,
-                decoration: const InputDecoration(
-                  labelText: 'Search family name',
-                  prefixIcon: Icon(Icons.search_rounded),
-                ),
-                onSubmitted: (v) => setState(() => _query = v.trim()),
-              ),
-            ),
-            const SizedBox(width: 12),
-            FilledButton.tonal(
-              key: const Key('families.apply'),
-              onPressed: () => setState(() => _query = _search.text.trim()),
-              child: const Text('Search'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
         PagedTable(
           reloadKey: _query,
-          emptyMessage: 'No families match.',
+          emptyMessage: l10n.familiesEmpty,
           fetch: (offset, limit) => ref
               .read(adminApiProvider)
               .getList(
@@ -80,12 +63,12 @@ class _FamiliesPageState extends ConsumerState<FamiliesPage> {
                   if (_query.isNotEmpty) 'q': _query,
                 },
               ),
-          columns: const [
-            'Family',
-            'Parents',
-            'Children',
-            'Active missions',
-            'Created',
+          columns: [
+            l10n.colFamily,
+            l10n.colParents,
+            l10n.colChildren,
+            l10n.colActiveMissions,
+            l10n.colCreated,
             '',
           ],
           cells: (context, row, reload) => [
@@ -93,11 +76,11 @@ class _FamiliesPageState extends ConsumerState<FamiliesPage> {
             Text('${row['parent_count']}'),
             Text('${row['child_count']}'),
             Text('${row['active_task_count']}'),
-            Text(shortDate(row['created_at'])),
+            Text(shortDate(context, row['created_at'])),
             TextButton(
               key: Key('family.open.${row['id']}'),
               onPressed: () => _open(row),
-              child: const Text('Details'),
+              child: Text(l10n.actionDetails),
             ),
           ],
         ),
@@ -119,16 +102,16 @@ class _FamilyDialogState extends ConsumerState<_FamilyDialog> {
   late Map<String, dynamic> _detail = widget.detail;
 
   Future<void> _toggleChild(Map<String, dynamic> child) async {
+    final l10n = AppLocalizations.of(context);
     final active = child['is_active'] == true;
+    final name = '${child['display_name']}';
     final ok = await confirm(
       context,
       title: active
-          ? 'Deactivate ${child['display_name']}?'
-          : 'Reactivate ${child['display_name']}?',
-      body: active
-          ? 'The child is signed out everywhere and cannot sign in until reactivated. Their history is kept.'
-          : 'The child can be started in child mode again.',
-      confirmLabel: active ? 'Deactivate' : 'Reactivate',
+          ? l10n.childDeactivateTitle(name)
+          : l10n.childReactivateTitle(name),
+      body: active ? l10n.childDeactivateBody : l10n.childReactivateBody,
+      confirmLabel: active ? l10n.actionDeactivate : l10n.actionReactivate,
     );
     if (!ok || !mounted) return;
     final api = ref.read(adminApiProvider);
@@ -137,20 +120,27 @@ class _FamilyDialogState extends ConsumerState<_FamilyDialog> {
       () => api.patch('/api/v1/admin/children/${child['id']}/status', {
         'is_active': !active,
       }),
-      success: active ? 'Child deactivated' : 'Child reactivated',
+      success: active ? l10n.childDeactivated : l10n.childReactivated,
     );
     if (!done || !mounted) return;
-    final fresh = await api.getMap('/api/v1/admin/families/${_detail['id']}');
-    if (mounted) setState(() => _detail = fresh);
+    try {
+      final fresh = await api.getMap('/api/v1/admin/families/${_detail['id']}');
+      if (mounted) setState(() => _detail = fresh);
+    } on ApiError catch (error) {
+      if (mounted) showError(context, error);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final canWrite = ref.watch(sessionProvider)?.can('families:write') ?? false;
     final parents = (_detail['parents'] as List<dynamic>)
         .cast<Map<String, dynamic>>();
     final children = (_detail['children'] as List<dynamic>)
         .cast<Map<String, dynamic>>();
+    String status(bool active) =>
+        active ? l10n.statusActive : l10n.statusDeactivated;
     return AlertDialog(
       title: Text('${_detail['family_name']}'),
       content: SizedBox(
@@ -160,9 +150,12 @@ class _FamilyDialogState extends ConsumerState<_FamilyDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Time zone: ${_detail['timezone']}'),
+              Text(l10n.familyTimeZone('${_detail['timezone']}')),
               const SizedBox(height: 12),
-              Text('Parents', style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                l10n.familyParents,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
               for (final p in parents)
                 ListTile(
                   dense: true,
@@ -170,27 +163,30 @@ class _FamilyDialogState extends ConsumerState<_FamilyDialog> {
                   title: Text('${p['full_name']}'),
                   subtitle: Text('${p['email'] ?? '—'}'),
                   trailing: StatusPill(
-                    label: p['is_active'] == true ? 'Active' : 'Deactivated',
+                    label: status(p['is_active'] == true),
                     good: p['is_active'] == true,
                   ),
                 ),
               const SizedBox(height: 12),
-              Text('Children', style: Theme.of(context).textTheme.titleSmall),
-              if (children.isEmpty) const Text('No children yet.'),
+              Text(
+                l10n.familyChildren,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              if (children.isEmpty) Text(l10n.familyNoChildren),
               for (final c in children)
                 ListTile(
                   key: Key('child.${c['id']}'),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   title: Text('${c['display_name']}'),
-                  subtitle: Text('Added ${shortDate(c['created_at'])}'),
+                  subtitle: Text(
+                    l10n.familyChildAdded(shortDate(context, c['created_at'])),
+                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       StatusPill(
-                        label: c['is_active'] == true
-                            ? 'Active'
-                            : 'Deactivated',
+                        label: status(c['is_active'] == true),
                         good: c['is_active'] == true,
                       ),
                       if (canWrite)
@@ -199,8 +195,8 @@ class _FamilyDialogState extends ConsumerState<_FamilyDialog> {
                           onPressed: () => _toggleChild(c),
                           child: Text(
                             c['is_active'] == true
-                                ? 'Deactivate'
-                                : 'Reactivate',
+                                ? l10n.actionDeactivate
+                                : l10n.actionReactivate,
                           ),
                         ),
                     ],
@@ -213,7 +209,7 @@ class _FamilyDialogState extends ConsumerState<_FamilyDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Close'),
+          child: Text(l10n.actionClose),
         ),
       ],
     );

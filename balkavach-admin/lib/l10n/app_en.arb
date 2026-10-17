@@ -1,0 +1,472 @@
+{
+  "@@locale": "en",
+  "appName": "Bal Kavach Admin",
+  "navDashboard": "Dashboard",
+  "navUsers": "Users",
+  "navFamilies": "Families",
+  "navMissions": "Missions",
+  "navCategories": "Categories",
+  "navPresets": "Preset missions",
+  "navRewards": "Rewards",
+  "navRedemptions": "Reward requests",
+  "navContent": "Learning content",
+  "navBadges": "Badges",
+  "navSettings": "Settings",
+  "navAudit": "Audit log",
+  "navGroupOverview": "Overview",
+  "navGroupPeople": "People",
+  "navGroupMissions": "Missions & rewards",
+  "navGroupLearning": "Learning",
+  "navGroupSystem": "System",
+  "breadcrumbLabel": "You are here",
+  "noAccess": "Your role does not include access to this section.",
+  "accountTooltip": "Account",
+  "accountRoles": "Roles: {roles}",
+  "@accountRoles": {
+    "placeholders": {
+      "roles": {
+        "type": "String"
+      }
+    }
+  },
+  "languageTooltip": "Language",
+  "actionCancel": "Cancel",
+  "actionConfirm": "Confirm",
+  "actionSave": "Save",
+  "actionClose": "Close",
+  "actionSearch": "Search",
+  "actionTryAgain": "Try again",
+  "actionEdit": "Edit",
+  "actionDeactivate": "Deactivate",
+  "actionReactivate": "Reactivate",
+  "actionSignIn": "Sign in",
+  "actionSignOut": "Sign out",
+  "actionApply": "Apply",
+  "actionChange": "Change",
+  "actionDetails": "Details",
+  "actionHide": "Hide",
+  "actionShow": "Show",
+  "actionRoles": "Roles",
+  "validationRequired": "Required",
+  "validationMaxLength": "At most {max} characters",
+  "@validationMaxLength": {
+    "placeholders": {
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "validationWholeNumber": "Enter a whole number",
+  "validationAtLeast": "At least {min}",
+  "@validationAtLeast": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      }
+    }
+  },
+  "validationAtMost": "At most {max}",
+  "@validationAtMost": {
+    "placeholders": {
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "validationHttps": "Enter a full https:// link",
+  "errorGeneric": "Something went wrong. Please try again.",
+  "errorNetwork": "Cannot reach the server. Check the connection.",
+  "errorForbidden": "You do not have permission to do this.",
+  "errorSessionExpired": "Your session has ended. Please sign in again.",
+  "errorNotFound": "That item no longer exists.",
+  "errorConflict": "That conflicts with something that already exists.",
+  "errorValidation": "Some of the values are not valid. Check them and try again.",
+  "errorServer": "The server had a problem. Please try again in a moment.",
+  "errorLastSuperAdmin": "The last super administrator cannot be removed or deactivated.",
+  "errorEmailInUse": "That email address is already in use.",
+  "errorUsernameInUse": "That username is already taken.",
+  "errorCategoryConflict": "A category with that name already exists.",
+  "errorInvalidSetting": "That setting value is not valid.",
+  "errorInvalidAgeRange": "The youngest age cannot be above the oldest age.",
+  "errorTooManyRequests": "Too many requests. Please wait a moment and try again.",
+  "loading": "Loading",
+  "loginSubtitle": "Administrators only",
+  "loginEmail": "Email",
+  "loginPassword": "Password",
+  "loginEmailRequired": "Enter your email",
+  "loginPasswordRequired": "Enter your password",
+  "loginWrongCredentials": "Email or password is incorrect.",
+  "loginNotAdmin": "This account is not an administrator.",
+  "tableEmpty": "Nothing to show.",
+  "tablePrevious": "Previous page",
+  "tableNext": "Next page",
+  "tablePage": "Page {page}",
+  "@tablePage": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "filterAll": "All",
+  "statusActive": "Active",
+  "statusDeactivated": "Deactivated",
+  "statusHidden": "Hidden",
+  "statusVisible": "Visible",
+  "statusShown": "Shown",
+  "statusOffered": "Offered",
+  "statusOff": "Off",
+  "colName": "Name",
+  "colEmail": "Email",
+  "colRole": "Role",
+  "colStatus": "Status",
+  "colLastSignIn": "Last sign-in",
+  "colFamily": "Family",
+  "colParents": "Parents",
+  "colChildren": "Children",
+  "colActiveMissions": "Active missions",
+  "colCreated": "Created",
+  "colMission": "Mission",
+  "colCategory": "Category",
+  "colChild": "Child",
+  "colStarsXp": "Stars / XP",
+  "colDescription": "Description",
+  "colIcon": "Icon",
+  "colReward": "Reward",
+  "colType": "Type",
+  "colStarCost": "Star cost",
+  "colStars": "Stars",
+  "colRequested": "Requested",
+  "colAges": "Ages",
+  "colLink": "Link",
+  "colAmount": "Amount",
+  "colWhen": "When",
+  "colAction": "Action",
+  "colItem": "Item",
+  "colAdmin": "Admin",
+  "fieldName": "Name",
+  "fieldTitle": "Title",
+  "fieldDescription": "Description",
+  "fieldCategory": "Category",
+  "fieldLanguage": "Language",
+  "fieldType": "Type",
+  "fieldRole": "Role",
+  "fieldIconName": "Icon name",
+  "fieldIconNameHelp": "For example book-open or palette",
+  "dashboardTitle": "Dashboard",
+  "dashboardSubtitle": "A snapshot of how Bal Kavach is being used",
+  "range7": "7 days",
+  "range30": "30 days",
+  "range90": "90 days",
+  "tileUsers": "Users",
+  "tileFamilies": "Families",
+  "tileChildren": "Active children",
+  "tileMissions": "Active missions",
+  "tileVideos": "Published videos",
+  "tileRedemptions": "Pending reward requests",
+  "systemTitle": "System status",
+  "systemRefresh": "Check again",
+  "systemChecking": "Checking…",
+  "systemApi": "Server",
+  "systemDatabase": "Database",
+  "systemUp": "Available",
+  "systemDown": "Unavailable",
+  "activityTitle": "Last {days} days",
+  "@activityTitle": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "activityNewUsers": "New users: {n}",
+  "@activityNewUsers": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "activitySubmissions": "Submissions: {n}",
+  "@activitySubmissions": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "activityApprovals": "Approvals: {n}",
+  "@activityApprovals": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "activityRejections": "Rejections: {n}",
+  "@activityRejections": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "activityRedemptions": "Reward requests: {n}",
+  "@activityRedemptions": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "activityChartTitle": "Daily submissions",
+  "activityDayTooltip": "{date}: {submitted} submitted, {approved} approved",
+  "@activityDayTooltip": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "submitted": {
+        "type": "String"
+      },
+      "approved": {
+        "type": "String"
+      }
+    }
+  },
+  "activityPeak": "Peak: {n}",
+  "@activityPeak": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "activityByStatus": "Reward requests by status",
+  "activityTopCategories": "Top categories (approved missions)",
+  "activityNoApproved": "No approved missions yet.",
+  "usersTitle": "Users",
+  "usersSubtitle": "Parents, children and administrators",
+  "usersSearch": "Search name or email",
+  "usersAllRoles": "All roles",
+  "usersEmpty": "No users match.",
+  "rolesParents": "Parents",
+  "rolesChildren": "Children",
+  "rolesAdmins": "Admins",
+  "rolesStaff": "Staff",
+  "userDeactivateTitle": "Deactivate account?",
+  "userReactivateTitle": "Reactivate account?",
+  "userDeactivateBody": "{name} will be signed out and unable to sign in until reactivated.",
+  "@userDeactivateBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "userReactivateBody": "{name} will be able to sign in again.",
+  "@userReactivateBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "userDeactivated": "Account deactivated",
+  "userReactivated": "Account reactivated",
+  "userRolesTitle": "Roles for {name}",
+  "@userRolesTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "userRolesRemove": "Remove this role instead of assigning it",
+  "userRoleAssigned": "Role assigned",
+  "userRoleRemoved": "Role removed",
+  "familiesTitle": "Families",
+  "familiesSubtitle": "Households, their parents and children",
+  "familiesSearch": "Search family name",
+  "familiesEmpty": "No families match.",
+  "familyTimeZone": "Time zone: {zone}",
+  "@familyTimeZone": {
+    "placeholders": {
+      "zone": {
+        "type": "String"
+      }
+    }
+  },
+  "familyParents": "Parents",
+  "familyChildren": "Children",
+  "familyNoChildren": "No children yet.",
+  "familyChildAdded": "Added {date}",
+  "@familyChildAdded": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "childDeactivateTitle": "Deactivate {name}?",
+  "@childDeactivateTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "childReactivateTitle": "Reactivate {name}?",
+  "@childReactivateTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "childDeactivateBody": "The child is signed out everywhere and cannot sign in until reactivated. Their history is kept.",
+  "childReactivateBody": "The child can be started in child mode again.",
+  "childDeactivated": "Child deactivated",
+  "childReactivated": "Child reactivated",
+  "missionsTitle": "Missions",
+  "missionsSubtitle": "Every family mission. Deactivating hides it from the child.",
+  "missionsSearch": "Search title",
+  "missionsEmpty": "No missions match.",
+  "missionAnyChild": "Any child",
+  "missionDeactivateTitle": "Deactivate mission?",
+  "missionReactivateTitle": "Reactivate mission?",
+  "missionConfirmBody": "\"{title}\" in {family}.",
+  "@missionConfirmBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "family": {
+        "type": "String"
+      }
+    }
+  },
+  "missionDeactivated": "Mission deactivated",
+  "missionReactivated": "Mission reactivated",
+  "categoriesTitle": "Mission categories",
+  "categoriesSubtitle": "The groups parents pick from when creating a mission",
+  "categoryNewTitle": "New category",
+  "categoryEditTitle": "Edit category",
+  "categoryCreated": "Category created",
+  "categorySaved": "Category saved",
+  "categoryVisibleToParents": "Visible to parents",
+  "presetsTitle": "Preset missions",
+  "presetsSubtitle": "Ready-made ideas parents can start a mission from. The reward values are only suggestions.",
+  "presetNewButton": "New preset",
+  "presetNewTitle": "New preset mission",
+  "presetEditTitle": "Edit preset mission",
+  "presetCreated": "Preset created",
+  "presetSaved": "Preset saved",
+  "presetNoCategory": "No category",
+  "presetSuggestedStars": "Suggested stars",
+  "presetSuggestedXp": "Suggested XP",
+  "presetYoungestAge": "Youngest age",
+  "presetOldestAge": "Oldest age",
+  "presetOffered": "Offered to parents",
+  "rewardsTitle": "Rewards",
+  "rewardsSubtitle": "Rewards created by families. Parents manage their own; hide one here if needed.",
+  "rewardsEmpty": "No rewards yet.",
+  "rewardHideTitle": "Hide reward?",
+  "rewardShowTitle": "Show reward?",
+  "rewardConfirmBody": "\"{name}\" from {family}.",
+  "@rewardConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "family": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardHidden": "Reward hidden",
+  "rewardShown": "Reward shown",
+  "redemptionsTitle": "Reward requests",
+  "redemptionsSubtitle": "Read-only. Parents approve or decline their own children's requests.",
+  "redemptionsEmpty": "No reward requests.",
+  "redemptionAllStatuses": "All statuses",
+  "redemptionPending": "Pending",
+  "redemptionApproved": "Approved",
+  "redemptionDeclined": "Declined",
+  "redemptionGiven": "Given",
+  "redemptionCancelled": "Cancelled",
+  "contentTitle": "Learning content",
+  "contentSubtitle": "What children see under Learn & Watch, in their language",
+  "contentAddButton": "Add content",
+  "contentNewTitle": "New content",
+  "contentEditTitle": "Edit content",
+  "contentAdded": "Content added",
+  "contentSaved": "Content saved",
+  "contentEmpty": "No content yet.",
+  "contentLink": "Link (https)",
+  "contentLinkHelp": "Opens in the child's browser or video app",
+  "contentThumbnail": "Thumbnail link (https)",
+  "contentShownToChildren": "Shown to children",
+  "contentTypeLink": "Link",
+  "contentTypeVideo": "Video link",
+  "contentTypeArticle": "Article",
+  "contentTypeDocument": "Document",
+  "contentTypeActivity": "Activity",
+  "badgesTitle": "Badges",
+  "badgesSubtitle": "Awarded automatically when a child reaches the amount. Garden decorations unlock with the default badges.",
+  "badgeNewTitle": "New badge",
+  "badgeEditTitle": "Edit badge",
+  "badgeCreated": "Badge created",
+  "badgeSaved": "Badge saved",
+  "badgeEarnedBy": "Earned by",
+  "badgeAmountNeeded": "Amount needed",
+  "badgeCanBeEarned": "Can be earned",
+  "badgeCriteriaApprovedTasks": "Approved missions",
+  "badgeCriteriaTotalStars": "Total stars",
+  "badgeCriteriaTotalXp": "Total XP",
+  "badgeCriteriaStreak": "Day streak",
+  "auditTitle": "Audit log",
+  "auditSubtitle": "Who changed what, and when",
+  "auditEmpty": "No administrative changes recorded yet.",
+  "settingsTitle": "Settings",
+  "settingsSubtitle": "Read by the mobile app every time it starts",
+  "settingsLanguageTitle": "Panel language",
+  "settingsLanguageHelp": "Changes this admin panel only. Content written by families or the server is not translated.",
+  "settingsConsentTitle": "Consent document version",
+  "settingsConsentField": "Parent / guardian terms version",
+  "settingsConsentHelp": "Changing this asks every parent to accept again on their next launch.",
+  "settingsConsentConfirmTitle": "Ask all parents to accept again?",
+  "settingsConsentConfirmBody": "The new version \"{version}\" will be shown to every parent. Confirm that legal has approved the text.",
+  "@settingsConsentConfirmBody": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsConsentPublish": "Publish version",
+  "settingsConsentPublished": "Consent version published",
+  "settingsConsentSummary": "Parent / guardian terms: {version}",
+  "@settingsConsentSummary": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsConsentDraft": "(built-in draft: legal must confirm)",
+  "settingsMaintenanceTitle": "Maintenance notice",
+  "settingsMaintenanceShow": "Show a banner in the app",
+  "settingsMaintenanceMessage": "Message",
+  "settingsMaintenanceHelp": "Leave empty for the default sentence",
+  "settingsMaintenanceSaved": "Maintenance notice saved",
+  "settingsMaintenanceShowing": "Showing: {message}",
+  "@settingsMaintenanceShowing": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsMaintenanceDefault": "default message"
+}

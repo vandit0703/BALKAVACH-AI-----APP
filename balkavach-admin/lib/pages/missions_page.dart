@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api.dart';
 import '../core/session.dart';
+import '../l10n/app_localizations.dart';
 import '../ui/widgets.dart';
 
 class MissionsPage extends ConsumerStatefulWidget {
@@ -25,52 +26,33 @@ class _MissionsPageState extends ConsumerState<MissionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final canWrite = ref.watch(sessionProvider)?.can('tasks:write') ?? false;
     return ListView(
       children: [
-        const PageHeader(
-          title: 'Missions',
-          subtitle:
-              'Every family mission. Deactivating hides it from the child.',
-        ),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            SizedBox(
-              width: 280,
-              child: TextField(
-                key: const Key('missions.search'),
-                controller: _search,
-                decoration: const InputDecoration(
-                  labelText: 'Search title',
-                  prefixIcon: Icon(Icons.search_rounded),
-                ),
-                onSubmitted: (v) => setState(() => _query = v.trim()),
-              ),
-            ),
-            DropdownButton<String>(
-              key: const Key('missions.state'),
+        PageHeader(title: l10n.missionsTitle, subtitle: l10n.missionsSubtitle),
+        FilterBar(
+          searchKey: const Key('missions.search'),
+          applyKey: const Key('missions.apply'),
+          searchLabel: l10n.missionsSearch,
+          controller: _search,
+          onSearch: (v) => setState(() => _query = v),
+          filters: [
+            FilterDropdown(
+              fieldKey: const Key('missions.state'),
               value: _state,
-              items: const [
-                DropdownMenuItem(value: '', child: Text('All')),
-                DropdownMenuItem(value: 'true', child: Text('Active')),
-                DropdownMenuItem(value: 'false', child: Text('Deactivated')),
-              ],
-              onChanged: (v) => setState(() => _state = v ?? ''),
-            ),
-            FilledButton.tonal(
-              key: const Key('missions.apply'),
-              onPressed: () => setState(() => _query = _search.text.trim()),
-              child: const Text('Search'),
+              options: {
+                '': l10n.filterAll,
+                'true': l10n.statusActive,
+                'false': l10n.statusDeactivated,
+              },
+              onChanged: (v) => setState(() => _state = v),
             ),
           ],
         ),
-        const SizedBox(height: 12),
         PagedTable(
           reloadKey: '$_query|$_state',
-          emptyMessage: 'No missions match.',
+          emptyMessage: l10n.missionsEmpty,
           fetch: (offset, limit) => ref
               .read(adminApiProvider)
               .getList(
@@ -82,13 +64,13 @@ class _MissionsPageState extends ConsumerState<MissionsPage> {
                   if (_state.isNotEmpty) 'is_active': _state,
                 },
               ),
-          columns: const [
-            'Mission',
-            'Family',
-            'Category',
-            'Child',
-            'Stars / XP',
-            'Status',
+          columns: [
+            l10n.colMission,
+            l10n.colFamily,
+            l10n.colCategory,
+            l10n.colChild,
+            l10n.colStarsXp,
+            l10n.colStatus,
             '',
           ],
           cells: (context, row, reload) {
@@ -97,10 +79,10 @@ class _MissionsPageState extends ConsumerState<MissionsPage> {
               Text('${row['title']}'),
               Text('${row['family_name']}'),
               Text('${row['category_name'] ?? '—'}'),
-              Text('${row['assigned_child_name'] ?? 'Any child'}'),
+              Text('${row['assigned_child_name'] ?? l10n.missionAnyChild}'),
               Text('${row['star_reward']} / ${row['xp_reward']}'),
               StatusPill(
-                label: active ? 'Active' : 'Deactivated',
+                label: active ? l10n.statusActive : l10n.statusDeactivated,
                 good: active,
               ),
               if (canWrite)
@@ -110,10 +92,15 @@ class _MissionsPageState extends ConsumerState<MissionsPage> {
                     final ok = await confirm(
                       context,
                       title: active
-                          ? 'Deactivate mission?'
-                          : 'Reactivate mission?',
-                      body: '"${row['title']}" in ${row['family_name']}.',
-                      confirmLabel: active ? 'Deactivate' : 'Reactivate',
+                          ? l10n.missionDeactivateTitle
+                          : l10n.missionReactivateTitle,
+                      body: l10n.missionConfirmBody(
+                        '${row['title']}',
+                        '${row['family_name']}',
+                      ),
+                      confirmLabel: active
+                          ? l10n.actionDeactivate
+                          : l10n.actionReactivate,
                     );
                     if (!ok || !context.mounted) return;
                     final done = await runAction(
@@ -123,12 +110,14 @@ class _MissionsPageState extends ConsumerState<MissionsPage> {
                         {'is_active': !active},
                       ),
                       success: active
-                          ? 'Mission deactivated'
-                          : 'Mission reactivated',
+                          ? l10n.missionDeactivated
+                          : l10n.missionReactivated,
                     );
                     if (done) reload();
                   },
-                  child: Text(active ? 'Deactivate' : 'Reactivate'),
+                  child: Text(
+                    active ? l10n.actionDeactivate : l10n.actionReactivate,
+                  ),
                 )
               else
                 const SizedBox.shrink(),

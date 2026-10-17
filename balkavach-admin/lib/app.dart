@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/locale.dart';
 import 'core/session.dart';
+import 'core/theme.dart';
+import 'l10n/app_localizations.dart';
 import 'pages/audit_page.dart';
 import 'pages/badges_page.dart';
 import 'pages/categories_page.dart';
@@ -19,38 +22,90 @@ import 'pages/users_page.dart';
 
 /// Where each section lives and the permission it needs.
 const kSections = <Section>[
-  Section('Dashboard', Icons.dashboard_outlined, '/', 'dashboard:read'),
-  Section('Users', Icons.people_outline_rounded, '/users', 'users:read'),
   Section(
-    'Families',
+    'dashboard',
+    Icons.dashboard_outlined,
+    '/',
+    'dashboard:read',
+    NavGroup.overview,
+  ),
+  Section(
+    'users',
+    Icons.people_outline_rounded,
+    '/users',
+    'users:read',
+    NavGroup.people,
+  ),
+  Section(
+    'families',
     Icons.family_restroom_rounded,
     '/families',
     'families:read',
+    NavGroup.people,
   ),
-  Section('Missions', Icons.task_alt_rounded, '/missions', 'tasks:read'),
-  Section('Categories', Icons.category_outlined, '/categories', 'content:read'),
   Section(
-    'Preset missions',
+    'missions',
+    Icons.task_alt_rounded,
+    '/missions',
+    'tasks:read',
+    NavGroup.missions,
+  ),
+  Section(
+    'categories',
+    Icons.category_outlined,
+    '/categories',
+    'content:read',
+    NavGroup.missions,
+  ),
+  Section(
+    'presets',
     Icons.lightbulb_outline_rounded,
     '/presets',
     'content:read',
+    NavGroup.missions,
   ),
-  Section('Rewards', Icons.redeem_rounded, '/rewards', 'rewards:read'),
   Section(
-    'Reward requests',
+    'rewards',
+    Icons.redeem_rounded,
+    '/rewards',
+    'rewards:read',
+    NavGroup.missions,
+  ),
+  Section(
+    'redemptions',
     Icons.inbox_rounded,
     '/redemptions',
     'redemptions:read',
+    NavGroup.missions,
   ),
   Section(
-    'Learning content',
+    'content',
     Icons.play_circle_outline_rounded,
     '/content',
     'content:read',
+    NavGroup.learning,
   ),
-  Section('Badges', Icons.military_tech_outlined, '/badges', 'badges:read'),
-  Section('Settings', Icons.tune_rounded, '/settings', 'settings:read'),
-  Section('Audit log', Icons.history_rounded, '/audit', 'audit:read'),
+  Section(
+    'badges',
+    Icons.military_tech_outlined,
+    '/badges',
+    'badges:read',
+    NavGroup.learning,
+  ),
+  Section(
+    'settings',
+    Icons.tune_rounded,
+    '/settings',
+    'settings:read',
+    NavGroup.system,
+  ),
+  Section(
+    'audit',
+    Icons.history_rounded,
+    '/audit',
+    'audit:read',
+    NavGroup.system,
+  ),
 ];
 
 Widget _pageFor(String path) => switch (path) {
@@ -113,16 +168,12 @@ class AdminApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: 'Bal Kavach Admin',
+      onGenerateTitle: (context) => AppLocalizations.of(context).appName,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0051B6),
-          secondary: const Color(0xFF006A60),
-        ),
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
+      theme: buildAdminTheme(),
+      locale: ref.watch(localeProvider),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: ref.watch(routerProvider),
     );
   }

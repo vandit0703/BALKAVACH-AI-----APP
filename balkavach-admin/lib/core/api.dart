@@ -191,6 +191,15 @@ class AdminApi {
   Future<void> delete(String path) =>
       _run(() => _dio.delete<dynamic>(path), (_) {});
 
+  /// Public endpoints (such as health checks) carry no bearer token.
+  Future<Map<String, dynamic>> anonymousGet(String path) => _run(
+    () => _dio.get<dynamic>(
+      path,
+      options: Options(extra: const {_anonymous: true}),
+    ),
+    (d) => _mapOrEmpty(d),
+  );
+
   /// Sign-in endpoints carry no bearer token.
   Future<Map<String, dynamic>> anonymousPost(String path, Object? body) => _run(
     () => _dio.post<dynamic>(

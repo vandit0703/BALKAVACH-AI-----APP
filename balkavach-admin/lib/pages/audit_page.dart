@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api.dart';
+import '../l10n/app_localizations.dart';
 import '../ui/widgets.dart';
 
 /// Every administrative change, newest first. Read-only.
@@ -10,23 +11,21 @@ class AuditPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       children: [
-        const PageHeader(
-          title: 'Audit log',
-          subtitle: 'Who changed what, and when',
-        ),
+        PageHeader(title: l10n.auditTitle, subtitle: l10n.auditSubtitle),
         PagedTable(
-          emptyMessage: 'No administrative changes recorded yet.',
+          emptyMessage: l10n.auditEmpty,
           fetch: (offset, limit) => ref
               .read(adminApiProvider)
               .getList(
                 '/api/v1/admin/audit-logs',
                 query: {'limit': limit, 'offset': offset},
               ),
-          columns: const ['When', 'Action', 'Item', 'Admin'],
+          columns: [l10n.colWhen, l10n.colAction, l10n.colItem, l10n.colAdmin],
           cells: (context, row, reload) => [
-            Text(shortDate(row['created_at'])),
+            Text(shortDate(context, row['created_at'])),
             Text('${row['action']}'),
             Text('${row['entity_type']}'),
             Text(_short(row['actor_user_id'])),
