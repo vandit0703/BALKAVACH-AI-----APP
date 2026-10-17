@@ -40,6 +40,7 @@ class TokenResponse(BaseModel):
 	access_token: str
 	token_type: str = "bearer"
 	expires_at: datetime
+	child_id: UUID | None = None
 	refresh_token: str | None = None
 	refresh_expires_at: datetime | None = None
 	user: UserPublic

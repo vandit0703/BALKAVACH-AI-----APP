@@ -118,7 +118,16 @@ class _CreateChildScreenState extends ConsumerState<CreateChildScreen> {
     } on ConflictException catch (error) {
       if (mounted) setState(() => _fieldErrors = {'username': error.message});
     } on ApiException catch (error) {
-      if (mounted) showErrorSnackBar(context, error);
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        if (error.code == 'credential_encryption_unavailable') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.createChildCredentialsConfigMissing)),
+          );
+        } else {
+          showErrorSnackBar(context, error);
+        }
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

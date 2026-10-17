@@ -58,6 +58,7 @@ void main() {
           'password': 'a-secure-child-password',
         });
         expect(session.user.role, UserRole.child);
+        expect(session.childId, Fx.childId);
       },
     );
 

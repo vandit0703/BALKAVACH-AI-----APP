@@ -1,8 +1,10 @@
 import jwt
 from cryptography.fernet import Fernet
+import pytest
 
 from app.core.config import settings
 from app.core.child_credentials import decrypt_child_password, encrypt_child_password
+from app.core.exceptions import APIError
 from app.core.security import create_access_token, decode_access_token, hash_password, verify_password
 from app.schemas.user import ChildCreate
 
@@ -22,6 +24,27 @@ def test_child_password_encryption_is_authenticated_and_round_trips(monkeypatch)
 
     assert encrypted != "a-secure-child-password"
     assert decrypt_child_password(encrypted) == "a-secure-child-password"
+
+
+@pytest.mark.parametrize("key", [None, "not-a-fernet-key"])
+def test_child_password_encryption_rejects_missing_or_invalid_key(monkeypatch, key) -> None:
+    monkeypatch.setattr(settings, "child_credentials_encryption_key", key)
+
+    with pytest.raises(APIError) as error:
+        encrypt_child_password("a-secure-child-password")
+
+    assert error.value.status_code == 503
+    assert error.value.code == "credential_encryption_unavailable"
+
+
+def test_child_password_decryption_rejects_tampered_ciphertext(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "child_credentials_encryption_key", Fernet.generate_key().decode())
+
+    with pytest.raises(APIError) as error:
+        decrypt_child_password("tampered-ciphertext")
+
+    assert error.value.status_code == 500
+    assert error.value.code == "credential_decryption_failed"
 
 
 def test_child_creation_normalizes_username_and_rejects_invalid_credentials() -> None:

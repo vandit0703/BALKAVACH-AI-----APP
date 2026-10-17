@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/approvals/presentation/approvals_screen.dart';
+import '../../features/authentication/presentation/child_login_screen.dart';
 import '../../features/authentication/presentation/parent_auth_screen.dart';
 import '../../features/authentication/presentation/session_controller.dart';
 import '../../features/child_profile/presentation/child_profile_screen.dart';
@@ -73,7 +74,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.childStart,
-        builder: (_, _) => const ChildStartScreen(),
+        redirect: (_, _) => AppRoutes.childLogin,
+      ),
+      GoRoute(
+        path: AppRoutes.childLogin,
+        builder: (_, _) => const ChildLoginScreen(),
       ),
       GoRoute(
         path: AppRoutes.parentAuth,

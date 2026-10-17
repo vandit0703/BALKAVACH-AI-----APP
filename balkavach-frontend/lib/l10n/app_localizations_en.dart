@@ -135,7 +135,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get roleSubtitle =>
-      'Parents set up the family first. Children join through a parent.';
+      'Parents manage the family. Children sign in with their own credentials.';
 
   @override
   String get roleParent => 'I\'m a Parent';
@@ -149,7 +149,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get roleChildBody =>
-      'Play missions after a parent starts child mode for you.';
+      'Sign in with the username and password your parent created.';
+
+  @override
+  String get childLoginTitle => 'Child Login';
+
+  @override
+  String get childLoginSubtitle =>
+      'Use the username and password your parent created for you.';
+
+  @override
+  String get childLoginButton => 'Log in';
+
+  @override
+  String get childLoginInvalidCredentials =>
+      'Username or password is incorrect.';
 
   @override
   String get childStartTitle => 'Ask a parent to help';
@@ -212,8 +226,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Phone OTP and Google sign-in are not available yet. Please use email and password.';
 
   @override
-  String get authInvalidCredentials =>
-      'Email, username, or password is incorrect.';
+  String get authInvalidCredentials => 'Email or password is incorrect.';
 
   @override
   String get authEmailInUse =>
@@ -363,6 +376,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get createChildCredentialsUnavailable =>
       'Credentials could not be loaded. Please try again.';
+
+  @override
+  String get createChildCredentialsConfigMissing =>
+      'Credential retrieval is not configured on the server. Please contact your parent.';
 
   @override
   String get createChildCredentialsClose => 'Close';

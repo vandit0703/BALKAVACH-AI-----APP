@@ -136,7 +136,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get roleSubtitle =>
-      'પહેલા માતા-પિતા પરિવાર સેટ કરે છે. બાળકો માતા-પિતા દ્વારા જોડાય છે.';
+      'માતા-પિતા પરિવાર સંભાળે છે. બાળકો પોતાની લૉગિન વિગતો વાપરે છે.';
 
   @override
   String get roleParent => 'હું માતા-પિતા છું';
@@ -149,7 +149,22 @@ class AppLocalizationsGu extends AppLocalizations {
   String get roleChild => 'હું બાળક છું';
 
   @override
-  String get roleChildBody => 'માતા-પિતા ચાઇલ્ડ મોડ શરૂ કરે પછી મિશન રમો.';
+  String get roleChildBody =>
+      'તમારા માતા-પિતાએ બનાવેલું વપરાશકર્તા નામ અને પાસવર્ડ વાપરી સાઇન ઇન કરો.';
+
+  @override
+  String get childLoginTitle => 'બાળક લૉગિન';
+
+  @override
+  String get childLoginSubtitle =>
+      'તમારા માટે માતા-પિતાએ બનાવેલું વપરાશકર્તા નામ અને પાસવર્ડ વાપરો.';
+
+  @override
+  String get childLoginButton => 'લૉગ ઇન';
+
+  @override
+  String get childLoginInvalidCredentials =>
+      'વપરાશકર્તા નામ અથવા પાસવર્ડ ખોટો છે.';
 
   @override
   String get childStartTitle => 'માતા-પિતાની મદદ માંગો';
@@ -212,8 +227,7 @@ class AppLocalizationsGu extends AppLocalizations {
       'ફોન OTP અને Google સાઇન-ઇન હજી ઉપલબ્ધ નથી. કૃપા કરી ઇમેઇલ અને પાસવર્ડ વાપરો.';
 
   @override
-  String get authInvalidCredentials =>
-      'ઇમેઇલ, વપરાશકર્તા નામ અથવા પાસવર્ડ ખોટો છે.';
+  String get authInvalidCredentials => 'ઇમેઇલ અથવા પાસવર્ડ ખોટો છે.';
 
   @override
   String get authEmailInUse => 'આ ઇમેઇલથી પહેલેથી ખાતું છે. સાઇન ઇન કરી જુઓ.';
@@ -362,6 +376,10 @@ class AppLocalizationsGu extends AppLocalizations {
   @override
   String get createChildCredentialsUnavailable =>
       'વિગતો લોડ થઈ શકી નથી. ફરી પ્રયાસ કરો.';
+
+  @override
+  String get createChildCredentialsConfigMissing =>
+      'સર્વર પર વિગતો મેળવવાની ગોઠવણી નથી. તમારા માતા-પિતાનો સંપર્ક કરો.';
 
   @override
   String get createChildCredentialsClose => 'બંધ કરો';

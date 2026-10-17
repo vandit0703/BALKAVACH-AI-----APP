@@ -71,7 +71,73 @@ void main() {
     );
 
     await _tap(tester, find.byKey(const Key('role.child')));
-    expect(find.text('Ask a parent to help'), findsOneWidget);
+    expect(find.text('Child Login'), findsOneWidget);
+    expect(find.byKey(const Key('child.login.username')), findsOneWidget);
+    expect(find.byKey(const Key('child.login.password')), findsOneWidget);
+    expect(find.text('Parent Login / Register'), findsNothing);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await _tap(tester, find.byKey(const Key('role.parent')));
+    expect(find.text('Parent Login / Register'), findsOneWidget);
+    expect(find.byKey(const Key('auth.email')), findsOneWidget);
+  });
+
+  testWidgets('child login authenticates by username and opens child home', (
+    tester,
+  ) async {
+    final h = await Harness.create(prefs: onboardedPrefs);
+    h.backend.reply('POST', '/api/v1/auth/login', Fx.childToken());
+    await _pumpApp(tester, h);
+    await _tap(tester, find.byKey(const Key('role.child')));
+
+    await tester.enterText(
+      find.byKey(const Key('child.login.username')),
+      'Aarav7',
+    );
+    await tester.enterText(
+      find.byKey(const Key('child.login.password')),
+      'a-secure-child-password',
+    );
+    await _tap(tester, find.byKey(const Key('child.login.submit')));
+
+    expect(h.backend.requestsTo('POST', '/api/v1/auth/login').single.data, {
+      'username': 'aarav7',
+      'password': 'a-secure-child-password',
+    });
+    expect(find.text('Hello Aarav! 👋'), findsOneWidget);
+    expect((await h.storage.read())?.isChild, isTrue);
+    expect((await h.storage.read())?.childId, Fx.childId);
+  });
+
+  testWidgets('child login keeps the child screen open on bad credentials', (
+    tester,
+  ) async {
+    final h = await Harness.create(prefs: onboardedPrefs);
+    h.backend.on(
+      'POST',
+      '/api/v1/auth/login',
+      (_) => FakeReply.error(
+        401,
+        'invalid_credentials',
+        'Username or password is incorrect',
+      ),
+    );
+    await _pumpApp(tester, h);
+    await _tap(tester, find.byKey(const Key('role.child')));
+    await tester.enterText(
+      find.byKey(const Key('child.login.username')),
+      'aarav7',
+    );
+    await tester.enterText(
+      find.byKey(const Key('child.login.password')),
+      'wrong-child-password',
+    );
+    await _tap(tester, find.byKey(const Key('child.login.submit')));
+
+    expect(find.text('Child Login'), findsOneWidget);
+    expect(find.text('Username or password is incorrect.'), findsOneWidget);
+    expect((await h.storage.read()), isNull);
   });
 
   testWidgets('parent home lists children and starts child mode', (

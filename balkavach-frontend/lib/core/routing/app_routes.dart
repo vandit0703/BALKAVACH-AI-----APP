@@ -5,6 +5,7 @@ abstract final class AppRoutes {
   static const consent = '/consent';
   static const role = '/role';
   static const childStart = '/child-start';
+  static const childLogin = '/child-login';
   static const parentAuth = '/parent-auth';
 
   static const parentHome = '/parent';
@@ -36,5 +37,5 @@ abstract final class AppRoutes {
       '/child/missions/$taskId/waiting';
 
   /// Reachable without a session once onboarding is complete.
-  static const signedOut = {role, childStart, parentAuth};
+  static const signedOut = {role, childStart, childLogin, parentAuth};
 }

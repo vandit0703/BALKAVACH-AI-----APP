@@ -13,6 +13,6 @@ cryptography>=42
 python-multipart>=0.0.9
 Pillow>=10.3
 uvicorn[standard]>=0.30,<1
-
+cryptography
 # Test tooling
 pytest>=8,<9

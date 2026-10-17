@@ -1,5 +1,6 @@
 import 'package:balkavach_app/features/approvals/presentation/approvals_screen.dart';
 import 'package:balkavach_app/features/authentication/domain/session.dart';
+import 'package:balkavach_app/features/authentication/presentation/child_login_screen.dart';
 import 'package:balkavach_app/features/authentication/presentation/parent_auth_screen.dart';
 import 'package:balkavach_app/features/child_profile/presentation/child_profile_screen.dart';
 import 'package:balkavach_app/features/child_profile/presentation/create_child_screen.dart';
@@ -51,7 +52,7 @@ final _cases = <_Case>[
   _Case('welcome', () => const WelcomeScreen()),
   _Case('consent', () => const ConsentScreen()),
   _Case('role', () => const RoleSelectionScreen()),
-  _Case('child start', () => const ChildStartScreen()),
+  _Case('child login', () => const ChildLoginScreen()),
   _Case('parent auth', () => const ParentAuthScreen()),
   _Case(
     'parent home',

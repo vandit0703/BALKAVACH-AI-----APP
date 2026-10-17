@@ -137,7 +137,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get roleSubtitle =>
-      'पहले माता-पिता परिवार सेट करते हैं। बच्चे माता-पिता के ज़रिए जुड़ते हैं।';
+      'माता-पिता परिवार संभालते हैं। बच्चे अपनी साइन-इन जानकारी इस्तेमाल करते हैं।';
 
   @override
   String get roleParent => 'मैं माता-पिता हूँ';
@@ -151,7 +151,21 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get roleChildBody =>
-      'माता-पिता द्वारा चाइल्ड मोड शुरू करने के बाद मिशन खेलें।';
+      'अपने माता-पिता द्वारा बनाए गए उपयोगकर्ता नाम और पासवर्ड से साइन इन करें।';
+
+  @override
+  String get childLoginTitle => 'बच्चे का लॉगिन';
+
+  @override
+  String get childLoginSubtitle =>
+      'अपने माता-पिता द्वारा आपके लिए बनाए गए उपयोगकर्ता नाम और पासवर्ड का उपयोग करें।';
+
+  @override
+  String get childLoginButton => 'लॉग इन करें';
+
+  @override
+  String get childLoginInvalidCredentials =>
+      'उपयोगकर्ता नाम या पासवर्ड गलत है।';
 
   @override
   String get childStartTitle => 'माता-पिता से मदद मांगें';
@@ -213,8 +227,7 @@ class AppLocalizationsHi extends AppLocalizations {
       'फ़ोन OTP और Google साइन-इन अभी उपलब्ध नहीं हैं। कृपया ईमेल और पासवर्ड इस्तेमाल करें।';
 
   @override
-  String get authInvalidCredentials =>
-      'ईमेल, उपयोगकर्ता नाम या पासवर्ड गलत है।';
+  String get authInvalidCredentials => 'ईमेल या पासवर्ड गलत है।';
 
   @override
   String get authEmailInUse =>
@@ -364,6 +377,10 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get createChildCredentialsUnavailable =>
       'क्रेडेंशियल लोड नहीं हो सके। फिर से कोशिश करें।';
+
+  @override
+  String get createChildCredentialsConfigMissing =>
+      'सर्वर पर क्रेडेंशियल पाने की सुविधा कॉन्फ़िगर नहीं है। अपने माता-पिता से संपर्क करें।';
 
   @override
   String get createChildCredentialsClose => 'बंद करें';

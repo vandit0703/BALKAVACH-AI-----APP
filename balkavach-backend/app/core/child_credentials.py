@@ -16,11 +16,19 @@ def normalize_username(value: str) -> str:
 def _cipher() -> Fernet:
 	key = settings.child_credentials_encryption_key
 	if not key:
-		raise APIError(503, "credential_encryption_unavailable", "Child credential encryption is not configured")
+		raise APIError(
+			503,
+			"credential_encryption_unavailable",
+			"CHILD_CREDENTIALS_ENCRYPTION_KEY is not configured",
+		)
 	try:
 		return Fernet(key.encode("ascii"))
 	except (ValueError, UnicodeEncodeError):
-		raise APIError(503, "credential_encryption_unavailable", "Child credential encryption is not configured") from None
+		raise APIError(
+			503,
+			"credential_encryption_unavailable",
+			"CHILD_CREDENTIALS_ENCRYPTION_KEY is invalid",
+		) from None
 
 
 def encrypt_child_password(password: str) -> str:
@@ -30,5 +38,5 @@ def encrypt_child_password(password: str) -> str:
 def decrypt_child_password(ciphertext: str) -> str:
 	try:
 		return _cipher().decrypt(ciphertext.encode("ascii")).decode("utf-8")
-	except InvalidToken:
+	except (InvalidToken, UnicodeError):
 		raise APIError(500, "credential_decryption_failed", "Saved child credentials are unavailable") from None

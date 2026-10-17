@@ -28,12 +28,14 @@ abstract final class Fx {
     Map<String, Object?>? user,
     String accessToken = 'parent.jwt.token',
     String expiresAt = '2100-01-01T00:00:00Z',
+    String? childId,
     String? refreshToken,
     String? refreshExpiresAt,
   }) => {
     'access_token': accessToken,
     'token_type': 'bearer',
     'expires_at': expiresAt,
+    'child_id': ?childId,
     'refresh_token': ?refreshToken,
     'refresh_expires_at': ?(refreshToken == null
         ? null
@@ -43,6 +45,7 @@ abstract final class Fx {
 
   static Map<String, Object?> childToken() => token(
     accessToken: 'child.jwt.token',
+    childId: childId,
     user: user(id: childUserId, role: 'child', name: 'Aarav', email: null),
   );
 

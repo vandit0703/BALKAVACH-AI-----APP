@@ -58,6 +58,7 @@ def issue_child_session(
 	if child_user is None:
 		raise HTTPException(status_code=404, detail="Child profile not found")
 	response = start_session(session, child_user, issued_by=parent.id)
+	response.child_id = child.id
 	session.commit()
 	return response
 

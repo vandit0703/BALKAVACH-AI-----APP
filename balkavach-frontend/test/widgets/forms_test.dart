@@ -81,10 +81,7 @@ void main() {
       await tester.tap(find.byKey(const Key('auth.submit')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('auth.error')), findsOneWidget);
-      expect(
-        find.text('Email, username, or password is incorrect.'),
-        findsOneWidget,
-      );
+      expect(find.text('Email or password is incorrect.'), findsOneWidget);
     });
 
     testWidgets('successful sign-in stores the session', (tester) async {
@@ -203,10 +200,7 @@ void main() {
         await tester.ensureVisible(passwordField);
         await tester.pumpAndSettle();
         await tester.tap(
-          find.descendant(
-            of: passwordField,
-            matching: find.byType(IconButton),
-          ),
+          find.descendant(of: passwordField, matching: find.byType(IconButton)),
         );
         await tester.pumpAndSettle();
         expect(

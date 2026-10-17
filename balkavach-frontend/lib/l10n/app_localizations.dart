@@ -331,7 +331,7 @@ abstract class AppLocalizations {
   /// No description provided for @roleSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Parents set up the family first. Children join through a parent.'**
+  /// **'Parents manage the family. Children sign in with their own credentials.'**
   String get roleSubtitle;
 
   /// No description provided for @roleParent.
@@ -355,8 +355,32 @@ abstract class AppLocalizations {
   /// No description provided for @roleChildBody.
   ///
   /// In en, this message translates to:
-  /// **'Play missions after a parent starts child mode for you.'**
+  /// **'Sign in with the username and password your parent created.'**
   String get roleChildBody;
+
+  /// No description provided for @childLoginTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Child Login'**
+  String get childLoginTitle;
+
+  /// No description provided for @childLoginSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the username and password your parent created for you.'**
+  String get childLoginSubtitle;
+
+  /// No description provided for @childLoginButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Log in'**
+  String get childLoginButton;
+
+  /// No description provided for @childLoginInvalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Username or password is incorrect.'**
+  String get childLoginInvalidCredentials;
 
   /// No description provided for @childStartTitle.
   ///
@@ -475,7 +499,7 @@ abstract class AppLocalizations {
   /// No description provided for @authInvalidCredentials.
   ///
   /// In en, this message translates to:
-  /// **'Email, username, or password is incorrect.'**
+  /// **'Email or password is incorrect.'**
   String get authInvalidCredentials;
 
   /// No description provided for @authEmailInUse.
@@ -735,6 +759,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Credentials could not be loaded. Please try again.'**
   String get createChildCredentialsUnavailable;
+
+  /// No description provided for @createChildCredentialsConfigMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Credential retrieval is not configured on the server. Please contact your parent.'**
+  String get createChildCredentialsConfigMissing;
 
   /// No description provided for @createChildCredentialsClose.
   ///

@@ -138,6 +138,32 @@ def test_child_credentials_are_hashed_encrypted_and_retrievable_only_by_parent(a
     login = api.post("/auth/login", json={"username": child["username"], "password": PASSWORD})
     assert login.status_code == 200, login.text
     assert login.json()["user"]["role"] == "child"
+    assert login.json()["user"]["id"] == child["user_id"]
+    assert login.json()["child_id"] == child["id"]
+    assert api.get("/auth/me", login.json()["access_token"]).json()["role"] == "child"
+
+    wrong_password = api.post(
+        "/auth/login",
+        json={"username": child["username"].upper(), "password": "wrong-child-password"},
+    )
+    assert wrong_password.status_code == 401
+
+
+def test_child_username_login_requires_an_active_family_link(api, isolated_test_session):
+    ctx = api.family_with_child()
+    child = ctx["child"]
+    FamilyMember = get_model("FamilyMember")
+    isolated_test_session.query(FamilyMember).filter(
+        FamilyMember.user_id == child["user_id"],
+        FamilyMember.family_id == ctx["family"]["id"],
+    ).update({FamilyMember.is_active: False})
+    isolated_test_session.commit()
+
+    response = api.post(
+        "/auth/login",
+        json={"username": child["username"], "password": PASSWORD},
+    )
+    assert response.status_code == 401
 
 
 def test_child_creation_requires_valid_unique_credentials(api):

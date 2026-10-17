@@ -406,12 +406,63 @@ void main() {
         expect(find.text('a-secure-child-password'), findsOneWidget);
         await _tap(tester, find.text('Close'));
         expect(find.text('a-secure-child-password'), findsNothing);
-        expect(
-          h.backend.requestsTo('GET', '$_childPath/credentials'),
-          hasLength(1),
-        );
+        final request = h.backend
+            .requestsTo('GET', '$_childPath/credentials')
+            .single;
+        expect(request.headers['Authorization'], 'Bearer parent.jwt.token');
       },
     );
+
+    testWidgets('missing credentials offer secure setup fields', (
+      tester,
+    ) async {
+      final h = await _parent();
+      h.backend.on(
+        'GET',
+        '$_childPath/credentials',
+        (_) => FakeReply.error(
+          404,
+          'child_credentials_missing',
+          'Child credentials are not available',
+        ),
+      );
+      await openProfile(tester, h);
+      await _tap(tester, find.byKey(const Key('profile.credentials')));
+
+      expect(
+        find.text(
+          'This child does not have sign-in details yet. Set them up now.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('credentials.username')), findsOneWidget);
+      expect(find.byKey(const Key('credentials.password')), findsOneWidget);
+    });
+
+    testWidgets('missing server encryption configuration is explained', (
+      tester,
+    ) async {
+      final h = await _parent();
+      h.backend.on(
+        'GET',
+        '$_childPath/credentials',
+        (_) => FakeReply.error(
+          503,
+          'credential_encryption_unavailable',
+          'Child credential encryption is not configured',
+        ),
+      );
+      await openProfile(tester, h);
+      await _tap(tester, find.byKey(const Key('profile.credentials')));
+
+      expect(
+        find.text(
+          'Credential retrieval is not configured on the server. Please contact your parent.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('credentials.password')), findsNothing);
+    });
 
     testWidgets('editing saves the name and keeps the avatar on device', (
       tester,

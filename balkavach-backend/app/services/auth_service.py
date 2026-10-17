@@ -37,19 +37,41 @@ def register_parent(session: Session, request: RegistrationRequest) -> TokenResp
 
 def authenticate_user(session: Session, request: LoginRequest) -> TokenResponse:
 	User = get_model("User")
+	child_profile = None
 	if request.username is not None:
-		user = session.query(User).filter(
-			User.username == request.username,
-			User.role == "child",
-			User.is_active.is_(True),
-		).one_or_none()
+		ChildProfile = get_model("ChildProfile")
+		FamilyMember = get_model("FamilyMember")
+		user = (
+			session.query(User)
+			.join(ChildProfile, ChildProfile.user_id == User.id)
+			.join(FamilyMember, FamilyMember.user_id == User.id)
+			.filter(
+				User.username == request.username,
+				User.role == "child",
+				User.is_active.is_(True),
+				ChildProfile.is_active.is_(True),
+				FamilyMember.family_id == ChildProfile.family_id,
+				FamilyMember.relationship == "child",
+				FamilyMember.is_active.is_(True),
+			)
+			.one_or_none()
+		)
 	else:
 		email = str(request.email).strip().lower()
 		user = session.query(User).filter(User.email == email, User.is_active.is_(True)).one_or_none()
 	if user is None or not user.password_hash or not verify_password(request.password, user.password_hash):
 		raise APIError(401, "invalid_credentials", "Username or password is incorrect")
+	if request.username is not None:
+		child_profile = session.query(ChildProfile).filter(
+			ChildProfile.user_id == user.id,
+			ChildProfile.is_active.is_(True),
+		).one_or_none()
+		if child_profile is None:
+			raise APIError(401, "invalid_credentials", "Username or password is incorrect")
 
 	user.last_login_at = datetime.now(timezone.utc).replace(tzinfo=None)
 	response = start_session(session, user)
+	if child_profile is not None:
+		response.child_id = child_profile.id
 	session.commit()
 	return response

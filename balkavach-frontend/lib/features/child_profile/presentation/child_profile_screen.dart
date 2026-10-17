@@ -316,9 +316,16 @@ class _ChildCredentialsDialogState
       });
     } on ApiException catch (error) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         setState(() {
           _needsSetup = false;
-          _error = describeError(AppLocalizations.of(context), error);
+          _error = switch (error.code) {
+            'credential_encryption_unavailable' =>
+              l10n.createChildCredentialsConfigMissing,
+            'credential_decryption_failed' =>
+              l10n.createChildCredentialsUnavailable,
+            _ => describeError(l10n, error),
+          };
         });
       }
     } finally {

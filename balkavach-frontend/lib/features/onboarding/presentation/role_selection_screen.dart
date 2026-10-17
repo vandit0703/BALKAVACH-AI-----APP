@@ -10,12 +10,10 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/models/app_assets.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/brand_header.dart';
-import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../authentication/presentation/session_controller.dart';
 
-/// Not in the Stitch export; composed from its components. A child cannot sign
-/// in directly: the backend issues child sessions only to a signed-in parent.
+/// Role selection for the existing parent and child authentication flows.
 class RoleSelectionScreen extends ConsumerWidget {
   const RoleSelectionScreen({super.key});
 
@@ -47,7 +45,7 @@ class RoleSelectionScreen extends ConsumerWidget {
         body: l10n.roleChildBody,
         onTap: () {
           dismiss();
-          context.go(AppRoutes.childStart);
+          context.go(AppRoutes.childLogin);
         },
       ),
     ];
@@ -159,49 +157,6 @@ class _RoleCard extends StatelessWidget {
             ),
           ),
           Icon(Icons.chevron_right_rounded, color: context.colors.primary),
-        ],
-      ),
-    );
-  }
-}
-
-class ChildStartScreen extends StatelessWidget {
-  const ChildStartScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        leading: BackButton(onPressed: () => context.go(AppRoutes.role)),
-      ),
-      body: ScrollablePage(
-        maxWidth: ContentWidth.form,
-        spacing: AppSpacing.lg,
-        children: [
-          ClipRRect(
-            borderRadius: AppRadius.hero,
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Image.asset(
-                AppImages.pandaHoodie,
-                fit: BoxFit.cover,
-                excludeFromSemantics: true,
-              ),
-            ),
-          ),
-          Text(l10n.childStartTitle, style: context.text.headlineMedium),
-          Text(
-            l10n.childStartBody,
-            style: context.text.bodyLarge?.copyWith(
-              color: context.colors.onSurfaceVariant,
-            ),
-          ),
-          PrimaryButton(
-            label: l10n.childStartParentSignIn,
-            icon: Icons.lock_outline_rounded,
-            onPressed: () => context.go(AppRoutes.parentAuth),
-          ),
         ],
       ),
     );

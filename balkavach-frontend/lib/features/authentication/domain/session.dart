@@ -82,7 +82,7 @@ class Session {
     accessToken: json['access_token'] as String,
     expiresAt: DateTime.parse(json['expires_at'] as String).toUtc(),
     user: AppUser.fromJson(json['user'] as Map<String, dynamic>),
-    childId: childId,
+    childId: childId ?? json['child_id'] as String?,
     refreshToken: json['refresh_token'] as String?,
     refreshExpiresAt: _parseOptionalDate(json['refresh_expires_at']),
   );
