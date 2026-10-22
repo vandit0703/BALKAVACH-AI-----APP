@@ -81,6 +81,18 @@ class LearningItem {
   }
 
   bool get isHosted => videoId != null || collectionId != null;
+
+  /// Whether this item can be played by the in-app player.
+  ///
+  /// Only an admin-curated direct link qualifies. Hosted and entitlement-gated
+  /// videos deliberately arrive without a URL: they must go through the
+  /// authorised playback-session API, which needs a configured provider, so
+  /// they are never played here.
+  bool get isPlayableInApp =>
+      contentType == 'video' &&
+      !requiresEntitlement &&
+      !isHosted &&
+      openableUri != null;
 }
 
 /// Verified contracts: `app/api/v1/educational_content.py` and

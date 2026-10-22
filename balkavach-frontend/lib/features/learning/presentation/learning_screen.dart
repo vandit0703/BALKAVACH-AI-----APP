@@ -254,7 +254,19 @@ class _LearningDetailScreenState extends ConsumerState<LearningDetailScreen> {
                   icon: Icons.lock_outline_rounded,
                   message: blocker,
                 )
-              else ...[
+              else if (item.isPlayableInApp) ...[
+                // A curated video with a direct link plays inside the app.
+                PrimaryButton(
+                  key: const Key('learn.play'),
+                  label: l10n.videoWatchInApp,
+                  icon: Icons.play_arrow_rounded,
+                  childSized: true,
+                  onPressed: () => context.push(
+                    AppRoutes.childLearnPlay(item.id),
+                    extra: item,
+                  ),
+                ),
+              ] else ...[
                 PrimaryButton(
                   key: const Key('learn.open'),
                   label: l10n.learnOpen,

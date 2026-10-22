@@ -5,6 +5,7 @@ from app.api.v1.admin import router as admin_router
 from app.api.v1.admin_manage import router as admin_manage_router
 from app.api.v1.app_config import router as app_config_router
 from app.api.v1.families import router as families_router
+from app.api.v1.learning_gate import router as learning_gate_router
 from app.api.v1.educational_content import router as educational_content_router
 from app.api.v1.progress import router as progress_router
 from app.api.v1.rewards import router as rewards_router
@@ -24,6 +25,7 @@ api_router.include_router(admin_manage_router)
 api_router.include_router(app_config_router)
 api_router.include_router(families_router)
 api_router.include_router(educational_content_router)
+api_router.include_router(learning_gate_router)
 api_router.include_router(tasks_router)
 api_router.include_router(reviews_router)
 api_router.include_router(progress_router)

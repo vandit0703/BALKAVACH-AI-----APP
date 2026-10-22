@@ -600,6 +600,8 @@ void main() {
       await _tap(tester, find.byKey(const Key('profile.childMode')));
       await _tap(tester, find.text('Start'));
 
+      expect(find.text('Watch & Learn'), findsOneWidget);
+      await _tap(tester, find.text('Profile'));
       expect(find.text('Hello Aarav! 👋'), findsOneWidget);
       expect((await h.storage.read())?.isChild, isTrue);
     });
@@ -921,8 +923,11 @@ void main() {
       await _tap(tester, find.text('Garden'));
       expect(find.text('Mindful Garden'), findsOneWidget);
 
-      await _tap(tester, find.text('Home'));
+      await _tap(tester, find.text('Profile'));
       expect(find.text('Hello Aarav! 👋'), findsOneWidget);
+
+      await _tap(tester, find.text('Home'));
+      expect(find.text('Watch & Learn'), findsOneWidget);
     });
   });
 }

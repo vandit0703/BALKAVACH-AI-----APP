@@ -22,11 +22,18 @@ import '../domain/mission_status.dart';
 import 'mission_providers.dart';
 import 'widgets/mission_visuals.dart';
 
-/// Child Home (Stitch `child_home_dashboard`). Only real data is shown: stars,
-/// streak, XP and level come from `/progress`; missions from `/tasks`. The
-/// garden card and quest-hub tiles are omitted until those APIs exist (B9).
-class ChildHomeScreen extends ConsumerWidget {
-  const ChildHomeScreen({super.key});
+/// The dashboard (Stitch `child_home_dashboard`). Only real data is shown:
+/// stars, streak, XP and level come from `/progress`; missions from `/tasks`.
+/// The garden card and quest-hub tiles are omitted until those APIs exist (B9).
+///
+/// This lived on Home until Home became the curated video experience; it is now
+/// the body of Profile. It stays here, beside the mission providers it reads,
+/// and `trailing` lets Profile add its own cards below it.
+class ChildDashboard extends ConsumerWidget {
+  const ChildDashboard({this.trailing = const [], super.key});
+
+  /// Extra cards appended under the dashboard.
+  final List<Widget> trailing;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -55,6 +62,7 @@ class ChildHomeScreen extends ConsumerWidget {
                 _Greeting(childId: childId, name: session.user.fullName),
                 _StatsDock(childId: childId),
                 const _TodayCard(),
+                ...trailing,
               ],
             ),
           ),

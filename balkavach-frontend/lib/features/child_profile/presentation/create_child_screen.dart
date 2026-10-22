@@ -20,11 +20,7 @@ import '../data/family_repository.dart';
 import '../domain/family_models.dart';
 import 'family_providers.dart';
 
-const _languageNames = {
-  'en': 'English',
-  'gu': 'ગુજરાતી',
-  'hi': 'हिन्दी',
-};
+const _languageNames = {'en': 'English', 'gu': 'ગુજરાતી', 'hi': 'हिन्दी'};
 
 /// Add Your Child's Profile. Sends only fields the backend stores
 /// (`display_name`, `date_of_birth`, `preferred_language`). Age bracket and

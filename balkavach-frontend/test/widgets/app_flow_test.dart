@@ -105,6 +105,9 @@ void main() {
       'username': 'aarav7',
       'password': 'a-secure-child-password',
     });
+    expect(find.text('Watch & Learn'), findsOneWidget);
+    // The dashboard moved to Profile; it must still be reachable and intact.
+    await _tap(tester, find.text('Profile'));
     expect(find.text('Hello Aarav! 👋'), findsOneWidget);
     expect((await h.storage.read())?.isChild, isTrue);
     expect((await h.storage.read())?.childId, Fx.childId);
@@ -184,6 +187,8 @@ void main() {
     await _tap(tester, find.byKey(const Key('child.start.${Fx.childId}')));
     await _tap(tester, find.text('Start'));
 
+    expect(find.text('Watch & Learn'), findsOneWidget);
+    await _tap(tester, find.text('Profile'));
     expect(find.text('Hello Aarav! 👋'), findsOneWidget);
     expect(find.text('240'), findsOneWidget);
     expect(find.text('5 Day'), findsOneWidget);

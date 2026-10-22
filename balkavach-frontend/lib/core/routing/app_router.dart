@@ -6,12 +6,14 @@ import '../../features/approvals/presentation/approvals_screen.dart';
 import '../../features/authentication/presentation/child_login_screen.dart';
 import '../../features/authentication/presentation/parent_auth_screen.dart';
 import '../../features/authentication/presentation/session_controller.dart';
+import '../../features/child_profile/presentation/child_home_profile_screen.dart';
 import '../../features/child_profile/presentation/child_profile_screen.dart';
 import '../../features/child_profile/presentation/create_child_screen.dart';
 import '../../features/garden/presentation/garden_screen.dart';
 import '../../features/learning/data/learning_repository.dart';
 import '../../features/learning/presentation/learning_screen.dart';
-import '../../features/missions/presentation/child_home_screen.dart';
+import '../../features/learning/presentation/video_player_screen.dart';
+import '../../features/learning/presentation/watch_home_screen.dart';
 import '../../features/missions/presentation/child_shell.dart';
 import '../../features/missions/presentation/mission_detail_screen.dart';
 import '../../features/missions/presentation/mission_submit_screen.dart';
@@ -143,7 +145,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.childHome,
             pageBuilder: (_, _) =>
-                const NoTransitionPage(child: ChildHomeScreen()),
+                const NoTransitionPage(child: WatchHomeScreen()),
             routes: [
               GoRoute(
                 path: 'missions',
@@ -187,6 +189,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     const NoTransitionPage(child: GardenScreen()),
               ),
               GoRoute(
+                path: 'profile',
+                pageBuilder: (_, _) =>
+                    const NoTransitionPage(child: ChildHomeProfileScreen()),
+              ),
+              GoRoute(
                 path: 'learn',
                 pageBuilder: (_, _) =>
                     const NoTransitionPage(child: LearningScreen()),
@@ -202,6 +209,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (_, state) => LearningDetailScreen(
                       item: state.extra! as LearningItem,
                     ),
+                    routes: [
+                      GoRoute(
+                        path: 'play',
+                        parentNavigatorKey: _rootKey,
+                        // Like the detail route, the item travels with the
+                        // navigation; a bare deep link has nothing to play.
+                        redirect: (_, state) => state.extra is LearningItem
+                            ? null
+                            : AppRoutes.childLearn,
+                        builder: (_, state) => VideoPlayerScreen(
+                          item: state.extra! as LearningItem,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

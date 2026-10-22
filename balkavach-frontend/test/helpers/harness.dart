@@ -56,7 +56,10 @@ class Harness {
         ),
       ])
       ..reply('GET', '/api/v1/notifications', <Object?>[])
-      ..reply('GET', '/api/v1/progress/children/${Fx.childId}', Fx.progress());
+      ..reply('GET', '/api/v1/progress/children/${Fx.childId}', Fx.progress())
+      ..reply('GET', '/api/v1/educational-content', <Object?>[])
+      ..reply('GET', '/api/v1/videos/categories', <Object?>[])
+      ..reply('GET', '/api/v1/learning-gate/today', Fx.learningGate());
     return harness;
   }
 

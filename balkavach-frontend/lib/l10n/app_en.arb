@@ -1169,5 +1169,59 @@
   "createMissionIdeasEmpty": "No ideas available right now.",
   "createMissionIdeasHint": "You can change anything before saving.",
   "validationFieldInvalid": "Please check this field and try again.",
-  "errorUsernameTaken": "That username is already taken."
+  "errorUsernameTaken": "That username is already taken.",
+  "navProfile": "Profile",
+  "profileTitle": "My Profile",
+  "watchTitle": "Watch & Learn",
+  "navWatch": "Watch",
+  "watchSessionFirst": "Warm-up watch",
+  "watchSessionSecond": "Bonus watch",
+  "watchUnavailableTitle": "Videos aren't ready yet",
+  "watchUnavailableBody": "Your grown-ups are still setting up videos. Your missions are open in the meantime!",
+  "watchDisabledTitle": "Videos are switched off",
+  "watchDisabledBody": "A parent turned off videos for now. You can still do your missions.",
+  "watchMissionsOpen": "Go to missions",
+  "watchBrowseLearn": "Browse learning",
+  "watchGateMissionsLocked": "Watch {minutes} min to unlock today's missions",
+  "@watchGateMissionsLocked": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "watchGateMissionsUnlocked": "Missions unlocked. Nice work!",
+  "watchGateAwaitingApproval": "Your grown-up is checking your missions",
+  "watchGateSecondLocked": "Finish today's missions to unlock bonus videos",
+  "watchGateSecondUnlocked": "Bonus videos unlocked!",
+  "watchGateComplete": "All done for today. Amazing!",
+  "watchMinutesLeft": "{minutes} min to go",
+  "@watchMinutesLeft": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "watchTimeToday": "{watched} of {total} min watched today",
+  "@watchTimeToday": {
+    "placeholders": {
+      "watched": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "watchNoVideos": "No videos here yet. Check back soon!",
+  "learnOpenLearn": "Open Learn & Watch",
+  "profileLanguageHelp": "Changes the app language on this phone.",
+  "videoPlay": "Play",
+  "videoPause": "Pause",
+  "videoRetry": "Try again",
+  "videoPlaybackFailed": "We couldn't play this video.",
+  "videoProgressLabel": "Video progress",
+  "videoWatchInApp": "Watch now",
+  "videoNotPlayableInApp": "This one opens outside the app."
 }

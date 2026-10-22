@@ -3208,6 +3208,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That username is already taken.'**
   String get errorUsernameTaken;
+
+  /// No description provided for @navProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get navProfile;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Profile'**
+  String get profileTitle;
+
+  /// No description provided for @watchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch & Learn'**
+  String get watchTitle;
+
+  /// No description provided for @navWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch'**
+  String get navWatch;
+
+  /// No description provided for @watchSessionFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm-up watch'**
+  String get watchSessionFirst;
+
+  /// No description provided for @watchSessionSecond.
+  ///
+  /// In en, this message translates to:
+  /// **'Bonus watch'**
+  String get watchSessionSecond;
+
+  /// No description provided for @watchUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos aren\'t ready yet'**
+  String get watchUnavailableTitle;
+
+  /// No description provided for @watchUnavailableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your grown-ups are still setting up videos. Your missions are open in the meantime!'**
+  String get watchUnavailableBody;
+
+  /// No description provided for @watchDisabledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos are switched off'**
+  String get watchDisabledTitle;
+
+  /// No description provided for @watchDisabledBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A parent turned off videos for now. You can still do your missions.'**
+  String get watchDisabledBody;
+
+  /// No description provided for @watchMissionsOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to missions'**
+  String get watchMissionsOpen;
+
+  /// No description provided for @watchBrowseLearn.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse learning'**
+  String get watchBrowseLearn;
+
+  /// No description provided for @watchGateMissionsLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch {minutes} min to unlock today\'s missions'**
+  String watchGateMissionsLocked(int minutes);
+
+  /// No description provided for @watchGateMissionsUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Missions unlocked. Nice work!'**
+  String get watchGateMissionsUnlocked;
+
+  /// No description provided for @watchGateAwaitingApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Your grown-up is checking your missions'**
+  String get watchGateAwaitingApproval;
+
+  /// No description provided for @watchGateSecondLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish today\'s missions to unlock bonus videos'**
+  String get watchGateSecondLocked;
+
+  /// No description provided for @watchGateSecondUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Bonus videos unlocked!'**
+  String get watchGateSecondUnlocked;
+
+  /// No description provided for @watchGateComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'All done for today. Amazing!'**
+  String get watchGateComplete;
+
+  /// No description provided for @watchMinutesLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min to go'**
+  String watchMinutesLeft(int minutes);
+
+  /// No description provided for @watchTimeToday.
+  ///
+  /// In en, this message translates to:
+  /// **'{watched} of {total} min watched today'**
+  String watchTimeToday(int watched, int total);
+
+  /// No description provided for @watchNoVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'No videos here yet. Check back soon!'**
+  String get watchNoVideos;
+
+  /// No description provided for @learnOpenLearn.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Learn & Watch'**
+  String get learnOpenLearn;
+
+  /// No description provided for @profileLanguageHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes the app language on this phone.'**
+  String get profileLanguageHelp;
+
+  /// No description provided for @videoPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get videoPlay;
+
+  /// No description provided for @videoPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get videoPause;
+
+  /// No description provided for @videoRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get videoRetry;
+
+  /// No description provided for @videoPlaybackFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t play this video.'**
+  String get videoPlaybackFailed;
+
+  /// No description provided for @videoProgressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Video progress'**
+  String get videoProgressLabel;
+
+  /// No description provided for @videoWatchInApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch now'**
+  String get videoWatchInApp;
+
+  /// No description provided for @videoNotPlayableInApp.
+  ///
+  /// In en, this message translates to:
+  /// **'This one opens outside the app.'**
+  String get videoNotPlayableInApp;
 }
 
 class _AppLocalizationsDelegate

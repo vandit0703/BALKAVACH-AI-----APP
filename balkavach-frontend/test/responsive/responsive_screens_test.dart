@@ -2,12 +2,13 @@ import 'package:balkavach_app/features/approvals/presentation/approvals_screen.d
 import 'package:balkavach_app/features/authentication/domain/session.dart';
 import 'package:balkavach_app/features/authentication/presentation/child_login_screen.dart';
 import 'package:balkavach_app/features/authentication/presentation/parent_auth_screen.dart';
+import 'package:balkavach_app/features/child_profile/presentation/child_home_profile_screen.dart';
 import 'package:balkavach_app/features/child_profile/presentation/child_profile_screen.dart';
 import 'package:balkavach_app/features/child_profile/presentation/create_child_screen.dart';
 import 'package:balkavach_app/features/garden/presentation/garden_screen.dart';
 import 'package:balkavach_app/features/learning/data/learning_repository.dart';
 import 'package:balkavach_app/features/learning/presentation/learning_screen.dart';
-import 'package:balkavach_app/features/missions/presentation/child_home_screen.dart';
+import 'package:balkavach_app/features/learning/presentation/watch_home_screen.dart';
 import 'package:balkavach_app/features/missions/presentation/child_shell.dart';
 import 'package:balkavach_app/features/missions/presentation/mission_detail_screen.dart';
 import 'package:balkavach_app/features/missions/presentation/mission_submit_screen.dart';
@@ -71,7 +72,15 @@ final _cases = <_Case>[
   ),
   _Case(
     'child home',
-    () => const ChildShell(location: '/child', child: ChildHomeScreen()),
+    () => const ChildShell(location: '/child', child: WatchHomeScreen()),
+    session: Fx.childSession,
+  ),
+  _Case(
+    'child profile tab',
+    () => const ChildShell(
+      location: '/child/profile',
+      child: ChildHomeProfileScreen(),
+    ),
     session: Fx.childSession,
   ),
   _Case(

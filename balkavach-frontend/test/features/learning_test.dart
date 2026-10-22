@@ -277,5 +277,24 @@ void main() {
       await pump(tester, _item(url: 'http://example.com/a'));
       expect(find.byKey(const Key('learn.open')), findsNothing);
     });
+
+    testWidgets('a curated video plays in the app, not the browser', (
+      tester,
+    ) async {
+      final opener = await pump(
+        tester,
+        _item(type: 'video', url: 'https://cdn.example.org/a.mp4'),
+      );
+      expect(find.byKey(const Key('learn.play')), findsOneWidget);
+      // The external-browser path must not be offered for playable content.
+      expect(find.byKey(const Key('learn.open')), findsNothing);
+      expect(opener.opened, isEmpty);
+    });
+
+    testWidgets('a non-video link still opens outside the app', (tester) async {
+      await pump(tester, _item());
+      expect(find.byKey(const Key('learn.open')), findsOneWidget);
+      expect(find.byKey(const Key('learn.play')), findsNothing);
+    });
   });
 }

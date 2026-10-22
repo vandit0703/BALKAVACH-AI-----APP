@@ -1907,4 +1907,104 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorUsernameTaken => 'That username is already taken.';
+
+  @override
+  String get navProfile => 'Profile';
+
+  @override
+  String get profileTitle => 'My Profile';
+
+  @override
+  String get watchTitle => 'Watch & Learn';
+
+  @override
+  String get navWatch => 'Watch';
+
+  @override
+  String get watchSessionFirst => 'Warm-up watch';
+
+  @override
+  String get watchSessionSecond => 'Bonus watch';
+
+  @override
+  String get watchUnavailableTitle => 'Videos aren\'t ready yet';
+
+  @override
+  String get watchUnavailableBody =>
+      'Your grown-ups are still setting up videos. Your missions are open in the meantime!';
+
+  @override
+  String get watchDisabledTitle => 'Videos are switched off';
+
+  @override
+  String get watchDisabledBody =>
+      'A parent turned off videos for now. You can still do your missions.';
+
+  @override
+  String get watchMissionsOpen => 'Go to missions';
+
+  @override
+  String get watchBrowseLearn => 'Browse learning';
+
+  @override
+  String watchGateMissionsLocked(int minutes) {
+    return 'Watch $minutes min to unlock today\'s missions';
+  }
+
+  @override
+  String get watchGateMissionsUnlocked => 'Missions unlocked. Nice work!';
+
+  @override
+  String get watchGateAwaitingApproval =>
+      'Your grown-up is checking your missions';
+
+  @override
+  String get watchGateSecondLocked =>
+      'Finish today\'s missions to unlock bonus videos';
+
+  @override
+  String get watchGateSecondUnlocked => 'Bonus videos unlocked!';
+
+  @override
+  String get watchGateComplete => 'All done for today. Amazing!';
+
+  @override
+  String watchMinutesLeft(int minutes) {
+    return '$minutes min to go';
+  }
+
+  @override
+  String watchTimeToday(int watched, int total) {
+    return '$watched of $total min watched today';
+  }
+
+  @override
+  String get watchNoVideos => 'No videos here yet. Check back soon!';
+
+  @override
+  String get learnOpenLearn => 'Open Learn & Watch';
+
+  @override
+  String get profileLanguageHelp => 'Changes the app language on this phone.';
+
+  @override
+  String get videoPlay => 'Play';
+
+  @override
+  String get videoPause => 'Pause';
+
+  @override
+  String get videoRetry => 'Try again';
+
+  @override
+  String get videoPlaybackFailed => 'We couldn\'t play this video.';
+
+  @override
+  String get videoProgressLabel => 'Video progress';
+
+  @override
+  String get videoWatchInApp => 'Watch now';
+
+  @override
+  String get videoNotPlayableInApp => 'This one opens outside the app.';
 }

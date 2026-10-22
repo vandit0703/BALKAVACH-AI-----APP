@@ -146,6 +146,47 @@ abstract final class Fx {
   /// "Today" for every test that uses the harness (see [Harness]).
   static final now = DateTime(2026, 10, 12, 12);
 
+  /// `LearningGatePublic`. The default mirrors a deployment with no video
+  /// playback provider configured, which is the current real state: the gate
+  /// is unavailable and missions stay reachable.
+  static Map<String, Object?> learningGate({
+    String phase = 'video_unavailable',
+    bool videoGateAvailable = false,
+    bool videoEnabled = true,
+    bool playbackConfigured = false,
+    int watchedSecondsToday = 0,
+    bool firstSessionComplete = false,
+    bool secondSessionComplete = false,
+    bool missionsUnlocked = true,
+    bool secondSessionUnlocked = false,
+    int missionsAssigned = 2,
+    int missionsApproved = 0,
+    int missionsPendingApproval = 0,
+    List<String> blockers = const ['playback_provider_not_configured'],
+  }) => {
+    'local_date': '2026-10-22',
+    'timezone': 'UTC',
+    'phase': phase,
+    'video_gate_available': videoGateAvailable,
+    'video_enabled': videoEnabled,
+    'playback_configured': playbackConfigured,
+    'first_session_target_seconds': 600,
+    'second_session_target_seconds': 900,
+    'daily_allowance_seconds': 1500,
+    'watched_seconds_today': watchedSecondsToday,
+    'remaining_allowance_seconds': 1500 - watchedSecondsToday,
+    'first_session_complete': firstSessionComplete,
+    'second_session_complete': secondSessionComplete,
+    'missions_unlocked': missionsUnlocked,
+    'second_session_unlocked': secondSessionUnlocked,
+    'missions_assigned': missionsAssigned,
+    'missions_approved': missionsApproved,
+    'missions_pending_approval': missionsPendingApproval,
+    'requires_parent_approval': true,
+    'blockers': blockers,
+    'generated_at': '2026-10-22T06:00:00Z',
+  };
+
   static Map<String, Object?> progress({
     List<Map<String, Object?>> activityDays = const [],
     List<Map<String, Object?>> badges = const [],

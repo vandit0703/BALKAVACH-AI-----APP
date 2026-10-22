@@ -1904,4 +1904,102 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get errorUsernameTaken => 'આ યુઝરનેમ પહેલેથી વપરાયેલું છે.';
+
+  @override
+  String get navProfile => 'પ્રોફાઇલ';
+
+  @override
+  String get profileTitle => 'મારી પ્રોફાઇલ';
+
+  @override
+  String get watchTitle => 'જુઓ અને શીખો';
+
+  @override
+  String get navWatch => 'જુઓ';
+
+  @override
+  String get watchSessionFirst => 'શરૂઆતનો વીડિયો';
+
+  @override
+  String get watchSessionSecond => 'બોનસ વીડિયો';
+
+  @override
+  String get watchUnavailableTitle => 'વીડિયો હજી તૈયાર નથી';
+
+  @override
+  String get watchUnavailableBody =>
+      'તમારા વડીલો હજી વીડિયો તૈયાર કરે છે. ત્યાં સુધી તમારા મિશન ખુલ્લા છે!';
+
+  @override
+  String get watchDisabledTitle => 'વીડિયો બંધ છે';
+
+  @override
+  String get watchDisabledBody =>
+      'અત્યારે વાલીએ વીડિયો બંધ કર્યા છે. તમે તમારા મિશન કરી શકો છો.';
+
+  @override
+  String get watchMissionsOpen => 'મિશન પર જાઓ';
+
+  @override
+  String get watchBrowseLearn => 'શીખવાનું જુઓ';
+
+  @override
+  String watchGateMissionsLocked(int minutes) {
+    return 'આજના મિશન ખોલવા $minutes મિનિટ જુઓ';
+  }
+
+  @override
+  String get watchGateMissionsUnlocked => 'મિશન ખુલ્યા. સરસ!';
+
+  @override
+  String get watchGateAwaitingApproval => 'તમારા વડીલ તમારા મિશન તપાસે છે';
+
+  @override
+  String get watchGateSecondLocked => 'બોનસ વીડિયો ખોલવા આજના મિશન પૂરા કરો';
+
+  @override
+  String get watchGateSecondUnlocked => 'બોનસ વીડિયો ખુલ્યા!';
+
+  @override
+  String get watchGateComplete => 'આજનું બધું પૂરું. અદ્ભુત!';
+
+  @override
+  String watchMinutesLeft(int minutes) {
+    return '$minutes મિનિટ બાકી';
+  }
+
+  @override
+  String watchTimeToday(int watched, int total) {
+    return 'આજે $total માંથી $watched મિનિટ જોયા';
+  }
+
+  @override
+  String get watchNoVideos => 'અહીં હજી કોઈ વીડિયો નથી. ફરી જુઓ!';
+
+  @override
+  String get learnOpenLearn => 'જુઓ અને શીખો ખોલો';
+
+  @override
+  String get profileLanguageHelp => 'આ ફોન પર ઍપની ભાષા બદલે છે.';
+
+  @override
+  String get videoPlay => 'ચલાવો';
+
+  @override
+  String get videoPause => 'થોભાવો';
+
+  @override
+  String get videoRetry => 'ફરી પ્રયાસ કરો';
+
+  @override
+  String get videoPlaybackFailed => 'અમે આ વીડિયો ચલાવી શક્યા નહીં.';
+
+  @override
+  String get videoProgressLabel => 'વીડિયો પ્રગતિ';
+
+  @override
+  String get videoWatchInApp => 'હમણાં જુઓ';
+
+  @override
+  String get videoNotPlayableInApp => 'આ ઍપની બહાર ખૂલે છે.';
 }

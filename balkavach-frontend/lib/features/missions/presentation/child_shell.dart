@@ -23,7 +23,7 @@ class ChildShell extends StatelessWidget {
     AppRoutes.childMissions,
     AppRoutes.childRewards,
     AppRoutes.childGarden,
-    AppRoutes.childLearn,
+    AppRoutes.childProfile,
   ];
 
   int get _index {
@@ -40,11 +40,11 @@ class ChildShell extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final expanded = WindowSize.of(context) == WindowSize.expanded;
     final title = [
-      l10n.childHomeTitle,
+      l10n.watchTitle,
       l10n.missionsTitle,
       l10n.rewardsTitle,
       l10n.gardenTitle,
-      l10n.learnTitle,
+      l10n.profileTitle,
     ][_index];
     final destinations = [
       (Icons.home_outlined, Icons.home_rounded, l10n.navHome),
@@ -59,11 +59,7 @@ class ChildShell extends StatelessWidget {
         Icons.local_florist_rounded,
         l10n.navGarden,
       ),
-      (
-        Icons.play_circle_outline_rounded,
-        Icons.play_circle_rounded,
-        l10n.navLearn,
-      ),
+      (Icons.person_outline_rounded, Icons.person_rounded, l10n.navProfile),
     ];
 
     final appBar = AppBar(
