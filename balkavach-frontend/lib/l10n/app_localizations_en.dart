@@ -2007,4 +2007,88 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get videoNotPlayableInApp => 'This one opens outside the app.';
+
+  @override
+  String get videoFeedTitle => 'Videos';
+
+  @override
+  String get videoFeedOpen => 'More videos';
+
+  @override
+  String get videoFeedLearnTab => 'Learn';
+
+  @override
+  String get videoFeedShortsTab => 'Shorts';
+
+  @override
+  String get videoFeedEmpty =>
+      'No videos here yet. A grown-up checks every video before it appears.';
+
+  @override
+  String get videoFeedAdsNotice =>
+      'Videos from YouTube play in YouTube\'s own player and may show ads.';
+
+  @override
+  String get youtubeLeaveTitle => 'Leave Bal Kavach?';
+
+  @override
+  String get youtubeLeaveBody =>
+      'This opens YouTube outside the app. Ask a grown-up before you continue.';
+
+  @override
+  String get youtubeLeaveOpen => 'Open YouTube';
+
+  @override
+  String get youtubeLeaveStay => 'Stay here';
+
+  @override
+  String get youtubeOtherVideoBlocked =>
+      'That video isn\'t in Bal Kavach, so it can\'t play here.';
+
+  @override
+  String get youtubePlayerError => 'This video can\'t play right now.';
+
+  @override
+  String get videoReport => 'Report this video';
+
+  @override
+  String get videoReportTitle => 'Report this video';
+
+  @override
+  String get videoReportBody =>
+      'For grown-ups: tell us what\'s wrong. The video is hidden while our team checks it.';
+
+  @override
+  String get videoReportDetails => 'Anything else? (optional)';
+
+  @override
+  String get videoReportSend => 'Send report';
+
+  @override
+  String get videoReportCancel => 'Cancel';
+
+  @override
+  String get videoReportSent => 'Thank you. Our team will review this video.';
+
+  @override
+  String get videoReportFailed =>
+      'Couldn\'t send the report. Please try again.';
+
+  @override
+  String get videoReportReasonInappropriate => 'Not suitable for children';
+
+  @override
+  String get videoReportReasonScary => 'Scary';
+
+  @override
+  String get videoReportReasonViolent => 'Violent';
+
+  @override
+  String get videoReportReasonMisleading => 'Misleading';
+
+  @override
+  String get videoReportReasonAdvertising => 'Ads or selling';
+
+  @override
+  String get videoReportReasonOther => 'Something else';
 }

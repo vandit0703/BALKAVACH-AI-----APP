@@ -108,6 +108,131 @@ class VideoFeedItem(BaseModel):
 	category_id: UUID | None
 	language_code: str
 	content_rating: str
+	video_source: str = "hosted"
+	# Only for approved YouTube videos, which play in the official embedded
+	# player. Hosted videos never expose a media URL here.
+	youtube_video_id: str | None = None
+
+
+YouTubeReviewStatus = Literal[
+	"discovered", "pending_review", "approved", "rejected", "quarantined", "revoked", "unavailable"
+]
+ReportReason = Literal["inappropriate", "scary", "violent", "misleading", "advertising", "other"]
+
+
+class YouTubeDiscoverRequest(BaseModel):
+	topic: Literal["science", "animals", "language", "art", "preschool", "math", "nature"]
+	shorts: bool = False
+	page_token: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,128}$")
+	relevance_language: str | None = Field(default=None, pattern=r"^[a-z]{2,3}(?:-[A-Za-z]{2,4})?$")
+	region_code: str | None = Field(default=None, pattern=r"^[A-Z]{2}$")
+	max_results: int = Field(default=25, ge=1, le=50)
+
+
+class YouTubeImportRequest(BaseModel):
+	url: str = Field(min_length=11, max_length=300)
+
+
+class YouTubeReviewPublic(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
+	id: UUID
+	video_id: UUID
+	youtube_video_id: str
+	source_url: str
+	channel_id: str | None
+	channel_title: str | None
+	source_published_at: datetime | None
+	made_for_kids: bool | None
+	status: str
+	screening_flags: list[str]
+	rights_status: str
+	discovered_at: datetime
+	reviewed_by: UUID | None
+	reviewed_at: datetime | None
+	review_notes: str | None
+	last_verified_at: datetime | None
+	revoked_reason: str | None
+	revoked_at: datetime | None
+	title: str | None = None
+	thumbnail_url: str | None = None
+	duration_seconds: int | None = None
+	language_code: str | None = None
+	age_min: int | None = None
+	age_max: int | None = None
+
+
+class YouTubeDiscoverResult(BaseModel):
+	created: list[YouTubeReviewPublic]
+	skipped_existing: int
+	skipped_unplayable: int
+	next_page_token: str | None
+
+
+class YouTubeApproveRequest(BaseModel):
+	age_min: int = Field(ge=0, le=18)
+	age_max: int = Field(ge=0, le=18)
+	language_code: str = Field(min_length=2, max_length=10)
+	category_id: UUID | None = None
+	# The reviewer attests that the licence and YouTube terms permit embedding
+	# this video in Balkavach. Nothing in the YouTube API can establish that.
+	rights_status: Literal["cleared"]
+	notes: str | None = Field(default=None, max_length=2000)
+
+	@model_validator(mode="after")
+	def validate_age_range(self):
+		if self.age_max < self.age_min:
+			raise ValueError("age_max must be greater than or equal to age_min")
+		return self
+
+
+class YouTubeReviewDecision(BaseModel):
+	notes: str | None = Field(default=None, max_length=2000)
+
+
+class YouTubeRevokeRequest(BaseModel):
+	reason: str = Field(min_length=3, max_length=2000)
+
+
+class YouTubeRecheckRequest(BaseModel):
+	limit: int = Field(default=100, ge=1, le=500)
+
+
+class YouTubeRecheckResult(BaseModel):
+	checked: int
+	verified: int
+	quarantined: int
+	unavailable: int
+	returned_to_review: int
+
+
+class ContentReportCreate(BaseModel):
+	video_id: UUID
+	reason: ReportReason
+	details: str | None = Field(default=None, max_length=1000)
+
+
+class ContentReportReceipt(BaseModel):
+	id: UUID
+	status: str
+
+
+class ContentReportPublic(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
+	id: UUID
+	video_id: UUID
+	reported_by: UUID | None
+	reason: str
+	details: str | None
+	status: str
+	resolved_by: UUID | None
+	resolved_at: datetime | None
+	created_at: datetime
+
+
+class ContentReportResolve(BaseModel):
+	status: Literal["resolved", "dismissed"]
 
 
 class VideoCollectionCreate(BaseModel):

@@ -41,7 +41,9 @@ before scheduling any database operation.
 | `0006_app_settings` | Creates `app_settings`: `key VARCHAR(80) NOT NULL` PK; `value JSONB NOT NULL`; nullable UUID `updated_by` FK to users with `ON DELETE SET NULL`; non-null `updated_at TIMESTAMPTZ DEFAULT now()`. It does not insert initial settings; the service uses code defaults until values are written. | Alembic-tracked repeat only. Downgrade drops all database overrides; code defaults then apply. |
 | `0007_child_credentials` | Adds nullable `users.username VARCHAR(32)` and `users.password_encrypted TEXT`; creates the unique expression index `uq_users_username` on `lower(username)`. Existing users, including children without credentials, remain unchanged. | Alembic-tracked and additive. Downgrade is intentionally disabled to preserve credentials and user data. Child password hashes continue to use the existing password-hash field; encrypted retrieval requires `CHILD_CREDENTIALS_ENCRYPTION_KEY`. |
 
-The revisions are a strict chain: 0001 → 0002 → 0003 → 0004 → 0005 → 0006 → 0007.
+| `0008_youtube_content_review` | Creates `youtube_content_reviews` (one row per YouTube `videos` row: YouTube id unique, source URL, channel, made-for-kids flag, review `status` checked against discovered/pending_review/approved/rejected/quarantined/revoked/unavailable, `screening_flags JSONB`, `rights_status`, discovered/reviewed by and at, notes, `last_verified_at`, revocation reason and time) and `content_reports` (video, reporter, reason, details, open/resolved/dismissed status, resolver). Both use `gen_random_uuid()` PKs and cascade from `videos`. No existing table is altered. | Additive. Downgrade drops both tables and all review and report history; YouTube `videos` rows remain but the feed hides every YouTube row without a review table (fails closed). Back up both tables first if their history matters. |
+
+The revisions are a strict chain: 0001 → 0002 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008.
 Only 0001 is data-only. The DDL revisions do not use `IF NOT EXISTS`; do not
 execute revision functions manually or treat them as independently repeatable.
 For PostgreSQL, Alembic runs them within its migration transaction, but that
@@ -66,6 +68,35 @@ release: `REFRESH_TOKEN_EXPIRE_DAYS`, `CHILD_REFRESH_TOKEN_EXPIRE_DAYS`,
 the deployment secret manager, and keep it stable across restarts and deploys;
 without it, child credential creation and retrieval return a configuration
 error. No secret belongs in the Flutter apps.
+
+YouTube discovery adds `YOUTUBE_API_KEY` (secret; sent to Google only in the
+`X-Goog-Api-Key` header, never logged or returned), `YOUTUBE_REGION_CODE`
+(optional) and `YOUTUBE_REVERIFY_HOURS` (default 72).
+
+### YouTube content pipeline
+
+- Admins (`video:write`) discover candidates from a fixed topic list
+  (`POST /admin/videos/youtube/discover`) or import one URL
+  (`POST /admin/videos/youtube/import`). Candidates are unpublished `videos` rows
+  with a `youtube_content_reviews` row. Metadata screening only sets
+  `pending_review`, `quarantined` or `unavailable`; it never approves.
+- Only `POST /admin/videos/youtube/reviews/{id}/approve` publishes. It re-fetches
+  the video from YouTube, refuses videos that are not made for kids or are
+  age-restricted, requires an age band, a language and a rights attestation
+  (`rights_status: "cleared"`), and requires notes when screening raised flags.
+  The generic `/admin/videos` create/publish routes refuse YouTube rows.
+- `revoke`, `reject` and `quarantine` unpublish immediately. A report through
+  `POST /videos/report` quarantines an approved YouTube video until an admin acts.
+- Schedule `python -m app.cli youtube-recheck --limit 200` (hourly is enough).
+  The feed hides approved videos not re-verified within `YOUTUBE_REVERIFY_HOURS`,
+  so if the job stops, YouTube videos disappear rather than going stale.
+- Quota: `search.list` costs 100 units and `videos.list` 1 unit per call
+  (default daily quota 10,000). The backend also caps itself at 60 calls/minute
+  per process and caches responses for 15 minutes.
+- Children watch through the official YouTube player (`youtube-nocookie.com`),
+  with YouTube's ads, branding and links intact. The feed is **not** ad-free, and
+  screening plus human review does not guarantee that no inappropriate content
+  appears (for example inside ads or end screens, which YouTube controls).
 
 ## 3. Roles and permissions
 
@@ -186,6 +217,10 @@ schema, run the migrations, then
   parent signs in again.
 - No quiz/learning-progress API; learning content is admin-curated links.
 - Hosted-video playback still requires `VIDEO_PLAYBACK_PROVIDER` and a real provider; none is configured or tested end to end. A bug that made `start_playback` and heartbeats raise `TypeError` on any row loaded from PostgreSQL (timezone-aware vs naive comparison) was found and fixed in this release; it is covered by `tests/test_video_timezone.py`.
+- YouTube screening reads metadata only (title, description, tags, made-for-kids,
+  age restriction, embeddability, region). No thumbnail, frame or audio analysis
+  is implemented; human review is the safety control.
+- There is no admin-panel UI for YouTube moderation yet; use the API.
 - Email notifications are not implemented (the preference exists, and the app
   says so).
 

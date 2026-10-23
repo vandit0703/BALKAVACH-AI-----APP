@@ -10,6 +10,7 @@ from app.core.exceptions import APIError
 from app.db.base import get_model
 from app.schemas.video import VideoCategoryCreate, VideoCollectionCreate, VideoCreate, VideoUpdate
 from app.services.admin_service import record_audit
+from app.services.youtube_review_service import youtube_visibility_clause
 from app.utils import utc_naive
 
 
@@ -20,7 +21,14 @@ def child_age(child) -> int:
 	return max(0, today.year - child.date_of_birth.year - ((today.month, today.day) < (child.date_of_birth.month, child.date_of_birth.day)))
 
 
-def eligible_feed(session: Session, child, category_id: UUID | None, limit: int, offset: int):
+def eligible_feed(
+	session: Session,
+	child,
+	category_id: UUID | None,
+	limit: int,
+	offset: int,
+	max_duration_seconds: int | None = None,
+):
 	User = get_model("User")
 	user = session.query(User).filter(User.id == child.user_id).one()
 	Video = get_model("Video")
@@ -36,7 +44,10 @@ def eligible_feed(session: Session, child, category_id: UUID | None, limit: int,
 		Video.content_rating.in_(["general", "educational"]),
 		Video.language_code.in_(languages),
 		or_(Video.category_id.is_(None), VideoCategory.is_active.is_(True)),
+		youtube_visibility_clause(Video),
 	)
+	if max_duration_seconds is not None:
+		query = query.filter(Video.duration_seconds <= max_duration_seconds)
 	if category_id:
 		query = query.filter(Video.category_id == category_id)
 	return (
@@ -75,6 +86,8 @@ def create_category(session: Session, actor, request: VideoCategoryCreate):
 
 
 def create_video(session: Session, actor, request: VideoCreate):
+	if request.video_source == "youtube":
+		raise APIError(409, "youtube_requires_review", "Add YouTube videos through the YouTube review pipeline")
 	if request.category_id:
 		VideoCategory = get_model("VideoCategory")
 		if not session.query(VideoCategory.id).filter(
@@ -115,6 +128,8 @@ def update_video(session: Session, actor, video_id: UUID, request: VideoUpdate):
 	if video is None:
 		raise HTTPException(status_code=404, detail="Video not found")
 	changes = request.model_dump(exclude_unset=True)
+	if video.video_source == "youtube" and set(changes) & {"video_url", "external_video_id", "storage_key"}:
+		raise APIError(409, "youtube_requires_review", "A YouTube video's source is fixed by the review pipeline")
 	min_age = changes.get("age_min", video.age_min)
 	max_age = changes.get("age_max", video.age_max)
 	if min_age is not None and max_age is not None and max_age < min_age:
@@ -152,6 +167,8 @@ def set_video_published(session: Session, actor, video_id: UUID, published: bool
 	video = session.query(Video).filter(Video.id == video_id).with_for_update().one_or_none()
 	if video is None:
 		raise HTTPException(status_code=404, detail="Video not found")
+	if video.video_source == "youtube" and published:
+		raise APIError(409, "youtube_requires_review", "Approve YouTube videos through the YouTube review pipeline")
 	video.is_published = published
 	video.published_at = utc_naive(datetime.now(timezone.utc)) if published else None
 	record_audit(

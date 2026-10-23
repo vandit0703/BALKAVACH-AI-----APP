@@ -7,8 +7,11 @@ import 'package:balkavach_app/features/child_profile/presentation/child_profile_
 import 'package:balkavach_app/features/child_profile/presentation/create_child_screen.dart';
 import 'package:balkavach_app/features/garden/presentation/garden_screen.dart';
 import 'package:balkavach_app/features/learning/data/learning_repository.dart';
+import 'package:balkavach_app/features/learning/data/video_feed_repository.dart';
 import 'package:balkavach_app/features/learning/presentation/learning_screen.dart';
+import 'package:balkavach_app/features/learning/presentation/video_feed_screen.dart';
 import 'package:balkavach_app/features/learning/presentation/watch_home_screen.dart';
+import 'package:balkavach_app/features/learning/presentation/youtube_player_screen.dart';
 import 'package:balkavach_app/features/missions/presentation/child_shell.dart';
 import 'package:balkavach_app/features/missions/presentation/mission_detail_screen.dart';
 import 'package:balkavach_app/features/missions/presentation/mission_submit_screen.dart';
@@ -26,6 +29,7 @@ import 'package:balkavach_app/features/rewards/presentation/reward_form_screen.d
 import 'package:balkavach_app/features/rewards/presentation/rewards_screen.dart';
 import 'package:balkavach_app/features/settings/presentation/parent_settings_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fixtures.dart';
@@ -135,6 +139,19 @@ final _cases = <_Case>[
     () => const ChildShell(location: '/child/learn', child: LearningScreen()),
     session: Fx.childSession,
   ),
+  _Case('video feed', () => const VideoFeedScreen(), session: Fx.childSession),
+  _Case(
+    'youtube player',
+    () => ProviderScope(
+      overrides: [
+        youtubeEmbedBuilderProvider.overrideWithValue(
+          (_) => const ColoredBox(color: Colors.black),
+        ),
+      ],
+      child: YouTubePlayerScreen(video: FeedVideo.fromJson(_longFeedVideo)),
+    ),
+    session: Fx.childSession,
+  ),
   _Case(
     'learning detail',
     () => LearningDetailScreen(item: LearningItem.fromJson(_longLearningItem)),
@@ -151,6 +168,21 @@ final _cases = <_Case>[
     session: Fx.parentSession,
   ),
 ];
+
+const _longFeedVideo = <String, Object?>{
+  'id': 'feed-1',
+  'title':
+      'Why is the sky blue? A very long title about light, air and colours '
+      'that keeps going to test wrapping on the smallest phones',
+  'description': null,
+  'thumbnail_url': null,
+  'duration_seconds': 3725,
+  'category_id': null,
+  'language_code': 'en',
+  'content_rating': 'educational',
+  'video_source': 'youtube',
+  'youtube_video_id': 'dQw4w9WgXcQ',
+};
 
 const _longLearningItem = <String, Object?>{
   'id': 'learn-1',
@@ -278,6 +310,8 @@ Future<void> _render(
             'in the right order and wipe the desk properly.',
       ),
     ])
+    ..reply('GET', '/api/v1/videos/feed', [_longFeedVideo])
+    ..reply('GET', '/api/v1/videos/shorts', <Object?>[])
     ..reply('GET', '/api/v1/educational-content', [
       _longLearningItem,
       {..._longLearningItem, 'id': 'learn-2', 'title': 'Short one'},

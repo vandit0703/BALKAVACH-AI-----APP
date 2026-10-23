@@ -20,6 +20,9 @@ class Settings(BaseSettings):
 	child_refresh_token_expire_days: int = Field(default=14, ge=1, le=90)
 	cors_origins: list[str] = Field(default_factory=list)
 	video_playback_provider: str | None = None
+	youtube_api_key: str | None = Field(default=None, repr=False)
+	youtube_region_code: str | None = Field(default=None, pattern=r"^[A-Z]{2}$")
+	youtube_reverify_hours: int = Field(default=72, ge=1, le=720)
 	notification_provider: str | None = None
 	fcm_service_account_json: str | None = Field(default=None, repr=False)
 	fcm_service_account_file: str | None = None

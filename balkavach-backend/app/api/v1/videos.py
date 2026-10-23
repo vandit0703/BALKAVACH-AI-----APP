@@ -4,11 +4,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import require_admin_permission, require_child
+from app.core.dependencies import get_current_user, require_admin_permission, require_child
+from app.integrations.youtube import get_youtube_client
 from app.db.base import get_model
 from app.db.session import get_db
 from app.schemas.video import (
 	CollectionItemCreate,
+	ContentReportCreate,
+	ContentReportPublic,
+	ContentReportReceipt,
+	ContentReportResolve,
 	VideoAdminPublic,
 	VideoCategoryCreate,
 	VideoCategoryPublic,
@@ -17,7 +22,18 @@ from app.schemas.video import (
 	VideoCreate,
 	VideoFeedItem,
 	VideoUpdate,
+	YouTubeApproveRequest,
+	YouTubeDiscoverRequest,
+	YouTubeDiscoverResult,
+	YouTubeImportRequest,
+	YouTubeRecheckRequest,
+	YouTubeRecheckResult,
+	YouTubeReviewDecision,
+	YouTubeReviewPublic,
+	YouTubeReviewStatus,
+	YouTubeRevokeRequest,
 )
+from app.services import youtube_review_service
 from app.services.admin_service import record_audit
 from app.services.video_service import (
 	add_collection_video,
@@ -46,28 +62,59 @@ def list_video_categories(
 	return [VideoCategoryPublic.model_validate(category) for category in categories]
 
 
+SHORTS_MAX_SECONDS = 180
+
+
+def _feed_item(video) -> VideoFeedItem:
+	is_youtube = video.video_source == "youtube"
+	return VideoFeedItem(
+		id=video.id,
+		title=video.title,
+		description=video.description,
+		thumbnail_url=video.thumbnail_url,
+		duration_seconds=video.duration_seconds,
+		category_id=video.category_id,
+		language_code=video.language_code,
+		content_rating=video.content_rating,
+		video_source=video.video_source,
+		youtube_video_id=video.external_video_id if is_youtube else None,
+	)
+
+
 @router.get("/feed", response_model=list[VideoFeedItem])
 def video_feed(
 	category_id: UUID | None = None,
 	limit: int = Query(default=20, ge=1, le=50),
-	offset: int = Query(default=0, ge=0),
+	offset: int = Query(default=0, ge=0, le=10_000),
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoFeedItem]:
-	videos = eligible_feed(session, child, category_id, limit, offset)
-	return [
-		VideoFeedItem(
-			id=video.id,
-			title=video.title,
-			description=video.description,
-			thumbnail_url=video.thumbnail_url,
-			duration_seconds=video.duration_seconds,
-			category_id=video.category_id,
-			language_code=video.language_code,
-			content_rating=video.content_rating,
-		)
-		for video in videos
-	]
+	return [_feed_item(video) for video in eligible_feed(session, child, category_id, limit, offset)]
+
+
+@router.get("/shorts", response_model=list[VideoFeedItem])
+def video_shorts(
+	category_id: UUID | None = None,
+	limit: int = Query(default=20, ge=1, le=50),
+	offset: int = Query(default=0, ge=0, le=10_000),
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> list[VideoFeedItem]:
+	videos = eligible_feed(session, child, category_id, limit, offset, max_duration_seconds=SHORTS_MAX_SECONDS)
+	return [_feed_item(video) for video in videos]
+
+
+@router.post("/report", response_model=ContentReportReceipt, status_code=201)
+def report_video(
+	request: ContentReportCreate,
+	user=Depends(get_current_user),
+	session: Session = Depends(get_db),
+) -> ContentReportReceipt:
+	"""Parents (or a child's device, behind the parent gate) flag a video for review."""
+	if user.role not in {"parent", "child"}:
+		raise HTTPException(status_code=403, detail="Parent or child access required")
+	receipt = youtube_review_service.report_video(session, user, request.video_id, request.reason, request.details)
+	return ContentReportReceipt(**receipt)
 
 
 @admin_router.get("", response_model=list[VideoAdminPublic])
@@ -203,3 +250,116 @@ def admin_unpublish_collection(
 ):
 	collection = publish_collection(session, admin, collection_id, False)
 	return {"id": collection.id, "is_published": collection.is_published}
+
+
+@admin_router.post("/youtube/discover", response_model=YouTubeDiscoverResult)
+def admin_youtube_discover(
+	request: YouTubeDiscoverRequest,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeDiscoverResult:
+	"""Search a fixed topic and store new results as unpublished review candidates."""
+	return YouTubeDiscoverResult(**youtube_review_service.discover(session, admin, get_youtube_client(), request))
+
+
+@admin_router.post("/youtube/import", response_model=YouTubeReviewPublic, status_code=201)
+def admin_youtube_import(
+	request: YouTubeImportRequest,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeReviewPublic:
+	return YouTubeReviewPublic(**youtube_review_service.import_video(session, admin, get_youtube_client(), request.url))
+
+
+@admin_router.get("/youtube/reviews", response_model=list[YouTubeReviewPublic])
+def admin_youtube_reviews(
+	status: YouTubeReviewStatus | None = None,
+	limit: int = Query(default=50, ge=1, le=100),
+	offset: int = Query(default=0, ge=0),
+	admin=Depends(require_admin_permission("video:read")),
+	session: Session = Depends(get_db),
+) -> list[YouTubeReviewPublic]:
+	return [YouTubeReviewPublic(**row) for row in youtube_review_service.list_reviews(session, status, limit, offset)]
+
+
+@admin_router.post("/youtube/reviews/{review_id}/approve", response_model=YouTubeReviewPublic)
+def admin_youtube_approve(
+	review_id: UUID,
+	request: YouTubeApproveRequest,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeReviewPublic:
+	return YouTubeReviewPublic(**youtube_review_service.approve(session, admin, get_youtube_client(), review_id, request))
+
+
+@admin_router.post("/youtube/reviews/{review_id}/reject", response_model=YouTubeReviewPublic)
+def admin_youtube_reject(
+	review_id: UUID,
+	request: YouTubeReviewDecision,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeReviewPublic:
+	return YouTubeReviewPublic(**youtube_review_service.decide(session, admin, review_id, "rejected", request.notes))
+
+
+@admin_router.post("/youtube/reviews/{review_id}/quarantine", response_model=YouTubeReviewPublic)
+def admin_youtube_quarantine(
+	review_id: UUID,
+	request: YouTubeReviewDecision,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeReviewPublic:
+	return YouTubeReviewPublic(**youtube_review_service.decide(session, admin, review_id, "quarantined", request.notes))
+
+
+@admin_router.post("/youtube/reviews/{review_id}/reopen", response_model=YouTubeReviewPublic)
+def admin_youtube_reopen(
+	review_id: UUID,
+	request: YouTubeReviewDecision,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeReviewPublic:
+	return YouTubeReviewPublic(**youtube_review_service.decide(session, admin, review_id, "pending_review", request.notes))
+
+
+@admin_router.post("/youtube/reviews/{review_id}/revoke", response_model=YouTubeReviewPublic)
+def admin_youtube_revoke(
+	review_id: UUID,
+	request: YouTubeRevokeRequest,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeReviewPublic:
+	"""Withdraw an approved video from every child feed immediately."""
+	return YouTubeReviewPublic(**youtube_review_service.revoke(session, admin, review_id, request.reason))
+
+
+@admin_router.post("/youtube/recheck", response_model=YouTubeRecheckResult)
+def admin_youtube_recheck(
+	request: YouTubeRecheckRequest,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeRecheckResult:
+	return YouTubeRecheckResult(**youtube_review_service.recheck(session, get_youtube_client(), request.limit, admin.id))
+
+
+@admin_router.get("/reports", response_model=list[ContentReportPublic])
+def admin_list_reports(
+	status: str | None = Query(default="open", pattern="^(open|resolved|dismissed)$"),
+	limit: int = Query(default=50, ge=1, le=100),
+	offset: int = Query(default=0, ge=0),
+	admin=Depends(require_admin_permission("video:read")),
+	session: Session = Depends(get_db),
+) -> list[ContentReportPublic]:
+	rows = youtube_review_service.list_reports(session, status, limit, offset)
+	return [ContentReportPublic.model_validate(row) for row in rows]
+
+
+@admin_router.post("/reports/{report_id}/resolve", response_model=ContentReportPublic)
+def admin_resolve_report(
+	report_id: UUID,
+	request: ContentReportResolve,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> ContentReportPublic:
+	report = youtube_review_service.resolve_report(session, admin, report_id, request.status)
+	return ContentReportPublic.model_validate(report)

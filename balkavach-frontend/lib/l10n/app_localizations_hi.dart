@@ -2008,4 +2008,88 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get videoNotPlayableInApp => 'यह ऐप के बाहर खुलता है।';
+
+  @override
+  String get videoFeedTitle => 'वीडियो';
+
+  @override
+  String get videoFeedOpen => 'और वीडियो';
+
+  @override
+  String get videoFeedLearnTab => 'सीखें';
+
+  @override
+  String get videoFeedShortsTab => 'छोटे वीडियो';
+
+  @override
+  String get videoFeedEmpty =>
+      'अभी यहाँ कोई वीडियो नहीं है। हर वीडियो दिखने से पहले कोई बड़ा उसे जाँचता है।';
+
+  @override
+  String get videoFeedAdsNotice =>
+      'YouTube के वीडियो YouTube के अपने प्लेयर में चलते हैं और इनमें विज्ञापन आ सकते हैं।';
+
+  @override
+  String get youtubeLeaveTitle => 'बाल कवच छोड़ें?';
+
+  @override
+  String get youtubeLeaveBody =>
+      'यह ऐप के बाहर YouTube खोलेगा। आगे बढ़ने से पहले किसी बड़े से पूछें।';
+
+  @override
+  String get youtubeLeaveOpen => 'YouTube खोलें';
+
+  @override
+  String get youtubeLeaveStay => 'यहीं रहें';
+
+  @override
+  String get youtubeOtherVideoBlocked =>
+      'यह वीडियो बाल कवच में नहीं है, इसलिए यहाँ नहीं चल सकता।';
+
+  @override
+  String get youtubePlayerError => 'यह वीडियो अभी नहीं चल सकता।';
+
+  @override
+  String get videoReport => 'इस वीडियो की शिकायत करें';
+
+  @override
+  String get videoReportTitle => 'इस वीडियो की शिकायत करें';
+
+  @override
+  String get videoReportBody =>
+      'बड़ों के लिए: बताइए क्या गलत है। हमारी टीम की जाँच तक वीडियो छिपा रहेगा।';
+
+  @override
+  String get videoReportDetails => 'कुछ और? (वैकल्पिक)';
+
+  @override
+  String get videoReportSend => 'शिकायत भेजें';
+
+  @override
+  String get videoReportCancel => 'रद्द करें';
+
+  @override
+  String get videoReportSent => 'धन्यवाद। हमारी टीम इस वीडियो की जाँच करेगी।';
+
+  @override
+  String get videoReportFailed =>
+      'शिकायत नहीं भेजी जा सकी। कृपया फिर से कोशिश करें।';
+
+  @override
+  String get videoReportReasonInappropriate => 'बच्चों के लिए उपयुक्त नहीं';
+
+  @override
+  String get videoReportReasonScary => 'डरावना';
+
+  @override
+  String get videoReportReasonViolent => 'हिंसक';
+
+  @override
+  String get videoReportReasonMisleading => 'भ्रामक';
+
+  @override
+  String get videoReportReasonAdvertising => 'विज्ञापन या बिक्री';
+
+  @override
+  String get videoReportReasonOther => 'कुछ और';
 }

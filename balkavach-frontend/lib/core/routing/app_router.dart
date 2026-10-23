@@ -11,9 +11,12 @@ import '../../features/child_profile/presentation/child_profile_screen.dart';
 import '../../features/child_profile/presentation/create_child_screen.dart';
 import '../../features/garden/presentation/garden_screen.dart';
 import '../../features/learning/data/learning_repository.dart';
+import '../../features/learning/data/video_feed_repository.dart';
 import '../../features/learning/presentation/learning_screen.dart';
+import '../../features/learning/presentation/video_feed_screen.dart';
 import '../../features/learning/presentation/video_player_screen.dart';
 import '../../features/learning/presentation/watch_home_screen.dart';
+import '../../features/learning/presentation/youtube_player_screen.dart';
 import '../../features/missions/presentation/child_shell.dart';
 import '../../features/missions/presentation/mission_detail_screen.dart';
 import '../../features/missions/presentation/mission_submit_screen.dart';
@@ -192,6 +195,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: 'profile',
                 pageBuilder: (_, _) =>
                     const NoTransitionPage(child: ChildHomeProfileScreen()),
+              ),
+              GoRoute(
+                path: 'videos',
+                parentNavigatorKey: _rootKey,
+                builder: (_, _) => const VideoFeedScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'play',
+                    parentNavigatorKey: _rootKey,
+                    // Only an approved YouTube item from the feed can play; a
+                    // bare deep link has nothing to play.
+                    redirect: (_, state) =>
+                        state.extra is FeedVideo &&
+                            (state.extra! as FeedVideo).isYouTube
+                        ? null
+                        : AppRoutes.childVideos,
+                    builder: (_, state) =>
+                        YouTubePlayerScreen(video: state.extra! as FeedVideo),
+                  ),
+                ],
               ),
               GoRoute(
                 path: 'learn',

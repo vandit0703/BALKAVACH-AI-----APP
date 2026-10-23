@@ -3388,6 +3388,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This one opens outside the app.'**
   String get videoNotPlayableInApp;
+
+  /// No description provided for @videoFeedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get videoFeedTitle;
+
+  /// No description provided for @videoFeedOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'More videos'**
+  String get videoFeedOpen;
+
+  /// No description provided for @videoFeedLearnTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn'**
+  String get videoFeedLearnTab;
+
+  /// No description provided for @videoFeedShortsTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorts'**
+  String get videoFeedShortsTab;
+
+  /// No description provided for @videoFeedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No videos here yet. A grown-up checks every video before it appears.'**
+  String get videoFeedEmpty;
+
+  /// No description provided for @videoFeedAdsNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos from YouTube play in YouTube\'s own player and may show ads.'**
+  String get videoFeedAdsNotice;
+
+  /// No description provided for @youtubeLeaveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave Bal Kavach?'**
+  String get youtubeLeaveTitle;
+
+  /// No description provided for @youtubeLeaveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This opens YouTube outside the app. Ask a grown-up before you continue.'**
+  String get youtubeLeaveBody;
+
+  /// No description provided for @youtubeLeaveOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open YouTube'**
+  String get youtubeLeaveOpen;
+
+  /// No description provided for @youtubeLeaveStay.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay here'**
+  String get youtubeLeaveStay;
+
+  /// No description provided for @youtubeOtherVideoBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'That video isn\'t in Bal Kavach, so it can\'t play here.'**
+  String get youtubeOtherVideoBlocked;
+
+  /// No description provided for @youtubePlayerError.
+  ///
+  /// In en, this message translates to:
+  /// **'This video can\'t play right now.'**
+  String get youtubePlayerError;
+
+  /// No description provided for @videoReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Report this video'**
+  String get videoReport;
+
+  /// No description provided for @videoReportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Report this video'**
+  String get videoReportTitle;
+
+  /// No description provided for @videoReportBody.
+  ///
+  /// In en, this message translates to:
+  /// **'For grown-ups: tell us what\'s wrong. The video is hidden while our team checks it.'**
+  String get videoReportBody;
+
+  /// No description provided for @videoReportDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Anything else? (optional)'**
+  String get videoReportDetails;
+
+  /// No description provided for @videoReportSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send report'**
+  String get videoReportSend;
+
+  /// No description provided for @videoReportCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get videoReportCancel;
+
+  /// No description provided for @videoReportSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you. Our team will review this video.'**
+  String get videoReportSent;
+
+  /// No description provided for @videoReportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send the report. Please try again.'**
+  String get videoReportFailed;
+
+  /// No description provided for @videoReportReasonInappropriate.
+  ///
+  /// In en, this message translates to:
+  /// **'Not suitable for children'**
+  String get videoReportReasonInappropriate;
+
+  /// No description provided for @videoReportReasonScary.
+  ///
+  /// In en, this message translates to:
+  /// **'Scary'**
+  String get videoReportReasonScary;
+
+  /// No description provided for @videoReportReasonViolent.
+  ///
+  /// In en, this message translates to:
+  /// **'Violent'**
+  String get videoReportReasonViolent;
+
+  /// No description provided for @videoReportReasonMisleading.
+  ///
+  /// In en, this message translates to:
+  /// **'Misleading'**
+  String get videoReportReasonMisleading;
+
+  /// No description provided for @videoReportReasonAdvertising.
+  ///
+  /// In en, this message translates to:
+  /// **'Ads or selling'**
+  String get videoReportReasonAdvertising;
+
+  /// No description provided for @videoReportReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Something else'**
+  String get videoReportReasonOther;
 }
 
 class _AppLocalizationsDelegate

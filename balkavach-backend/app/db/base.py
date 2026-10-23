@@ -55,6 +55,8 @@ MODEL_TABLES = {
 	"ProofUpload": "proof_uploads",
 	"PresetTask": "preset_tasks",
 	"AppSetting": "app_settings",
+	"YouTubeContentReview": "youtube_content_reviews",
+	"ContentReport": "content_reports",
 }
 
 _prepare_lock = RLock()
@@ -87,3 +89,16 @@ def get_model(name: str) -> Any:
 		raise KeyError(f"Unknown BalKavach model: {name}")
 	prepare_models()
 	return getattr(Base.classes, table_name)
+
+
+def has_model(name: str) -> bool:
+	"""Whether the table behind ``name`` exists in the reflected database.
+
+	Migration 0008 may not be applied yet; callers of its tables use this to
+	degrade (fail closed) instead of crashing.
+	"""
+	table_name = MODEL_TABLES.get(name, name)
+	if table_name not in MODEL_TABLES.values():
+		return False
+	prepare_models()
+	return table_name in Base.classes

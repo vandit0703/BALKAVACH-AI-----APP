@@ -9,6 +9,7 @@ from app.db.base import get_model
 from app.db.session import get_db
 from app.schemas.admin import EducationalContentPublic
 from app.services.video_service import child_age
+from app.services.youtube_review_service import youtube_visibility_clause
 
 router = APIRouter(prefix="/educational-content", tags=["educational content"])
 
@@ -68,7 +69,10 @@ def list_educational_content(
         if item.video_id or item.collection_id:
             target = get_model("Video") if item.video_id else get_model("VideoCollection")
             target_id = item.video_id or item.collection_id
-            target_row = session.query(target).filter(target.id == target_id, target.is_published.is_(True)).one_or_none()
+            conditions = [target.id == target_id, target.is_published.is_(True)]
+            if item.video_id:
+                conditions.append(youtube_visibility_clause(target))
+            target_row = session.query(target).filter(*conditions).one_or_none()
             if target_row is None or not target_row.age_min <= age <= target_row.age_max:
                 continue
         eligible.append(

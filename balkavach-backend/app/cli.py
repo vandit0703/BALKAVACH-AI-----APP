@@ -159,17 +159,43 @@ def create_admin(session: Session, email: str, name: str, password: str, role_na
 		raise
 
 
+def _youtube_recheck(session_factory, limit: int) -> int:
+	from app.core.exceptions import APIError
+	from app.integrations.youtube import get_youtube_client
+	from app.services.youtube_review_service import recheck
+
+	try:
+		with session_factory() as session:
+			counts = recheck(session, get_youtube_client(), limit)
+	except APIError as error:
+		print(f"Error: {error.message}", file=sys.stderr)
+		return 1
+	except SQLAlchemyError:
+		print("Database operation failed during YouTube recheck.", file=sys.stderr)
+		return 2
+	print(", ".join(f"{key}={value}" for key, value in counts.items()))
+	return 0
+
+
 def main(argv: list[str] | None = None) -> int:
 	parser = argparse.ArgumentParser(prog="python -m app.cli")
 	commands = parser.add_subparsers(dest="command", required=True)
 	admin = commands.add_parser("create-admin", help="Create a new super-administrator account")
-	parser.parse_args(argv)
+	recheck = commands.add_parser(
+		"youtube-recheck",
+		help="Re-verify approved YouTube videos against YouTube (run from cron, e.g. hourly)",
+	)
+	recheck.add_argument("--limit", type=int, default=200, choices=range(1, 1001), metavar="1-1000")
+	args = parser.parse_args(argv)
 
 	from app.db.session import SessionLocal
 
 	if SessionLocal is None:
 		print("DATABASE_URL is not configured", file=sys.stderr)
 		return 2
+
+	if args.command == "youtube-recheck":
+		return _youtube_recheck(SessionLocal, args.limit)
 
 	try:
 		email = input("Administrator email: ")

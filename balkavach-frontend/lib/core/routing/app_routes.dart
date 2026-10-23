@@ -29,6 +29,8 @@ abstract final class AppRoutes {
   static const childRewards = '/child/rewards';
   static const childGarden = '/child/garden';
   static const childLearn = '/child/learn';
+  static const childVideos = '/child/videos';
+  static const childVideoPlay = '/child/videos/play';
   static const childProfile = '/child/profile';
   static String childLearnItem(String id) => '/child/learn/$id';
   static String childLearnPlay(String id) => '/child/learn/$id/play';

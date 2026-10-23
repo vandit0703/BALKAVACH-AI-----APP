@@ -93,6 +93,12 @@ class _Body extends ConsumerWidget {
                     child: _VideoTile(item: video),
                   ),
               SecondaryButton(
+                key: const Key('watch.openVideos'),
+                label: AppLocalizations.of(context).videoFeedOpen,
+                icon: Icons.video_library_rounded,
+                onPressed: () => context.push(AppRoutes.childVideos),
+              ),
+              SecondaryButton(
                 key: const Key('watch.openLearn'),
                 label: AppLocalizations.of(context).learnOpenLearn,
                 icon: Icons.menu_book_rounded,
