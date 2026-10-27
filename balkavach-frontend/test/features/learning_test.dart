@@ -291,6 +291,23 @@ void main() {
       expect(opener.opened, isEmpty);
     });
 
+    testWidgets('a YouTube watch URL never reaches the native video player', (
+      tester,
+    ) async {
+      final opener = await pump(
+        tester,
+        _item(
+          type: 'video',
+          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        ),
+      );
+      expect(find.byKey(const Key('learn.play')), findsNothing);
+      expect(find.byKey(const Key('learn.open')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('learn.open')));
+      await tester.pumpAndSettle();
+      expect(opener.opened.single.host, 'www.youtube.com');
+    });
+
     testWidgets('a non-video link still opens outside the app', (tester) async {
       await pump(tester, _item());
       expect(find.byKey(const Key('learn.open')), findsOneWidget);

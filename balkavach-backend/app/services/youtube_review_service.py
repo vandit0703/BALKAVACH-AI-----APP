@@ -141,6 +141,7 @@ def youtube_visibility_clause(Video, now: datetime | None = None):
 	approved = exists().where(
 		Review.video_id == Video.id,
 		Review.status == "approved",
+		Review.made_for_kids.is_(True),
 		Review.rights_status == "cleared",
 		Review.last_verified_at >= fresh_after,
 	)
@@ -193,23 +194,37 @@ def review_public(review, video) -> dict[str, Any]:
 		"revoked_reason": review.revoked_reason,
 		"revoked_at": utc_aware(review.revoked_at) if review.revoked_at else None,
 		"title": video.title if video else None,
+		"description": video.description if video else None,
 		"thumbnail_url": video.thumbnail_url if video else None,
 		"duration_seconds": video.duration_seconds if video else None,
 		"language_code": video.language_code if video else None,
 		"age_min": video.age_min if video else None,
 		"age_max": video.age_max if video else None,
+		"discovery_topic": review.discovery_topic,
+		"youtube_category_id": review.youtube_category_id,
 	}
 
 
-def _create_candidate(session: Session, actor, video_id: str, item: dict[str, Any]):
+def _create_candidate(
+	session: Session,
+	actor,
+	video_id: str,
+	item: dict[str, Any] | None,
+	discovery_topic: str | None = None,
+):
 	"""Insert an unpublished video + review row. Returns None if the video cannot play."""
+	if item is None:
+		item = {}
 	snippet = item.get("snippet") or {}
 	duration = parse_iso8601_duration((item.get("contentDetails") or {}).get("duration"))
-	if not duration:
-		return None
-	status, flags = screen_candidate(item, settings.youtube_region_code)
+	status, flags = (
+		("unavailable", ["not_returned"])
+		if not item
+		else screen_candidate(item, settings.youtube_region_code)
+	)
 	Video = get_model("Video")
 	Review = get_model("YouTubeContentReview")
+	actor_id = actor.id
 	video = Video(
 		title=(str(snippet.get("title") or video_id).strip() or video_id)[:200],
 		description=(str(snippet.get("description") or "")[:5000]) or None,
@@ -217,18 +232,20 @@ def _create_candidate(session: Session, actor, video_id: str, item: dict[str, An
 		video_url=canonical_watch_url(video_id),
 		external_video_id=video_id,
 		thumbnail_url=safe_thumbnail_url(snippet),
-		duration_seconds=min(duration, 86400),
+		duration_seconds=min(duration or 1, 86400),
 		language_code=_language(snippet),
 		age_min=4,
 		age_max=12,
 		content_rating="parent_review_required",
 		is_published=False,
 		display_order=0,
-		uploaded_by=actor.id,
+		uploaded_by=actor_id,
 	)
 	review = Review(
 		youtube_video_id=video_id,
 		source_url=canonical_watch_url(video_id),
+		discovery_topic=discovery_topic,
+		youtube_category_id=str(snippet["categoryId"])[:20] if snippet.get("categoryId") else None,
 		channel_id=(snippet.get("channelId") or None) and str(snippet["channelId"])[:64],
 		channel_title=(snippet.get("channelTitle") or None) and str(snippet["channelTitle"])[:200],
 		source_published_at=_published_at(snippet),
@@ -236,7 +253,7 @@ def _create_candidate(session: Session, actor, video_id: str, item: dict[str, An
 		status=status,
 		screening_flags=flags,
 		rights_status="unreviewed",
-		discovered_by=actor.id,
+		discovered_by=actor_id,
 		last_verified_at=_now(),
 	)
 	try:
@@ -248,7 +265,14 @@ def _create_candidate(session: Session, actor, video_id: str, item: dict[str, An
 			session.flush()
 	except IntegrityError:
 		return None
-	record_audit(session, actor.id, "youtube.discovered", "video", video.id, {"youtube_video_id": video_id, "status": status})
+	record_audit(
+		session,
+		actor_id,
+		"youtube.discovered",
+		"video",
+		video.id,
+		{"youtube_video_id": video_id, "status": status, "topic": discovery_topic},
+	)
 	return review, video
 
 
@@ -276,7 +300,7 @@ def discover(session: Session, actor, client: YouTubeClient, request: YouTubeDis
 	unplayable = 0
 	for video_id in new_ids:
 		item = details.get(video_id)
-		result = _create_candidate(session, actor, video_id, item) if item else None
+		result = _create_candidate(session, actor, video_id, item, request.topic)
 		if result is None:
 			unplayable += 1
 			continue
@@ -420,6 +444,8 @@ def decide(session: Session, actor, review_id: UUID, target: str, notes: str | N
 	"""Reject, quarantine or reopen (back to pending_review). Unpublishes immediately."""
 	if target not in {"rejected", "quarantined", "pending_review"}:
 		raise APIError(422, "invalid_review_transition", "Unsupported decision")
+	if target == "rejected" and not (notes or "").strip():
+		raise APIError(422, "review_notes_required", "A reason is required when rejecting a video")
 	review, video = _locked(session, review_id)
 	review.reviewed_by = actor.id
 	review.reviewed_at = _now()
@@ -493,6 +519,18 @@ def recheck(session: Session, client: YouTubeClient, limit: int, actor_id: UUID 
 				_move(session, actor_id, review, video, "quarantined", {"new_flags": sorted(new_flags)})
 				counts["quarantined"] += 1
 				continue
+			snippet = item.get("snippet") or {}
+			video.title = (str(snippet.get("title") or video.title).strip() or video.title)[:200]
+			video.description = (str(snippet.get("description") or "")[:5000]) or None
+			video.thumbnail_url = safe_thumbnail_url(snippet)
+			video.duration_seconds = min(
+				parse_iso8601_duration((item.get("contentDetails") or {}).get("duration"))
+				or video.duration_seconds,
+				86400,
+			)
+			review.youtube_category_id = (
+				str(snippet["categoryId"])[:20] if snippet.get("categoryId") else None
+			)
 			review.last_verified_at = _now()
 			counts["verified"] += 1
 	session.commit()

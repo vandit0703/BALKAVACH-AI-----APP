@@ -67,6 +67,8 @@ def list_educational_content(
         if item.requires_entitlement and not _has_active_entitlement(session, child.id, item):
             continue
         if item.video_id or item.collection_id:
+            if age is None or not 4 <= age <= 15:
+                continue
             target = get_model("Video") if item.video_id else get_model("VideoCollection")
             target_id = item.video_id or item.collection_id
             conditions = [target.id == target_id, target.is_published.is_(True)]

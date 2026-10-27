@@ -19,6 +19,7 @@ import 'pages/rewards_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/shell.dart';
 import 'pages/users_page.dart';
+import 'pages/youtube_reviews_page.dart';
 
 /// Where each section lives and the permission it needs.
 const kSections = <Section>[
@@ -86,6 +87,13 @@ const kSections = <Section>[
     NavGroup.learning,
   ),
   Section(
+    'youtubeReviews',
+    Icons.ondemand_video_outlined,
+    '/youtube-reviews',
+    'video:read',
+    NavGroup.learning,
+  ),
+  Section(
     'badges',
     Icons.military_tech_outlined,
     '/badges',
@@ -117,6 +125,7 @@ Widget _pageFor(String path) => switch (path) {
   '/rewards' => const RewardsPage(),
   '/redemptions' => const RedemptionsPage(),
   '/content' => const ContentPage(),
+  '/youtube-reviews' => const YouTubeReviewsPage(),
   '/badges' => const BadgesPage(),
   '/settings' => const SettingsPage(),
   '/audit' => const AuditPage(),

@@ -39,6 +39,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get navContent => 'सीखने की सामग्री';
 
   @override
+  String get navYoutubeReviews => 'YouTube समीक्षा';
+
+  @override
   String get navBadges => 'बैज';
 
   @override
@@ -407,6 +410,73 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get tileVideos => 'प्रकाशित वीडियो';
+
+  @override
+  String get youtubeReviewsTitle => 'YouTube वीडियो समीक्षा';
+
+  @override
+  String get youtubeReviewsSubtitle =>
+      'बच्चों की वीडियो सूची में दिखने से पहले उम्मीदवारों की समीक्षा करें।';
+
+  @override
+  String get youtubeDiscover => 'उम्मीदवार खोजें';
+
+  @override
+  String get youtubeRecheck => 'स्वीकृत वीडियो फिर जाँचें';
+
+  @override
+  String get youtubeStatus => 'समीक्षा स्थिति';
+
+  @override
+  String get youtubeMaxResults => 'अधिकतम परिणाम (1-50)';
+
+  @override
+  String get youtubeAll => 'सभी स्थितियाँ';
+
+  @override
+  String get youtubeTopic => 'चुना हुआ विषय';
+
+  @override
+  String get youtubeOpenSource => 'मूल वीडियो खोलें';
+
+  @override
+  String get youtubeScreening => 'जाँच के परिणाम';
+
+  @override
+  String get youtubeAgeBand => 'आयु वर्ग';
+
+  @override
+  String get youtubeRightsCleared =>
+      'मैंने इस वीडियो को एम्बेड करने के अधिकार और अनुमति जाँची है।';
+
+  @override
+  String get youtubeRightsRequired =>
+      'स्वीकृति से पहले अधिकारों की समीक्षा की पुष्टि करें।';
+
+  @override
+  String get youtubeRejectReason => 'अस्वीकृति का कारण';
+
+  @override
+  String get youtubeReviewDetails => 'समीक्षा विवरण';
+
+  @override
+  String get youtubeActionApprove => 'स्वीकृत करें';
+
+  @override
+  String get youtubeActionReject => 'अस्वीकार करें';
+
+  @override
+  String get youtubeActionRevoke => 'वापस लें';
+
+  @override
+  String get youtubeActionOpen => 'जाँचें';
+
+  @override
+  String get youtubeActionFailed => 'कार्रवाई पूरी नहीं हो सकी।';
+
+  @override
+  String get youtubeCandidateEmpty =>
+      'इस स्थिति से मेल खाने वाले उम्मीदवार नहीं हैं।';
 
   @override
   String get tileRedemptions => 'लंबित इनाम अनुरोध';

@@ -318,6 +318,7 @@ void main() {
       '/rewards',
       '/redemptions',
       '/content',
+      '/youtube-reviews',
       '/badges',
       '/settings',
       '/audit',

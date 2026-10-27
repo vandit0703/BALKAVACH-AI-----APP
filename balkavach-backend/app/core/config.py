@@ -1,4 +1,5 @@
 from functools import lru_cache
+from uuid import UUID
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -21,7 +22,20 @@ class Settings(BaseSettings):
 	cors_origins: list[str] = Field(default_factory=list)
 	video_playback_provider: str | None = None
 	youtube_api_key: str | None = Field(default=None, repr=False)
-	youtube_region_code: str | None = Field(default=None, pattern=r"^[A-Z]{2}$")
+	youtube_region_code: str = Field(default="IN", pattern=r"^[A-Z]{2}$")
+	youtube_discovery_topics: list[str] = Field(
+		default_factory=lambda: [
+			"early_learning",
+			"math",
+			"science",
+			"coding",
+			"stories",
+			"academic_explainers",
+			"nature",
+		]
+	)
+	youtube_discovery_max_results: int = Field(default=10, ge=1, le=50)
+	youtube_discovery_actor_id: UUID | None = Field(default=None, repr=False)
 	youtube_reverify_hours: int = Field(default=72, ge=1, le=720)
 	notification_provider: str | None = None
 	fcm_service_account_json: str | None = Field(default=None, repr=False)

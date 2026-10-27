@@ -41,13 +41,17 @@ KEY_REASONS = {"keyInvalid", "keyExpired", "accessNotConfigured", "forbidden", "
 # Fixed discovery topics. Administrators choose a key; free-text queries are
 # never sent, so discovery cannot be steered towards arbitrary content.
 DISCOVERY_TOPICS: dict[str, str] = {
+	"early_learning": "early learning foundational skills for children",
+	"math": "math for kids",
 	"science": "science experiments for kids",
+	"coding": "coding computer science education for children",
+	"stories": "educational stories for children",
+	"academic_explainers": "academic explainers for children",
+	"nature": "nature education for children",
 	"animals": "animals for kids educational",
 	"language": "learn english for kids",
 	"art": "drawing and art for kids",
 	"preschool": "preschool learning",
-	"math": "math for kids",
-	"nature": "nature documentary for children",
 }
 
 

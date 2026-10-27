@@ -82,6 +82,16 @@ class LearningItem {
 
   bool get isHosted => videoId != null || collectionId != null;
 
+  bool get isYouTubeLink {
+    final host = openableUri?.host.toLowerCase();
+    if (host == null) return false;
+    return host == 'youtu.be' ||
+        host == 'youtube.com' ||
+        host.endsWith('.youtube.com') ||
+        host == 'youtube-nocookie.com' ||
+        host.endsWith('.youtube-nocookie.com');
+  }
+
   /// Whether this item can be played by the in-app player.
   ///
   /// Only an admin-curated direct link qualifies. Hosted and entitlement-gated
@@ -92,7 +102,8 @@ class LearningItem {
       contentType == 'video' &&
       !requiresEntitlement &&
       !isHosted &&
-      openableUri != null;
+      openableUri != null &&
+      !isYouTubeLink;
 }
 
 /// Verified contracts: `app/api/v1/educational_content.py` and

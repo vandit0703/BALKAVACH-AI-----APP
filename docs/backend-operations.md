@@ -42,8 +42,9 @@ before scheduling any database operation.
 | `0007_child_credentials` | Adds nullable `users.username VARCHAR(32)` and `users.password_encrypted TEXT`; creates the unique expression index `uq_users_username` on `lower(username)`. Existing users, including children without credentials, remain unchanged. | Alembic-tracked and additive. Downgrade is intentionally disabled to preserve credentials and user data. Child password hashes continue to use the existing password-hash field; encrypted retrieval requires `CHILD_CREDENTIALS_ENCRYPTION_KEY`. |
 
 | `0008_youtube_content_review` | Creates `youtube_content_reviews` (one row per YouTube `videos` row: YouTube id unique, source URL, channel, made-for-kids flag, review `status` checked against discovered/pending_review/approved/rejected/quarantined/revoked/unavailable, `screening_flags JSONB`, `rights_status`, discovered/reviewed by and at, notes, `last_verified_at`, revocation reason and time) and `content_reports` (video, reporter, reason, details, open/resolved/dismissed status, resolver). Both use `gen_random_uuid()` PKs and cascade from `videos`. No existing table is altered. | Additive. Downgrade drops both tables and all review and report history; YouTube `videos` rows remain but the feed hides every YouTube row without a review table (fails closed). Back up both tables first if their history matters. |
+| `0009_youtube_discovery_provenance` | Adds nullable `discovery_topic VARCHAR(40)` and `youtube_category_id VARCHAR(20)` to `youtube_content_reviews`; no existing rows are rewritten. | Additive. Downgrade drops both columns and permanently deletes provenance values collected after upgrade; export or back up those values before downgrading. Deploy after reviewing the migration; this application version expects the new columns. |
 
-The revisions are a strict chain: 0001 → 0002 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008.
+The revisions are a strict chain: 0001 → 0002 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009.
 Only 0001 is data-only. The DDL revisions do not use `IF NOT EXISTS`; do not
 execute revision functions manually or treat them as independently repeatable.
 For PostgreSQL, Alembic runs them within its migration transaction, but that
@@ -71,7 +72,12 @@ error. No secret belongs in the Flutter apps.
 
 YouTube discovery adds `YOUTUBE_API_KEY` (secret; sent to Google only in the
 `X-Goog-Api-Key` header, never logged or returned), `YOUTUBE_REGION_CODE`
-(optional) and `YOUTUBE_REVERIFY_HOURS` (default 72).
+(defaults to `IN`), `YOUTUBE_REVERIFY_HOURS` (default 72),
+`YOUTUBE_DISCOVERY_TOPICS` (a JSON list of curated topic IDs),
+`YOUTUBE_DISCOVERY_MAX_RESULTS` (default 10, capped at 50), and
+`YOUTUBE_DISCOVERY_ACTOR_ID` (an active admin/staff UUID with an assigned
+`video:write` permission, used for audit provenance). Never put these secrets
+in Flutter build configuration.
 
 ### YouTube content pipeline
 
@@ -80,6 +86,14 @@ YouTube discovery adds `YOUTUBE_API_KEY` (secret; sent to Google only in the
   (`POST /admin/videos/youtube/import`). Candidates are unpublished `videos` rows
   with a `youtube_content_reviews` row. Metadata screening only sets
   `pending_review`, `quarantined` or `unavailable`; it never approves.
+- Run `python -m app.cli youtube-discover` from a deployment scheduler to make
+  one bounded `search.list` and metadata lookup for each configured topic.
+  Schedule this command separately from `youtube-recheck`; discovery records
+  provenance and is safe to repeat because YouTube IDs are unique. Discovery
+  requires the configured active administrator identity with `video:write`
+  permission and never publishes.
+- Supported approval age ranges are exactly 4–7, 8–11 and 12–15. Child feed
+  requests with missing, future, or out-of-range birth dates receive no videos.
 - Only `POST /admin/videos/youtube/reviews/{id}/approve` publishes. It re-fetches
   the video from YouTube, refuses videos that are not made for kids or are
   age-restricted, requires an age band, a language and a rights attestation
@@ -97,6 +111,10 @@ YouTube discovery adds `YOUTUBE_API_KEY` (secret; sent to Google only in the
   with YouTube's ads, branding and links intact. The feed is **not** ad-free, and
   screening plus human review does not guarantee that no inappropriate content
   appears (for example inside ads or end screens, which YouTube controls).
+- Before release, review YouTube API Services policies, YouTube Terms, the
+  product privacy policy, applicable child-directed privacy requirements and
+  Google/YouTube notification requirements. Do not build personalized
+  advertising, viewing analytics, or Stars/rewards for YouTube interactions.
 
 ## 3. Roles and permissions
 

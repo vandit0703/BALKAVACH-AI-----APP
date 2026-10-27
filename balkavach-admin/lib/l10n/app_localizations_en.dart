@@ -39,6 +39,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navContent => 'Learning content';
 
   @override
+  String get navYoutubeReviews => 'YouTube review';
+
+  @override
   String get navBadges => 'Badges';
 
   @override
@@ -409,6 +412,72 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tileVideos => 'Published videos';
+
+  @override
+  String get youtubeReviewsTitle => 'YouTube video review';
+
+  @override
+  String get youtubeReviewsSubtitle =>
+      'Review candidates before they can appear in a child video feed.';
+
+  @override
+  String get youtubeDiscover => 'Discover candidates';
+
+  @override
+  String get youtubeRecheck => 'Recheck approved videos';
+
+  @override
+  String get youtubeStatus => 'Review status';
+
+  @override
+  String get youtubeMaxResults => 'Maximum results (1-50)';
+
+  @override
+  String get youtubeAll => 'All statuses';
+
+  @override
+  String get youtubeTopic => 'Curated topic';
+
+  @override
+  String get youtubeOpenSource => 'Open original video';
+
+  @override
+  String get youtubeScreening => 'Screening results';
+
+  @override
+  String get youtubeAgeBand => 'Age band';
+
+  @override
+  String get youtubeRightsCleared =>
+      'I verified the rights and permission to embed this video.';
+
+  @override
+  String get youtubeRightsRequired =>
+      'Confirm the rights review before approval.';
+
+  @override
+  String get youtubeRejectReason => 'Reason for rejection';
+
+  @override
+  String get youtubeReviewDetails => 'Review details';
+
+  @override
+  String get youtubeActionApprove => 'Approve';
+
+  @override
+  String get youtubeActionReject => 'Reject';
+
+  @override
+  String get youtubeActionRevoke => 'Withdraw';
+
+  @override
+  String get youtubeActionOpen => 'Inspect';
+
+  @override
+  String get youtubeActionFailed => 'The action could not be completed.';
+
+  @override
+  String get youtubeCandidateEmpty => 'No candidates match this status.';
 
   @override
   String get tileRedemptions => 'Pending reward requests';

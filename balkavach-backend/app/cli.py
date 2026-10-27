@@ -177,6 +177,84 @@ def _youtube_recheck(session_factory, limit: int) -> int:
 	return 0
 
 
+def _youtube_discover(session_factory, max_results: int) -> int:
+	from app.core.config import settings
+	from app.core.exceptions import APIError
+	from app.integrations.youtube import DISCOVERY_TOPICS, get_youtube_client
+	from app.schemas.video import YouTubeDiscoverRequest
+	from app.services.youtube_review_service import discover
+
+	topics = list(dict.fromkeys(settings.youtube_discovery_topics))
+	unknown = sorted(set(topics) - DISCOVERY_TOPICS.keys())
+	if unknown:
+		print(f"Unknown YOUTUBE_DISCOVERY_TOPICS entries: {', '.join(unknown)}", file=sys.stderr)
+		return 1
+	if not topics:
+		print("YOUTUBE_DISCOVERY_TOPICS must include at least one curated topic.", file=sys.stderr)
+		return 1
+	if settings.youtube_discovery_actor_id is None:
+		print("YOUTUBE_DISCOVERY_ACTOR_ID must identify an active administrator.", file=sys.stderr)
+		return 1
+	try:
+		with session_factory() as session:
+			actor = _youtube_discovery_actor(session, settings.youtube_discovery_actor_id)
+			if actor is None:
+				print(
+					"YOUTUBE_DISCOVERY_ACTOR_ID must identify an active administrator with video:write permission.",
+					file=sys.stderr,
+				)
+				return 1
+			client = get_youtube_client()
+			totals = {"created": 0, "skipped_existing": 0, "skipped_unplayable": 0}
+			for topic in topics:
+				result = discover(
+					session,
+					actor,
+					client,
+					YouTubeDiscoverRequest(
+						topic=topic,
+						region_code=settings.youtube_region_code,
+						max_results=max_results,
+					),
+				)
+				for key in totals:
+					totals[key] += len(result["created"]) if key == "created" else result[key]
+	except APIError as error:
+		print(f"Error: {error.message}", file=sys.stderr)
+		return 1
+	except SQLAlchemyError:
+		print("Database operation failed during YouTube discovery.", file=sys.stderr)
+		return 2
+	print(", ".join(f"{key}={value}" for key, value in totals.items()))
+	return 0
+
+
+def _youtube_discovery_actor(session: Session, actor_id):
+	User = get_model("User")
+	actor = session.query(User).filter(
+		User.id == actor_id,
+		User.role.in_(["admin", "staff"]),
+		User.is_active.is_(True),
+	).one_or_none()
+	if actor is None:
+		return None
+
+	AdminRole = get_model("AdminRole")
+	UserAdminRole = get_model("UserAdminRole")
+	assignments = (
+		session.query(AdminRole.permissions)
+		.join(UserAdminRole, UserAdminRole.admin_role_id == AdminRole.id)
+		.filter(UserAdminRole.user_id == actor.id)
+		.all()
+	)
+	granted: set[str] = set()
+	for (permissions,) in assignments:
+		granted |= expand_permissions(permissions)
+	if "video:write" not in granted and "*" not in granted:
+		return None
+	return actor
+
+
 def main(argv: list[str] | None = None) -> int:
 	parser = argparse.ArgumentParser(prog="python -m app.cli")
 	commands = parser.add_subparsers(dest="command", required=True)
@@ -186,6 +264,17 @@ def main(argv: list[str] | None = None) -> int:
 		help="Re-verify approved YouTube videos against YouTube (run from cron, e.g. hourly)",
 	)
 	recheck.add_argument("--limit", type=int, default=200, choices=range(1, 1001), metavar="1-1000")
+	discover = commands.add_parser(
+		"youtube-discover",
+		help="Discover reviewed-only YouTube candidates for configured topics",
+	)
+	discover.add_argument(
+		"--max-results",
+		type=int,
+		default=None,
+		choices=range(1, 51),
+		metavar="1-50",
+	)
 	args = parser.parse_args(argv)
 
 	from app.db.session import SessionLocal
@@ -196,6 +285,13 @@ def main(argv: list[str] | None = None) -> int:
 
 	if args.command == "youtube-recheck":
 		return _youtube_recheck(SessionLocal, args.limit)
+	if args.command == "youtube-discover":
+		from app.core.config import settings
+
+		return _youtube_discover(
+			SessionLocal,
+			args.max_results or settings.youtube_discovery_max_results,
+		)
 
 	try:
 		email = input("Administrator email: ")

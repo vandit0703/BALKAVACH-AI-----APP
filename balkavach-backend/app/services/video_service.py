@@ -14,11 +14,14 @@ from app.services.youtube_review_service import youtube_visibility_clause
 from app.utils import utc_naive
 
 
-def child_age(child) -> int:
-	if child.date_of_birth is None:
-		return 4
+def child_age(child) -> int | None:
 	today = datetime.now(timezone.utc).date()
-	return max(0, today.year - child.date_of_birth.year - ((today.month, today.day) < (child.date_of_birth.month, child.date_of_birth.day)))
+	date_of_birth = child.date_of_birth
+	if date_of_birth is None or date_of_birth > today:
+		return None
+	return today.year - date_of_birth.year - (
+		(today.month, today.day) < (date_of_birth.month, date_of_birth.day)
+	)
 
 
 def eligible_feed(
@@ -34,6 +37,8 @@ def eligible_feed(
 	Video = get_model("Video")
 	VideoCategory = get_model("VideoCategory")
 	age = child_age(child)
+	if age is None or not 4 <= age <= 15:
+		return []
 	languages = [user.preferred_language]
 	if user.preferred_language != "en":
 		languages.append("en")

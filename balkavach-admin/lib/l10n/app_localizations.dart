@@ -160,6 +160,12 @@ abstract class AppLocalizations {
   /// **'Learning content'**
   String get navContent;
 
+  /// No description provided for @navYoutubeReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'YouTube review'**
+  String get navYoutubeReviews;
+
   /// No description provided for @navBadges.
   ///
   /// In en, this message translates to:
@@ -867,6 +873,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Published videos'**
   String get tileVideos;
+
+  /// No description provided for @youtubeReviewsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'YouTube video review'**
+  String get youtubeReviewsTitle;
+
+  /// No description provided for @youtubeReviewsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review candidates before they can appear in a child video feed.'**
+  String get youtubeReviewsSubtitle;
+
+  /// No description provided for @youtubeDiscover.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover candidates'**
+  String get youtubeDiscover;
+
+  /// No description provided for @youtubeRecheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Recheck approved videos'**
+  String get youtubeRecheck;
+
+  /// No description provided for @youtubeStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Review status'**
+  String get youtubeStatus;
+
+  /// No description provided for @youtubeMaxResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum results (1-50)'**
+  String get youtubeMaxResults;
+
+  /// No description provided for @youtubeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All statuses'**
+  String get youtubeAll;
+
+  /// No description provided for @youtubeTopic.
+  ///
+  /// In en, this message translates to:
+  /// **'Curated topic'**
+  String get youtubeTopic;
+
+  /// No description provided for @youtubeOpenSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Open original video'**
+  String get youtubeOpenSource;
+
+  /// No description provided for @youtubeScreening.
+  ///
+  /// In en, this message translates to:
+  /// **'Screening results'**
+  String get youtubeScreening;
+
+  /// No description provided for @youtubeAgeBand.
+  ///
+  /// In en, this message translates to:
+  /// **'Age band'**
+  String get youtubeAgeBand;
+
+  /// No description provided for @youtubeRightsCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'I verified the rights and permission to embed this video.'**
+  String get youtubeRightsCleared;
+
+  /// No description provided for @youtubeRightsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm the rights review before approval.'**
+  String get youtubeRightsRequired;
+
+  /// No description provided for @youtubeRejectReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason for rejection'**
+  String get youtubeRejectReason;
+
+  /// No description provided for @youtubeReviewDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Review details'**
+  String get youtubeReviewDetails;
+
+  /// No description provided for @youtubeActionApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get youtubeActionApprove;
+
+  /// No description provided for @youtubeActionReject.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get youtubeActionReject;
+
+  /// No description provided for @youtubeActionRevoke.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw'**
+  String get youtubeActionRevoke;
+
+  /// No description provided for @youtubeActionOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Inspect'**
+  String get youtubeActionOpen;
+
+  /// No description provided for @youtubeActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The action could not be completed.'**
+  String get youtubeActionFailed;
+
+  /// No description provided for @youtubeCandidateEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No candidates match this status.'**
+  String get youtubeCandidateEmpty;
 
   /// No description provided for @tileRedemptions.
   ///

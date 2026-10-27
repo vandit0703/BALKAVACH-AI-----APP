@@ -39,6 +39,9 @@ class AppLocalizationsGu extends AppLocalizations {
   String get navContent => 'શીખવાની સામગ્રી';
 
   @override
+  String get navYoutubeReviews => 'YouTube સમીક્ષા';
+
+  @override
   String get navBadges => 'બેજ';
 
   @override
@@ -407,6 +410,72 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get tileVideos => 'પ્રકાશિત વીડિયો';
+
+  @override
+  String get youtubeReviewsTitle => 'YouTube વીડિયો સમીક્ષા';
+
+  @override
+  String get youtubeReviewsSubtitle =>
+      'બાળકોની વીડિયો સૂચિમાં દેખાય તે પહેલાં ઉમેદવારોની સમીક્ષા કરો.';
+
+  @override
+  String get youtubeDiscover => 'ઉમેદવારો શોધો';
+
+  @override
+  String get youtubeRecheck => 'મંજૂર વીડિયોની ફરી તપાસો';
+
+  @override
+  String get youtubeStatus => 'સમીક્ષા સ્થિતિ';
+
+  @override
+  String get youtubeMaxResults => 'મહત્તમ પરિણામો (1-50)';
+
+  @override
+  String get youtubeAll => 'બધી સ્થિતિઓ';
+
+  @override
+  String get youtubeTopic => 'પસંદ કરેલો વિષય';
+
+  @override
+  String get youtubeOpenSource => 'મૂળ વીડિયો ખોલો';
+
+  @override
+  String get youtubeScreening => 'તપાસના પરિણામો';
+
+  @override
+  String get youtubeAgeBand => 'ઉંમર જૂથ';
+
+  @override
+  String get youtubeRightsCleared =>
+      'મેં આ વીડિયોને એમ્બેડ કરવાના અધિકારો અને પરવાનગી તપાસી છે.';
+
+  @override
+  String get youtubeRightsRequired =>
+      'મંજૂરી પહેલાં અધિકારોની સમીક્ષાની પુષ્ટિ કરો.';
+
+  @override
+  String get youtubeRejectReason => 'નકારવાનું કારણ';
+
+  @override
+  String get youtubeReviewDetails => 'સમીક્ષાની વિગતો';
+
+  @override
+  String get youtubeActionApprove => 'મંજૂર કરો';
+
+  @override
+  String get youtubeActionReject => 'નકારો';
+
+  @override
+  String get youtubeActionRevoke => 'પાછું ખેંચો';
+
+  @override
+  String get youtubeActionOpen => 'તપાસો';
+
+  @override
+  String get youtubeActionFailed => 'ક્રિયા પૂર્ણ થઈ શકી નથી.';
+
+  @override
+  String get youtubeCandidateEmpty => 'આ સ્થિતિ સાથે મેળ ખાતા ઉમેદવારો નથી.';
 
   @override
   String get tileRedemptions => 'બાકી ઇનામ વિનંતીઓ';

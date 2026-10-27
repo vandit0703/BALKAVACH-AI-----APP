@@ -4,7 +4,7 @@ Requires TEST_DATABASE_URL with migration 0008 applied. YouTube itself is
 replaced by an in-memory fake; no real API call or key is involved.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
@@ -58,7 +58,7 @@ def _discover(api, admin):
 
 
 def _approve(api, admin, review_id, **overrides):
-	body = {"age_min": 0, "age_max": 12, "language_code": "en", "rights_status": "cleared", **overrides}
+	body = {"age_min": 8, "age_max": 11, "language_code": "en", "rights_status": "cleared", **overrides}
 	return api.post(f"/admin/videos/youtube/reviews/{review_id}/approve", admin["token"], body)
 
 
@@ -68,28 +68,70 @@ def _feed_ids(api, token, path="/videos/feed"):
 	return {item["youtube_video_id"] for item in response.json() if item["video_source"] == "youtube"}
 
 
+def _family_with_age(api, age=10):
+	ctx = api.family_with_child()
+	ChildProfile = get_model("ChildProfile")
+	birth_date = date.today().replace(year=date.today().year - age)
+	child = api.session.query(ChildProfile).filter(ChildProfile.id == ctx["child"]["id"]).one()
+	child.date_of_birth = birth_date
+	api.session.commit()
+	return ctx
+
+
 def test_discovery_deduplicates_and_screens(api, youtube):
 	admin = api.make_admin()
 	created = _discover(api, admin)
 	assert set(created) == {VIDEO_ID, OTHER_ID}
 	assert created[VIDEO_ID]["status"] == "pending_review"
+	assert created[VIDEO_ID]["discovery_topic"] == "science"
 	assert created[OTHER_ID]["status"] == "quarantined"
 	assert "not_made_for_kids" in created[OTHER_ID]["screening_flags"]
 	again = api.post("/admin/videos/youtube/discover", admin["token"], {"topic": "science"}).json()
 	assert again["created"] == [] and again["skipped_existing"] == 2
 
 
+@pytest.mark.parametrize(("age", "age_min", "age_max"), [(5, 4, 7), (9, 8, 11), (13, 12, 15)])
+def test_each_approved_age_band_is_visible_to_eligible_child(api, youtube, age, age_min, age_max):
+	admin = api.make_admin()
+	ctx = _family_with_age(api, age)
+	review = _discover(api, admin)[VIDEO_ID]
+	response = _approve(api, admin, review["id"], age_min=age_min, age_max=age_max)
+	assert response.status_code == 200, response.text
+	assert _feed_ids(api, ctx["child"]["token"]) == {VIDEO_ID}
+
+
 def test_pending_and_quarantined_videos_never_reach_children(api, youtube):
 	admin = api.make_admin()
-	ctx = api.family_with_child()
+	ctx = _family_with_age(api)
 	_discover(api, admin)
 	assert _feed_ids(api, ctx["child"]["token"]) == set()
 	assert _feed_ids(api, ctx["child"]["token"], "/videos/shorts") == set()
 
 
+def test_rejected_video_never_reaches_child_feed(api, youtube):
+	admin = api.make_admin()
+	ctx = _family_with_age(api)
+	review = _discover(api, admin)[VIDEO_ID]
+	response = api.post(
+		f"/admin/videos/youtube/reviews/{review['id']}/reject",
+		admin["token"],
+		{"notes": "Not suitable for the intended audience."},
+	)
+	assert response.status_code == 200 and response.json()["status"] == "rejected"
+	assert _feed_ids(api, ctx["child"]["token"]) == set()
+
+
+def test_missing_child_age_excludes_approved_video(api, youtube):
+	admin = api.make_admin()
+	ctx = _family_with_age(api)
+	review = _discover(api, admin)[VIDEO_ID]
+	assert _approve(api, admin, review["id"]).status_code == 200
+	assert _feed_ids(api, ctx["child"]["token"]) == set()
+
+
 def test_approved_video_appears_then_revocation_removes_it_immediately(api, youtube):
 	admin = api.make_admin()
-	ctx = api.family_with_child()
+	ctx = _family_with_age(api)
 	review = _discover(api, admin)[VIDEO_ID]
 	response = _approve(api, admin, review["id"])
 	assert response.status_code == 200, response.text
@@ -109,9 +151,18 @@ def test_not_made_for_kids_cannot_be_approved(api, youtube):
 	assert response.status_code == 409 and response.json()["error"]["code"] == "not_made_for_kids"
 
 
+def test_unavailable_search_candidate_is_retained_for_review(api, youtube):
+	admin = api.make_admin()
+	youtube.items.pop(VIDEO_ID)
+	created = _discover(api, admin)[VIDEO_ID]
+	assert created["status"] == "unavailable"
+	assert created["screening_flags"] == ["not_returned"]
+	assert created["reviewed_at"] is None
+
+
 def test_video_that_disappears_becomes_unavailable(api, youtube):
 	admin = api.make_admin()
-	ctx = api.family_with_child()
+	ctx = _family_with_age(api)
 	review = _discover(api, admin)[VIDEO_ID]
 	assert _approve(api, admin, review["id"]).status_code == 200
 	del youtube.items[VIDEO_ID]
@@ -122,7 +173,7 @@ def test_video_that_disappears_becomes_unavailable(api, youtube):
 
 def test_stale_verification_hides_the_video(api, youtube):
 	admin = api.make_admin()
-	ctx = api.family_with_child()
+	ctx = _family_with_age(api)
 	review = _discover(api, admin)[VIDEO_ID]
 	assert _approve(api, admin, review["id"]).status_code == 200
 	Review = get_model("YouTubeContentReview")
@@ -142,7 +193,7 @@ def test_generic_admin_routes_cannot_bypass_review(api, youtube):
 
 def test_parent_report_quarantines_an_approved_video(api, youtube):
 	admin = api.make_admin()
-	ctx = api.family_with_child()
+	ctx = _family_with_age(api)
 	review = _discover(api, admin)[VIDEO_ID]
 	assert _approve(api, admin, review["id"]).status_code == 200
 	response = api.post("/videos/report", ctx["parent"]["token"], {"video_id": review["video_id"], "reason": "scary"})
@@ -160,7 +211,7 @@ def test_malformed_import_url_is_rejected(api, youtube):
 
 def test_hosted_feed_is_unchanged_and_exposes_no_youtube_id(api, youtube):
 	admin = api.make_admin()
-	ctx = api.family_with_child()
+	ctx = _family_with_age(api)
 	body = {"title": "Hosted lesson", "video_url": "https://cdn.example.com/a.mp4", "duration_seconds": 90, "age_min": 0}
 	video = api.post("/admin/videos", admin["token"], body).json()
 	assert api.post(f"/admin/videos/{video['id']}/publish", admin["token"]).status_code == 200

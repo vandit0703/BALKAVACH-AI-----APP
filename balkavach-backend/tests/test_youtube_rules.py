@@ -14,7 +14,7 @@ from uuid import uuid4
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Boolean, Column, DateTime, String, create_engine
+from sqlalchemy import Boolean, Column, DateTime, JSON, String, create_engine
 from sqlalchemy.orm import Session, declarative_base
 
 from app.core.config import Settings, settings
@@ -31,6 +31,7 @@ from app.integrations.youtube import (
 	parse_youtube_video_id,
 )
 from app.services import youtube_review_service as reviews
+from app.services.video_service import child_age
 from app.services.youtube_review_service import can_transition, screen_candidate
 
 KEY = "AIza-test-secret-key-0000"
@@ -280,6 +281,47 @@ class TestScreening:
 		assert screen_candidate(video_item(snippet__title="Skilled gunnery? no: warthogs and killdeer birds"))[0] == "pending_review"
 
 
+def test_child_age_requires_a_valid_recorded_birth_date():
+	today = datetime.now(timezone.utc).date()
+	assert child_age(SimpleNamespace(date_of_birth=None)) is None
+	assert child_age(SimpleNamespace(date_of_birth=today.replace(year=today.year + 1))) is None
+	assert child_age(SimpleNamespace(date_of_birth=today.replace(year=today.year - 10))) == 10
+
+
+def test_discovery_topic_set_covers_curated_learning_areas():
+	assert {
+		"early_learning",
+		"math",
+		"science",
+		"coding",
+		"stories",
+		"academic_explainers",
+		"nature",
+	} <= yt.DISCOVERY_TOPICS.keys()
+
+
+def test_approval_only_accepts_configured_age_bands():
+	from pydantic import ValidationError
+
+	from app.schemas.video import YouTubeApproveRequest
+
+	for age_min, age_max in ((4, 7), (8, 11), (12, 15)):
+		YouTubeApproveRequest(
+			age_min=age_min,
+			age_max=age_max,
+			language_code="en",
+			rights_status="cleared",
+		)
+	for age_min, age_max in ((0, 12), (4, 8), (12, 16), (7, 8)):
+		with pytest.raises(ValidationError):
+			YouTubeApproveRequest(
+				age_min=age_min,
+				age_max=age_max,
+				language_code="en",
+				rights_status="cleared",
+			)
+
+
 class TestTransitions:
 	@pytest.mark.parametrize(
 		("current", "target"),
@@ -345,20 +387,31 @@ def test_feed_shows_only_approved_cleared_recently_verified_youtube_videos(stub_
 	stale = (now - timedelta(hours=settings.youtube_reverify_hours + 1)).replace(tzinfo=None)
 	stub_db.add(StubVideo(id="hosted", video_source="hosted"))
 	cases = {
-		"approved": ("approved", "cleared", fresh),
-		"stale": ("approved", "cleared", stale),
-		"never_verified": ("approved", "cleared", None),
-		"rights_unreviewed": ("approved", "unreviewed", fresh),
-		"pending": ("pending_review", "unreviewed", fresh),
-		"quarantined": ("quarantined", "unreviewed", fresh),
-		"revoked": ("revoked", "cleared", fresh),
-		"unavailable": ("unavailable", "cleared", fresh),
-		"rejected": ("rejected", "unreviewed", fresh),
-		"discovered": ("discovered", "unreviewed", fresh),
+		"approved": ("approved", "cleared", True, fresh),
+		"stale": ("approved", "cleared", True, stale),
+		"never_verified": ("approved", "cleared", True, None),
+		"rights_unreviewed": ("approved", "unreviewed", True, fresh),
+		"not_made_for_kids": ("approved", "cleared", False, fresh),
+		"unknown_made_for_kids": ("approved", "cleared", None, fresh),
+		"pending": ("pending_review", "unreviewed", True, fresh),
+		"quarantined": ("quarantined", "unreviewed", True, fresh),
+		"revoked": ("revoked", "cleared", True, fresh),
+		"unavailable": ("unavailable", "cleared", True, fresh),
+		"rejected": ("rejected", "unreviewed", True, fresh),
+		"discovered": ("discovered", "unreviewed", True, fresh),
 	}
-	for name, (status, rights, verified) in cases.items():
+	for name, (status, rights, made_for_kids, verified) in cases.items():
 		stub_db.add(StubVideo(id=name, video_source="youtube"))
-		stub_db.add(StubReview(id=f"r-{name}", video_id=name, status=status, rights_status=rights, last_verified_at=verified))
+		stub_db.add(
+			StubReview(
+				id=f"r-{name}",
+				video_id=name,
+				status=status,
+				rights_status=rights,
+				made_for_kids=made_for_kids,
+				last_verified_at=verified,
+			)
+		)
 	stub_db.add(StubVideo(id="no_review", video_source="youtube"))
 	stub_db.commit()
 	assert visible(stub_db, now) == {"hosted", "approved"}
@@ -426,6 +479,64 @@ def test_discovery_rejects_free_text_topics():
 		YouTubeDiscoverRequest(topic="anything at all")
 
 
+def test_scheduled_discovery_actor_requires_active_admin_with_video_write(monkeypatch):
+	from app import cli
+
+	base = declarative_base()
+
+	class User(base):
+		__tablename__ = "discovery_users"
+		id = Column(String, primary_key=True)
+		role = Column(String, nullable=False)
+		is_active = Column(Boolean, nullable=False)
+
+	class AdminRole(base):
+		__tablename__ = "discovery_admin_roles"
+		id = Column(String, primary_key=True)
+		permissions = Column(JSON, nullable=False)
+
+	class UserAdminRole(base):
+		__tablename__ = "discovery_user_admin_roles"
+		user_id = Column(String, primary_key=True)
+		admin_role_id = Column(String, primary_key=True)
+
+	engine = create_engine("sqlite://")
+	base.metadata.create_all(engine)
+	monkeypatch.setattr(
+		cli,
+		"get_model",
+		lambda name: {
+			"User": User,
+			"AdminRole": AdminRole,
+			"UserAdminRole": UserAdminRole,
+		}[name],
+	)
+	with Session(engine) as session:
+		session.add_all(
+			[
+				User(id="authorized", role="admin", is_active=True),
+				User(id="read_only", role="staff", is_active=True),
+				User(id="inactive", role="admin", is_active=False),
+				User(id="parent", role="parent", is_active=True),
+				AdminRole(id="video_writer", permissions=["video:write"]),
+				AdminRole(id="read_only_role", permissions=["video:read"]),
+			]
+		)
+		session.flush()
+		session.add_all(
+			[
+				UserAdminRole(user_id="authorized", admin_role_id="video_writer"),
+				UserAdminRole(user_id="read_only", admin_role_id="read_only_role"),
+			]
+		)
+		session.flush()
+		assert cli._youtube_discovery_actor(session, "authorized").id == "authorized"
+		assert cli._youtube_discovery_actor(session, "read_only") is None
+		assert cli._youtube_discovery_actor(session, "inactive") is None
+		assert cli._youtube_discovery_actor(session, "parent") is None
+		assert cli._youtube_discovery_actor(session, "unassigned") is None
+
+
 def test_report_refuses_administrators(as_role):
 	response = as_role("admin").post("/api/v1/videos/report", json={"video_id": str(uuid4()), "reason": "scary"})
 	assert response.status_code == 403
@@ -437,7 +548,7 @@ def test_approval_accepts_no_status_or_safety_flags_from_the_client():
 
 	from app.schemas.video import YouTubeApproveRequest
 
-	base = {"age_min": 4, "age_max": 8, "language_code": "en"}
+	base = {"age_min": 4, "age_max": 7, "language_code": "en"}
 	with pytest.raises(ValidationError):
 		YouTubeApproveRequest(**base, rights_status="approved")
 	request = YouTubeApproveRequest(**base, rights_status="cleared", status="approved", made_for_kids=True)

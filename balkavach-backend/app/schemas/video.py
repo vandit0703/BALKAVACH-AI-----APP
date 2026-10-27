@@ -118,10 +118,23 @@ YouTubeReviewStatus = Literal[
 	"discovered", "pending_review", "approved", "rejected", "quarantined", "revoked", "unavailable"
 ]
 ReportReason = Literal["inappropriate", "scary", "violent", "misleading", "advertising", "other"]
+YOUTUBE_AGE_BANDS = {(4, 7), (8, 11), (12, 15)}
 
 
 class YouTubeDiscoverRequest(BaseModel):
-	topic: Literal["science", "animals", "language", "art", "preschool", "math", "nature"]
+	topic: Literal[
+		"early_learning",
+		"math",
+		"science",
+		"coding",
+		"stories",
+		"academic_explainers",
+		"nature",
+		"animals",
+		"language",
+		"art",
+		"preschool",
+	]
 	shorts: bool = False
 	page_token: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,128}$")
 	relevance_language: str | None = Field(default=None, pattern=r"^[a-z]{2,3}(?:-[A-Za-z]{2,4})?$")
@@ -155,11 +168,14 @@ class YouTubeReviewPublic(BaseModel):
 	revoked_reason: str | None
 	revoked_at: datetime | None
 	title: str | None = None
+	description: str | None = None
 	thumbnail_url: str | None = None
 	duration_seconds: int | None = None
 	language_code: str | None = None
 	age_min: int | None = None
 	age_max: int | None = None
+	discovery_topic: str | None = None
+	youtube_category_id: str | None = None
 
 
 class YouTubeDiscoverResult(BaseModel):
@@ -181,8 +197,8 @@ class YouTubeApproveRequest(BaseModel):
 
 	@model_validator(mode="after")
 	def validate_age_range(self):
-		if self.age_max < self.age_min:
-			raise ValueError("age_max must be greater than or equal to age_min")
+		if (self.age_min, self.age_max) not in YOUTUBE_AGE_BANDS:
+			raise ValueError("Choose one of the supported age bands: 4-7, 8-11 or 12-15")
 		return self
 
 
