@@ -13,6 +13,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/platform/link_opener.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../data/learning_repository.dart';
 import '../data/video_feed_repository.dart';
 import '../data/youtube_embed_policy.dart';
 
@@ -64,7 +65,8 @@ class OfficialYouTubeEmbed extends StatefulWidget {
   State<OfficialYouTubeEmbed> createState() => _OfficialYouTubeEmbedState();
 }
 
-class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed> {
+class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
+    with WidgetsBindingObserver {
   static const _params = YoutubePlayerParams(
     showFullscreenButton: true,
     strictRelatedVideos: true,
@@ -77,6 +79,7 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = YoutubePlayerController(params: _params);
     if (!kIsWeb) {
       unawaited(
@@ -121,7 +124,16 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Like the native player: nothing keeps playing behind another app.
+    if (state != AppLifecycleState.resumed) {
+      unawaited(_controller.pauseVideo());
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     unawaited(_values?.cancel());
     unawaited(_controller.close());
     super.dispose();
@@ -132,11 +144,30 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed> {
       YoutubePlayer(controller: _controller, autoFullScreen: false);
 }
 
-/// Plays one server-approved YouTube video in the official player.
+/// Plays one YouTube video in the official player: either one the server
+/// approved for the video feed, or one an administrator curated for Learn &
+/// Watch.
 class YouTubePlayerScreen extends ConsumerStatefulWidget {
-  const YouTubePlayerScreen({required this.video, super.key});
+  /// A feed video. It has a server-side video row, so it can be reported.
+  YouTubePlayerScreen({required FeedVideo video, super.key})
+    : title = video.title,
+      youtubeVideoId = video.isYouTube ? video.youtubeVideoId : null,
+      reportVideoId = video.id;
 
-  final FeedVideo video;
+  /// A curated Learn & Watch link. It has no video row behind it, so the
+  /// report form (which needs one) is not offered.
+  YouTubePlayerScreen.curated({required LearningItem item, super.key})
+    : title = item.title,
+      youtubeVideoId = item.isYouTubeEmbeddable ? item.youtubeVideoId : null,
+      reportVideoId = null;
+
+  final String title;
+
+  /// Null when there is nothing the embed may play; the screen says so.
+  final String? youtubeVideoId;
+
+  /// The server's video id for the report form, when there is one.
+  final String? reportVideoId;
 
   @override
   ConsumerState<YouTubePlayerScreen> createState() =>
@@ -146,6 +177,14 @@ class YouTubePlayerScreen extends ConsumerStatefulWidget {
 class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
   bool _failed = false;
   bool _gateOpen = false;
+
+  /// Bumped on retry so the embed (and its web view) is built afresh.
+  int _attempt = 0;
+
+  void _retry() => setState(() {
+    _failed = false;
+    _attempt++;
+  });
 
   void _notify(String message) {
     ScaffoldMessenger.of(context)
@@ -192,10 +231,10 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
     if (mounted && !_failed) setState(() => _failed = true);
   }
 
-  Future<void> _report() async {
+  Future<void> _report(String videoId) async {
     final sent = await showDialog<bool>(
       context: context,
-      builder: (_) => _ReportDialog(videoId: widget.video.id),
+      builder: (_) => _ReportDialog(videoId: videoId),
     );
     if (!mounted || sent == null) return;
     final l10n = AppLocalizations.of(context);
@@ -208,11 +247,16 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final colors = context.colors;
-    final video = widget.video;
+    final videoId = widget.youtubeVideoId;
+    final reportVideoId = widget.reportVideoId;
     final embed = ref.watch(youtubeEmbedBuilderProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.videoFeedTitle)),
+      appBar: AppBar(
+        title: Text(
+          reportVideoId == null ? l10n.learnTitle : l10n.videoFeedTitle,
+        ),
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -221,22 +265,40 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
               borderRadius: BorderRadius.circular(AppRadius.md),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: _failed || !video.isYouTube
+                child: _failed || videoId == null
                     ? ColoredBox(
                         color: colors.surfaceContainerHighest,
-                        child: Center(
-                          child: Text(
-                            l10n.youtubePlayerError,
-                            key: const Key('youtube.error'),
-                            textAlign: TextAlign.center,
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                l10n.youtubePlayerError,
+                                key: const Key('youtube.error'),
+                                textAlign: TextAlign.center,
+                              ),
+                              // Load failures (offline, embed hiccup) may
+                              // pass; a missing id never will.
+                              if (videoId != null) ...[
+                                const SizedBox(height: AppSpacing.sm),
+                                SecondaryButton(
+                                  key: const Key('youtube.retry'),
+                                  dense: true,
+                                  label: l10n.videoRetry,
+                                  icon: Icons.refresh_rounded,
+                                  onPressed: _retry,
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       )
                     : KeyedSubtree(
-                        key: const Key('youtube.embed'),
+                        key: ValueKey(('youtube.embed', _attempt)),
                         child: embed(
                           YouTubeEmbedConfig(
-                            videoId: video.youtubeVideoId!,
+                            videoId: videoId,
                             onLeaveRequested: _leave,
                             onForeignVideo: _onForeignVideo,
                             onError: _onError,
@@ -246,19 +308,21 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            Text(video.title, style: context.text.titleLarge),
+            Text(widget.title, style: context.text.titleLarge),
             const SizedBox(height: AppSpacing.sm),
             InlineNotice(
               icon: Icons.info_outline_rounded,
               message: l10n.videoFeedAdsNotice,
             ),
-            const SizedBox(height: AppSpacing.lg),
-            SecondaryButton(
-              key: const Key('youtube.report'),
-              label: l10n.videoReport,
-              icon: Icons.flag_outlined,
-              onPressed: _report,
-            ),
+            if (reportVideoId != null) ...[
+              const SizedBox(height: AppSpacing.lg),
+              SecondaryButton(
+                key: const Key('youtube.report'),
+                label: l10n.videoReport,
+                icon: Icons.flag_outlined,
+                onPressed: () => _report(reportVideoId),
+              ),
+            ],
           ],
         ),
       ),

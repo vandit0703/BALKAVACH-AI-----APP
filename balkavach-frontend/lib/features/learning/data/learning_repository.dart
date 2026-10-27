@@ -92,19 +92,53 @@ class LearningItem {
         host.endsWith('.youtube-nocookie.com');
   }
 
-  /// Whether this item can be played by the in-app player.
+  /// The 11-character video id in a YouTube link, or null when the link is not
+  /// a single YouTube video (a channel, playlist or search page, for example).
+  ///
+  /// Accepts `youtube.com/watch?v=`, `youtu.be/<id>` and the `/embed/`,
+  /// `/shorts/`, `/live/` and `/v/` paths, on www, m and nocookie hosts.
+  String? get youtubeVideoId {
+    final uri = openableUri;
+    if (uri == null || !isYouTubeLink) return null;
+    final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+    final String? candidate;
+    if (uri.host.toLowerCase() == 'youtu.be') {
+      candidate = segments.firstOrNull;
+    } else if (segments.length == 1 && segments.first == 'watch') {
+      candidate = uri.queryParameters['v'];
+    } else if (segments.length >= 2 &&
+        const {'embed', 'shorts', 'live', 'v'}.contains(segments.first)) {
+      candidate = segments[1];
+    } else {
+      candidate = null;
+    }
+    return candidate != null && _youtubeIdPattern.hasMatch(candidate)
+        ? candidate
+        : null;
+  }
+
+  bool get _isFreeCuratedVideo =>
+      contentType == 'video' && !requiresEntitlement && !isHosted;
+
+  /// Whether this item can be played by the native in-app player.
   ///
   /// Only an admin-curated direct link qualifies. Hosted and entitlement-gated
   /// videos deliberately arrive without a URL: they must go through the
   /// authorised playback-session API, which needs a configured provider, so
-  /// they are never played here.
+  /// they are never played here. A YouTube link is a web page, not a media
+  /// stream, so it never reaches the native player either.
   bool get isPlayableInApp =>
-      contentType == 'video' &&
-      !requiresEntitlement &&
-      !isHosted &&
-      openableUri != null &&
-      !isYouTubeLink;
+      _isFreeCuratedVideo && openableUri != null && !isYouTubeLink;
+
+  /// Whether this item is a curated YouTube video the official embedded
+  /// player can show inside the app.
+  bool get isYouTubeEmbeddable => _isFreeCuratedVideo && youtubeVideoId != null;
+
+  /// Whether tapping this item plays it inside the app, in either player.
+  bool get playsInApp => isPlayableInApp || isYouTubeEmbeddable;
 }
+
+final _youtubeIdPattern = RegExp(r'^[A-Za-z0-9_-]{11}$');
 
 /// Verified contracts: `app/api/v1/educational_content.py` and
 /// `GET /videos/categories` (both child-only).

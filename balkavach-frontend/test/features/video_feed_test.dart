@@ -1,4 +1,5 @@
 import 'package:balkavach_app/core/errors/api_exception.dart';
+import 'package:balkavach_app/features/learning/data/learning_repository.dart';
 import 'package:balkavach_app/features/learning/data/video_feed_repository.dart';
 import 'package:balkavach_app/features/learning/data/youtube_embed_policy.dart';
 import 'package:balkavach_app/features/learning/presentation/video_feed_screen.dart';
@@ -417,6 +418,22 @@ void main() {
       expect(find.byKey(const Key('youtube.error')), findsOneWidget);
     });
 
+    testWidgets('a failed load can be retried with a fresh embed', (
+      tester,
+    ) async {
+      final (_, _, configs) = await pump(tester);
+      configs.last.onError();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('youtube.retry')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('youtube.retry')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('youtube.error')), findsNothing);
+      expect(find.byKey(const Key('fake.embed')), findsOneWidget);
+      expect(configs, hasLength(2));
+      expect(configs.last.videoId, _ytId);
+    });
+
     testWidgets('a grown-up can report the video', (tester) async {
       final (h, _, _) = await pump(tester);
       h.backend.reply('POST', '/api/v1/videos/report', {
@@ -441,5 +458,88 @@ void main() {
         findsOneWidget,
       );
     });
+  });
+
+  group('Curated YouTube item in the player', () {
+    Future<List<YouTubeEmbedConfig>> pump(
+      WidgetTester tester,
+      String url, {
+      Locale locale = const Locale('en'),
+    }) async {
+      final h = await Harness.create(
+        session: Fx.childSession(),
+        prefs: onboardedPrefs,
+      );
+      final configs = <YouTubeEmbedConfig>[];
+      await pumpScreen(
+        tester,
+        YouTubePlayerScreen.curated(
+          item: LearningItem(
+            id: 'item-1',
+            title: 'KIDS CONTENT',
+            contentType: 'video',
+            contentUrl: url,
+            requiresEntitlement: false,
+          ),
+        ),
+        overrides: [
+          ...h.overrides,
+          linkOpenerProvider.overrideWithValue(_FakeOpener()),
+          youtubeEmbedBuilderProvider.overrideWithValue((config) {
+            configs.add(config);
+            return const ColoredBox(
+              key: Key('fake.embed'),
+              color: Colors.black,
+            );
+          }),
+        ],
+        locale: locale,
+      );
+      await tester.pumpAndSettle();
+      return configs;
+    }
+
+    testWidgets('embeds the id from a short link', (tester) async {
+      final configs = await pump(tester, 'https://youtu.be/$_ytId');
+      expect(find.byKey(const Key('fake.embed')), findsOneWidget);
+      expect(configs.single.videoId, _ytId);
+      expect(find.text('KIDS CONTENT'), findsOneWidget);
+    });
+
+    testWidgets('offers no report form: there is no video row to report', (
+      tester,
+    ) async {
+      await pump(tester, 'https://www.youtube.com/watch?v=$_ytId');
+      expect(find.byKey(const Key('youtube.report')), findsNothing);
+    });
+
+    testWidgets('a link without one video shows a message, not a spinner', (
+      tester,
+    ) async {
+      final configs = await pump(tester, 'https://www.youtube.com/@channel');
+      expect(configs, isEmpty);
+      expect(find.byKey(const Key('youtube.error')), findsOneWidget);
+      // Retrying cannot conjure an id.
+      expect(find.byKey(const Key('youtube.retry')), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    });
+
+    const errorText = {
+      'hi': 'यह वीडियो अभी नहीं चल सकता।',
+      'gu': 'આ વિડિયો હમણાં ચાલી શકતો નથી.',
+    };
+    for (final code in ['hi', 'gu']) {
+      testWidgets('the error state is translated in $code', (tester) async {
+        final configs = await pump(
+          tester,
+          'https://www.youtube.com/watch?v=$_ytId',
+          locale: Locale(code),
+        );
+        configs.last.onError();
+        await tester.pumpAndSettle();
+        expect(find.text(errorText[code]!), findsOneWidget);
+        expect(find.text("This video can't play right now."), findsNothing);
+      });
+    }
   });
 }

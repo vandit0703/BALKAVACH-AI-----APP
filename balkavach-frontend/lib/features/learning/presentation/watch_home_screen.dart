@@ -205,9 +205,9 @@ class _UnavailableCard extends StatelessWidget {
   }
 }
 
-/// One curated video. Playback is not wired up: tapping opens the existing
-/// Learn detail screen, which is the only place that can legitimately open an
-/// admin-curated link today.
+/// One curated video. A video the app can play (a direct link, or a YouTube
+/// link in the official embed) opens straight into the player; anything else
+/// opens the Learn detail screen, which explains why it cannot play.
 class _VideoTile extends StatelessWidget {
   const _VideoTile({required this.item});
 
@@ -222,7 +222,7 @@ class _VideoTile extends StatelessWidget {
       key: Key('watch.video.${item.id}'),
       padding: const EdgeInsets.all(AppSpacing.md),
       onTap: () => context.push(
-        item.isPlayableInApp
+        item.playsInApp
             ? AppRoutes.childLearnPlay(item.id)
             : AppRoutes.childLearnItem(item.id),
         extra: item,

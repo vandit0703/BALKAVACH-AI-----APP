@@ -291,7 +291,7 @@ void main() {
       expect(opener.opened, isEmpty);
     });
 
-    testWidgets('a YouTube watch URL never reaches the native video player', (
+    testWidgets('a curated YouTube video plays in the app, not in YouTube', (
       tester,
     ) async {
       final opener = await pump(
@@ -301,11 +301,25 @@ void main() {
           url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         ),
       );
+      expect(find.byKey(const Key('learn.play')), findsOneWidget);
+      expect(find.byKey(const Key('learn.open')), findsNothing);
+      expect(
+        find.text('Opens in your browser or the video app.'),
+        findsNothing,
+      );
+      expect(opener.opened, isEmpty);
+    });
+
+    testWidgets('a YouTube page that is not one video still opens outside', (
+      tester,
+    ) async {
+      // A channel has no single video to embed, so it genuinely cannot play.
+      await pump(
+        tester,
+        _item(type: 'video', url: 'https://www.youtube.com/@SomeChannel'),
+      );
       expect(find.byKey(const Key('learn.play')), findsNothing);
       expect(find.byKey(const Key('learn.open')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('learn.open')));
-      await tester.pumpAndSettle();
-      expect(opener.opened.single.host, 'www.youtube.com');
     });
 
     testWidgets('a non-video link still opens outside the app', (tester) async {

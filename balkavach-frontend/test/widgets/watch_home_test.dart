@@ -1,5 +1,9 @@
 import 'package:balkavach_app/app.dart';
 import 'package:balkavach_app/features/learning/data/learning_gate_repository.dart';
+import 'package:balkavach_app/features/learning/data/video_playback_controller.dart';
+import 'package:balkavach_app/features/learning/presentation/video_player_screen.dart';
+import 'package:balkavach_app/features/learning/presentation/youtube_player_screen.dart';
+import 'package:balkavach_app/shared/platform/link_opener.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +12,60 @@ import '../helpers/fixtures.dart';
 import '../helpers/harness.dart';
 
 const _gatePath = '/api/v1/learning-gate/today';
+
+/// Fails the test's expectations if anything tries to leave the app.
+class _RecordingOpener implements LinkOpener {
+  final opened = <Uri>[];
+
+  @override
+  Future<bool> open(Uri uri) async {
+    opened.add(uri);
+    return true;
+  }
+}
+
+/// Stands in for `video_player`, which needs a platform decoder. Proves the
+/// routing and lifecycle only, never real playback.
+class _StubPlayback implements VideoPlaybackController {
+  final _notifier = ChangeNotifier();
+  bool initialised = false;
+  bool disposed = false;
+  bool _playing = false;
+
+  @override
+  Listenable get listenable => _notifier;
+  @override
+  bool get isInitialised => initialised;
+  @override
+  bool get isPlaying => _playing;
+  @override
+  bool get isBuffering => false;
+  @override
+  String? get errorMessage => null;
+  @override
+  Duration get position => Duration.zero;
+  @override
+  Duration get duration => const Duration(minutes: 1);
+  @override
+  double get aspectRatio => 16 / 9;
+
+  @override
+  Future<void> initialise() async {
+    initialised = true;
+    _notifier.notifyListeners();
+  }
+
+  @override
+  Future<void> play() async => _playing = true;
+  @override
+  Future<void> pause() async => _playing = false;
+
+  @override
+  Future<void> dispose() async => disposed = true;
+
+  @override
+  Widget? buildSurface() => initialised ? const SizedBox() : null;
+}
 
 Future<Harness> _child() async {
   final h = await Harness.create(
@@ -203,6 +261,108 @@ void main() {
 
       expect(find.byKey(const Key('watch.session')), findsNothing);
       expect(find.text('Missions unlocked. Nice work!'), findsNothing);
+    });
+  });
+
+  group('Tapping a video on Home', () {
+    Map<String, Object?> video(String id, String url) => {
+      'id': id,
+      'title': 'KIDS CONTENT',
+      'description': null,
+      'content_type': 'video',
+      'category_id': null,
+      'language_code': 'en',
+      'content_url': url,
+      'thumbnail_url': null,
+      'video_id': null,
+      'collection_id': null,
+      'requires_entitlement': false,
+      'is_active': true,
+    };
+
+    Future<(_RecordingOpener, _StubPlayback, List<YouTubeEmbedConfig>)> pump(
+      WidgetTester tester,
+      Map<String, Object?> item,
+    ) async {
+      final h = await _child();
+      h.backend.reply('GET', '/api/v1/educational-content', [item]);
+      final opener = _RecordingOpener();
+      final playback = _StubPlayback();
+      final embeds = <YouTubeEmbedConfig>[];
+      setWindow(tester, const Size(393, 852));
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            ...h.overrides,
+            linkOpenerProvider.overrideWithValue(opener),
+            videoPlaybackControllerFactoryProvider.overrideWithValue(
+              (_) => playback,
+            ),
+            youtubeEmbedBuilderProvider.overrideWithValue((config) {
+              embeds.add(config);
+              return const ColoredBox(
+                key: Key('fake.embed'),
+                color: Colors.black,
+              );
+            }),
+          ],
+          retry: (_, _) => null,
+          child: const BalKavachApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return (opener, playback, embeds);
+    }
+
+    testWidgets('a direct MP4 opens the in-app player straight away', (
+      tester,
+    ) async {
+      final (opener, playback, embeds) = await pump(
+        tester,
+        video('mp4', 'https://cdn.example.org/kids.mp4'),
+      );
+
+      await _tap(tester, find.byKey(const Key('watch.video.mp4')));
+
+      expect(find.byType(VideoPlayerScreen), findsOneWidget);
+      expect(find.byKey(const Key('learn.open')), findsNothing);
+      expect(playback.initialised, isTrue);
+      expect(embeds, isEmpty);
+      expect(opener.opened, isEmpty);
+    });
+
+    testWidgets('a YouTube link opens the embedded player, not YouTube', (
+      tester,
+    ) async {
+      final (opener, playback, embeds) = await pump(
+        tester,
+        video('yt', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
+      );
+
+      await _tap(tester, find.byKey(const Key('watch.video.yt')));
+
+      expect(find.byType(YouTubePlayerScreen), findsOneWidget);
+      expect(find.byKey(const Key('fake.embed')), findsOneWidget);
+      expect(embeds.single.videoId, 'dQw4w9WgXcQ');
+      // The native decoder is never handed a web page.
+      expect(playback.initialised, isFalse);
+      expect(opener.opened, isEmpty);
+    });
+
+    testWidgets('back returns Home and releases the player', (tester) async {
+      final (_, playback, _) = await pump(
+        tester,
+        video('mp4', 'https://cdn.example.org/kids.mp4'),
+      );
+      await _tap(tester, find.byKey(const Key('watch.video.mp4')));
+      expect(playback.disposed, isFalse);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(VideoPlayerScreen), findsNothing);
+      expect(find.byKey(const Key('watch.session')), findsOneWidget);
+      expect(playback.disposed, isTrue);
     });
   });
 

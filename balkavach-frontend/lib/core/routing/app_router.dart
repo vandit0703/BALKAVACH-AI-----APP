@@ -241,9 +241,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         redirect: (_, state) => state.extra is LearningItem
                             ? null
                             : AppRoutes.childLearn,
-                        builder: (_, state) => VideoPlayerScreen(
-                          item: state.extra! as LearningItem,
-                        ),
+                        // A YouTube link is a web page, not a media stream:
+                        // it plays in the official embed, everything else in
+                        // the native player.
+                        builder: (_, state) {
+                          final item = state.extra! as LearningItem;
+                          return item.isYouTubeEmbeddable
+                              ? YouTubePlayerScreen.curated(item: item)
+                              : VideoPlayerScreen(item: item);
+                        },
                       ),
                     ],
                   ),

@@ -254,8 +254,9 @@ class _LearningDetailScreenState extends ConsumerState<LearningDetailScreen> {
                   icon: Icons.lock_outline_rounded,
                   message: blocker,
                 )
-              else if (item.isPlayableInApp) ...[
-                // A curated video with a direct link plays inside the app.
+              else if (item.playsInApp) ...[
+                // A curated video (direct link or YouTube) plays inside the
+                // app; the external path is only for what cannot.
                 PrimaryButton(
                   key: const Key('learn.play'),
                   label: l10n.videoWatchInApp,

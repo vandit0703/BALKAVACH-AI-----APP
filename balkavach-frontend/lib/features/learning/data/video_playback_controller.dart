@@ -41,6 +41,8 @@ class NetworkVideoPlaybackController
     implements VideoPlaybackController {
   NetworkVideoPlaybackController(this.uri);
 
+  static const initialiseTimeout = Duration(seconds: 30);
+
   final Uri uri;
   VideoPlayerController? _controller;
   String? _error;
@@ -81,7 +83,9 @@ class NetworkVideoPlaybackController
     _controller = controller;
     controller.addListener(_onPlayerChanged);
     try {
-      await controller.initialize();
+      // A source that never answers (or is not media at all) must end in the
+      // retry state, not an endless spinner.
+      await controller.initialize().timeout(initialiseTimeout);
       // Disposal can win the race while initialise() is awaited.
       if (_disposed) {
         await controller.dispose();

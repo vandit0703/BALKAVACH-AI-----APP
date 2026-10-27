@@ -315,6 +315,64 @@ void main() {
         isFalse,
       );
     });
+
+    test('a direct MP4 goes to the native player, not the YouTube embed', () {
+      final item = _video();
+      expect(item.isYouTubeLink, isFalse);
+      expect(item.youtubeVideoId, isNull);
+      expect(item.isYouTubeEmbeddable, isFalse);
+      expect(item.playsInApp, isTrue);
+    });
+
+    const id = 'dQw4w9WgXcQ';
+    for (final url in [
+      'https://www.youtube.com/watch?v=$id',
+      'https://youtube.com/watch?v=$id&t=42s',
+      'https://m.youtube.com/watch?v=$id',
+      'https://youtu.be/$id',
+      'https://youtu.be/$id?si=abc',
+      'https://www.youtube.com/shorts/$id',
+      'https://www.youtube.com/embed/$id',
+      'https://www.youtube.com/live/$id',
+      'https://www.youtube-nocookie.com/embed/$id',
+    ]) {
+      test('$url plays in the YouTube embed, never the native player', () {
+        final item = _video(url: url);
+        expect(item.youtubeVideoId, id);
+        expect(item.isYouTubeEmbeddable, isTrue);
+        expect(item.isPlayableInApp, isFalse);
+        expect(item.playsInApp, isTrue);
+      });
+    }
+
+    for (final url in [
+      'https://www.youtube.com/@SomeChannel',
+      'https://www.youtube.com/playlist?list=PL123',
+      'https://www.youtube.com/watch?v=tooShort',
+      'https://www.youtube.com/results?search_query=abc',
+    ]) {
+      test('$url is YouTube but not one embeddable video', () {
+        final item = _video(url: url);
+        expect(item.isYouTubeLink, isTrue);
+        expect(item.youtubeVideoId, isNull);
+        expect(item.playsInApp, isFalse);
+      });
+    }
+
+    test('a YouTube link on a non-video item is not played', () {
+      final item = _video(contentType: 'link', url: 'https://youtu.be/$id');
+      expect(item.isYouTubeEmbeddable, isFalse);
+      expect(item.playsInApp, isFalse);
+    });
+
+    test('a look-alike host is not treated as YouTube', () {
+      final item = _video(url: 'https://notyoutube.com/watch?v=$id');
+      expect(item.isYouTubeLink, isFalse);
+      expect(item.isYouTubeEmbeddable, isFalse);
+      // It is just a direct link, so the native player gets it (and shows
+      // its error state if it is not media).
+      expect(item.isPlayableInApp, isTrue);
+    });
   });
 
   group('Time formatting', () {
