@@ -56,6 +56,7 @@ MODEL_TABLES = {
 	"PresetTask": "preset_tasks",
 	"AppSetting": "app_settings",
 	"YouTubeContentReview": "youtube_content_reviews",
+	"YouTubeTrustedChannel": "youtube_trusted_channels",
 	"ContentReport": "content_reports",
 }
 

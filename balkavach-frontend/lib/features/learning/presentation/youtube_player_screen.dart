@@ -25,6 +25,7 @@ class YouTubeEmbedConfig {
     required this.onLeaveRequested,
     required this.onForeignVideo,
     required this.onError,
+    this.autoplay = false,
   });
 
   /// The approved video; nothing else may play in this embed.
@@ -37,6 +38,7 @@ class YouTubeEmbedConfig {
   /// The player loaded a different video than [videoId] and was reset.
   final VoidCallback onForeignVideo;
   final VoidCallback onError;
+  final bool autoplay;
 }
 
 typedef YouTubeEmbedBuilder = Widget Function(YouTubeEmbedConfig config);
@@ -94,7 +96,11 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
       );
     }
     _values = _controller.stream.listen(_onValue);
-    unawaited(_controller.cueVideoById(videoId: widget.config.videoId));
+    unawaited(
+      widget.config.autoplay
+          ? _controller.loadVideoById(videoId: widget.config.videoId)
+          : _controller.cueVideoById(videoId: widget.config.videoId),
+    );
   }
 
   NavigationDecision _onNavigation(NavigationRequest request) {

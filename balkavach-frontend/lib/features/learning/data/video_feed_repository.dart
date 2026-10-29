@@ -23,6 +23,7 @@ class FeedVideo {
     this.thumbnailUrl,
     this.categoryId,
     this.youtubeVideoId,
+    this.channelName,
   });
 
   factory FeedVideo.fromJson(Map<String, dynamic> json) => FeedVideo(
@@ -34,6 +35,7 @@ class FeedVideo {
     categoryId: json['category_id'] as String?,
     source: json['video_source'] as String? ?? 'hosted',
     youtubeVideoId: json['youtube_video_id'] as String?,
+    channelName: json['channel_name'] as String?,
   );
 
   final String id;
@@ -46,6 +48,7 @@ class FeedVideo {
   /// `hosted`, `youtube` or `external`.
   final String source;
   final String? youtubeVideoId;
+  final String? channelName;
 
   /// Playable in the official YouTube embed: a YouTube item with a well-formed id.
   bool get isYouTube =>
@@ -115,9 +118,9 @@ enum PagerStatus { idle, loading, error, done }
 
 /// Offset pagination for one feed, owned by the screen showing it.
 ///
-/// Items are de-duplicated by id, so a video that shifts between pages (for
-/// example when a new approval is inserted ahead of it) is never shown twice,
-/// and a load that is already running is never started again.
+/// Items are de-duplicated by YouTube ID when present, otherwise by the server
+/// row ID. This prevents the same published video from appearing twice if
+/// duplicate rows exist or a video shifts between pages.
 class VideoFeedPager extends ChangeNotifier {
   VideoFeedPager(this._repository, this.kind, {this.pageSize = 20});
 
@@ -152,7 +155,8 @@ class VideoFeedPager extends ChangeNotifier {
       if (_disposed) return;
       _offset += page.length;
       for (final video in page) {
-        if (_seen.add(video.id)) _items.add(video);
+        final deduplicationKey = video.youtubeVideoId ?? video.id;
+        if (_seen.add(deduplicationKey)) _items.add(video);
       }
       _error = null;
       _set(page.length < pageSize ? PagerStatus.done : PagerStatus.idle);

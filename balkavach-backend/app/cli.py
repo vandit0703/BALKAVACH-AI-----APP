@@ -182,7 +182,7 @@ def _youtube_discover(session_factory, max_results: int) -> int:
 	from app.core.exceptions import APIError
 	from app.integrations.youtube import DISCOVERY_TOPICS, get_youtube_client
 	from app.schemas.video import YouTubeDiscoverRequest
-	from app.services.youtube_review_service import discover
+	from app.services.youtube_review_service import discover, discover_trusted
 
 	topics = list(dict.fromkeys(settings.youtube_discovery_topics))
 	unknown = sorted(set(topics) - DISCOVERY_TOPICS.keys())
@@ -205,7 +205,13 @@ def _youtube_discover(session_factory, max_results: int) -> int:
 				)
 				return 1
 			client = get_youtube_client()
-			totals = {"created": 0, "skipped_existing": 0, "skipped_unplayable": 0}
+			totals = {
+				"created": 0,
+				"skipped_existing": 0,
+				"skipped_unplayable": 0,
+				"automatically_published": 0,
+				"quarantined": 0,
+			}
 			for topic in topics:
 				result = discover(
 					session,
@@ -218,7 +224,11 @@ def _youtube_discover(session_factory, max_results: int) -> int:
 					),
 				)
 				for key in totals:
-					totals[key] += len(result["created"]) if key == "created" else result[key]
+					if key in result:
+						totals[key] += len(result["created"]) if key == "created" else result[key]
+			trusted_totals = discover_trusted(session, actor, client, max_results)
+			for key, value in trusted_totals.items():
+				totals[key] += value
 	except APIError as error:
 		print(f"Error: {error.message}", file=sys.stderr)
 		return 1

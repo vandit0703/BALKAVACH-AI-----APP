@@ -1,7 +1,7 @@
 from functools import lru_cache
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
@@ -21,7 +21,11 @@ class Settings(BaseSettings):
 	child_refresh_token_expire_days: int = Field(default=14, ge=1, le=90)
 	cors_origins: list[str] = Field(default_factory=list)
 	video_playback_provider: str | None = None
-	youtube_api_key: str | None = Field(default=None, repr=False)
+	youtube_api_key: str | None = Field(
+		default=None,
+		validation_alias=AliasChoices("YOUTUBE_DATA_API_KEY", "YOUTUBE_API_KEY"),
+		repr=False,
+	)
 	youtube_region_code: str = Field(default="IN", pattern=r"^[A-Z]{2}$")
 	youtube_discovery_topics: list[str] = Field(
 		default_factory=lambda: [
@@ -35,6 +39,7 @@ class Settings(BaseSettings):
 		]
 	)
 	youtube_discovery_max_results: int = Field(default=10, ge=1, le=50)
+	youtube_auto_publish_max_seconds: int = Field(default=180, ge=1, le=600)
 	youtube_discovery_actor_id: UUID | None = Field(default=None, repr=False)
 	youtube_reverify_hours: int = Field(default=72, ge=1, le=720)
 	notification_provider: str | None = None

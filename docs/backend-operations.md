@@ -43,8 +43,9 @@ before scheduling any database operation.
 
 | `0008_youtube_content_review` | Creates `youtube_content_reviews` (one row per YouTube `videos` row: YouTube id unique, source URL, channel, made-for-kids flag, review `status` checked against discovered/pending_review/approved/rejected/quarantined/revoked/unavailable, `screening_flags JSONB`, `rights_status`, discovered/reviewed by and at, notes, `last_verified_at`, revocation reason and time) and `content_reports` (video, reporter, reason, details, open/resolved/dismissed status, resolver). Both use `gen_random_uuid()` PKs and cascade from `videos`. No existing table is altered. | Additive. Downgrade drops both tables and all review and report history; YouTube `videos` rows remain but the feed hides every YouTube row without a review table (fails closed). Back up both tables first if their history matters. |
 | `0009_youtube_discovery_provenance` | Adds nullable `discovery_topic VARCHAR(40)` and `youtube_category_id VARCHAR(20)` to `youtube_content_reviews`; no existing rows are rewritten. | Additive. Downgrade drops both columns and permanently deletes provenance values collected after upgrade; export or back up those values before downgrading. Deploy after reviewing the migration; this application version expects the new columns. |
+| `0010_youtube_trusted_channels` | Adds explicit stable-ID trusted channels plus `publication_source` and `publication_reason` on YouTube reviews. Existing reviews remain manual and inactive channels do not publish. | Additive. Downgrade removes trusted-channel configuration and automatic publication provenance, so back up those records before downgrade. |
 
-The revisions are a strict chain: 0001 → 0002 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009.
+The revisions are a strict chain: 0001 → 0002 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010.
 Only 0001 is data-only. The DDL revisions do not use `IF NOT EXISTS`; do not
 execute revision functions manually or treat them as independently repeatable.
 For PostgreSQL, Alembic runs them within its migration transaction, but that
@@ -70,14 +71,16 @@ the deployment secret manager, and keep it stable across restarts and deploys;
 without it, child credential creation and retrieval return a configuration
 error. No secret belongs in the Flutter apps.
 
-YouTube discovery adds `YOUTUBE_API_KEY` (secret; sent to Google only in the
+YouTube discovery adds `YOUTUBE_DATA_API_KEY` (secret; `YOUTUBE_API_KEY` remains
+accepted for backward compatibility; the key is sent to Google only in the
 `X-Goog-Api-Key` header, never logged or returned), `YOUTUBE_REGION_CODE`
 (defaults to `IN`), `YOUTUBE_REVERIFY_HOURS` (default 72),
 `YOUTUBE_DISCOVERY_TOPICS` (a JSON list of curated topic IDs),
 `YOUTUBE_DISCOVERY_MAX_RESULTS` (default 10, capped at 50), and
 `YOUTUBE_DISCOVERY_ACTOR_ID` (an active admin/staff UUID with an assigned
 `video:write` permission, used for audit provenance). Never put these secrets
-in Flutter build configuration.
+in Flutter build configuration. `YOUTUBE_AUTO_PUBLISH_MAX_SECONDS` defaults to
+180 and bounds automatic trusted-channel publication.
 
 ### YouTube content pipeline
 
@@ -87,14 +90,20 @@ in Flutter build configuration.
   with a `youtube_content_reviews` row. Metadata screening only sets
   `pending_review`, `quarantined` or `unavailable`; it never approves.
 - Run `python -m app.cli youtube-discover` from a deployment scheduler to make
-  one bounded `search.list` and metadata lookup for each configured topic.
+  one bounded `search.list` and metadata lookup for each configured topic, then
+  one bounded page per configured topic for each active explicitly trusted
+  channel. Trusted-channel candidates are automatically published only when
+  metadata is clean, made-for-kids, embeddable, public, short, rights-cleared
+  and age-band configured; unknown or flagged candidates remain hidden.
   Schedule this command separately from `youtube-recheck`; discovery records
   provenance and is safe to repeat because YouTube IDs are unique. Discovery
   requires the configured active administrator identity with `video:write`
-  permission and never publishes.
-- Supported approval age ranges are exactly 4–7, 8–11 and 12–15. Child feed
+  permission. This repository does not schedule the command; configure cron or
+  the deployment scheduler explicitly.
+- Supported approval age ranges are exactly 3–5, 6–8, 9–12 and 13–15. Child feed
   requests with missing, future, or out-of-range birth dates receive no videos.
-- Only `POST /admin/videos/youtube/reviews/{id}/approve` publishes. It re-fetches
+- Only `POST /admin/videos/youtube/reviews/{id}/approve` or the trusted-channel
+  automation publishes. Manual approval re-fetches
   the video from YouTube, refuses videos that are not made for kids or are
   age-restricted, requires an age band, a language and a rights attestation
   (`rights_status: "cleared"`), and requires notes when screening raised flags.

@@ -109,6 +109,7 @@ class VideoFeedItem(BaseModel):
 	language_code: str
 	content_rating: str
 	video_source: str = "hosted"
+	channel_name: str | None = None
 	# Only for approved YouTube videos, which play in the official embedded
 	# player. Hosted videos never expose a media URL here.
 	youtube_video_id: str | None = None
@@ -118,7 +119,7 @@ YouTubeReviewStatus = Literal[
 	"discovered", "pending_review", "approved", "rejected", "quarantined", "revoked", "unavailable"
 ]
 ReportReason = Literal["inappropriate", "scary", "violent", "misleading", "advertising", "other"]
-YOUTUBE_AGE_BANDS = {(4, 7), (8, 11), (12, 15)}
+YOUTUBE_AGE_BANDS = {(3, 5), (6, 8), (9, 12), (13, 15)}
 
 
 class YouTubeDiscoverRequest(BaseModel):
@@ -176,6 +177,8 @@ class YouTubeReviewPublic(BaseModel):
 	age_max: int | None = None
 	discovery_topic: str | None = None
 	youtube_category_id: str | None = None
+	publication_source: str = "manual"
+	publication_reason: str | None = None
 
 
 class YouTubeDiscoverResult(BaseModel):
@@ -183,6 +186,43 @@ class YouTubeDiscoverResult(BaseModel):
 	skipped_existing: int
 	skipped_unplayable: int
 	next_page_token: str | None
+	automatically_published: int = 0
+	quarantined: int = 0
+
+
+class YouTubeTrustedChannelRequest(BaseModel):
+	channel_id: str = Field(pattern=r"^UC[A-Za-z0-9_-]{22}$", max_length=64)
+	channel_title: str | None = Field(default=None, max_length=200)
+	age_min: int = Field(ge=3, le=15)
+	age_max: int = Field(ge=3, le=15)
+	language_code: str = Field(min_length=2, max_length=10)
+	category_id: UUID | None = None
+	rights_status: Literal["cleared"]
+	notes: str | None = Field(default=None, max_length=2000)
+
+	@model_validator(mode="after")
+	def validate_age_range(self):
+		if (self.age_min, self.age_max) not in YOUTUBE_AGE_BANDS:
+			raise ValueError("Choose one of the supported age bands: 3-5, 6-8, 9-12 or 13-15")
+		return self
+
+
+class YouTubeTrustedChannelPublic(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
+	id: UUID
+	channel_id: str
+	channel_title: str | None
+	age_min: int
+	age_max: int
+	language_code: str
+	category_id: UUID | None
+	rights_status: str
+	is_active: bool
+	created_by: UUID | None
+	created_at: datetime
+	updated_at: datetime
+	notes: str | None
 
 
 class YouTubeApproveRequest(BaseModel):
@@ -198,7 +238,7 @@ class YouTubeApproveRequest(BaseModel):
 	@model_validator(mode="after")
 	def validate_age_range(self):
 		if (self.age_min, self.age_max) not in YOUTUBE_AGE_BANDS:
-			raise ValueError("Choose one of the supported age bands: 4-7, 8-11 or 12-15")
+			raise ValueError("Choose one of the supported age bands: 3-5, 6-8, 9-12 or 13-15")
 		return self
 
 

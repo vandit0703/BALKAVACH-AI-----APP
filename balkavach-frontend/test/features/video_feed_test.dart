@@ -36,7 +36,11 @@ Map<String, Object?> _video({
 
 List<Map<String, Object?>> _page(int start, int count) => [
   for (var i = start; i < start + count; i++)
-    _video(id: 'v$i', title: 'Video $i'),
+    _video(
+      id: 'v$i',
+      title: 'Video $i',
+      youtubeId: 'dQw4w9WgX${i.toString().padLeft(2, '0')}',
+    ),
 ];
 
 class _FakeOpener implements LinkOpener {
@@ -76,8 +80,16 @@ class _FakeRepository implements VideoFeedRepository {
   }) async {}
 }
 
-List<FeedVideo> _feed(int start, int count) =>
-    _page(start, count).map(FeedVideo.fromJson).toList();
+List<FeedVideo> _feed(int start, int count) => [
+  for (var i = start; i < start + count; i++)
+    FeedVideo.fromJson(
+      _video(
+        id: 'v$i',
+        title: 'Video $i',
+        youtubeId: 'dQw4w9WgX${i.toString().padLeft(2, '0')}',
+      ),
+    ),
+];
 
 void main() {
   group('FeedVideo', () {
@@ -192,6 +204,22 @@ void main() {
       await Future.wait([pager.loadMore(), pager.loadMore()]);
       expect(repo.offsets, [0]);
     });
+
+    test(
+      'duplicate YouTube IDs are not appended under different row IDs',
+      () async {
+        final first = FeedVideo.fromJson(_video(id: 'row-1'));
+        final duplicate = FeedVideo.fromJson(_video(id: 'row-2'));
+        final repo = _FakeRepository({
+          0: [first, duplicate],
+        });
+        final pager = VideoFeedPager(repo, VideoFeedKind.shorts, pageSize: 2);
+
+        await pager.loadMore();
+
+        expect(pager.items.map((video) => video.id), ['row-1']);
+      },
+    );
   });
 
   group('player navigation policy', () {
@@ -247,7 +275,16 @@ void main() {
       h.backend
         ..on('GET', '/api/v1/videos/feed', learn)
         ..reply('GET', '/api/v1/videos/shorts', shorts);
-      await pumpScreen(tester, const VideoFeedScreen(), overrides: h.overrides);
+      await pumpScreen(
+        tester,
+        const VideoFeedScreen(),
+        overrides: [
+          ...h.overrides,
+          youtubeEmbedBuilderProvider.overrideWithValue(
+            (_) => const SizedBox(key: Key('test.youtubeEmbed')),
+          ),
+        ],
+      );
       await tester.pumpAndSettle();
       return h;
     }

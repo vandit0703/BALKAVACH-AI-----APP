@@ -305,14 +305,14 @@ def test_approval_only_accepts_configured_age_bands():
 
 	from app.schemas.video import YouTubeApproveRequest
 
-	for age_min, age_max in ((4, 7), (8, 11), (12, 15)):
+	for age_min, age_max in ((3, 5), (6, 8), (9, 12), (13, 15)):
 		YouTubeApproveRequest(
 			age_min=age_min,
 			age_max=age_max,
 			language_code="en",
 			rights_status="cleared",
 		)
-	for age_min, age_max in ((0, 12), (4, 8), (12, 16), (7, 8)):
+	for age_min, age_max in ((0, 12), (3, 6), (8, 9), (12, 16), (7, 8)):
 		with pytest.raises(ValidationError):
 			YouTubeApproveRequest(
 				age_min=age_min,
@@ -364,6 +364,15 @@ class StubReview(Stub):
 	rights_status = Column(String, nullable=False)
 	made_for_kids = Column(Boolean)
 	last_verified_at = Column(DateTime)
+	channel_id = Column(String)
+	publication_source = Column(String, nullable=False, default="manual")
+
+
+class StubTrustedChannel(Stub):
+	__tablename__ = "youtube_trusted_channels"
+	id = Column(String, primary_key=True)
+	channel_id = Column(String, nullable=False)
+	is_active = Column(Boolean, nullable=False)
 
 
 @pytest.fixture
@@ -371,7 +380,11 @@ def stub_db(monkeypatch):
 	engine = create_engine("sqlite://")
 	Stub.metadata.create_all(engine)
 	monkeypatch.setattr(reviews, "has_model", lambda name: True)
-	monkeypatch.setattr(reviews, "get_model", lambda name: StubReview)
+	monkeypatch.setattr(
+		reviews,
+		"get_model",
+		lambda name: StubTrustedChannel if name == "YouTubeTrustedChannel" else StubReview,
+	)
 	with Session(engine) as session:
 		yield session
 
@@ -424,6 +437,44 @@ def test_without_migration_0008_no_youtube_video_is_visible(stub_db, monkeypatch
 	assert visible(stub_db) == {"hosted"}
 
 
+def test_automatic_publication_requires_an_active_trusted_channel(stub_db):
+	now = datetime(2026, 10, 23, 12, tzinfo=timezone.utc)
+	fresh = (now - timedelta(hours=1)).replace(tzinfo=None)
+	for name, channel_id in (
+		("auto_active", "UC1234567890123456789012"),
+		("auto_disabled", "UC2234567890123456789012"),
+	):
+		stub_db.add(StubVideo(id=name, video_source="youtube"))
+		stub_db.add(
+			StubReview(
+				id=f"r-{name}",
+				video_id=name,
+				status="approved",
+				rights_status="cleared",
+				made_for_kids=True,
+				last_verified_at=fresh,
+				channel_id=channel_id,
+				publication_source="automatic",
+			)
+		)
+	stub_db.add(
+		StubTrustedChannel(
+			id="trusted-1",
+			channel_id="UC1234567890123456789012",
+			is_active=True,
+		)
+	)
+	stub_db.add(
+		StubTrustedChannel(
+			id="trusted-2",
+			channel_id="UC2234567890123456789012",
+			is_active=False,
+		)
+	)
+	stub_db.commit()
+	assert visible(stub_db, now) == {"auto_active"}
+
+
 # --- Route authorisation (no database reached) --------------------------------
 
 
@@ -444,6 +495,9 @@ def as_role():
 MODERATION_CALLS = [
 	("post", "/api/v1/admin/videos/youtube/discover", {"topic": "science"}),
 	("post", "/api/v1/admin/videos/youtube/import", {"url": f"https://youtu.be/{VIDEO_ID}"}),
+	("get", "/api/v1/admin/videos/youtube/channels", None),
+	("post", "/api/v1/admin/videos/youtube/channels/trust", {"channel_id": "UC1234567890123456789012", "age_min": 3, "age_max": 5, "language_code": "en", "rights_status": "cleared"}),
+	("post", "/api/v1/admin/videos/youtube/channels/UC1234567890123456789012/untrust", {}),
 	("get", "/api/v1/admin/videos/youtube/reviews", None),
 	("post", f"/api/v1/admin/videos/youtube/reviews/{uuid4()}/approve", {"age_min": 4, "age_max": 8, "language_code": "en", "rights_status": "cleared"}),
 	("post", f"/api/v1/admin/videos/youtube/reviews/{uuid4()}/revoke", {"reason": "unsafe"}),
@@ -548,11 +602,62 @@ def test_approval_accepts_no_status_or_safety_flags_from_the_client():
 
 	from app.schemas.video import YouTubeApproveRequest
 
-	base = {"age_min": 4, "age_max": 7, "language_code": "en"}
+	base = {"age_min": 3, "age_max": 5, "language_code": "en"}
 	with pytest.raises(ValidationError):
 		YouTubeApproveRequest(**base, rights_status="approved")
 	request = YouTubeApproveRequest(**base, rights_status="cleared", status="approved", made_for_kids=True)
 	assert not {"status", "made_for_kids"} & set(request.model_dump())
+
+
+def test_trusted_channel_automatically_publishes_only_clean_short_candidates(monkeypatch):
+	from app.services.youtube_review_service import _auto_publish
+
+	monkeypatch.setattr(reviews, "record_audit", lambda *args, **kwargs: None)
+	actor = SimpleNamespace(id=uuid4())
+	channel = SimpleNamespace(
+		id=uuid4(),
+		channel_id="UC1234567890123456789012",
+		is_active=True,
+		age_min=6,
+		age_max=8,
+		language_code="en",
+		category_id=None,
+		rights_status="cleared",
+	)
+	review = SimpleNamespace(
+		status="pending_review",
+		channel_id=channel.channel_id,
+		screening_flags=[],
+		made_for_kids=True,
+		rights_status="unreviewed",
+		last_verified_at=None,
+		publication_source="manual",
+		publication_reason=None,
+		youtube_video_id=VIDEO_ID,
+	)
+	video = SimpleNamespace(
+		duration_seconds=120,
+		age_min=4,
+		age_max=12,
+		language_code="en",
+		category_id=None,
+		content_rating="parent_review_required",
+		is_published=False,
+		published_at=None,
+		id=uuid4(),
+	)
+	assert _auto_publish(None, actor, review, video, channel) is True
+	assert review.status == "approved"
+	assert review.publication_source == "automatic"
+	assert video.is_published is True
+	assert (video.age_min, video.age_max) == (6, 8)
+
+	for field, value in (("channel_id", "UCother123456789012345678"), ("screening_flags", ["keyword:scary"])):
+		review.status = "pending_review"
+		review.channel_id = channel.channel_id
+		review.screening_flags = []
+		setattr(review, field, value)
+		assert _auto_publish(None, actor, review, video, channel) is False
 
 
 def test_feed_items_never_carry_a_key_or_moderation_fields():

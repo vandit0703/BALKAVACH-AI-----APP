@@ -199,6 +199,7 @@ class YouTubeClient:
 		page_token: str | None = None,
 		relevance_language: str | None = None,
 		region_code: str | None = None,
+		channel_id: str | None = None,
 		max_results: int = 25,
 	) -> dict:
 		"""``search.list`` restricted to strict SafeSearch, embeddable videos and a fixed topic.
@@ -214,6 +215,8 @@ class YouTubeClient:
 			raise ValueError("Malformed relevance language")
 		if region_code is not None and not REGION_PATTERN.fullmatch(region_code):
 			raise ValueError("Malformed region code")
+		if channel_id is not None and not re.fullmatch(r"UC[A-Za-z0-9_-]{22}", channel_id):
+			raise ValueError("Malformed channel id")
 		if not 1 <= max_results <= 50:
 			raise ValueError("max_results must be between 1 and 50")
 		params: dict[str, Any] = {
@@ -233,6 +236,8 @@ class YouTubeClient:
 			params["relevanceLanguage"] = relevance_language
 		if region_code:
 			params["regionCode"] = region_code
+		if channel_id:
+			params["channelId"] = channel_id
 		data = self._get("search", params)
 		video_ids: list[str] = []
 		for item in data.get("items") or []:
@@ -265,7 +270,7 @@ class YouTubeClient:
 
 	def _get(self, resource: str, params: dict[str, Any], *, use_cache: bool = True) -> dict:
 		if not self._api_key:
-			raise YouTubeNotConfiguredError("YOUTUBE_API_KEY is not set")
+			raise YouTubeNotConfiguredError("YOUTUBE_DATA_API_KEY is not set")
 		cache_key = (resource, tuple(sorted((key, str(value)) for key, value in params.items())))
 		if use_cache:
 			cached = self._cache_get(cache_key)
@@ -358,7 +363,7 @@ def get_youtube_client() -> YouTubeClient:
 	"""The shared client; raises a controlled 503 when no key is configured."""
 	global _client
 	if not (settings.youtube_api_key or "").strip():
-		raise to_api_error(YouTubeNotConfiguredError("YOUTUBE_API_KEY is not set"))
+		raise to_api_error(YouTubeNotConfiguredError("YOUTUBE_DATA_API_KEY is not set"))
 	with _client_lock:
 		if _client is None:
 			_client = YouTubeClient(settings.youtube_api_key)

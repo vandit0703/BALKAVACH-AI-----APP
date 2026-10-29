@@ -32,6 +32,8 @@ from app.schemas.video import (
 	YouTubeReviewPublic,
 	YouTubeReviewStatus,
 	YouTubeRevokeRequest,
+	YouTubeTrustedChannelPublic,
+	YouTubeTrustedChannelRequest,
 )
 from app.services import youtube_review_service
 from app.services.admin_service import record_audit
@@ -65,7 +67,7 @@ def list_video_categories(
 SHORTS_MAX_SECONDS = 180
 
 
-def _feed_item(video) -> VideoFeedItem:
+def _feed_item(video, channel_name: str | None = None) -> VideoFeedItem:
 	is_youtube = video.video_source == "youtube"
 	return VideoFeedItem(
 		id=video.id,
@@ -78,7 +80,24 @@ def _feed_item(video) -> VideoFeedItem:
 		content_rating=video.content_rating,
 		video_source=video.video_source,
 		youtube_video_id=video.external_video_id if is_youtube else None,
+		channel_name=channel_name if is_youtube else None,
 	)
+
+
+def _channel_names(session: Session, videos) -> dict[UUID, str]:
+	if not videos:
+		return {}
+	Review = get_model("YouTubeContentReview")
+	return {
+		video_id: channel_name
+		for video_id, channel_name in session.query(Review.video_id, Review.channel_title)
+		.filter(
+			Review.video_id.in_(video.id for video in videos),
+			Review.channel_title.is_not(None),
+		)
+		.all()
+		if channel_name
+	}
 
 
 @router.get("/feed", response_model=list[VideoFeedItem])
@@ -89,7 +108,9 @@ def video_feed(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoFeedItem]:
-	return [_feed_item(video) for video in eligible_feed(session, child, category_id, limit, offset)]
+	videos = eligible_feed(session, child, category_id, limit, offset)
+	channels = _channel_names(session, videos) if any(video.video_source == "youtube" for video in videos) else {}
+	return [_feed_item(video, channels.get(video.id)) for video in videos]
 
 
 @router.get("/shorts", response_model=list[VideoFeedItem])
@@ -101,7 +122,8 @@ def video_shorts(
 	session: Session = Depends(get_db),
 ) -> list[VideoFeedItem]:
 	videos = eligible_feed(session, child, category_id, limit, offset, max_duration_seconds=SHORTS_MAX_SECONDS)
-	return [_feed_item(video) for video in videos]
+	channels = _channel_names(session, videos) if any(video.video_source == "youtube" for video in videos) else {}
+	return [_feed_item(video, channels.get(video.id)) for video in videos]
 
 
 @router.post("/report", response_model=ContentReportReceipt, status_code=201)
@@ -269,6 +291,37 @@ def admin_youtube_import(
 	session: Session = Depends(get_db),
 ) -> YouTubeReviewPublic:
 	return YouTubeReviewPublic(**youtube_review_service.import_video(session, admin, get_youtube_client(), request.url))
+
+
+@admin_router.get("/youtube/channels", response_model=list[YouTubeTrustedChannelPublic])
+def admin_youtube_channels(
+	limit: int = Query(default=50, ge=1, le=100),
+	offset: int = Query(default=0, ge=0),
+	admin=Depends(require_admin_permission("video:read")),
+	session: Session = Depends(get_db),
+) -> list[YouTubeTrustedChannelPublic]:
+	return [
+		YouTubeTrustedChannelPublic.model_validate(row)
+		for row in youtube_review_service.list_trusted_channels(session, limit, offset)
+	]
+
+
+@admin_router.post("/youtube/channels/trust", response_model=YouTubeTrustedChannelPublic)
+def admin_youtube_trust_channel(
+	request: YouTubeTrustedChannelRequest,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeTrustedChannelPublic:
+	return YouTubeTrustedChannelPublic.model_validate(youtube_review_service.trust_channel(session, admin, request))
+
+
+@admin_router.post("/youtube/channels/{channel_id}/untrust", response_model=YouTubeTrustedChannelPublic)
+def admin_youtube_untrust_channel(
+	channel_id: str,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeTrustedChannelPublic:
+	return YouTubeTrustedChannelPublic.model_validate(youtube_review_service.untrust_channel(session, admin, channel_id))
 
 
 @admin_router.get("/youtube/reviews", response_model=list[YouTubeReviewPublic])

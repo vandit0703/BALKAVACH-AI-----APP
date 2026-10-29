@@ -2,9 +2,9 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import case, or_
+from sqlalchemy import case, exists, or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.core.exceptions import APIError
 from app.db.base import get_model
@@ -36,8 +36,9 @@ def eligible_feed(
 	user = session.query(User).filter(User.id == child.user_id).one()
 	Video = get_model("Video")
 	VideoCategory = get_model("VideoCategory")
+	DuplicateYouTubeVideo = aliased(Video)
 	age = child_age(child)
-	if age is None or not 4 <= age <= 15:
+	if age is None or not 3 <= age <= 15:
 		return []
 	languages = [user.preferred_language]
 	if user.preferred_language != "en":
@@ -50,6 +51,14 @@ def eligible_feed(
 		Video.language_code.in_(languages),
 		or_(Video.category_id.is_(None), VideoCategory.is_active.is_(True)),
 		youtube_visibility_clause(Video),
+		or_(
+			Video.video_source != "youtube",
+			~exists().where(
+				DuplicateYouTubeVideo.video_source == "youtube",
+				DuplicateYouTubeVideo.external_video_id == Video.external_video_id,
+				DuplicateYouTubeVideo.id < Video.id,
+			),
+		),
 	)
 	if max_duration_seconds is not None:
 		query = query.filter(Video.duration_seconds <= max_duration_seconds)

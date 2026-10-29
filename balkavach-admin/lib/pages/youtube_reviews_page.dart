@@ -33,7 +33,12 @@ const _statuses = [
   'unavailable',
 ];
 
-const _ageBands = {'4-7': '4–7', '8-11': '8–11', '12-15': '12–15'};
+const _ageBands = {
+  '3-5': '3–5',
+  '6-8': '6–8',
+  '9-12': '9–12',
+  '13-15': '13–15',
+};
 
 class YouTubeReviewsPage extends ConsumerStatefulWidget {
   const YouTubeReviewsPage({super.key});
@@ -95,6 +100,94 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
     if (ok && mounted) setState(() => _reload++);
   }
 
+  Future<void> _trustChannel(
+    Map<String, dynamic> row,
+    BuildContext dialogContext,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final channelId = '${row['channel_id'] ?? ''}';
+    if (channelId.isEmpty || !mounted) return;
+    final values = await showFormDialog(
+      context,
+      title: 'Trust YouTube channel',
+      fields: [
+        FormFieldSpec(
+          key: 'age_band',
+          label: l10n.youtubeAgeBand,
+          kind: FieldKind.choice,
+          required: true,
+          options: _ageBands,
+          initial: _ageBands.keys.first,
+        ),
+        FormFieldSpec(
+          key: 'language_code',
+          label: l10n.fieldLanguage,
+          kind: FieldKind.choice,
+          required: true,
+          options: kLanguageNames,
+          initial: 'en',
+        ),
+        FormFieldSpec(
+          key: 'rights_cleared',
+          label: l10n.youtubeRightsCleared,
+          kind: FieldKind.toggle,
+          initial: false,
+        ),
+        FormFieldSpec(
+          key: 'notes',
+          label: l10n.fieldDescription,
+          kind: FieldKind.multiline,
+          maxLength: 2000,
+        ),
+      ],
+      submitLabel: 'Trust channel',
+    );
+    if (values == null || !mounted) return;
+    if (values['rights_cleared'] != true) {
+      showMessage(context, l10n.youtubeRightsRequired);
+      return;
+    }
+    final range = (values.remove('age_band') as String).split('-');
+    values
+      ..remove('rights_cleared')
+      ..['channel_id'] = channelId
+      ..['channel_title'] = row['channel_title']
+      ..['age_min'] = int.parse(range.first)
+      ..['age_max'] = int.parse(range.last)
+      ..['rights_status'] = 'cleared';
+    final ok = await runAction(
+      context,
+      () => ref
+          .read(adminApiProvider)
+          .post('/api/v1/admin/videos/youtube/channels/trust', values),
+    );
+    if (ok && mounted && dialogContext.mounted) {
+      Navigator.pop(dialogContext);
+      setState(() => _reload++);
+    }
+  }
+
+  Future<void> _untrustChannel(
+    Map<String, dynamic> row,
+    BuildContext dialogContext,
+  ) async {
+    final channelId = '${row['channel_id'] ?? ''}';
+    if (channelId.isEmpty || !mounted) return;
+    final ok = await runAction(
+      context,
+      () => ref
+          .read(adminApiProvider)
+          .post(
+            '/api/v1/admin/videos/youtube/channels/$channelId/untrust',
+            const {},
+          ),
+    );
+    if (ok && mounted && dialogContext.mounted) {
+      Navigator.pop(dialogContext);
+      setState(() => _reload++);
+    }
+  }
+
   Future<void> _inspect(Map<String, dynamic> row) async {
     final l10n = AppLocalizations.of(context);
     await showDialog<void>(
@@ -116,7 +209,10 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
                     errorBuilder: (_, _, _) => const SizedBox.shrink(),
                   ),
                 _metadata('Status', row['status']),
+                _metadata('Channel ID', row['channel_id']),
                 _metadata('Channel', row['channel_title']),
+                _metadata('Publication', row['publication_source']),
+                _metadata('Publication reason', row['publication_reason']),
                 _metadata('Source', row['source_url']),
                 _metadata('Discovery topic', row['discovery_topic']),
                 _metadata('YouTube category', row['youtube_category_id']),
@@ -173,6 +269,16 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
             FilledButton(
               onPressed: () => _revoke(row, dialogContext),
               child: Text(l10n.youtubeActionRevoke),
+            ),
+          if (_canWrite && row['channel_id'] != null)
+            TextButton(
+              onPressed: () => _trustChannel(row, dialogContext),
+              child: const Text('Trust channel'),
+            ),
+          if (_canWrite && row['channel_id'] != null)
+            TextButton(
+              onPressed: () => _untrustChannel(row, dialogContext),
+              child: const Text('Untrust channel'),
             ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),

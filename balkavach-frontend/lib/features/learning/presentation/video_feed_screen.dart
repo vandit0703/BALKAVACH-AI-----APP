@@ -12,6 +12,7 @@ import '../../../shared/widgets/lazy_list_page.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/video_feed_repository.dart';
 import 'video_player_screen.dart' show formatPlaybackTime;
+import 'youtube_player_screen.dart';
 
 /// Server-approved videos for the signed-in child, in two tabs: longer
 /// learning videos and short ones. Only what `GET /videos/feed` and
@@ -43,9 +44,227 @@ class VideoFeedScreen extends StatelessWidget {
         body: const TabBarView(
           children: [
             _FeedTab(kind: VideoFeedKind.learn),
-            _FeedTab(kind: VideoFeedKind.shorts),
+            _ShortsFeedTab(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ShortsFeedTab extends ConsumerStatefulWidget {
+  const _ShortsFeedTab();
+
+  @override
+  ConsumerState<_ShortsFeedTab> createState() => _ShortsFeedTabState();
+}
+
+class _ShortsFeedTabState extends ConsumerState<_ShortsFeedTab> {
+  late final VideoFeedPager _pager;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pager = VideoFeedPager(
+      ref.read(videoFeedRepositoryProvider),
+      VideoFeedKind.shorts,
+      pageSize: 10,
+    )..addListener(_changed);
+    _pager.loadMore();
+  }
+
+  void _changed() => setState(() {});
+
+  @override
+  void dispose() {
+    _pager
+      ..removeListener(_changed)
+      ..dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _pager.items;
+    final embedBuilder = ref.watch(youtubeEmbedBuilderProvider);
+    if (items.isEmpty) {
+      if (_pager.status == PagerStatus.error) {
+        return ErrorView(
+          key: const Key('videos.shorts.error'),
+          error: _pager.error!,
+          onRetry: _pager.retry,
+        );
+      }
+      if (_pager.status == PagerStatus.done) {
+        return EmptyView(
+          key: const Key('videos.shorts.empty'),
+          message: AppLocalizations.of(context).videoFeedEmpty,
+          image: AppImages.pandaDrawing,
+        );
+      }
+      return const LoadingView();
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        PageView.builder(
+          key: const Key('videos.shorts.pager'),
+          scrollDirection: Axis.vertical,
+          itemCount: items.length,
+          onPageChanged: (index) {
+            setState(() => _currentPage = index);
+            if (index >= items.length - 2) _pager.loadMore();
+          },
+          itemBuilder: (context, index) => _ShortsPage(
+            key: ValueKey(items[index].youtubeVideoId ?? items[index].id),
+            video: items[index],
+            active: index == _currentPage,
+            embedBuilder: embedBuilder,
+          ),
+        ),
+        if (_pager.status == PagerStatus.loading)
+          const Positioned(
+            right: AppSpacing.md,
+            bottom: AppSpacing.md,
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ShortsPage extends StatefulWidget {
+  const _ShortsPage({
+    super.key,
+    required this.video,
+    required this.active,
+    required this.embedBuilder,
+  });
+
+  final FeedVideo video;
+  final bool active;
+  final YouTubeEmbedBuilder embedBuilder;
+
+  @override
+  State<_ShortsPage> createState() => _ShortsPageState();
+}
+
+class _ShortsPageState extends State<_ShortsPage> {
+  bool _failed = false;
+  int _attempt = 0;
+
+  void _retry() => setState(() {
+    _failed = false;
+    _attempt++;
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final video = widget.video;
+    final videoId = video.isYouTube ? video.youtubeVideoId : null;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ColoredBox(
+          color: colors.surfaceContainerHighest,
+          child: videoId == null
+              ? (video.thumbnailUrl == null
+                    ? const Center(
+                        child: Icon(Icons.video_library_outlined, size: 56),
+                      )
+                    : Image.network(video.thumbnailUrl!, fit: BoxFit.cover))
+              : widget.active && !_failed
+              ? KeyedSubtree(
+                  key: ValueKey('${video.id}-$_attempt'),
+                  child: widget.embedBuilder(
+                    YouTubeEmbedConfig(
+                      videoId: videoId,
+                      onLeaveRequested: (_) {},
+                      onForeignVideo: () {},
+                      onError: () {
+                        if (mounted) setState(() => _failed = true);
+                      },
+                      autoplay: true,
+                    ),
+                  ),
+                )
+              : _failed
+              ? _ShortsError(onRetry: _retry)
+              : const SizedBox.shrink(),
+        ),
+        Positioned(
+          left: AppSpacing.md,
+          right: AppSpacing.md,
+          bottom: AppSpacing.lg,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: colors.scrim.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    video.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.text.titleLarge?.copyWith(
+                      color: colors.onPrimary,
+                    ),
+                  ),
+                  if ((video.channelName ?? '').isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      video.channelName!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.text.bodyMedium?.copyWith(
+                        color: colors.onPrimary,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    formatPlaybackTime(
+                      Duration(seconds: video.durationSeconds),
+                    ),
+                    style: context.text.bodySmall?.copyWith(
+                      color: colors.onPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ShortsError extends StatelessWidget {
+  const _ShortsError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Center(
+      child: FilledButton.icon(
+        key: const Key('videos.shorts.retry'),
+        onPressed: onRetry,
+        icon: const Icon(Icons.refresh_rounded),
+        label: Text(l10n.videoRetry),
       ),
     );
   }

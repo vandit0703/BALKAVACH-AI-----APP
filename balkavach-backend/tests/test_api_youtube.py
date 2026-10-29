@@ -58,7 +58,7 @@ def _discover(api, admin):
 
 
 def _approve(api, admin, review_id, **overrides):
-	body = {"age_min": 8, "age_max": 11, "language_code": "en", "rights_status": "cleared", **overrides}
+	body = {"age_min": 6, "age_max": 8, "language_code": "en", "rights_status": "cleared", **overrides}
 	return api.post(f"/admin/videos/youtube/reviews/{review_id}/approve", admin["token"], body)
 
 
@@ -90,7 +90,7 @@ def test_discovery_deduplicates_and_screens(api, youtube):
 	assert again["created"] == [] and again["skipped_existing"] == 2
 
 
-@pytest.mark.parametrize(("age", "age_min", "age_max"), [(5, 4, 7), (9, 8, 11), (13, 12, 15)])
+@pytest.mark.parametrize(("age", "age_min", "age_max"), [(4, 3, 5), (7, 6, 8), (10, 9, 12), (14, 13, 15)])
 def test_each_approved_age_band_is_visible_to_eligible_child(api, youtube, age, age_min, age_max):
 	admin = api.make_admin()
 	ctx = _family_with_age(api, age)

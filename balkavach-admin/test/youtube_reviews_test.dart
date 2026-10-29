@@ -10,6 +10,7 @@ Map<String, Object?> _review({String status = 'pending_review'}) => {
   'video_id': '22222222-2222-4222-8222-222222222222',
   'youtube_video_id': 'dQw4w9WgXcQ',
   'source_url': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  'channel_id': 'UC1234567890123456789012',
   'channel_title': 'Science channel',
   'made_for_kids': true,
   'status': status,
@@ -31,6 +32,8 @@ Map<String, Object?> _review({String status = 'pending_review'}) => {
   'age_max': null,
   'discovery_topic': 'science',
   'youtube_category_id': '27',
+  'publication_source': 'manual',
+  'publication_reason': null,
 };
 
 void main() {
@@ -42,7 +45,7 @@ void main() {
       ..reply(
         'POST',
         '/api/v1/admin/videos/youtube/reviews/$_reviewId/approve',
-        {..._review(status: 'approved'), 'age_min': 4, 'age_max': 7},
+        {..._review(status: 'approved'), 'age_min': 3, 'age_max': 5},
       );
     await pumpAdmin(tester, server);
     await openSection(tester, 'YouTube review');
@@ -63,8 +66,8 @@ void main() {
         .single;
     expect(request.data, {
       'language_code': 'en',
-      'age_min': 4,
-      'age_max': 7,
+      'age_min': 3,
+      'age_max': 5,
       'rights_status': 'cleared',
     });
   });
