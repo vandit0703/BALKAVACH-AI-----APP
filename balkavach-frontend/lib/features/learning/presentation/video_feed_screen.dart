@@ -44,7 +44,7 @@ class VideoFeedScreen extends StatelessWidget {
         body: const TabBarView(
           children: [
             _FeedTab(kind: VideoFeedKind.learn),
-            _ShortsFeedTab(),
+            ShortsFeed(),
           ],
         ),
       ),
@@ -52,14 +52,18 @@ class VideoFeedScreen extends StatelessWidget {
   }
 }
 
-class _ShortsFeedTab extends ConsumerStatefulWidget {
-  const _ShortsFeedTab();
+/// The approved child Shorts feed. Home and Learn & Watch share this widget so
+/// there is one pager and one player lifecycle for the Shorts experience.
+class ShortsFeed extends ConsumerStatefulWidget {
+  const ShortsFeed({this.showMissionsAction = false, super.key});
+
+  final bool showMissionsAction;
 
   @override
-  ConsumerState<_ShortsFeedTab> createState() => _ShortsFeedTabState();
+  ConsumerState<ShortsFeed> createState() => _ShortsFeedState();
 }
 
-class _ShortsFeedTabState extends ConsumerState<_ShortsFeedTab> {
+class _ShortsFeedState extends ConsumerState<ShortsFeed> {
   late final VideoFeedPager _pager;
   int _currentPage = 0;
 
@@ -101,6 +105,14 @@ class _ShortsFeedTabState extends ConsumerState<_ShortsFeedTab> {
           key: const Key('videos.shorts.empty'),
           message: AppLocalizations.of(context).videoFeedEmpty,
           image: AppImages.pandaDrawing,
+          action: widget.showMissionsAction
+              ? FilledButton.icon(
+                  key: const Key('videos.shorts.toMissions'),
+                  onPressed: () => context.go(AppRoutes.childMissions),
+                  icon: const Icon(Icons.rocket_launch_rounded),
+                  label: Text(AppLocalizations.of(context).watchMissionsOpen),
+                )
+              : null,
         );
       }
       return const LoadingView();

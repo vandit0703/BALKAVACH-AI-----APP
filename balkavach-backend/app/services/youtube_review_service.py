@@ -14,6 +14,7 @@ Screening is a keyword and metadata filter: it reduces reviewer load, it does
 not make content safe, and it inspects no video frames, audio or thumbnails.
 """
 
+import logging
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -50,6 +51,7 @@ TRANSITIONS: dict[str, set[str]] = {
 }
 
 MAX_REPORTS_PER_USER_PER_DAY = 20
+logger = logging.getLogger(__name__)
 
 # Crude on purpose: a hit sends the candidate to quarantine for a human, it never
 # rejects or approves anything by itself.
@@ -129,15 +131,14 @@ def screen_candidate(item: dict[str, Any], region_code: str | None = None) -> tu
 
 def youtube_visibility_clause(Video, now: datetime | None = None):
 	"""SQL condition a feed query must apply: non-YouTube rows pass, YouTube rows
-	pass only while approved, rights-cleared and re-verified recently. Automatically
-	published rows additionally require their trusted channel to remain active.
+	pass only while approved, rights-cleared and re-verified recently. Trusted
+	channels are an additional publication signal, not a feed requirement.
 
 	Without migration 0008 no YouTube row is visible (fail closed).
 	"""
 	if not has_model("YouTubeContentReview"):
 		return Video.video_source != "youtube"
 	Review = get_model("YouTubeContentReview")
-	Trusted = get_model("YouTubeTrustedChannel") if has_model("YouTubeTrustedChannel") else None
 	now = now or datetime.now(timezone.utc)
 	fresh_after = utc_naive(now - timedelta(hours=settings.youtube_reverify_hours))
 	approved = exists().where(
@@ -147,12 +148,6 @@ def youtube_visibility_clause(Video, now: datetime | None = None):
 		Review.rights_status == "cleared",
 		Review.last_verified_at >= fresh_after,
 	)
-	if Trusted is not None and hasattr(Review, "channel_id") and hasattr(Review, "publication_source"):
-		trusted = exists().where(
-			Trusted.channel_id == Review.channel_id,
-			Trusted.is_active.is_(True),
-		)
-		approved = approved.where(or_(Review.publication_source != "automatic", trusted))
 	return or_(Video.video_source != "youtube", approved)
 
 
@@ -291,35 +286,73 @@ def _create_candidate(
 	return review, video
 
 
-def _auto_publish(session: Session, actor, review, video, trusted_channel) -> bool:
-	"""Publish only a clean, short candidate from an active trusted channel."""
-	if not trusted_channel.is_active or review.channel_id != trusted_channel.channel_id:
+def _auto_publish(session: Session, actor, review, video, trusted_channel=None) -> bool:
+	"""Publish a clean, short candidate under the configured discovery policy."""
+	def skipped(reason: str, **details: Any) -> bool:
+		logger.info(
+			"youtube.auto_publish.skipped",
+			extra={
+				"event": "youtube.auto_publish.skipped",
+				"reason": reason,
+				"review_id": str(getattr(review, "id", "")),
+				"youtube_video_id": review.youtube_video_id,
+				"channel_id": review.channel_id,
+				**details,
+			},
+		)
 		return False
-	if review.status != "pending_review" or review.screening_flags:
-		return False
-	if review.made_for_kids is not True or video.duration_seconds > settings.youtube_auto_publish_max_seconds:
-		return False
-	if trusted_channel.rights_status != "cleared":
-		return False
+
+	if trusted_channel is None:
+		if not settings.youtube_auto_publish_non_trusted:
+			return skipped("non_trusted_auto_publish_disabled")
+	else:
+		if not trusted_channel.is_active:
+			return skipped("trusted_channel_inactive")
+		if review.channel_id != trusted_channel.channel_id:
+			return skipped("channel_id_mismatch", trusted_channel_id=trusted_channel.channel_id)
+		if trusted_channel.rights_status != "cleared":
+			return skipped("trusted_channel_rights_not_cleared", rights_status=trusted_channel.rights_status)
+	if trusted_channel is None and review.rights_status != "cleared":
+		return skipped("rights_not_cleared", rights_status=review.rights_status)
+	if review.status != "pending_review":
+		return skipped("review_not_pending", status=review.status)
+	if review.screening_flags:
+		return skipped("screening_flags", flags=list(review.screening_flags))
+	if review.made_for_kids is not True:
+		return skipped("made_for_kids_not_true", made_for_kids=review.made_for_kids)
+	if video.duration_seconds > settings.youtube_auto_publish_max_seconds:
+		return skipped(
+			"duration_exceeds_limit",
+			duration_seconds=video.duration_seconds,
+			max_duration_seconds=settings.youtube_auto_publish_max_seconds,
+		)
 	now = _now()
-	video.age_min = trusted_channel.age_min
-	video.age_max = trusted_channel.age_max
-	video.language_code = trusted_channel.language_code
-	video.category_id = trusted_channel.category_id
+	if trusted_channel is not None:
+		video.age_min = trusted_channel.age_min
+		video.age_max = trusted_channel.age_max
+		video.language_code = trusted_channel.language_code
+		video.category_id = trusted_channel.category_id
 	video.content_rating = "educational"
 	video.is_published = True
 	video.published_at = now
 	review.rights_status = "cleared"
 	review.last_verified_at = now
 	review.publication_source = "automatic"
-	review.publication_reason = f"active trusted channel {trusted_channel.channel_id}; clean metadata screening"
+	review.publication_reason = (
+		f"active trusted channel {trusted_channel.channel_id}; clean metadata screening"
+		if trusted_channel is not None
+		else "configured non-trusted discovery policy; clean metadata screening"
+	)
 	_move(
 		session,
 		actor.id,
 		review,
 		video,
 		"approved",
-		{"publication_source": "automatic", "trusted_channel_id": str(trusted_channel.id)},
+		{
+			"publication_source": "automatic",
+			"trusted_channel_id": str(trusted_channel.id) if trusted_channel is not None else None,
+		},
 	)
 	return True
 
@@ -394,7 +427,14 @@ def untrust_channel(session: Session, actor, channel_id: str) -> Any:
 	return channel
 
 
-def discover(session: Session, actor, client: YouTubeClient, request: YouTubeDiscoverRequest) -> dict[str, Any]:
+def discover(
+	session: Session,
+	actor,
+	client: YouTubeClient,
+	request: YouTubeDiscoverRequest,
+	*,
+	auto_publish: bool = False,
+) -> dict[str, Any]:
 	_require_tables("YouTubeContentReview")
 	try:
 		page = client.search(
@@ -406,6 +446,7 @@ def discover(session: Session, actor, client: YouTubeClient, request: YouTubeDis
 			max_results=request.max_results,
 		)
 		Review = get_model("YouTubeContentReview")
+		Trusted = get_model("YouTubeTrustedChannel") if has_model("YouTubeTrustedChannel") else None
 		existing = {
 			row[0]
 			for row in session.query(Review.youtube_video_id).filter(Review.youtube_video_id.in_(page["video_ids"])).all()
@@ -416,20 +457,34 @@ def discover(session: Session, actor, client: YouTubeClient, request: YouTubeDis
 		raise to_api_error(error) from error
 	created = []
 	unplayable = 0
+	automatically_published = 0
 	for video_id in new_ids:
 		item = details.get(video_id)
 		result = _create_candidate(session, actor, video_id, item, request.topic)
 		if result is None:
 			unplayable += 1
 			continue
-		created.append(result)
+		review, video = result
+		trusted_channel = (
+			session.query(Trusted).filter(Trusted.channel_id == review.channel_id).one_or_none()
+			if Trusted is not None and review.channel_id
+			else None
+		)
+		if auto_publish and review.status == "pending_review" and review.rights_status == "unreviewed":
+			# The scheduled discovery job's configured policy is the rights
+			# attestation for non-trusted automatic publication. Explicitly denied
+			# rights remain blocked by _auto_publish.
+			review.rights_status = "cleared"
+		if auto_publish and review.status == "pending_review" and _auto_publish(session, actor, review, video, trusted_channel):
+			automatically_published += 1
+		created.append((review, video))
 	session.commit()
 	return {
 		"created": [review_public(review, video) for review, video in created],
 		"skipped_existing": len(existing),
 		"skipped_unplayable": unplayable,
 		"next_page_token": page["next_page_token"],
-		"automatically_published": 0,
+		"automatically_published": automatically_published,
 		"quarantined": sum(1 for review, _ in created if review.status == "quarantined"),
 	}
 
@@ -439,6 +494,7 @@ def discover_trusted(session: Session, actor, client: YouTubeClient, max_results
 	_require_tables("YouTubeContentReview", "YouTubeTrustedChannel")
 	Trusted = get_model("YouTubeTrustedChannel")
 	Review = get_model("YouTubeContentReview")
+	Video = get_model("Video")
 	channels = session.query(Trusted).filter(Trusted.is_active.is_(True), Trusted.rights_status == "cleared").all()
 	counts = {"created": 0, "skipped_existing": 0, "automatically_published": 0, "quarantined": 0}
 	try:
@@ -457,6 +513,20 @@ def discover_trusted(session: Session, actor, client: YouTubeClient, max_results
 					for row in session.query(Review.youtube_video_id).filter(Review.youtube_video_id.in_(video_ids)).all()
 				} if video_ids else set()
 				counts["skipped_existing"] += len(existing)
+				pending_existing = (
+					session.query(Review, Video)
+					.join(Video, Video.id == Review.video_id)
+					.filter(
+						Review.youtube_video_id.in_(existing),
+						Review.channel_id == channel.channel_id,
+						Review.status == "pending_review",
+					)
+					.with_for_update()
+					.all()
+				)
+				for review, video in pending_existing:
+					if _auto_publish(session, actor, review, video, channel):
+						counts["automatically_published"] += 1
 				new_ids = [video_id for video_id in video_ids if video_id not in existing]
 				details = client.videos(new_ids) if new_ids else {}
 				for video_id in new_ids:

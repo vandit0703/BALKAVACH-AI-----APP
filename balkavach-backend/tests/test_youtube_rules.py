@@ -437,7 +437,7 @@ def test_without_migration_0008_no_youtube_video_is_visible(stub_db, monkeypatch
 	assert visible(stub_db) == {"hosted"}
 
 
-def test_automatic_publication_requires_an_active_trusted_channel(stub_db):
+def test_automatic_publication_does_not_require_an_active_trusted_channel(stub_db):
 	now = datetime(2026, 10, 23, 12, tzinfo=timezone.utc)
 	fresh = (now - timedelta(hours=1)).replace(tzinfo=None)
 	for name, channel_id in (
@@ -472,7 +472,7 @@ def test_automatic_publication_requires_an_active_trusted_channel(stub_db):
 		)
 	)
 	stub_db.commit()
-	assert visible(stub_db, now) == {"auto_active"}
+	assert visible(stub_db, now) == {"auto_active", "auto_disabled"}
 
 
 # --- Route authorisation (no database reached) --------------------------------
@@ -629,7 +629,7 @@ def test_trusted_channel_automatically_publishes_only_clean_short_candidates(mon
 		channel_id=channel.channel_id,
 		screening_flags=[],
 		made_for_kids=True,
-		rights_status="unreviewed",
+		 rights_status="unreviewed",
 		last_verified_at=None,
 		publication_source="manual",
 		publication_reason=None,
@@ -648,6 +648,7 @@ def test_trusted_channel_automatically_publishes_only_clean_short_candidates(mon
 	)
 	assert _auto_publish(None, actor, review, video, channel) is True
 	assert review.status == "approved"
+	assert review.rights_status == "cleared"
 	assert review.publication_source == "automatic"
 	assert video.is_published is True
 	assert (video.age_min, video.age_max) == (6, 8)
@@ -658,6 +659,38 @@ def test_trusted_channel_automatically_publishes_only_clean_short_candidates(mon
 		review.screening_flags = []
 		setattr(review, field, value)
 		assert _auto_publish(None, actor, review, video, channel) is False
+
+	non_trusted_review = SimpleNamespace(
+		status="pending_review",
+		channel_id="UCother123456789012345678",
+		screening_flags=[],
+		made_for_kids=True,
+		rights_status="cleared",
+		last_verified_at=None,
+		publication_source="manual",
+		publication_reason=None,
+		youtube_video_id=VIDEO_ID,
+	)
+	non_trusted_video = SimpleNamespace(
+		duration_seconds=120,
+		age_min=4,
+		age_max=12,
+		language_code="en",
+		category_id=None,
+		content_rating="parent_review_required",
+		is_published=False,
+		published_at=None,
+		id=uuid4(),
+	)
+	assert _auto_publish(None, actor, non_trusted_review, non_trusted_video) is True
+	assert non_trusted_review.status == "approved"
+	assert non_trusted_review.publication_source == "automatic"
+	assert non_trusted_video.is_published is True
+
+	non_trusted_review.status = "pending_review"
+	non_trusted_review.rights_status = "not_cleared"
+	non_trusted_video.is_published = False
+	assert _auto_publish(None, actor, non_trusted_review, non_trusted_video) is False
 
 
 def test_feed_items_never_carry_a_key_or_moderation_fields():

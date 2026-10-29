@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -12,6 +13,8 @@ from app.schemas.video import VideoCategoryCreate, VideoCollectionCreate, VideoC
 from app.services.admin_service import record_audit
 from app.services.youtube_review_service import youtube_visibility_clause
 from app.utils import utc_naive
+
+logger = logging.getLogger(__name__)
 
 
 def child_age(child) -> int | None:
@@ -64,7 +67,7 @@ def eligible_feed(
 		query = query.filter(Video.duration_seconds <= max_duration_seconds)
 	if category_id:
 		query = query.filter(Video.category_id == category_id)
-	return (
+	result = (
 		query.order_by(
 			case((Video.language_code == user.preferred_language, 0), else_=1),
 			Video.display_order,
@@ -75,6 +78,33 @@ def eligible_feed(
 		.limit(limit)
 		.all()
 	)
+	if not result:
+		published_count = session.query(Video.id).filter(Video.is_published.is_(True)).count()
+		age_count = session.query(Video.id).filter(
+			Video.is_published.is_(True),
+			Video.age_min <= age,
+			Video.age_max >= age,
+		).count()
+		visibility_count = session.query(Video.id).filter(
+			Video.is_published.is_(True),
+			Video.age_min <= age,
+			Video.age_max >= age,
+			youtube_visibility_clause(Video),
+		).count()
+		logger.info(
+			"videos.feed.empty",
+			extra={
+				"event": "videos.feed.empty",
+				"age": age,
+				"limit": limit,
+				"offset": offset,
+				"max_duration_seconds": max_duration_seconds,
+				"published_count": published_count,
+				"age_eligible_count": age_count,
+				"youtube_visibility_count": visibility_count,
+			},
+		)
+	return result
 
 
 def create_category(session: Session, actor, request: VideoCategoryCreate):

@@ -40,6 +40,9 @@ class FakeBackend implements HttpClientAdapter {
   void reply(String method, String path, Object? body, {int status = 200}) =>
       on(method, path, (_) => FakeReply(status, body));
 
+    bool hasRoute(String method, String path) =>
+      _routes.containsKey('$method $path');
+
   List<RequestOptions> requestsTo(String method, String path) =>
       requests.where((r) => r.method == method && r.uri.path == path).toList();
 

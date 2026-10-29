@@ -10,6 +10,8 @@ import pytest
 
 from app.api.v1 import videos as video_routes
 from app.db.base import get_model, has_model
+from app.schemas.video import YouTubeDiscoverRequest
+from app.services.youtube_review_service import discover
 
 VIDEO_ID = "dQw4w9WgXcQ"
 OTHER_ID = "abcdefghijk"
@@ -88,6 +90,24 @@ def test_discovery_deduplicates_and_screens(api, youtube):
 	assert "not_made_for_kids" in created[OTHER_ID]["screening_flags"]
 	again = api.post("/admin/videos/youtube/discover", admin["token"], {"topic": "science"}).json()
 	assert again["created"] == [] and again["skipped_existing"] == 2
+
+
+def test_scheduled_discovery_automatically_publishes_clean_non_trusted_video(api, youtube):
+	admin = api.make_admin()
+	ctx = _family_with_age(api)
+	User = get_model("User")
+	actor = api.session.query(User).filter(User.id == admin["id"]).one()
+	result = discover(
+		api.session,
+		actor,
+		youtube,
+		YouTubeDiscoverRequest(topic="science", shorts=True),
+		auto_publish=True,
+	)
+
+	assert result["automatically_published"] == 1
+	assert result["created"][0]["publication_source"] == "automatic"
+	assert _feed_ids(api, ctx["child"]["token"], "/videos/shorts") == {VIDEO_ID}
 
 
 @pytest.mark.parametrize(("age", "age_min", "age_max"), [(4, 3, 5), (7, 6, 8), (10, 9, 12), (14, 13, 15)])

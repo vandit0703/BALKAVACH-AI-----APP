@@ -222,6 +222,7 @@ def _youtube_discover(session_factory, max_results: int) -> int:
 						region_code=settings.youtube_region_code,
 						max_results=max_results,
 					),
+					auto_publish=True,
 				)
 				for key in totals:
 					if key in result:

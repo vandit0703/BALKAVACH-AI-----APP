@@ -40,6 +40,7 @@ class Settings(BaseSettings):
 	)
 	youtube_discovery_max_results: int = Field(default=10, ge=1, le=50)
 	youtube_auto_publish_max_seconds: int = Field(default=180, ge=1, le=600)
+	youtube_auto_publish_non_trusted: bool = True
 	youtube_discovery_actor_id: UUID | None = Field(default=None, repr=False)
 	youtube_reverify_hours: int = Field(default=72, ge=1, le=720)
 	notification_provider: str | None = None
