@@ -50,8 +50,24 @@ class YouTubeReviewsPage extends ConsumerStatefulWidget {
 class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
   int _reload = 0;
   String _status = 'pending_review';
+  String _publication = 'all';
+  String _published = 'all';
+  Map<String, dynamic>? _diagnostics;
+  Object? _diagnosticsError;
 
   bool get _canWrite => ref.watch(sessionProvider)?.can('video:write') ?? false;
+
+  Future<void> _refreshDiagnostics() async {
+    setState(() => _diagnosticsError = null);
+    try {
+      final value = await ref
+          .read(adminApiProvider)
+          .getMap('/api/v1/admin/videos/youtube/diagnostics');
+      if (mounted) setState(() => _diagnostics = value);
+    } on Object catch (error) {
+      if (mounted) setState(() => _diagnosticsError = error);
+    }
+  }
 
   Future<void> _discover() async {
     final l10n = AppLocalizations.of(context);
@@ -212,7 +228,10 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
                 _metadata('Channel ID', row['channel_id']),
                 _metadata('Channel', row['channel_title']),
                 _metadata('Publication', row['publication_source']),
+                _metadata('Publication status', row['publication_status']),
+                _metadata('Published at', row['published_at']),
                 _metadata('Publication reason', row['publication_reason']),
+                _metadata('Not published reason', row['not_published_reason']),
                 _metadata('Source', row['source_url']),
                 _metadata('Discovery topic', row['discovery_topic']),
                 _metadata('YouTube category', row['youtube_category_id']),
@@ -476,28 +495,99 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
         ),
         Align(
           alignment: Alignment.centerLeft,
-          child: SizedBox(
-            width: 260,
-            child: DropdownButtonFormField<String>(
-              key: const Key('youtube.status'),
-              initialValue: _status,
-              isExpanded: true,
-              decoration: InputDecoration(labelText: l10n.youtubeStatus),
-              items: [
-                DropdownMenuItem(value: 'all', child: Text(l10n.youtubeAll)),
-                for (final status in _statuses)
-                  DropdownMenuItem(value: status, child: Text(status)),
-              ],
-              onChanged: (status) {
-                if (status != null) {
-                  setState(() {
-                    _status = status;
-                    _reload++;
-                  });
-                }
-              },
-            ),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                width: 260,
+                child: DropdownButtonFormField<String>(
+                  key: const Key('youtube.status'),
+                  initialValue: _status,
+                  isExpanded: true,
+                  decoration: InputDecoration(labelText: l10n.youtubeStatus),
+                  items: [
+                    DropdownMenuItem(value: 'all', child: Text(l10n.youtubeAll)),
+                    for (final status in _statuses)
+                      DropdownMenuItem(value: status, child: Text(status)),
+                  ],
+                  onChanged: (status) {
+                    if (status != null) {
+                      setState(() {
+                        _status = status;
+                        _reload++;
+                      });
+                    }
+                  },
+                ),
+              ),
+              SizedBox(
+                width: 220,
+                child: DropdownButtonFormField<String>(
+                  key: const Key('youtube.publication'),
+                  initialValue: _publication,
+                  decoration: const InputDecoration(labelText: 'Publication source'),
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('All publication sources')),
+                    DropdownMenuItem(value: 'automatic', child: Text('Automatic')),
+                    DropdownMenuItem(value: 'manual', child: Text('Manual')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setState(() { _publication = value; _reload++; });
+                  },
+                ),
+              ),
+              SizedBox(
+                width: 180,
+                child: DropdownButtonFormField<String>(
+                  key: const Key('youtube.published'),
+                  initialValue: _published,
+                  decoration: const InputDecoration(labelText: 'Availability'),
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('All availability')),
+                    DropdownMenuItem(value: 'true', child: Text('Published')),
+                    DropdownMenuItem(value: 'false', child: Text('Unpublished')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setState(() { _published = value; _reload++; });
+                  },
+                ),
+              ),
+            ],
           ),
+        ),
+        const SizedBox(height: 12),
+        SectionCard(
+          title: 'Pipeline diagnostics',
+          trailing: IconButton(
+            key: const Key('youtube.refreshDiagnostics'),
+            tooltip: 'Refresh diagnostics',
+            onPressed: _refreshDiagnostics,
+            icon: const Icon(Icons.refresh),
+          ),
+          child: _diagnosticsError != null
+              ? Text('Diagnostics unavailable: $_diagnosticsError')
+              : _diagnostics == null
+              ? const Text('Refresh diagnostics to inspect the production pipeline.')
+              : Wrap(
+                  spacing: 24,
+                  runSpacing: 8,
+                  children: [
+                    for (final entry in <String, String>{
+                      'Discovered': '${_diagnostics!['total_discovered'] ?? 0}',
+                      'Automatic': '${_diagnostics!['automatically_published'] ?? 0}',
+                      'Manual': '${_diagnostics!['manually_published'] ?? 0}',
+                      'Pending': '${_diagnostics!['pending_review'] ?? 0}',
+                      'Quarantined': '${_diagnostics!['quarantined'] ?? 0}',
+                      'Rejected': '${_diagnostics!['rejected'] ?? 0}',
+                      'Revoked': '${_diagnostics!['revoked'] ?? 0}',
+                      'Unavailable': '${_diagnostics!['unavailable'] ?? 0}',
+                      'Approved but unavailable': '${_diagnostics!['approved_unpublished'] ?? 0}',
+                    }.entries)
+                      Text('${entry.key}: ${entry.value}'),
+                    Text('Last discovery: ${_diagnostics!['last_discovery_run'] ?? '—'}'),
+                  ],
+                ),
         ),
         const SizedBox(height: 12),
         PagedTable(
@@ -510,24 +600,36 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
                 '/api/v1/admin/videos/youtube/reviews',
                 query: {
                   if (_status != 'all') 'status': _status,
+                  if (_publication != 'all') 'publication_source': _publication,
+                  if (_published != 'all') 'is_published': _published,
                   'limit': limit,
                   'offset': offset,
                 },
               ),
           columns: [
+            'Thumbnail',
             l10n.fieldTitle,
             'Channel',
+            'Topic / category',
             l10n.youtubeStatus,
+            'Publication',
+            'Rights',
             l10n.youtubeScreening,
             '',
           ],
           cells: (context, row, reload) => [
+            row['thumbnail_url'] is String
+                ? Image.network(row['thumbnail_url'] as String, width: 72, height: 48, fit: BoxFit.cover)
+                : const SizedBox(width: 72, height: 48),
             Text('${row['title'] ?? '—'}'),
             Text('${row['channel_title'] ?? '—'}'),
+            Text('${row['discovery_topic'] ?? row['category_id'] ?? '—'}\nAge ${row['age_min'] ?? '—'}–${row['age_max'] ?? '—'}'),
             StatusPill(
               label: '${row['status'] ?? '—'}',
               good: row['status'] == 'approved',
             ),
+            Text('${row['publication_status'] ?? 'unpublished'}\n${row['publication_source'] ?? 'manual'}\n${row['not_published_reason'] ?? ''}'),
+            Text('${row['rights_status'] ?? '—'}'),
             Text(
               (row['screening_flags'] as List<dynamic>? ?? const []).join(', '),
               maxLines: 2,

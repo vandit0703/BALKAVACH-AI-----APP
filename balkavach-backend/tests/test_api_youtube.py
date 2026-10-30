@@ -11,10 +11,11 @@ import pytest
 from app.api.v1 import videos as video_routes
 from app.db.base import get_model, has_model
 from app.schemas.video import YouTubeDiscoverRequest
-from app.services.youtube_review_service import discover
+from app.services.youtube_review_service import discover, discover_trusted
 
 VIDEO_ID = "dQw4w9WgXcQ"
 OTHER_ID = "abcdefghijk"
+TRUSTED_CHANNEL_ID = "UC1111111111111111111111"
 
 
 def _item(video_id: str, **status):
@@ -23,7 +24,7 @@ def _item(video_id: str, **status):
 		"snippet": {
 			"title": f"Science {video_id}",
 			"description": "Learning for children.",
-			"channelId": "UC123",
+			"channelId": TRUSTED_CHANNEL_ID,
 			"channelTitle": "Kids Science",
 			"liveBroadcastContent": "none",
 			"thumbnails": {"high": {"url": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"}},
@@ -108,6 +109,59 @@ def test_scheduled_discovery_automatically_publishes_clean_non_trusted_video(api
 	assert result["automatically_published"] == 1
 	assert result["created"][0]["publication_source"] == "automatic"
 	assert _feed_ids(api, ctx["child"]["token"], "/videos/shorts") == {VIDEO_ID}
+
+
+def test_existing_pending_candidate_is_reprocessed_by_auto_discovery(api, youtube):
+	admin = api.make_admin()
+	ctx = _family_with_age(api)
+	actor = api.session.query(get_model("User")).filter(get_model("User").id == admin["id"]).one()
+	first = discover(
+		api.session,
+		actor,
+		youtube,
+		YouTubeDiscoverRequest(topic="science"),
+	)
+	assert first["automatically_published"] == 0
+	second = discover(
+		api.session,
+		actor,
+		youtube,
+		YouTubeDiscoverRequest(topic="science"),
+		auto_publish=True,
+	)
+	assert second["automatically_published"] == 1
+	assert _feed_ids(api, ctx["child"]["token"], "/videos/shorts") == {VIDEO_ID}
+
+
+def test_trusted_channel_rights_are_inherited_on_existing_pending_candidate(api, youtube):
+	if not has_model("YouTubeTrustedChannel"):
+		pytest.skip("Migration 0010 is not applied to the test database")
+	admin = api.make_admin()
+	actor = api.session.query(get_model("User")).filter(get_model("User").id == admin["id"]).one()
+	discover(api.session, actor, youtube, YouTubeDiscoverRequest(topic="science"))
+	trusted = get_model("YouTubeTrustedChannel")(
+		channel_id=TRUSTED_CHANNEL_ID,
+		channel_title="Kids Science",
+		age_min=6,
+		age_max=8,
+		language_code="en",
+		rights_status="cleared",
+		is_active=True,
+		created_by=actor.id,
+	)
+	api.session.add(trusted)
+	api.session.commit()
+	result = discover_trusted(api.session, actor, youtube, 10)
+	Review = get_model("YouTubeContentReview")
+	Video = get_model("Video")
+	review = api.session.query(Review).filter(Review.youtube_video_id == VIDEO_ID).one()
+	video = api.session.query(Video).filter(Video.id == review.video_id).one()
+	assert result["automatically_published"] == 1
+	assert review.status == "approved"
+	assert review.rights_status == "cleared"
+	assert review.publication_source == "automatic"
+	assert video.is_published is True
+	assert (video.age_min, video.age_max) == (6, 8)
 
 
 @pytest.mark.parametrize(("age", "age_min", "age_max"), [(4, 3, 5), (7, 6, 8), (10, 9, 12), (14, 13, 15)])

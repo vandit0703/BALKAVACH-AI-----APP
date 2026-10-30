@@ -20,7 +20,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import exists, or_
+from sqlalchemy import exists, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -177,6 +177,14 @@ def _published_at(snippet: dict[str, Any]) -> datetime | None:
 
 
 def review_public(review, video) -> dict[str, Any]:
+	is_published = bool(video and video.is_published)
+	publication_status = "published" if is_published else "unpublished"
+	if review.status in {"rejected", "quarantined", "revoked", "unavailable"}:
+		publication_status = review.status
+	not_published_reason = None if is_published else (
+		review.publication_reason
+		or (f"review status is {review.status}" if review.status != "approved" else "video is unpublished")
+	)
 	return {
 		"id": review.id,
 		"video_id": review.video_id,
@@ -207,6 +215,11 @@ def review_public(review, video) -> dict[str, Any]:
 		"youtube_category_id": review.youtube_category_id,
 		"publication_source": getattr(review, "publication_source", "manual"),
 		"publication_reason": getattr(review, "publication_reason", None),
+		"is_published": is_published,
+		"published_at": utc_aware(video.published_at) if video and video.published_at else None,
+		"category_id": video.category_id if video else None,
+		"publication_status": publication_status,
+		"not_published_reason": not_published_reason,
 	}
 
 
@@ -436,6 +449,7 @@ def discover(
 	auto_publish: bool = False,
 ) -> dict[str, Any]:
 	_require_tables("YouTubeContentReview")
+	automatically_published = 0
 	try:
 		page = client.search(
 			request.topic,
@@ -452,12 +466,33 @@ def discover(
 			for row in session.query(Review.youtube_video_id).filter(Review.youtube_video_id.in_(page["video_ids"])).all()
 		} if page["video_ids"] else set()
 		new_ids = [video_id for video_id in page["video_ids"] if video_id not in existing]
+		if auto_publish and existing:
+			Video = get_model("Video")
+			pending_existing = (
+				session.query(Review, Video)
+				.join(Video, Video.id == Review.video_id)
+				.filter(
+					Review.youtube_video_id.in_(existing),
+					Review.status == "pending_review",
+				)
+				.with_for_update()
+				.all()
+			)
+			for review, video in pending_existing:
+				trusted_channel = (
+					session.query(Trusted).filter(Trusted.channel_id == review.channel_id).one_or_none()
+					if Trusted is not None and review.channel_id
+					else None
+				)
+				if trusted_channel is None and review.rights_status == "unreviewed":
+					review.rights_status = "cleared"
+				if _auto_publish(session, actor, review, video, trusted_channel):
+					automatically_published += 1
 		details = client.videos(new_ids) if new_ids else {}
 	except YouTubeError as error:
 		raise to_api_error(error) from error
 	created = []
 	unplayable = 0
-	automatically_published = 0
 	for video_id in new_ids:
 		item = details.get(video_id)
 		result = _create_candidate(session, actor, video_id, item, request.topic)
@@ -568,15 +603,92 @@ def import_video(session: Session, actor, client: YouTubeClient, url: str) -> di
 	return review_public(*result)
 
 
-def list_reviews(session: Session, status: str | None, limit: int, offset: int) -> list[dict[str, Any]]:
+def list_reviews(
+	session: Session,
+	status: str | None,
+	publication_source: str | None,
+	is_published: bool | None,
+	limit: int,
+	offset: int,
+) -> list[dict[str, Any]]:
 	_require_tables("YouTubeContentReview")
 	Review = get_model("YouTubeContentReview")
 	Video = get_model("Video")
 	query = session.query(Review, Video).join(Video, Video.id == Review.video_id)
 	if status:
 		query = query.filter(Review.status == status)
+	if publication_source:
+		query = query.filter(Review.publication_source == publication_source)
+	if is_published is not None:
+		query = query.filter(Video.is_published.is_(is_published))
 	rows = query.order_by(Review.discovered_at.desc(), Review.id).offset(offset).limit(limit).all()
 	return [review_public(review, video) for review, video in rows]
+
+
+def diagnostics(session: Session) -> dict[str, Any]:
+	_require_tables("YouTubeContentReview")
+	Review = get_model("YouTubeContentReview")
+	Video = get_model("Video")
+	status_counts = dict(session.query(Review.status, func.count(Review.id)).group_by(Review.status).all())
+	published_by_source = dict(
+		session.query(Review.publication_source, func.count(Review.id))
+		.join(Video, Video.id == Review.video_id)
+		.filter(Video.is_published.is_(True), Review.status == "approved")
+		.group_by(Review.publication_source)
+		.all()
+	)
+	latest = None
+	last_result: dict[str, int] = {}
+	if has_model("AuditLog"):
+		AuditLog = get_model("AuditLog")
+		latest = session.query(AuditLog.created_at, AuditLog.details).filter(
+			AuditLog.action == "youtube.discovery.completed"
+		).order_by(AuditLog.created_at.desc()).first()
+		if latest:
+			latest_time = latest[0]
+			last_result = {
+				str(key): int(value)
+				for key, value in (latest[1] or {}).items()
+				if isinstance(value, int)
+			}
+	pending_reasons: dict[str, int] = {}
+	for review, video in session.query(Review, Video).join(Video, Video.id == Review.video_id).filter(
+		Review.status == "pending_review", Video.is_published.is_(False)
+	).all():
+		reasons = [f"screening:{flag}" for flag in (review.screening_flags or [])]
+		if not reasons:
+			if review.made_for_kids is not True:
+				reasons.append("made_for_kids_not_true")
+			if review.rights_status != "cleared":
+				reasons.append(f"rights:{review.rights_status}")
+			if video.duration_seconds > settings.youtube_auto_publish_max_seconds:
+				reasons.append("duration_exceeds_limit")
+			if not reasons:
+				reasons.append("awaiting_review_or_discovery_policy")
+		for reason in reasons:
+			pending_reasons[reason] = pending_reasons.get(reason, 0) + 1
+	return {
+		"total_discovered": session.query(Review.id).count(),
+		"automatically_published": published_by_source.get("automatic", 0),
+		"manually_published": published_by_source.get("manual", 0),
+		"pending_review": status_counts.get("pending_review", 0),
+		"quarantined": status_counts.get("quarantined", 0),
+		"rejected": status_counts.get("rejected", 0),
+		"revoked": status_counts.get("revoked", 0),
+		"unavailable": status_counts.get("unavailable", 0),
+		"approved_unpublished": session.query(Review.id).join(Video, Video.id == Review.video_id).filter(
+			Review.status == "approved", Video.is_published.is_(False)
+		).count(),
+		"last_discovery_run": utc_aware(latest[0]) if latest else None,
+		"last_discovery_result": last_result,
+		"publication_failure_reasons": pending_reasons,
+		"configuration": {
+			"database": bool(settings.database_url),
+			"youtube_api": bool(settings.youtube_api_key),
+			"auto_publish_non_trusted": settings.youtube_auto_publish_non_trusted,
+			"discovery_actor": settings.youtube_discovery_actor_id is not None,
+		},
+	}
 
 
 def _locked(session: Session, review_id: UUID):

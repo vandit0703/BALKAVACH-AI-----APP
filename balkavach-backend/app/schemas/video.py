@@ -179,6 +179,11 @@ class YouTubeReviewPublic(BaseModel):
 	youtube_category_id: str | None = None
 	publication_source: str = "manual"
 	publication_reason: str | None = None
+	is_published: bool = False
+	published_at: datetime | None = None
+	category_id: UUID | None = None
+	publication_status: str = "unpublished"
+	not_published_reason: str | None = None
 
 
 class YouTubeDiscoverResult(BaseModel):
@@ -260,6 +265,22 @@ class YouTubeRecheckResult(BaseModel):
 	quarantined: int
 	unavailable: int
 	returned_to_review: int
+
+
+class YouTubeDiagnosticsPublic(BaseModel):
+	total_discovered: int
+	automatically_published: int
+	manually_published: int
+	pending_review: int
+	quarantined: int
+	rejected: int
+	revoked: int
+	unavailable: int
+	approved_unpublished: int
+	last_discovery_run: datetime | None
+	last_discovery_result: dict[str, int]
+	publication_failure_reasons: dict[str, int]
+	configuration: dict[str, bool]
 
 
 class ContentReportCreate(BaseModel):

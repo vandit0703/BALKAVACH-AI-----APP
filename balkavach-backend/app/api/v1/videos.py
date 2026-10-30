@@ -25,6 +25,7 @@ from app.schemas.video import (
 	YouTubeApproveRequest,
 	YouTubeDiscoverRequest,
 	YouTubeDiscoverResult,
+	YouTubeDiagnosticsPublic,
 	YouTubeImportRequest,
 	YouTubeRecheckRequest,
 	YouTubeRecheckResult,
@@ -327,12 +328,27 @@ def admin_youtube_untrust_channel(
 @admin_router.get("/youtube/reviews", response_model=list[YouTubeReviewPublic])
 def admin_youtube_reviews(
 	status: YouTubeReviewStatus | None = None,
+	publication_source: str | None = Query(default=None, pattern="^(automatic|manual)$"),
+	is_published: bool | None = None,
 	limit: int = Query(default=50, ge=1, le=100),
 	offset: int = Query(default=0, ge=0),
 	admin=Depends(require_admin_permission("video:read")),
 	session: Session = Depends(get_db),
 ) -> list[YouTubeReviewPublic]:
-	return [YouTubeReviewPublic(**row) for row in youtube_review_service.list_reviews(session, status, limit, offset)]
+	return [
+		YouTubeReviewPublic(**row)
+		for row in youtube_review_service.list_reviews(
+			session, status, publication_source, is_published, limit, offset
+		)
+	]
+
+
+@admin_router.get("/youtube/diagnostics", response_model=YouTubeDiagnosticsPublic)
+def admin_youtube_diagnostics(
+	admin=Depends(require_admin_permission("video:read")),
+	session: Session = Depends(get_db),
+) -> YouTubeDiagnosticsPublic:
+	return YouTubeDiagnosticsPublic(**youtube_review_service.diagnostics(session))
 
 
 @admin_router.post("/youtube/reviews/{review_id}/approve", response_model=YouTubeReviewPublic)

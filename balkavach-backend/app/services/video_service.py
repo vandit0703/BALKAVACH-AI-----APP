@@ -91,6 +91,26 @@ def eligible_feed(
 			Video.age_max >= age,
 			youtube_visibility_clause(Video),
 		).count()
+		shorts_count = session.query(Video.id).filter(
+			Video.is_published.is_(True),
+			Video.age_min <= age,
+			Video.age_max >= age,
+			Video.duration_seconds <= max_duration_seconds if max_duration_seconds is not None else True,
+		).count()
+		language_count = session.query(Video.id).filter(
+			Video.is_published.is_(True),
+			Video.age_min <= age,
+			Video.age_max >= age,
+			Video.language_code.in_(languages),
+		).count()
+		category_count = session.query(Video.id).outerjoin(
+			VideoCategory, VideoCategory.id == Video.category_id
+		).filter(
+			Video.is_published.is_(True),
+			Video.age_min <= age,
+			Video.age_max >= age,
+			or_(Video.category_id.is_(None), VideoCategory.is_active.is_(True)),
+		).count()
 		logger.info(
 			"videos.feed.empty",
 			extra={
@@ -102,6 +122,11 @@ def eligible_feed(
 				"published_count": published_count,
 				"age_eligible_count": age_count,
 				"youtube_visibility_count": visibility_count,
+				"shorts_duration_count": shorts_count,
+				"language_count": language_count,
+				"category_count": category_count,
+				"requested_category": str(category_id) if category_id else None,
+				"pagination_exhausted": offset >= age_count,
 			},
 		)
 	return result

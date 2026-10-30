@@ -230,6 +230,9 @@ def _youtube_discover(session_factory, max_results: int) -> int:
 			trusted_totals = discover_trusted(session, actor, client, max_results)
 			for key, value in trusted_totals.items():
 				totals[key] += value
+			from app.services.admin_service import record_audit
+			record_audit(session, actor.id, "youtube.discovery.completed", "youtube_pipeline", None, totals)
+			session.commit()
 	except APIError as error:
 		print(f"Error: {error.message}", file=sys.stderr)
 		return 1
