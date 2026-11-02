@@ -2092,4 +2092,103 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get videoReportReasonOther => 'कुछ और';
+
+  @override
+  String get shortsTitle => 'शॉर्ट्स';
+
+  @override
+  String get shortsSeeAll => 'सभी देखें';
+
+  @override
+  String get shortsSwipeHint => 'अगले वीडियो के लिए ऊपर स्वाइप करें';
+
+  @override
+  String get shortsEnd => 'अभी के लिए आपने सभी शॉर्ट्स देख लिए!';
+
+  @override
+  String get videoBack => 'वापस';
+
+  @override
+  String get videoMute => 'आवाज़ बंद करें';
+
+  @override
+  String get videoUnmute => 'आवाज़ चालू करें';
+
+  @override
+  String get videoShare => 'शेयर करें';
+
+  @override
+  String get videoShareTitle => 'यह वीडियो शेयर करें?';
+
+  @override
+  String get videoShareBody =>
+      'शेयर करने से दूसरा ऐप खुलता है। पहले किसी बड़े से पूछें।';
+
+  @override
+  String get videoShareCancel => 'अभी नहीं';
+
+  @override
+  String get videoShareFailed => 'शेयर नहीं हो सका।';
+
+  @override
+  String get videoNeedsGrownUp => 'यह वीडियो आपके बड़ों के इनाम से खुलता है।';
+
+  @override
+  String get videoNotEmbeddable =>
+      'यह वीडियो बाल कवच में नहीं चल सकता। कोई दूसरा देखें!';
+
+  @override
+  String get videoLoading => 'लोड हो रहा है…';
+
+  @override
+  String get videoUpNext => 'आगे देखें';
+
+  @override
+  String get videoPlayNext => 'अगला वीडियो';
+
+  @override
+  String get videoFullscreen => 'फ़ुल स्क्रीन';
+
+  @override
+  String get videoExitFullscreen => 'फ़ुल स्क्रीन बंद करें';
+
+  @override
+  String get videoBadgeShort => 'शॉर्ट';
+
+  @override
+  String get videoBadgeYouTube => 'यूट्यूब';
+
+  @override
+  String get watchGreeting => 'आज हम क्या देखें?';
+
+  @override
+  String get watchGreetingBody => 'यहाँ हर वीडियो किसी बड़े ने जाँचा है।';
+
+  @override
+  String get watchShortsSection => 'छोटे वीडियो';
+
+  @override
+  String get watchTopicsSection => 'विषय खोजें';
+
+  @override
+  String get watchVideosSection => 'सीखने वाले वीडियो';
+
+  @override
+  String get watchPickedSection => 'बड़ों द्वारा चुने गए';
+
+  @override
+  String get watchNothingYet =>
+      'अभी यहाँ कोई वीडियो नहीं है। हर वीडियो दिखने से पहले कोई बड़ा उसे जाँचता है।';
+
+  @override
+  String get shortsMore => 'और देखें';
+
+  @override
+  String get shortsLess => 'कम देखें';
+
+  @override
+  String get shortsActionSound => 'आवाज़';
+
+  @override
+  String get shortsActionReport => 'रिपोर्ट';
 }

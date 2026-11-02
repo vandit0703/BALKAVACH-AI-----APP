@@ -24,6 +24,7 @@ class FeedVideo {
     this.categoryId,
     this.youtubeVideoId,
     this.channelName,
+    this.format = VideoFormat.regular,
   });
 
   factory FeedVideo.fromJson(Map<String, dynamic> json) => FeedVideo(
@@ -36,6 +37,7 @@ class FeedVideo {
     source: json['video_source'] as String? ?? 'hosted',
     youtubeVideoId: json['youtube_video_id'] as String?,
     channelName: json['channel_name'] as String?,
+    format: VideoFormat.parse(json['video_format']),
   );
 
   final String id;
@@ -50,9 +52,27 @@ class FeedVideo {
   final String? youtubeVideoId;
   final String? channelName;
 
+  /// The server's classification (1-60 s is a short). The app never decides
+  /// this itself; a missing duration arrives as `unknown`.
+  final VideoFormat format;
+
   /// Playable in the official YouTube embed: a YouTube item with a well-formed id.
   bool get isYouTube =>
       source == 'youtube' && _youtubeIdPattern.hasMatch(youtubeVideoId ?? '');
+}
+
+/// Mirrors `video_format` in `app/schemas/video.py`.
+enum VideoFormat {
+  short,
+  regular,
+  unknown;
+
+  /// Older servers send no label; their items are shown as regular videos.
+  static VideoFormat parse(Object? value) => switch (value) {
+    'short' => VideoFormat.short,
+    'unknown' => VideoFormat.unknown,
+    _ => VideoFormat.regular,
+  };
 }
 
 enum VideoFeedKind {
@@ -85,10 +105,15 @@ class VideoFeedRepository {
     VideoFeedKind kind, {
     required int limit,
     required int offset,
+    String? categoryId,
   }) => guardApi(() async {
     final response = await _dio.get<List<dynamic>>(
       kind.path,
-      queryParameters: {'limit': limit, 'offset': offset},
+      queryParameters: {
+        'limit': limit,
+        'offset': offset,
+        'category_id': ?categoryId,
+      },
     );
     return parseJsonList(response.data, FeedVideo.fromJson);
   });
@@ -126,6 +151,7 @@ class VideoFeedPager extends ChangeNotifier {
     this._repository,
     this.kind, {
     this.pageSize = 20,
+    this.categoryId,
     List<FeedVideo> initialItems = const [],
     int? initialOffset,
     bool initialDone = false,
@@ -142,6 +168,9 @@ class VideoFeedPager extends ChangeNotifier {
   final VideoFeedRepository _repository;
   final VideoFeedKind kind;
   final int pageSize;
+
+  /// Server-side category filter (`category_id`); null for every category.
+  final String? categoryId;
 
   final List<FeedVideo> _items = [];
   final Set<String> _seen = {};
@@ -169,6 +198,7 @@ class VideoFeedPager extends ChangeNotifier {
         kind,
         limit: pageSize,
         offset: _offset,
+        categoryId: categoryId,
       );
       if (_disposed) return;
       _offset += page.length;

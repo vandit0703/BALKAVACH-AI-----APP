@@ -10,12 +10,12 @@ import '../../../core/errors/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../shared/platform/link_opener.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/learning_repository.dart';
 import '../data/video_feed_repository.dart';
 import '../data/youtube_embed_policy.dart';
+import 'widgets/video_actions.dart' show askGrownUpThenOpen;
 
 /// What the embed needs from the screen hosting it.
 @immutable
@@ -26,6 +26,12 @@ class YouTubeEmbedConfig {
     required this.onForeignVideo,
     required this.onError,
     this.autoplay = false,
+    this.muted = false,
+    this.onBlocked,
+    this.onProgress,
+    this.onVerticalSwipe,
+    this.aspectRatio,
+    this.overlay,
   });
 
   /// The approved video; nothing else may play in this embed.
@@ -37,8 +43,38 @@ class YouTubeEmbedConfig {
 
   /// The player loaded a different video than [videoId] and was reset.
   final VoidCallback onForeignVideo;
+
+  /// A load or playback failure that a retry may fix (offline, hiccup).
   final VoidCallback onError;
   final bool autoplay;
+
+  /// Starts (and stays) muted while true. Changing it mutes or unmutes.
+  final bool muted;
+
+  /// YouTube refuses this video for good: the owner disabled embedding, or it
+  /// was removed or made private. Retrying will not help. When null, these
+  /// are reported through [onError] instead.
+  final VoidCallback? onBlocked;
+
+  /// Position and length as the player reports them, for a progress bar.
+  /// This is display only and is never sent anywhere as viewing time.
+  final void Function(Duration position, Duration duration)? onProgress;
+
+  /// When set, a vertical fling on the video is handed to the host (the
+  /// Shorts feed uses it to change videos) instead of toggling fullscreen.
+  /// Taps still reach YouTube's own controls.
+  final ValueChanged<double>? onVerticalSwipe;
+
+  /// Shape of the player box. Null keeps YouTube's 16:9. The Shorts feed
+  /// passes the screen's own shape so the player fills it; YouTube then fits
+  /// the video inside (a portrait Short fills it, a landscape one is
+  /// letterboxed by YouTube itself, never cropped).
+  final double? aspectRatio;
+
+  /// Drawn above the video. On phones the web view sits in an overlay above
+  /// the page, so this is the only way to place widgets on top of it. Empty
+  /// areas of the overlay let taps through to YouTube's own controls.
+  final Widget? overlay;
 }
 
 typedef YouTubeEmbedBuilder = Widget Function(YouTubeEmbedConfig config);
@@ -77,6 +113,9 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
 
   late final YoutubePlayerController _controller;
   StreamSubscription<YoutubePlayerValue>? _values;
+  StreamSubscription<YoutubeVideoState>? _positions;
+  bool _pausedByLifecycle = false;
+  bool _blockedReported = false;
 
   @override
   void initState() {
@@ -96,11 +135,33 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
       );
     }
     _values = _controller.stream.listen(_onValue);
-    unawaited(
-      widget.config.autoplay
-          ? _controller.loadVideoById(videoId: widget.config.videoId)
-          : _controller.cueVideoById(videoId: widget.config.videoId),
-    );
+    if (widget.config.onProgress != null) {
+      _positions = _controller.videoStateStream.listen(_onPosition);
+    }
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    final config = widget.config;
+    if (config.muted) await _controller.mute();
+    await (config.autoplay
+        ? _controller.loadVideoById(videoId: config.videoId)
+        : _controller.cueVideoById(videoId: config.videoId));
+  }
+
+  @override
+  void didUpdateWidget(OfficialYouTubeEmbed oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.config.muted != widget.config.muted) {
+      unawaited(
+        widget.config.muted ? _controller.mute() : _controller.unMute(),
+      );
+    }
+  }
+
+  void _onPosition(YoutubeVideoState state) {
+    final duration = _controller.value.metaData.duration;
+    widget.config.onProgress?.call(state.position, duration);
   }
 
   NavigationDecision _onNavigation(NavigationRequest request) {
@@ -121,7 +182,15 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
   }
 
   void _onValue(YoutubePlayerValue value) {
-    if (value.hasError) widget.config.onError();
+    if (value.hasError) {
+      final onBlocked = widget.config.onBlocked;
+      if (onBlocked != null && isPermanentYouTubeError(value.error)) {
+        if (!_blockedReported) onBlocked();
+        _blockedReported = true;
+      } else {
+        widget.config.onError();
+      }
+    }
     final loaded = value.metaData.videoId;
     if (loaded.isNotEmpty && loaded != widget.config.videoId) {
       unawaited(_controller.cueVideoById(videoId: widget.config.videoId));
@@ -132,7 +201,19 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Like the native player: nothing keeps playing behind another app.
-    if (state != AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed) {
+      // An autoplaying player that was playing picks up where it paused; a
+      // cued one (the classic player screen) waits for the child to press
+      // play.
+      if (_pausedByLifecycle && widget.config.autoplay) {
+        unawaited(_controller.playVideo());
+      }
+      _pausedByLifecycle = false;
+    } else if (!_pausedByLifecycle) {
+      final playerState = _controller.value.playerState;
+      _pausedByLifecycle =
+          playerState == PlayerState.playing ||
+          playerState == PlayerState.buffering;
       unawaited(_controller.pauseVideo());
     }
   }
@@ -141,14 +222,63 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_values?.cancel());
+    unawaited(_positions?.cancel());
     unawaited(_controller.close());
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) =>
-      YoutubePlayer(controller: _controller, autoFullScreen: false);
+  Widget build(BuildContext context) {
+    final config = widget.config;
+    final onSwipe = config.onVerticalSwipe;
+    final overlay = config.overlay;
+    final aspectRatio = config.aspectRatio ?? 16 / 9;
+    if (onSwipe == null && overlay == null) {
+      return YoutubePlayer(
+        controller: _controller,
+        autoFullScreen: false,
+        aspectRatio: aspectRatio,
+      );
+    }
+    // On phones the web view lives in an overlay above the page, so a swipe
+    // on the video would never reach the feed, and page widgets would sit
+    // underneath it. Both go in the player's own controls layer instead. The
+    // swipe catcher is translucent and only claims vertical drags, so taps
+    // still reach YouTube's controls, ads and links.
+    return YoutubePlayer(
+      controller: _controller,
+      autoFullScreen: false,
+      aspectRatio: aspectRatio,
+      backgroundColor: Colors.black,
+      enableFullScreenOnVerticalDrag: onSwipe == null,
+      controlsBuilder: (context, isFullscreen) => isFullscreen
+          ? const SizedBox.shrink()
+          : Stack(
+              fit: StackFit.expand,
+              children: [
+                if (onSwipe != null)
+                  GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onVerticalDragEnd: (details) =>
+                        onSwipe(details.primaryVelocity ?? 0),
+                  ),
+                ?overlay,
+              ],
+            ),
+    );
+  }
 }
+
+/// YouTube errors no retry can fix: embedding disabled by the owner, or the
+/// video removed or made private.
+bool isPermanentYouTubeError(YoutubeError error) => switch (error) {
+  YoutubeError.notEmbeddable ||
+  YoutubeError.sameAsNotEmbeddable ||
+  YoutubeError.sameAsNotEmbeddable2 ||
+  YoutubeError.videoNotFound ||
+  YoutubeError.cannotFindVideo => true,
+  _ => false,
+};
 
 /// Plays one YouTube video in the official player: either one the server
 /// approved for the video feed, or one an administrator curated for Learn &
@@ -182,7 +312,6 @@ class YouTubePlayerScreen extends ConsumerStatefulWidget {
 
 class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
   bool _failed = false;
-  bool _gateOpen = false;
 
   /// Bumped on retry so the embed (and its web view) is built afresh.
   int _attempt = 0;
@@ -198,34 +327,9 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _leave(Uri uri) async {
-    // Several navigation events can arrive for one tap; ask once.
-    if (_gateOpen || !mounted) return;
-    _gateOpen = true;
-    final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        key: const Key('youtube.leaveGate'),
-        title: Text(l10n.youtubeLeaveTitle),
-        content: Text(l10n.youtubeLeaveBody),
-        actions: [
-          TextButton(
-            key: const Key('youtube.leaveStay'),
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.youtubeLeaveStay),
-          ),
-          FilledButton(
-            key: const Key('youtube.leaveOpen'),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.youtubeLeaveOpen),
-          ),
-        ],
-      ),
-    );
-    _gateOpen = false;
-    if (confirmed ?? false) await ref.read(linkOpenerProvider).open(uri);
-  }
+  // Several navigation events can arrive for one tap; the shared gate asks
+  // once.
+  Future<void> _leave(Uri uri) => askGrownUpThenOpen(context, ref, uri);
 
   void _onForeignVideo() {
     if (mounted) {
@@ -238,10 +342,7 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
   }
 
   Future<void> _report(String videoId) async {
-    final sent = await showDialog<bool>(
-      context: context,
-      builder: (_) => _ReportDialog(videoId: videoId),
-    );
+    final sent = await showVideoReportDialog(context, videoId);
     if (!mounted || sent == null) return;
     final l10n = AppLocalizations.of(context);
     _notify(sent ? l10n.videoReportSent : l10n.videoReportFailed);
@@ -335,6 +436,15 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
     );
   }
 }
+
+/// Opens the grown-up report form for a server video row. Resolves `true`
+/// when the server accepted the report, `false` when it failed, and `null`
+/// when cancelled.
+Future<bool?> showVideoReportDialog(BuildContext context, String videoId) =>
+    showDialog<bool>(
+      context: context,
+      builder: (_) => _ReportDialog(videoId: videoId),
+    );
 
 /// Grown-up report form. Pops `true` when the server accepted the report,
 /// `false` when it failed, and `null` when cancelled.

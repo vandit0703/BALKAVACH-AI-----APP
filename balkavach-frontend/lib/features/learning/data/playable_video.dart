@@ -82,6 +82,7 @@ class PlayableVideo {
     this.duration,
     this.categoryId,
     this.reportVideoId,
+    this.format = VideoFormat.regular,
   });
 
   /// A video from `GET /videos/feed` or `GET /videos/shorts`.
@@ -97,6 +98,7 @@ class PlayableVideo {
     categoryId: video.categoryId,
     // Every feed video has a server row a grown-up can report.
     reportVideoId: video.id,
+    format: video.format,
     source: video.isYouTube
         ? YouTubeVideoSource(video.youtubeVideoId!)
         : video.source == 'youtube'
@@ -135,6 +137,30 @@ class PlayableVideo {
   /// The server's video id for the grown-up report form, when there is one.
   final String? reportVideoId;
 
+  /// Short, regular or unknown, as the server classified it. Curated Learn &
+  /// Watch items carry no duration, so they are regular.
+  final VideoFormat format;
+
+  /// `#tags` written in the description, in order, without duplicates.
+  List<String> get hashtags {
+    final text = description;
+    if (text == null) return const [];
+    final seen = <String>{};
+    return [
+      for (final match in _hashtag.allMatches(text))
+        if (seen.add(match.group(0)!.toLowerCase())) match.group(0)!,
+    ];
+  }
+
+  /// The description without its hashtags, which are shown separately.
+  String? get descriptionWithoutHashtags {
+    final text = description
+        ?.replaceAll(_hashtag, '')
+        .replaceAll(RegExp(r'[ \t]+'), ' ');
+    final trimmed = text?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
   bool get isPlayable => source is! UnavailableSource;
   bool get isYouTube => source is YouTubeVideoSource;
 
@@ -152,6 +178,9 @@ class PlayableVideo {
   @override
   int get hashCode => Object.hash(key, source);
 }
+
+// \p{M} keeps Devanagari and Gujarati vowel signs inside the tag.
+final _hashtag = RegExp(r'#[\p{L}\p{M}\p{N}_]+', unicode: true);
 
 String? _clean(String? value) {
   final trimmed = value?.trim();

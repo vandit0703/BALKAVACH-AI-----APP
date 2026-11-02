@@ -2091,4 +2091,104 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get videoReportReasonOther => 'Something else';
+
+  @override
+  String get shortsTitle => 'Shorts';
+
+  @override
+  String get shortsSeeAll => 'See all';
+
+  @override
+  String get shortsSwipeHint => 'Swipe up for the next video';
+
+  @override
+  String get shortsEnd => 'You\'ve seen all the shorts for now!';
+
+  @override
+  String get videoBack => 'Back';
+
+  @override
+  String get videoMute => 'Mute';
+
+  @override
+  String get videoUnmute => 'Turn sound on';
+
+  @override
+  String get videoShare => 'Share';
+
+  @override
+  String get videoShareTitle => 'Share this video?';
+
+  @override
+  String get videoShareBody =>
+      'Sharing opens another app. Ask a grown-up first.';
+
+  @override
+  String get videoShareCancel => 'Not now';
+
+  @override
+  String get videoShareFailed => 'Couldn\'t open sharing.';
+
+  @override
+  String get videoNeedsGrownUp =>
+      'This video unlocks with a reward from your grown-up.';
+
+  @override
+  String get videoNotEmbeddable =>
+      'This video can\'t play inside Bal Kavach. Try another one!';
+
+  @override
+  String get videoLoading => 'Loading…';
+
+  @override
+  String get videoUpNext => 'Up next';
+
+  @override
+  String get videoPlayNext => 'Next video';
+
+  @override
+  String get videoFullscreen => 'Full screen';
+
+  @override
+  String get videoExitFullscreen => 'Exit full screen';
+
+  @override
+  String get videoBadgeShort => 'Short';
+
+  @override
+  String get videoBadgeYouTube => 'YouTube';
+
+  @override
+  String get watchGreeting => 'What shall we watch today?';
+
+  @override
+  String get watchGreetingBody => 'Every video here was checked by a grown-up.';
+
+  @override
+  String get watchShortsSection => 'Quick videos';
+
+  @override
+  String get watchTopicsSection => 'Explore topics';
+
+  @override
+  String get watchVideosSection => 'Videos to learn from';
+
+  @override
+  String get watchPickedSection => 'Picked by grown-ups';
+
+  @override
+  String get watchNothingYet =>
+      'No videos here yet. A grown-up checks every video before it appears.';
+
+  @override
+  String get shortsMore => 'more';
+
+  @override
+  String get shortsLess => 'less';
+
+  @override
+  String get shortsActionSound => 'Sound';
+
+  @override
+  String get shortsActionReport => 'Report';
 }

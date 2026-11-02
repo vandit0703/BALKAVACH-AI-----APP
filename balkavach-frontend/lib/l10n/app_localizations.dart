@@ -3544,6 +3544,198 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Something else'**
   String get videoReportReasonOther;
+
+  /// Title of the full-screen vertical Shorts feed.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorts'**
+  String get shortsTitle;
+
+  /// Opens the full Shorts feed from Home.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get shortsSeeAll;
+
+  /// Hint under the first Short.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe up for the next video'**
+  String get shortsSwipeHint;
+
+  /// Shown after the last Short.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve seen all the shorts for now!'**
+  String get shortsEnd;
+
+  /// Back button tooltip on video screens.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get videoBack;
+
+  /// Turns the video's sound off.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get videoMute;
+
+  /// Turns the video's sound back on.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn sound on'**
+  String get videoUnmute;
+
+  /// Share button on a video.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get videoShare;
+
+  /// Grown-up check before the share sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Share this video?'**
+  String get videoShareTitle;
+
+  /// Grown-up check body.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing opens another app. Ask a grown-up first.'**
+  String get videoShareBody;
+
+  /// Cancels sharing.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get videoShareCancel;
+
+  /// The share sheet could not open.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open sharing.'**
+  String get videoShareFailed;
+
+  /// Hosted videos need an approved reward; they are not played from a list.
+  ///
+  /// In en, this message translates to:
+  /// **'This video unlocks with a reward from your grown-up.'**
+  String get videoNeedsGrownUp;
+
+  /// YouTube refused to embed this video.
+  ///
+  /// In en, this message translates to:
+  /// **'This video can\'t play inside Bal Kavach. Try another one!'**
+  String get videoNotEmbeddable;
+
+  /// Video is buffering.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading…'**
+  String get videoLoading;
+
+  /// Related videos heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Up next'**
+  String get videoUpNext;
+
+  /// Plays the next related video.
+  ///
+  /// In en, this message translates to:
+  /// **'Next video'**
+  String get videoPlayNext;
+
+  /// Enters full screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Full screen'**
+  String get videoFullscreen;
+
+  /// Leaves full screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit full screen'**
+  String get videoExitFullscreen;
+
+  /// Badge on a Short video card.
+  ///
+  /// In en, this message translates to:
+  /// **'Short'**
+  String get videoBadgeShort;
+
+  /// Badge on a video from YouTube.
+  ///
+  /// In en, this message translates to:
+  /// **'YouTube'**
+  String get videoBadgeYouTube;
+
+  /// Watch & Learn home heading.
+  ///
+  /// In en, this message translates to:
+  /// **'What shall we watch today?'**
+  String get watchGreeting;
+
+  /// Watch & Learn home subheading.
+  ///
+  /// In en, this message translates to:
+  /// **'Every video here was checked by a grown-up.'**
+  String get watchGreetingBody;
+
+  /// Shorts row heading on Home.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick videos'**
+  String get watchShortsSection;
+
+  /// Category chips heading on Home.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore topics'**
+  String get watchTopicsSection;
+
+  /// Regular videos heading on Home.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos to learn from'**
+  String get watchVideosSection;
+
+  /// Curated Learn & Watch videos heading on Home.
+  ///
+  /// In en, this message translates to:
+  /// **'Picked by grown-ups'**
+  String get watchPickedSection;
+
+  /// Home empty state when no section has content.
+  ///
+  /// In en, this message translates to:
+  /// **'No videos here yet. A grown-up checks every video before it appears.'**
+  String get watchNothingYet;
+
+  /// Expands a Short's description.
+  ///
+  /// In en, this message translates to:
+  /// **'more'**
+  String get shortsMore;
+
+  /// Collapses a Short's description.
+  ///
+  /// In en, this message translates to:
+  /// **'less'**
+  String get shortsLess;
+
+  /// Short label under the mute button in Shorts.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound'**
+  String get shortsActionSound;
+
+  /// Short label under the report button in Shorts.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get shortsActionReport;
 }
 
 class _AppLocalizationsDelegate

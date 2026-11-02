@@ -1249,5 +1249,133 @@
   "videoReportReasonViolent": "Violent",
   "videoReportReasonMisleading": "Misleading",
   "videoReportReasonAdvertising": "Ads or selling",
-  "videoReportReasonOther": "Something else"
+  "videoReportReasonOther": "Something else",
+  "shortsTitle": "Shorts",
+  "@shortsTitle": {
+    "description": "Title of the full-screen vertical Shorts feed."
+  },
+  "shortsSeeAll": "See all",
+  "@shortsSeeAll": {
+    "description": "Opens the full Shorts feed from Home."
+  },
+  "shortsSwipeHint": "Swipe up for the next video",
+  "@shortsSwipeHint": {
+    "description": "Hint under the first Short."
+  },
+  "shortsEnd": "You've seen all the shorts for now!",
+  "@shortsEnd": {
+    "description": "Shown after the last Short."
+  },
+  "videoBack": "Back",
+  "@videoBack": {
+    "description": "Back button tooltip on video screens."
+  },
+  "videoMute": "Mute",
+  "@videoMute": {
+    "description": "Turns the video's sound off."
+  },
+  "videoUnmute": "Turn sound on",
+  "@videoUnmute": {
+    "description": "Turns the video's sound back on."
+  },
+  "videoShare": "Share",
+  "@videoShare": {
+    "description": "Share button on a video."
+  },
+  "videoShareTitle": "Share this video?",
+  "@videoShareTitle": {
+    "description": "Grown-up check before the share sheet."
+  },
+  "videoShareBody": "Sharing opens another app. Ask a grown-up first.",
+  "@videoShareBody": {
+    "description": "Grown-up check body."
+  },
+  "videoShareCancel": "Not now",
+  "@videoShareCancel": {
+    "description": "Cancels sharing."
+  },
+  "videoShareFailed": "Couldn't open sharing.",
+  "@videoShareFailed": {
+    "description": "The share sheet could not open."
+  },
+  "videoNeedsGrownUp": "This video unlocks with a reward from your grown-up.",
+  "@videoNeedsGrownUp": {
+    "description": "Hosted videos need an approved reward; they are not played from a list."
+  },
+  "videoNotEmbeddable": "This video can't play inside Bal Kavach. Try another one!",
+  "@videoNotEmbeddable": {
+    "description": "YouTube refused to embed this video."
+  },
+  "videoLoading": "Loading…",
+  "@videoLoading": {
+    "description": "Video is buffering."
+  },
+  "videoUpNext": "Up next",
+  "@videoUpNext": {
+    "description": "Related videos heading."
+  },
+  "videoPlayNext": "Next video",
+  "@videoPlayNext": {
+    "description": "Plays the next related video."
+  },
+  "videoFullscreen": "Full screen",
+  "@videoFullscreen": {
+    "description": "Enters full screen."
+  },
+  "videoExitFullscreen": "Exit full screen",
+  "@videoExitFullscreen": {
+    "description": "Leaves full screen."
+  },
+  "videoBadgeShort": "Short",
+  "@videoBadgeShort": {
+    "description": "Badge on a Short video card."
+  },
+  "videoBadgeYouTube": "YouTube",
+  "@videoBadgeYouTube": {
+    "description": "Badge on a video from YouTube."
+  },
+  "watchGreeting": "What shall we watch today?",
+  "@watchGreeting": {
+    "description": "Watch & Learn home heading."
+  },
+  "watchGreetingBody": "Every video here was checked by a grown-up.",
+  "@watchGreetingBody": {
+    "description": "Watch & Learn home subheading."
+  },
+  "watchShortsSection": "Quick videos",
+  "@watchShortsSection": {
+    "description": "Shorts row heading on Home."
+  },
+  "watchTopicsSection": "Explore topics",
+  "@watchTopicsSection": {
+    "description": "Category chips heading on Home."
+  },
+  "watchVideosSection": "Videos to learn from",
+  "@watchVideosSection": {
+    "description": "Regular videos heading on Home."
+  },
+  "watchPickedSection": "Picked by grown-ups",
+  "@watchPickedSection": {
+    "description": "Curated Learn & Watch videos heading on Home."
+  },
+  "watchNothingYet": "No videos here yet. A grown-up checks every video before it appears.",
+  "@watchNothingYet": {
+    "description": "Home empty state when no section has content."
+  },
+  "shortsMore": "more",
+  "@shortsMore": {
+    "description": "Expands a Short's description."
+  },
+  "shortsLess": "less",
+  "@shortsLess": {
+    "description": "Collapses a Short's description."
+  },
+  "shortsActionSound": "Sound",
+  "@shortsActionSound": {
+    "description": "Short label under the mute button in Shorts."
+  },
+  "shortsActionReport": "Report",
+  "@shortsActionReport": {
+    "description": "Short label under the report button in Shorts."
+  }
 }

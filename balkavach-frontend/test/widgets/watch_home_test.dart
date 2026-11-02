@@ -1,95 +1,163 @@
+// Player behaviour here is verified against PLAYER MOCKS (see
+// test/helpers/fake_video_players.dart); this is not real playback
+// verification.
+
 import 'package:balkavach_app/app.dart';
+import 'package:balkavach_app/features/learning/data/video_playback_controller.dart';
+import 'package:balkavach_app/features/learning/presentation/shorts_feed.dart';
+import 'package:balkavach_app/features/learning/presentation/video_detail_player_screen.dart';
 import 'package:balkavach_app/features/learning/presentation/youtube_player_screen.dart';
+import 'package:balkavach_app/shared/platform/link_opener.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import '../helpers/fake_backend.dart';
+import '../helpers/fake_video_players.dart';
 import '../helpers/fixtures.dart';
 import '../helpers/harness.dart';
 
 const _shortsPath = '/api/v1/videos/shorts';
+const _feedPath = '/api/v1/videos/feed';
+const _learnPath = '/api/v1/educational-content';
+const _categoriesPath = '/api/v1/videos/categories';
+
+String _ytId(int i) => 'abcdefghi${i.toString().padLeft(2, '0')}';
 
 Map<String, Object?> _video({
   required String id,
   required String title,
-  String? youtubeId = 'dQw4w9WgXcQ',
+  String? youtubeId,
+  String source = 'youtube',
+  int seconds = 40,
+  String? categoryId,
 }) => {
   'id': id,
   'title': title,
   'description': null,
   'thumbnail_url': null,
-  'duration_seconds': 40,
-  'category_id': null,
+  'duration_seconds': seconds,
+  'category_id': categoryId,
   'language_code': 'en',
   'content_rating': 'educational',
-  'video_source': youtubeId == null ? 'hosted' : 'youtube',
-  'youtube_video_id': youtubeId,
+  'video_source': source,
+  'youtube_video_id': source == 'youtube' ? youtubeId : null,
+  'channel_name': source == 'youtube' ? 'Kids Channel' : null,
 };
 
-List<Map<String, Object?>> _page(int start, int count) => [
-  for (var i = start; i < start + count; i++)
-    _video(
-      id: 'short-$i',
-      title: 'Short $i',
-      youtubeId: 'dQw4w9WgX${i.toString().padLeft(2, '0')}',
-    ),
-];
+Map<String, Object?> _curated({
+  required String id,
+  required String title,
+  required String url,
+}) => {
+  'id': id,
+  'title': title,
+  'description': 'Curated by the team.',
+  'content_type': 'video',
+  'category_id': null,
+  'language_code': 'en',
+  'content_url': url,
+  'thumbnail_url': null,
+  'video_id': null,
+  'collection_id': null,
+  'requires_entitlement': false,
+  'is_active': true,
+};
 
-Future<Harness> _child() async {
+class _Rig {
+  _Rig(this.h, this.embeds, this.players, this.opener);
+
+  final Harness h;
+  final EmbedRecorder embeds;
+  final PlaybackRegistry players;
+  final RecordingLinkOpener opener;
+}
+
+Future<_Rig> _pumpHome(
+  WidgetTester tester, {
+  List<Map<String, Object?>> shorts = const [],
+  List<Map<String, Object?>> videos = const [],
+  List<Map<String, Object?>> curated = const [],
+  List<Map<String, Object?>> categories = const [],
+  void Function(FakeBackend backend)? routes,
+}) async {
   final h = await Harness.create(
     session: Fx.childSession(),
     prefs: onboardedPrefs,
   );
   h.backend
     ..reply('GET', '/api/v1/auth/me', Fx.childSession().user.toJson())
-    ..reply('GET', '/api/v1/redemptions/mine', <Object?>[]);
-  return h;
-}
-
-Future<void> _pumpHome(
-  WidgetTester tester,
-  Harness h, {
-  List<Map<String, Object?>> shorts = const [],
-  bool useDefaultShortsReply = true,
-}) async {
-  if (useDefaultShortsReply && !h.backend.hasRoute('GET', _shortsPath)) {
+    ..reply('GET', '/api/v1/redemptions/mine', <Object?>[])
+    ..reply('GET', _learnPath, curated)
+    ..reply('GET', _categoriesPath, categories);
+  routes?.call(h.backend);
+  if (!h.backend.hasRoute('GET', _shortsPath)) {
     h.backend.reply('GET', _shortsPath, shorts);
   }
+  if (!h.backend.hasRoute('GET', _feedPath)) {
+    h.backend.reply('GET', _feedPath, videos);
+  }
+  final rig = _Rig(
+    h,
+    EmbedRecorder(),
+    PlaybackRegistry(),
+    RecordingLinkOpener(),
+  );
   setWindow(tester, const Size(393, 852));
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         ...h.overrides,
-        youtubeEmbedBuilderProvider.overrideWithValue(
-          (_) => const ColoredBox(
-            key: Key('test.youtubeEmbed'),
-            color: Colors.black,
-          ),
+        youtubeEmbedBuilderProvider.overrideWithValue(rig.embeds.build),
+        videoPlaybackControllerFactoryProvider.overrideWithValue(
+          rig.players.create,
         ),
+        linkOpenerProvider.overrideWithValue(rig.opener),
       ],
       retry: (_, _) => null,
       child: const BalKavachApp(),
     ),
   );
   await tester.pumpAndSettle();
+  return rig;
 }
 
+final _someShorts = [
+  for (var i = 0; i < 3; i++)
+    _video(id: 's$i', title: 'Short $i', youtubeId: _ytId(i)),
+];
+
+final _someVideos = [
+  _video(id: 'v1', title: 'Volcano facts', youtubeId: _ytId(50), seconds: 420),
+  _video(id: 'v2', title: 'Hosted lesson', source: 'hosted', seconds: 600),
+];
+
 void main() {
-  group('Shorts-first Home', () {
-    testWidgets('loads the authorized Shorts feed and keeps shell controls', (
+  group('Watch & Learn Home', () {
+    testWidgets('shows Shorts, videos and picks; keeps the shell', (
       tester,
     ) async {
-      final h = await _child();
-      await _pumpHome(
+      final rig = await _pumpHome(
         tester,
-        h,
-        shorts: [_video(id: 's1', title: 'Sky')],
+        shorts: _someShorts,
+        videos: _someVideos,
+        curated: [
+          _curated(
+            id: 'c1',
+            title: 'Counting song',
+            url: 'https://cdn.example.org/counting.mp4',
+          ),
+        ],
       );
 
-      expect(find.byKey(const Key('videos.shorts.pager')), findsOneWidget);
-      expect(find.text('Sky'), findsOneWidget);
-      expect(h.backend.requestsTo('GET', _shortsPath), hasLength(1));
+      expect(find.text('What shall we watch today?'), findsOneWidget);
+      expect(find.byKey(const Key('watch.shorts.row')), findsOneWidget);
+      expect(find.text('Short 0'), findsOneWidget);
+      expect(find.text('Volcano facts'), findsOneWidget);
+      // No player of any kind lives on Home.
+      expect(rig.embeds.history, isEmpty);
+      expect(rig.players.created, isEmpty);
       expect(find.byKey(const Key('parentGate')), findsOneWidget);
       for (final label in [
         'Home',
@@ -100,104 +168,229 @@ void main() {
       ]) {
         expect(find.text(label), findsWidgets);
       }
+
+      await tester.scrollUntilVisible(
+        find.text('Counting song'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.byKey(const Key('watch.picked.header')), findsOneWidget);
     });
 
-    testWidgets('vertical swipes advance videos and paginate near the end', (
+    testWidgets('a Short opens the full-screen feed at that Short', (
       tester,
     ) async {
-      final h = await _child();
-      h.backend.on('GET', _shortsPath, (options) {
-        final offset = options.queryParameters['offset'] as int;
-        return FakeReply(200, offset == 0 ? _page(0, 10) : _page(10, 1));
-      });
-      await _pumpHome(tester, h, useDefaultShortsReply: false);
+      final rig = await _pumpHome(tester, shorts: _someShorts);
 
-      final pager = find.byKey(const Key('videos.shorts.pager'));
-      await tester.drag(pager, const Offset(0, -900));
+      await tester.tap(find.byKey(const Key('watch.short.feed:s1')));
       await tester.pumpAndSettle();
-      expect(find.text('Short 1'), findsOneWidget);
 
-      for (var i = 0; i < 8; i++) {
-        await tester.drag(pager, const Offset(0, -900));
-        await tester.pumpAndSettle();
-      }
-      expect(find.text('Short 9'), findsOneWidget);
+      expect(find.byType(ShortsFeedScreen), findsOneWidget);
+      expect(rig.embeds.only().videoId, _ytId(1));
+      // Opened from what Home already had: page 0 was not fetched again.
       expect(
-        h.backend
+        rig.h.backend
             .requestsTo('GET', _shortsPath)
-            .map((request) => request.queryParameters['offset'])
-            .toList(),
-        [0, 10],
+            .map((r) => r.queryParameters['offset']),
+        [0],
+      );
+      // The player covers the bottom navigation.
+      expect(find.byType(NavigationBar), findsNothing);
+
+      // Android back returns Home and tears the player down.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(ShortsFeedScreen), findsNothing);
+      expect(rig.embeds.mounted, isEmpty);
+      expect(find.byType(NavigationBar), findsOneWidget);
+    });
+
+    testWidgets('the Shorts back button returns Home', (tester) async {
+      final rig = await _pumpHome(tester, shorts: _someShorts);
+
+      await tester.tap(find.byKey(const Key('watch.short.feed:s0')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('videos.shorts.back')));
+      await tester.pumpAndSettle();
+      expect(find.byType(ShortsFeedScreen), findsNothing);
+      expect(find.byKey(const Key('watch.scroll')), findsOneWidget);
+      expect(rig.embeds.mounted, isEmpty);
+    });
+
+    testWidgets('"See all" opens Shorts from the first one', (tester) async {
+      final rig = await _pumpHome(tester, shorts: _someShorts);
+
+      await tester.tap(find.byKey(const Key('watch.shorts.seeAll')));
+      await tester.pumpAndSettle();
+      expect(rig.embeds.only().videoId, _ytId(0));
+    });
+
+    testWidgets('a regular YouTube video plays in the in-app player', (
+      tester,
+    ) async {
+      final rig = await _pumpHome(tester, videos: _someVideos);
+
+      await tester.tap(find.text('Volcano facts'));
+      await tester.pumpAndSettle();
+      expect(find.byType(VideoDetailPlayerScreen), findsOneWidget);
+      expect(rig.embeds.only().videoId, _ytId(50));
+      expect(rig.opener.opened, isEmpty, reason: 'never the YouTube app');
+      // "Up next" offers the rest of the list.
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('detail.upNext.feed:v2')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+    });
+
+    testWidgets('a hosted video is shown locked and is never played', (
+      tester,
+    ) async {
+      final rig = await _pumpHome(tester, videos: _someVideos);
+
+      await tester.scrollUntilVisible(
+        find.text('Hosted lesson'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(find.text('Hosted lesson'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Hosted lesson'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('detail.unavailable')), findsOneWidget);
+      expect(rig.players.created, isEmpty);
+      expect(rig.embeds.history, isEmpty);
+    });
+
+    testWidgets('a curated MP4 plays in the native in-app player', (
+      tester,
+    ) async {
+      final rig = await _pumpHome(
+        tester,
+        curated: [
+          _curated(
+            id: 'c1',
+            title: 'Counting song',
+            url: 'https://cdn.example.org/counting.mp4',
+          ),
+          _curated(
+            id: 'c2',
+            title: 'Alphabet on YouTube',
+            url: 'https://www.youtube.com/watch?v=${_ytId(9)}',
+          ),
+        ],
       );
 
-      await tester.drag(pager, const Offset(0, 900));
+      await tester.tap(find.text('Counting song'));
       await tester.pumpAndSettle();
-      expect(find.text('Short 8'), findsOneWidget);
+      final controller = rig.players.created.single;
+      expect(controller.uri.toString(), 'https://cdn.example.org/counting.mp4');
+      expect(controller.isPlaying, isTrue);
+      expect(rig.embeds.history, isEmpty);
     });
 
-    testWidgets('shows a real empty state with a Missions escape hatch', (
+    testWidgets('topics filter the regular videos on the server', (
       tester,
     ) async {
-      final h = await _child();
-      await _pumpHome(tester, h);
+      final rig = await _pumpHome(
+        tester,
+        videos: _someVideos,
+        categories: [
+          {'id': 'cat-sci', 'name': 'Science', 'slug': 'science'},
+        ],
+      );
 
-      expect(find.byKey(const Key('videos.shorts.empty')), findsOneWidget);
-      expect(find.byKey(const Key('videos.shorts.toMissions')), findsOneWidget);
-      expect(find.text("Videos aren't ready yet"), findsNothing);
+      await tester.tap(find.byKey(const Key('watch.topic.science')));
+      await tester.pumpAndSettle();
+      final requests = rig.h.backend.requestsTo('GET', _feedPath);
+      expect(requests.last.queryParameters['category_id'], 'cat-sci');
+      await tester.tap(find.byKey(const Key('watch.topic.all')));
+      await tester.pumpAndSettle();
+      expect(
+        rig.h.backend
+            .requestsTo('GET', _feedPath)
+            .last
+            .queryParameters
+            .containsKey('category_id'),
+        isFalse,
+      );
+    });
 
-      await tester.tap(find.byKey(const Key('videos.shorts.toMissions')));
+    testWidgets('scrolling the list loads the next page', (tester) async {
+      final rig = await _pumpHome(
+        tester,
+        routes: (backend) => backend.on('GET', _feedPath, (options) {
+          final offset = options.queryParameters['offset'] as int;
+          return FakeReply(200, [
+            if (offset == 0)
+              for (var i = 0; i < 20; i++)
+                _video(id: 'p$i', title: 'Page video $i', youtubeId: _ytId(i)),
+          ]);
+        }),
+      );
+
+      await tester.scrollUntilVisible(
+        find.text('Page video 19'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      expect(
+        rig.h.backend
+            .requestsTo('GET', _feedPath)
+            .map((r) => r.queryParameters['offset']),
+        [0, 20],
+      );
+    });
+
+    testWidgets('nothing approved yet: a friendly way to Missions', (
+      tester,
+    ) async {
+      await _pumpHome(tester);
+
+      expect(find.byKey(const Key('watch.empty')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('watch.toMissions')));
       await tester.pumpAndSettle();
       expect(find.text('Missions'), findsWidgets);
     });
 
-    testWidgets('retries a failed Shorts request', (tester) async {
-      final h = await _child();
+    testWidgets('a Shorts failure can be retried without losing videos', (
+      tester,
+    ) async {
       var calls = 0;
-      h.backend.on('GET', _shortsPath, (_) {
-        calls++;
-        return calls == 1
-            ? FakeReply.error(500, 'internal_error', 'try again')
-            : FakeReply(200, [_video(id: 's2', title: 'After retry')]);
-      });
-      await _pumpHome(tester, h, useDefaultShortsReply: false);
-
-      expect(find.byKey(const Key('videos.shorts.error')), findsOneWidget);
-      await tester.tap(find.text('Try again'));
-      await tester.pumpAndSettle();
-      expect(find.text('After retry'), findsOneWidget);
-      expect(calls, 2);
-    });
-
-    testWidgets('only the active page embeds a player', (tester) async {
-      final h = await _child();
       await _pumpHome(
         tester,
-        h,
-        shorts: [
-          _video(id: 's1', title: 'First'),
-          _video(id: 's2', title: 'Second', youtubeId: '9bZkp7q19f0'),
-        ],
+        videos: _someVideos,
+        routes: (backend) => backend.on('GET', _shortsPath, (_) {
+          calls++;
+          return calls == 1
+              ? FakeReply.error(500, 'internal_error', 'try again')
+              : FakeReply(200, _someShorts);
+        }),
       );
 
-      expect(find.byKey(const Key('test.youtubeEmbed')), findsOneWidget);
-      await tester.drag(
-        find.byKey(const Key('videos.shorts.pager')),
-        const Offset(0, -900),
+      expect(find.byKey(const Key('watch.shorts.error')), findsOneWidget);
+      expect(find.text('Volcano facts'), findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const Key('watch.shorts.error')),
+          matching: find.text('Try again'),
+        ),
       );
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('test.youtubeEmbed')), findsOneWidget);
-      expect(find.text('Second'), findsOneWidget);
+      expect(find.text('Short 0'), findsOneWidget);
     });
-  });
 
-  testWidgets('Home does not create a standalone player route', (tester) async {
-    final h = await _child();
-    await _pumpHome(
-      tester,
-      h,
-      shorts: [_video(id: 's1', title: 'One')],
-    );
+    testWidgets('a bare player deep link has nothing to play', (tester) async {
+      final rig = await _pumpHome(tester, shorts: _someShorts);
+      final context = tester.element(find.byKey(const Key('watch.scroll')));
 
-    expect(find.byType(YouTubePlayerScreen), findsNothing);
+      GoRouter.of(context).go('/child/watch');
+      await tester.pumpAndSettle();
+      expect(find.byType(VideoDetailPlayerScreen), findsNothing);
+      expect(find.byKey(const Key('watch.scroll')), findsOneWidget);
+      expect(rig.embeds.history, isEmpty);
+      expect(rig.players.created, isEmpty);
+    });
   });
 }

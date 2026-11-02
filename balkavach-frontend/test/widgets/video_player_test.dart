@@ -81,6 +81,12 @@ class FakePlaybackController implements VideoPlaybackController {
   }
 
   @override
+  Future<void> seekTo(Duration position) async {}
+
+  @override
+  Future<void> setVolume(double volume) async {}
+
+  @override
   Future<void> dispose() async {
     // Only records the call: the test still reads counters afterwards, which a
     // real (discarded) controller would not need to support.

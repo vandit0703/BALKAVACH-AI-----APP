@@ -11,8 +11,10 @@ import '../../features/child_profile/presentation/child_profile_screen.dart';
 import '../../features/child_profile/presentation/create_child_screen.dart';
 import '../../features/garden/presentation/garden_screen.dart';
 import '../../features/learning/data/learning_repository.dart';
+import '../../features/learning/data/playable_video.dart';
 import '../../features/learning/data/video_feed_repository.dart';
 import '../../features/learning/presentation/learning_screen.dart';
+import '../../features/learning/presentation/video_detail_player_screen.dart';
 import '../../features/learning/presentation/video_feed_screen.dart';
 import '../../features/learning/presentation/video_player_screen.dart';
 import '../../features/learning/presentation/watch_home_screen.dart';
@@ -195,6 +197,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: 'profile',
                 pageBuilder: (_, _) =>
                     const NoTransitionPage(child: ChildHomeProfileScreen()),
+              ),
+              // Players cover the shell (no bottom bar). Both need the
+              // video list they were opened from; a bare deep link has
+              // nothing approved to play and returns Home.
+              GoRoute(
+                path: 'shorts',
+                parentNavigatorKey: _rootKey,
+                builder: (_, state) => ShortsFeedScreen(
+                  launch: state.extra is ShortsLaunch
+                      ? state.extra! as ShortsLaunch
+                      : const ShortsLaunch(),
+                ),
+              ),
+              GoRoute(
+                path: 'watch',
+                parentNavigatorKey: _rootKey,
+                redirect: (_, state) =>
+                    state.extra is VideoLaunch ? null : AppRoutes.childHome,
+                builder: (_, state) => VideoDetailPlayerScreen(
+                  launch: state.extra! as VideoLaunch,
+                ),
               ),
               GoRoute(
                 path: 'videos',

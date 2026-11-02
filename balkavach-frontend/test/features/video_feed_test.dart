@@ -65,6 +65,7 @@ class _FakeRepository implements VideoFeedRepository {
     VideoFeedKind kind, {
     required int limit,
     required int offset,
+    String? categoryId,
   }) async {
     offsets.add(offset);
     final page = pages[offset];
@@ -281,7 +282,11 @@ void main() {
         overrides: [
           ...h.overrides,
           youtubeEmbedBuilderProvider.overrideWithValue(
-            (_) => const SizedBox(key: Key('test.youtubeEmbed')),
+            // Like the real embed, draw the overlay (title, actions) on top.
+            (config) => SizedBox(
+              key: const Key('test.youtubeEmbed'),
+              child: config.overlay,
+            ),
           ),
         ],
       );
