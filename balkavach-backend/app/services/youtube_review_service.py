@@ -38,6 +38,7 @@ from app.integrations.youtube import (
 )
 from app.schemas.video import YouTubeApproveRequest, YouTubeDiscoverRequest
 from app.services.admin_service import record_audit
+from app.services.video_classification import video_format
 from app.utils import utc_aware, utc_naive
 
 TRANSITIONS: dict[str, set[str]] = {
@@ -208,6 +209,7 @@ def review_public(review, video) -> dict[str, Any]:
 		"description": video.description if video else None,
 		"thumbnail_url": video.thumbnail_url if video else None,
 		"duration_seconds": video.duration_seconds if video else None,
+		"video_format": video_format(video.video_source, video.duration_seconds) if video else None,
 		"language_code": video.language_code if video else None,
 		"age_min": video.age_min if video else None,
 		"age_max": video.age_max if video else None,

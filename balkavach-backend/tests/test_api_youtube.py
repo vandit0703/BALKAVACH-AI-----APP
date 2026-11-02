@@ -18,7 +18,7 @@ OTHER_ID = "abcdefghijk"
 TRUSTED_CHANNEL_ID = "UC1111111111111111111111"
 
 
-def _item(video_id: str, **status):
+def _item(video_id: str, duration: str = "PT45S", **status):
 	return {
 		"id": video_id,
 		"snippet": {
@@ -29,7 +29,9 @@ def _item(video_id: str, **status):
 			"liveBroadcastContent": "none",
 			"thumbnails": {"high": {"url": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"}},
 		},
-		"contentDetails": {"duration": "PT2M"},
+		# 45 s: a Short under the 1-60 s rule. Tests needing a regular video
+		# pass a longer duration.
+		"contentDetails": {"duration": duration},
 		"status": {"privacyStatus": "public", "embeddable": True, "uploadStatus": "processed", "madeForKids": True, **status},
 	}
 
@@ -65,10 +67,19 @@ def _approve(api, admin, review_id, **overrides):
 	return api.post(f"/admin/videos/youtube/reviews/{review_id}/approve", admin["token"], body)
 
 
-def _feed_ids(api, token, path="/videos/feed"):
+def _feed_ids(api, token, path=None):
+	"""Ids in one feed, or (path=None) everything the child can see in either."""
+	if path is None:
+		return _feed_ids(api, token, "/videos/feed") | _feed_ids(api, token, "/videos/shorts")
 	response = api.get(path, token)
 	assert response.status_code == 200, response.text
 	return {item["youtube_video_id"] for item in response.json() if item["video_source"] == "youtube"}
+
+
+def _feed_items(api, token, path):
+	response = api.get(path, token)
+	assert response.status_code == 200, response.text
+	return {item["youtube_video_id"]: item for item in response.json()}
 
 
 def _family_with_age(api, age=10):
@@ -292,3 +303,40 @@ def test_hosted_feed_is_unchanged_and_exposes_no_youtube_id(api, youtube):
 	items = api.get("/videos/feed", ctx["child"]["token"]).json()
 	hosted = [item for item in items if item["id"] == video["id"]]
 	assert hosted and hosted[0]["video_source"] == "hosted" and hosted[0]["youtube_video_id"] is None
+
+
+@pytest.mark.parametrize(
+	("duration", "shorts", "regular", "expected_format", "expected_seconds"),
+	[
+		("PT1S", False, True, "unknown", None),  # stored sentinel for "unknown"
+		("PT30S", True, False, "short", 30),
+		("PT60S", True, False, "short", 60),
+		("PT61S", False, True, "regular", 61),
+		("PT2M", False, True, "regular", 120),
+		("P0D", False, True, "unknown", None),  # live/unknown: stored as 1
+	],
+)
+def test_short_and_regular_feeds_split_by_real_duration(
+	api, youtube, duration, shorts, regular, expected_format, expected_seconds
+):
+	youtube.items[VIDEO_ID] = _item(VIDEO_ID, duration=duration)
+	admin = api.make_admin()
+	ctx = _family_with_age(api, 7)  # inside the default 6-8 approval band
+	review = _discover(api, admin)[VIDEO_ID]
+	assert _approve(api, admin, review["id"]).status_code == 200
+	token = ctx["child"]["token"]
+
+	short_items = _feed_items(api, token, "/videos/shorts")
+	regular_items = _feed_items(api, token, "/videos/feed")
+	assert (VIDEO_ID in short_items) is shorts
+	assert (VIDEO_ID in regular_items) is regular
+	item = short_items.get(VIDEO_ID) or regular_items[VIDEO_ID]
+	assert item["video_format"] == expected_format
+	assert item["duration_seconds"] == expected_seconds
+
+
+def test_feeds_reject_non_child_callers(api, youtube):
+	admin = api.make_admin()
+	for path in ("/videos/shorts", "/videos/feed"):
+		assert api.get(path).status_code in (401, 403)
+		assert api.get(path, admin["token"]).status_code == 403

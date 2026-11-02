@@ -104,11 +104,14 @@ class VideoFeedItem(BaseModel):
 	title: str
 	description: str | None
 	thumbnail_url: str | None
-	duration_seconds: int
+	# Null when the real duration is unknown (never guessed).
+	duration_seconds: int | None
 	category_id: UUID | None
 	language_code: str
 	content_rating: str
 	video_source: str = "hosted"
+	# "short" (1-60 s), "regular" or "unknown"; decided only by the backend.
+	video_format: Literal["short", "regular", "unknown"] = "regular"
 	channel_name: str | None = None
 	# Only for approved YouTube videos, which play in the official embedded
 	# player. Hosted videos never expose a media URL here.
@@ -172,6 +175,7 @@ class YouTubeReviewPublic(BaseModel):
 	description: str | None = None
 	thumbnail_url: str | None = None
 	duration_seconds: int | None = None
+	video_format: Literal["short", "regular", "unknown"] | None = None
 	language_code: str | None = None
 	age_min: int | None = None
 	age_max: int | None = None

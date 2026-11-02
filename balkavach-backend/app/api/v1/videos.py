@@ -37,6 +37,7 @@ from app.schemas.video import (
 	YouTubeTrustedChannelRequest,
 )
 from app.services import youtube_review_service
+from app.services.video_classification import known_duration_or_none, video_format
 from app.services.admin_service import record_audit
 from app.services.video_service import (
 	add_collection_video,
@@ -65,9 +66,6 @@ def list_video_categories(
 	return [VideoCategoryPublic.model_validate(category) for category in categories]
 
 
-SHORTS_MAX_SECONDS = 180
-
-
 def _feed_item(video, channel_name: str | None = None) -> VideoFeedItem:
 	is_youtube = video.video_source == "youtube"
 	return VideoFeedItem(
@@ -75,7 +73,9 @@ def _feed_item(video, channel_name: str | None = None) -> VideoFeedItem:
 		title=video.title,
 		description=video.description,
 		thumbnail_url=video.thumbnail_url,
-		duration_seconds=video.duration_seconds,
+		# Null when unknown (see video_classification); never a guess.
+		duration_seconds=known_duration_or_none(video.video_source, video.duration_seconds),
+		video_format=video_format(video.video_source, video.duration_seconds),
 		category_id=video.category_id,
 		language_code=video.language_code,
 		content_rating=video.content_rating,
@@ -109,7 +109,9 @@ def video_feed(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoFeedItem]:
-	videos = eligible_feed(session, child, category_id, limit, offset)
+	# Regular videos only: Shorts (1-60 s) have their own feed, so no video
+	# appears in both.
+	videos = eligible_feed(session, child, category_id, limit, offset, video_format="regular")
 	channels = _channel_names(session, videos) if any(video.video_source == "youtube" for video in videos) else {}
 	return [_feed_item(video, channels.get(video.id)) for video in videos]
 
@@ -122,7 +124,7 @@ def video_shorts(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoFeedItem]:
-	videos = eligible_feed(session, child, category_id, limit, offset, max_duration_seconds=SHORTS_MAX_SECONDS)
+	videos = eligible_feed(session, child, category_id, limit, offset, video_format="short")
 	channels = _channel_names(session, videos) if any(video.video_source == "youtube" for video in videos) else {}
 	return [_feed_item(video, channels.get(video.id)) for video in videos]
 

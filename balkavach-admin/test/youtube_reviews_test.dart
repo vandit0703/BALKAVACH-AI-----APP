@@ -27,6 +27,7 @@ Map<String, Object?> _review({String status = 'pending_review'}) => {
   'description': 'A lesson for children.',
   'thumbnail_url': null,
   'duration_seconds': 120,
+  'video_format': 'regular',
   'language_code': 'en',
   'age_min': null,
   'age_max': null,
@@ -54,6 +55,8 @@ void main() {
     await tester.tap(find.byKey(const Key('youtube.inspect.$_reviewId')));
     await tester.pumpAndSettle();
     expect(find.textContaining('Discovery topic: science'), findsOneWidget);
+    // The backend's short/regular decision is shown, not recomputed.
+    expect(find.textContaining('Child feed: Regular videos'), findsOneWidget);
     expect(find.text('Approve'), findsOneWidget);
     await tester.tap(find.text('Approve'));
     await tester.pumpAndSettle();

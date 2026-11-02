@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timezone
+from typing import Literal
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -11,6 +12,7 @@ from app.core.exceptions import APIError
 from app.db.base import get_model
 from app.schemas.video import VideoCategoryCreate, VideoCollectionCreate, VideoCreate, VideoUpdate
 from app.services.admin_service import record_audit
+from app.services.video_classification import regular_clause, short_clause
 from app.services.youtube_review_service import youtube_visibility_clause
 from app.utils import utc_naive
 
@@ -33,8 +35,11 @@ def eligible_feed(
 	category_id: UUID | None,
 	limit: int,
 	offset: int,
-	max_duration_seconds: int | None = None,
+	video_format: Literal["short", "regular"] | None = None,
 ):
+	"""Videos this child may see. ``video_format`` splits the two feeds with the
+	single rule in ``video_classification``: every eligible video is in exactly
+	one of them."""
 	User = get_model("User")
 	user = session.query(User).filter(User.id == child.user_id).one()
 	Video = get_model("Video")
@@ -63,8 +68,10 @@ def eligible_feed(
 			),
 		),
 	)
-	if max_duration_seconds is not None:
-		query = query.filter(Video.duration_seconds <= max_duration_seconds)
+	if video_format == "short":
+		query = query.filter(short_clause(Video))
+	elif video_format == "regular":
+		query = query.filter(regular_clause(Video))
 	if category_id:
 		query = query.filter(Video.category_id == category_id)
 	result = (
@@ -95,7 +102,9 @@ def eligible_feed(
 			Video.is_published.is_(True),
 			Video.age_min <= age,
 			Video.age_max >= age,
-			Video.duration_seconds <= max_duration_seconds if max_duration_seconds is not None else True,
+			short_clause(Video) if video_format == "short"
+			else regular_clause(Video) if video_format == "regular"
+			else True,
 		).count()
 		language_count = session.query(Video.id).filter(
 			Video.is_published.is_(True),
@@ -118,7 +127,7 @@ def eligible_feed(
 				"age": age,
 				"limit": limit,
 				"offset": offset,
-				"max_duration_seconds": max_duration_seconds,
+				"video_format": video_format,
 				"published_count": published_count,
 				"age_eligible_count": age_count,
 				"youtube_visibility_count": visibility_count,

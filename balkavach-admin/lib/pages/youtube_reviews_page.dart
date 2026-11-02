@@ -237,6 +237,8 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
                 _metadata('YouTube category', row['youtube_category_id']),
                 _metadata('Made for kids', row['made_for_kids']),
                 _metadata('Duration (seconds)', row['duration_seconds']),
+                // Decided by the backend from the duration alone.
+                _metadata('Child feed', _feedLabel(row['video_format'])),
                 _metadata('Language', row['language_code']),
                 _metadata(
                   'Age range',
@@ -326,6 +328,14 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
       if (mounted) showMessage(context, l10n.youtubeActionFailed);
     }
   }
+
+  /// Where the backend places this video for children (1-60 s is a short).
+  static String? _feedLabel(Object? format) => switch (format) {
+    'short' => 'Shorts (1–60 s)',
+    'regular' => 'Regular videos',
+    'unknown' => 'Regular videos (YouTube gave no duration)',
+    _ => null,
+  };
 
   Widget _metadata(String label, Object? value) => Padding(
     padding: const EdgeInsets.only(top: 6),
