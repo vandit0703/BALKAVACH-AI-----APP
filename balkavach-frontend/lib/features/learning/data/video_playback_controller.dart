@@ -29,6 +29,13 @@ abstract class VideoPlaybackController {
   Future<void> initialise();
   Future<void> play();
   Future<void> pause();
+
+  /// Jumps to [position]; ignored before initialisation.
+  Future<void> seekTo(Duration position);
+
+  /// 0 (silent) to 1 (full). Used by the mute button.
+  Future<void> setVolume(double volume);
+
   Future<void> dispose();
 
   /// The picture. Returns null until there is something to show.
@@ -117,6 +124,18 @@ class NetworkVideoPlaybackController
   Future<void> pause() async {
     if (_disposed || !isInitialised) return;
     await _controller?.pause();
+  }
+
+  @override
+  Future<void> seekTo(Duration position) async {
+    if (_disposed || !isInitialised) return;
+    await _controller?.seekTo(position);
+  }
+
+  @override
+  Future<void> setVolume(double volume) async {
+    if (_disposed || !isInitialised) return;
+    await _controller?.setVolume(volume.clamp(0.0, 1.0));
   }
 
   @override

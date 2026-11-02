@@ -122,7 +122,22 @@ enum PagerStatus { idle, loading, error, done }
 /// row ID. This prevents the same published video from appearing twice if
 /// duplicate rows exist or a video shifts between pages.
 class VideoFeedPager extends ChangeNotifier {
-  VideoFeedPager(this._repository, this.kind, {this.pageSize = 20});
+  VideoFeedPager(
+    this._repository,
+    this.kind, {
+    this.pageSize = 20,
+    List<FeedVideo> initialItems = const [],
+    int? initialOffset,
+    bool initialDone = false,
+  }) {
+    // Seeded from a list the caller already loaded (Home's Shorts row), so
+    // opening the full-screen feed does not fetch the same page again.
+    for (final video in initialItems) {
+      if (_seen.add(video.youtubeVideoId ?? video.id)) _items.add(video);
+    }
+    _offset = initialOffset ?? initialItems.length;
+    if (initialItems.isNotEmpty && initialDone) _status = PagerStatus.done;
+  }
 
   final VideoFeedRepository _repository;
   final VideoFeedKind kind;
@@ -139,6 +154,9 @@ class VideoFeedPager extends ChangeNotifier {
   PagerStatus get status => _status;
   Object? get error => _error;
   bool get hasMore => _status != PagerStatus.done;
+
+  /// Server offset of the next page.
+  int get nextOffset => _offset;
 
   /// True before the first page has arrived.
   bool get isInitial => _items.isEmpty && _offset == 0;
