@@ -735,6 +735,7 @@ class PagedTable extends ConsumerStatefulWidget {
     this.emptyMessage,
     this.pageSize = 25,
     this.reloadKey = 0,
+    this.compactWidth = kCompactTableWidth,
     super.key,
   });
 
@@ -755,6 +756,7 @@ class PagedTable extends ConsumerStatefulWidget {
 
   /// Change this to force a reload (for example after a search).
   final Object reloadKey;
+  final double compactWidth;
 
   @override
   ConsumerState<PagedTable> createState() => _PagedTableState();
@@ -798,7 +800,7 @@ class _PagedTableState extends ConsumerState<PagedTable> {
               EmptyState(message: widget.emptyMessage ?? l10n.tableEmpty)
             else
               LayoutBuilder(
-                builder: (context, box) => box.maxWidth < kCompactTableWidth
+                builder: (context, box) => box.maxWidth < widget.compactWidth
                     ? _cards(context, rows)
                     : _table(context, rows, box.maxWidth),
               ),

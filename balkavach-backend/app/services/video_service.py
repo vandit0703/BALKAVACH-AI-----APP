@@ -262,6 +262,31 @@ def set_video_published(session: Session, actor, video_id: UUID, published: bool
 	return video
 
 
+def publish_approved_youtube_video(session: Session, actor, review, video, reason: str) -> None:
+	"""Publish only a reviewed, rights-cleared YouTube record."""
+	if (
+		video.video_source != "youtube"
+		or review.status != "approved"
+		or review.rights_status != "cleared"
+		or review.made_for_kids is not True
+		or review.screening_flags
+		or video.content_rating not in {"general", "educational"}
+	):
+		raise APIError(409, "youtube_publication_ineligible", "YouTube publication eligibility checks did not pass")
+	video.is_published = True
+	video.published_at = utc_naive(datetime.now(timezone.utc))
+	if hasattr(review, "publication_reason"):
+		review.publication_reason = reason
+	record_audit(
+		session,
+		actor.id,
+		"youtube.video_published",
+		"video",
+		video.id,
+		{"youtube_video_id": review.youtube_video_id, "publication_source": review.publication_source, "reason": reason},
+	)
+
+
 def create_collection(session: Session, actor, request: VideoCollectionCreate):
 	VideoCollection = get_model("VideoCollection")
 	collection = VideoCollection(

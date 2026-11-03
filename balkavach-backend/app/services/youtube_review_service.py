@@ -20,7 +20,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import exists, func, or_
+from sqlalchemy import and_, exists, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -36,9 +36,9 @@ from app.integrations.youtube import (
 	safe_thumbnail_url,
 	to_api_error,
 )
-from app.schemas.video import YouTubeApproveRequest, YouTubeDiscoverRequest
-from app.services.admin_service import record_audit
+from app.schemas.video import YOUTUBE_AGE_BANDS, YouTubeApproveRequest, YouTubeDiscoverRequest
 from app.services.video_classification import video_format
+from app.services.admin_service import record_audit
 from app.utils import utc_aware, utc_naive
 
 TRANSITIONS: dict[str, set[str]] = {
@@ -177,7 +177,7 @@ def _published_at(snippet: dict[str, Any]) -> datetime | None:
 		return None
 
 
-def review_public(review, video) -> dict[str, Any]:
+def review_public(review, video, category_name: str | None = None) -> dict[str, Any]:
 	is_published = bool(video and video.is_published)
 	publication_status = "published" if is_published else "unpublished"
 	if review.status in {"rejected", "quarantined", "revoked", "unavailable"}:
@@ -209,10 +209,11 @@ def review_public(review, video) -> dict[str, Any]:
 		"description": video.description if video else None,
 		"thumbnail_url": video.thumbnail_url if video else None,
 		"duration_seconds": video.duration_seconds if video else None,
-		"video_format": video_format(video.video_source, video.duration_seconds) if video else None,
 		"language_code": video.language_code if video else None,
+		"video_format": video_format(video.video_source, video.duration_seconds) if video else None,
 		"age_min": video.age_min if video else None,
 		"age_max": video.age_max if video else None,
+		"category_name": category_name,
 		"discovery_topic": review.discovery_topic,
 		"youtube_category_id": review.youtube_category_id,
 		"publication_source": getattr(review, "publication_source", "manual"),
@@ -616,7 +617,10 @@ def list_reviews(
 	_require_tables("YouTubeContentReview")
 	Review = get_model("YouTubeContentReview")
 	Video = get_model("Video")
-	query = session.query(Review, Video).join(Video, Video.id == Review.video_id)
+	VideoCategory = get_model("VideoCategory")
+	query = session.query(Review, Video, VideoCategory.name).join(Video, Video.id == Review.video_id).outerjoin(
+		VideoCategory, VideoCategory.id == Video.category_id
+	)
 	if status:
 		query = query.filter(Review.status == status)
 	if publication_source:
@@ -624,13 +628,14 @@ def list_reviews(
 	if is_published is not None:
 		query = query.filter(Video.is_published.is_(is_published))
 	rows = query.order_by(Review.discovered_at.desc(), Review.id).offset(offset).limit(limit).all()
-	return [review_public(review, video) for review, video in rows]
+	return [review_public(review, video, category_name) for review, video, category_name in rows]
 
 
 def diagnostics(session: Session) -> dict[str, Any]:
 	_require_tables("YouTubeContentReview")
 	Review = get_model("YouTubeContentReview")
 	Video = get_model("Video")
+	VideoCategory = get_model("VideoCategory")
 	status_counts = dict(session.query(Review.status, func.count(Review.id)).group_by(Review.status).all())
 	published_by_source = dict(
 		session.query(Review.publication_source, func.count(Review.id))
@@ -653,37 +658,113 @@ def diagnostics(session: Session) -> dict[str, Any]:
 				for key, value in (latest[1] or {}).items()
 				if isinstance(value, int)
 			}
+	age_band_clause = or_(*[
+		and_(Video.age_min == age_min, Video.age_max == age_max)
+		for age_min, age_max in YOUTUBE_AGE_BANDS
+	])
+	base = session.query(Review, Video).join(Video, Video.id == Review.video_id)
 	pending_reasons: dict[str, int] = {}
-	for review, video in session.query(Review, Video).join(Video, Video.id == Review.video_id).filter(
-		Review.status == "pending_review", Video.is_published.is_(False)
-	).all():
+	quarantine_reasons: dict[str, int] = {}
+	publication_failure_reasons: dict[str, int] = {}
+	active_category_ids = {
+		row[0] for row in session.query(VideoCategory.id).filter(VideoCategory.is_active.is_(True)).all()
+	}
+	for review, video in base.filter(or_(
+		Review.status.in_(["pending_review", "quarantined"]),
+		and_(Review.status == "approved", Video.is_published.is_(False)),
+	)).all():
 		reasons = [f"screening:{flag}" for flag in (review.screening_flags or [])]
-		if not reasons:
-			if review.made_for_kids is not True:
-				reasons.append("made_for_kids_not_true")
-			if review.rights_status != "cleared":
-				reasons.append(f"rights:{review.rights_status}")
-			if video.duration_seconds > settings.youtube_auto_publish_max_seconds:
-				reasons.append("duration_exceeds_limit")
-			if not reasons:
-				reasons.append("awaiting_review_or_discovery_policy")
-		for reason in reasons:
-			pending_reasons[reason] = pending_reasons.get(reason, 0) + 1
+		if review.rights_status != "cleared":
+			reasons.append(f"rights:{review.rights_status}")
+		if review.made_for_kids is not True:
+			reasons.append("made_for_kids_not_true")
+		if (video.age_min, video.age_max) not in YOUTUBE_AGE_BANDS:
+			reasons.append("unsupported_age_band")
+		if review.status == "quarantined":
+			for reason in reasons or ["no_screening_reason_recorded"]:
+				quarantine_reasons[reason] = quarantine_reasons.get(reason, 0) + 1
+		if review.status == "pending_review":
+			for reason in [*reasons, "awaiting_explicit_admin_review"]:
+				pending_reasons[reason] = pending_reasons.get(reason, 0) + 1
+		if review.status == "approved" and not video.is_published:
+			publication_reasons = list(reasons)
+			if review.last_verified_at is None or review.last_verified_at < utc_naive(
+				datetime.now(timezone.utc) - timedelta(hours=settings.youtube_reverify_hours)
+			):
+				publication_reasons.append("youtube_reverification_required")
+			if video.content_rating not in {"general", "educational"}:
+				publication_reasons.append("content_rating_not_publishable")
+			if video.category_id is not None and video.category_id not in active_category_ids:
+				publication_reasons.append("inactive_category")
+			if video_format(video.video_source, video.duration_seconds) != "short":
+				publication_reasons.append("not_a_short")
+			for reason in publication_reasons or ["eligible_pending_youtube_revalidation"]:
+				publication_failure_reasons[reason] = publication_failure_reasons.get(reason, 0) + 1
+	eligible = base.outerjoin(VideoCategory, VideoCategory.id == Video.category_id).filter(
+		Review.status == "approved",
+		Review.rights_status == "cleared",
+		Review.made_for_kids.is_(True),
+		Review.screening_flags == [],
+		Review.last_verified_at >= utc_naive(
+			datetime.now(timezone.utc) - timedelta(hours=settings.youtube_reverify_hours)
+		),
+		Video.is_published.is_(False),
+		Video.content_rating.in_(["general", "educational"]),
+		age_band_clause,
+		VideoCategory.id.is_(None) | VideoCategory.is_active.is_(True),
+		Video.duration_seconds > 1,
+		Video.duration_seconds <= 60,
+	)
+	published_shorts = base.outerjoin(VideoCategory, VideoCategory.id == Video.category_id).filter(
+		Review.status == "approved",
+		Review.rights_status == "cleared",
+		Review.made_for_kids.is_(True),
+		Review.screening_flags == [],
+		Review.last_verified_at >= utc_naive(
+			datetime.now(timezone.utc) - timedelta(hours=settings.youtube_reverify_hours)
+		),
+		Video.is_published.is_(True),
+		Video.content_rating.in_(["general", "educational"]),
+		age_band_clause,
+		or_(VideoCategory.id.is_(None), VideoCategory.is_active.is_(True)),
+		Video.duration_seconds > 1,
+		Video.duration_seconds <= 60,
+	)
+	rights_not_cleared = base.filter(Review.rights_status != "cleared").count()
+	safety_failed = base.filter(or_(Review.status == "quarantined", Review.screening_flags != [], Review.made_for_kids.is_not(True))).count()
+	invalid_age_band = base.filter(~age_band_clause).count()
+	format_counts = {"short": 0, "regular": 0, "unknown": 0}
+	for source, duration, count in session.query(Video.video_source, Video.duration_seconds, func.count(Video.id)).join(
+		Review, Review.video_id == Video.id
+	).group_by(Video.video_source, Video.duration_seconds).all():
+		format_counts[video_format(source, duration)] += count
 	return {
+		"total_video_records": session.query(Video.id).count(),
 		"total_discovered": session.query(Review.id).count(),
 		"automatically_published": published_by_source.get("automatic", 0),
 		"manually_published": published_by_source.get("manual", 0),
+		"approved_published": base.filter(Review.status == "approved", Video.is_published.is_(True)).count(),
+		"approved_unpublished": base.filter(Review.status == "approved", Video.is_published.is_(False)).count(),
+		"pending_review_unpublished": base.filter(Review.status == "pending_review", Video.is_published.is_(False)).count(),
 		"pending_review": status_counts.get("pending_review", 0),
 		"quarantined": status_counts.get("quarantined", 0),
 		"rejected": status_counts.get("rejected", 0),
 		"revoked": status_counts.get("revoked", 0),
 		"unavailable": status_counts.get("unavailable", 0),
-		"approved_unpublished": session.query(Review.id).join(Video, Video.id == Review.video_id).filter(
-			Review.status == "approved", Video.is_published.is_(False)
-		).count(),
+		"rights_not_cleared": rights_not_cleared,
+		"safety_screening_failed": safety_failed,
+		"blocked_by_rights_or_safety": base.filter(or_(Review.rights_status != "cleared", Review.screening_flags != [], Review.made_for_kids.is_not(True))).count(),
+		"invalid_age_band": invalid_age_band,
+		"eligible_approved_unpublished": eligible.count(),
+		"published_shorts": published_shorts.count(),
+		"quarantine_reasons": quarantine_reasons,
+		"video_format_counts": format_counts,
 		"last_discovery_run": utc_aware(latest[0]) if latest else None,
 		"last_discovery_result": last_result,
-		"publication_failure_reasons": pending_reasons,
+		"publication_failure_reasons": {
+			**{f"pending_review:{key}": value for key, value in pending_reasons.items()},
+			**{f"approved_unpublished:{key}": value for key, value in publication_failure_reasons.items()},
+		},
 		"configuration": {
 			"database": bool(settings.database_url),
 			"youtube_api": bool(settings.youtube_api_key),
@@ -691,6 +772,152 @@ def diagnostics(session: Session) -> dict[str, Any]:
 			"discovery_actor": settings.youtube_discovery_actor_id is not None,
 		},
 	}
+
+
+def publish_approved_unpublished(
+	session: Session,
+	actor,
+	client: YouTubeClient,
+	limit: int,
+	after_id: UUID | None = None,
+) -> dict[str, Any]:
+	"""Revalidate and publish one bounded page of approved Shorts candidates."""
+	_require_tables("YouTubeContentReview")
+	Review = get_model("YouTubeContentReview")
+	Video = get_model("Video")
+	query = session.query(Review, Video).join(Video, Video.id == Review.video_id).filter(
+		Review.status == "approved", Video.is_published.is_(False)
+	)
+	if after_id is not None:
+		query = query.filter(Review.id > after_id)
+	rows = query.order_by(Review.id).limit(limit).with_for_update(skip_locked=True).all()
+	counts: dict[str, int] = {}
+	newly_published = 0
+	try:
+		items = client.videos([review.youtube_video_id for review, _ in rows], use_cache=False)
+	except YouTubeError as error:
+		session.rollback()
+		raise to_api_error(error) from error
+	for review, video in rows:
+		blocked = False
+		if review.rights_status != "cleared":
+			counts["rights_not_cleared"] = counts.get("rights_not_cleared", 0) + 1
+		item = items.get(review.youtube_video_id)
+		if item is None:
+			_mark_unavailable(session, actor.id, review, video, ["not_returned"])
+			counts["unavailable"] = counts.get("unavailable", 0) + 1
+			continue
+		checked_status, flags = screen_candidate(item, settings.youtube_region_code)
+		review.last_verified_at = _now()
+		review.made_for_kids = (item.get("status") or {}).get("madeForKids")
+		review.screening_flags = flags
+		if checked_status == "unavailable":
+			_mark_unavailable(session, actor.id, review, video, flags)
+			counts["unavailable"] = counts.get("unavailable", 0) + 1
+			continue
+		if checked_status == "quarantined":
+			_move(session, actor.id, review, video, "quarantined", {"revalidation_flags": flags})
+			for flag in flags:
+				key = f"screening:{flag}"
+				counts[key] = counts.get(key, 0) + 1
+			continue
+		if flags:
+			for flag in flags:
+				key = f"screening:{flag}"
+				counts[key] = counts.get(key, 0) + 1
+			continue
+		if review.rights_status != "cleared":
+			blocked = True
+		if (video.age_min, video.age_max) not in YOUTUBE_AGE_BANDS:
+			counts["unsupported_age_band"] = counts.get("unsupported_age_band", 0) + 1
+			blocked = True
+		if video.content_rating not in {"general", "educational"}:
+			counts["content_rating_not_publishable"] = counts.get("content_rating_not_publishable", 0) + 1
+			blocked = True
+		if video.category_id is not None:
+			VideoCategory = get_model("VideoCategory")
+			if not session.query(VideoCategory.id).filter(
+				VideoCategory.id == video.category_id, VideoCategory.is_active.is_(True)
+			).first():
+				counts["inactive_category"] = counts.get("inactive_category", 0) + 1
+				blocked = True
+		duration = parse_iso8601_duration((item.get("contentDetails") or {}).get("duration"))
+		if duration is None:
+			counts["duration_unknown"] = counts.get("duration_unknown", 0) + 1
+			blocked = True
+		else:
+			video.duration_seconds = duration
+			if video_format(video.video_source, duration) != "short":
+				counts["not_a_short"] = counts.get("not_a_short", 0) + 1
+				blocked = True
+		if blocked:
+			continue
+		if review.rights_status != "cleared":
+			continue
+		from app.services.video_service import publish_approved_youtube_video
+		publish_approved_youtube_video(
+			session,
+			actor,
+			review,
+			video,
+			"batch republished after fresh YouTube and eligibility checks",
+		)
+		newly_published += 1
+	if rows:
+		record_audit(
+			session,
+			actor.id,
+			"youtube.approved_publish_batch",
+			"youtube_pipeline",
+			None,
+			{"checked": len(rows), "newly_published": newly_published, "blocked_by_reason": counts},
+		)
+	last_id = rows[-1][0].id if rows else after_id
+	remaining_query = session.query(Review.id).join(Video, Video.id == Review.video_id).filter(
+		Review.status == "approved", Video.is_published.is_(False)
+	)
+	approved_unpublished_remaining = remaining_query.count()
+	has_more = bool(last_id and remaining_query.filter(Review.id > last_id).first())
+	session.commit()
+	return {
+		"checked": len(rows),
+		"newly_published": newly_published,
+		"blocked_by_reason": counts,
+		"approved_unpublished_remaining": approved_unpublished_remaining,
+		"next_after_id": last_id if has_more else None,
+		"complete": not has_more,
+	}
+
+
+def reevaluate_quarantined(session: Session, actor, client: YouTubeClient, review_id: UUID) -> dict[str, Any]:
+	review, video = _locked(session, review_id)
+	if review.status != "quarantined":
+		raise APIError(409, "youtube_not_quarantined", "Only quarantined videos can be re-evaluated")
+	try:
+		item = client.videos([review.youtube_video_id], use_cache=False).get(review.youtube_video_id)
+	except YouTubeError as error:
+		raise to_api_error(error) from error
+	old_flags = list(review.screening_flags or [])
+	status, flags = screen_candidate(item, settings.youtube_region_code) if item else ("unavailable", ["not_returned"])
+	review.screening_flags = flags
+	review.made_for_kids = (item.get("status") or {}).get("madeForKids") if item else None
+	review.last_verified_at = _now()
+	if status == "unavailable":
+		_mark_unavailable(session, actor.id, review, video, flags)
+	elif status == "pending_review" and not flags:
+		_move(session, actor.id, review, video, "pending_review", {"resolved_quarantine_flags": old_flags})
+	else:
+		review.updated_at = _now()
+		record_audit(
+			session,
+			actor.id,
+			"youtube.quarantine.reevaluated",
+			"video",
+			video.id,
+			{"old_flags": old_flags, "current_flags": flags},
+		)
+	session.commit()
+	return review_public(review, video)
 
 
 def _locked(session: Session, review_id: UUID):
@@ -738,6 +965,10 @@ def _mark_unavailable(session: Session, actor_id, review, video, flags: list[str
 
 def approve(session: Session, actor, client: YouTubeClient, review_id: UUID, request: YouTubeApproveRequest) -> dict[str, Any]:
 	review, video = _locked(session, review_id)
+	if review.status == "quarantined":
+		raise APIError(409, "youtube_re_evaluation_required", "Re-evaluate and clear the quarantine before approval")
+	if review.status != "pending_review":
+		raise APIError(409, "invalid_review_transition", f"Cannot approve a {review.status} video")
 	if not can_transition(review.status, "approved"):
 		raise APIError(409, "invalid_review_transition", f"Cannot approve a {review.status} video")
 	try:
@@ -753,12 +984,17 @@ def approve(session: Session, actor, client: YouTubeClient, review_id: UUID, req
 		raise APIError(409, "not_made_for_kids", "Only videos YouTube marks as made for kids can be shown to children")
 	if "age_restricted" in flags:
 		raise APIError(409, "age_restricted", "Age-restricted videos cannot be approved")
-	if flags and not (request.notes or "").strip():
-		raise APIError(422, "review_notes_required", "Explain why the screening flags are acceptable")
-	if request.category_id:
+	if status == "quarantined" or flags:
+		review.screening_flags = flags
+		if status == "quarantined":
+			_move(session, actor.id, review, video, "quarantined", {"flags": flags})
+			session.commit()
+		raise APIError(409, "youtube_screening_failed", "Resolve screening flags before approving this video")
+	category_id = request.category_id if request.category_id is not None else video.category_id
+	if category_id:
 		VideoCategory = get_model("VideoCategory")
 		if not session.query(VideoCategory.id).filter(
-			VideoCategory.id == request.category_id, VideoCategory.is_active.is_(True)
+			VideoCategory.id == category_id, VideoCategory.is_active.is_(True)
 		).first():
 			raise APIError(404, "video_category_not_found", "Video category not found")
 	snippet = item.get("snippet") or {}
@@ -769,10 +1005,8 @@ def approve(session: Session, actor, client: YouTubeClient, review_id: UUID, req
 	video.age_min = request.age_min
 	video.age_max = request.age_max
 	video.language_code = request.language_code.lower()
-	video.category_id = request.category_id
+	video.category_id = category_id
 	video.content_rating = "educational"
-	video.is_published = True
-	video.published_at = now
 	review.made_for_kids = True
 	review.screening_flags = flags
 	review.rights_status = request.rights_status
@@ -786,6 +1020,8 @@ def approve(session: Session, actor, client: YouTubeClient, review_id: UUID, req
 		review.publication_source = "manual"
 		review.publication_reason = "administrator approval"
 	_move(session, actor.id, review, video, "approved", {"age": [request.age_min, request.age_max], "language": video.language_code})
+	from app.services.video_service import publish_approved_youtube_video
+	publish_approved_youtube_video(session, actor, review, video, "administrator approval after fresh YouTube checks")
 	session.commit()
 	return review_public(review, video)
 

@@ -175,6 +175,66 @@ def test_trusted_channel_rights_are_inherited_on_existing_pending_candidate(api,
 	assert (video.age_min, video.age_max) == (6, 8)
 
 
+def test_approved_unpublished_short_is_revalidated_and_published(api, youtube):
+	admin = api.make_admin()
+	ctx = _family_with_age(api, 7)
+	review = _discover(api, admin)[VIDEO_ID]
+	assert _approve(api, admin, review["id"]).status_code == 200
+	Video = get_model("Video")
+	video = api.session.query(Video).filter(Video.id == review["video_id"]).one()
+	video.is_published = False
+	api.session.commit()
+	response = api.post(
+		"/admin/videos/youtube/publish-approved",
+		admin["token"],
+		{"limit": 50},
+	)
+	assert response.status_code == 200, response.text
+	assert response.json()["newly_published"] == 1
+	assert _feed_ids(api, ctx["child"]["token"], "/videos/shorts") == {VIDEO_ID}
+
+
+def test_bulk_publish_keeps_rights_uncleared_video_out_of_feed(api, youtube):
+	admin = api.make_admin()
+	ctx = _family_with_age(api, 7)
+	review_data = _discover(api, admin)[VIDEO_ID]
+	assert _approve(api, admin, review_data["id"]).status_code == 200
+	Review = get_model("YouTubeContentReview")
+	Video = get_model("Video")
+	review = api.session.query(Review).filter(Review.id == review_data["id"]).one()
+	video = api.session.query(Video).filter(Video.id == review_data["video_id"]).one()
+	review.rights_status = "not_cleared"
+	video.is_published = False
+	api.session.commit()
+	response = api.post(
+		"/admin/videos/youtube/publish-approved",
+		admin["token"],
+		{"limit": 50},
+	)
+	assert response.status_code == 200, response.text
+	assert response.json()["newly_published"] == 0
+	assert response.json()["blocked_by_reason"]["rights_not_cleared"] == 1
+	assert _feed_ids(api, ctx["child"]["token"], "/videos/shorts") == set()
+
+
+def test_quarantine_must_be_re_evaluated_before_explicit_approval(api, youtube):
+	admin = api.make_admin()
+	ctx = _family_with_age(api, 7)
+	review_data = _discover(api, admin)[OTHER_ID]
+	assert review_data["status"] == "quarantined"
+	youtube.items[OTHER_ID]["status"]["madeForKids"] = True
+	rechecked = api.post(
+		f"/admin/videos/youtube/reviews/{review_data['id']}/reevaluate",
+		admin["token"],
+	)
+	assert rechecked.status_code == 200, rechecked.text
+	assert rechecked.json()["status"] == "pending_review"
+	assert _feed_ids(api, ctx["child"]["token"]) == set()
+	approved = _approve(api, admin, review_data["id"])
+	assert approved.status_code == 200, approved.text
+	assert _feed_ids(api, ctx["child"]["token"], "/videos/shorts") == {OTHER_ID}
+
+
 @pytest.mark.parametrize(("age", "age_min", "age_max"), [(4, 3, 5), (7, 6, 8), (10, 9, 12), (14, 13, 15)])
 def test_each_approved_age_band_is_visible_to_eligible_child(api, youtube, age, age_min, age_max):
 	admin = api.make_admin()

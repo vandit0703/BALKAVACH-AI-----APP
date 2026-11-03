@@ -96,5 +96,34 @@ void main() {
       ),
       isEmpty,
     );
+    expect(find.byKey(const Key('youtube.publishApproved')), findsNothing);
+  });
+
+  testWidgets('admin can run approved-video publication batches', (
+    tester,
+  ) async {
+    final server = baseServer()
+      ..reply('GET', '/api/v1/admin/videos/youtube/reviews', [_review()])
+      ..reply('POST', '/api/v1/admin/videos/youtube/publish-approved', {
+        'checked': 0,
+        'newly_published': 0,
+        'blocked_by_reason': <String, int>{},
+        'approved_unpublished_remaining': 0,
+        'next_after_id': null,
+        'complete': true,
+      });
+    await pumpAdmin(tester, server);
+    await openSection(tester, 'YouTube review');
+
+    await tester.tap(find.byKey(const Key('youtube.publishApproved')));
+    await tester.pumpAndSettle();
+
+    expect(
+      server
+          .to('POST', '/api/v1/admin/videos/youtube/publish-approved')
+          .single
+          .data,
+      {'limit': 50},
+    );
   });
 }

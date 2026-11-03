@@ -25,6 +25,8 @@ from app.schemas.video import (
 	YouTubeApproveRequest,
 	YouTubeDiscoverRequest,
 	YouTubeDiscoverResult,
+	YouTubeApprovedPublishRequest,
+	YouTubeApprovedPublishResult,
 	YouTubeDiagnosticsPublic,
 	YouTubeImportRequest,
 	YouTubeRecheckRequest,
@@ -37,7 +39,6 @@ from app.schemas.video import (
 	YouTubeTrustedChannelRequest,
 )
 from app.services import youtube_review_service
-from app.services.video_classification import known_duration_or_none, video_format
 from app.services.admin_service import record_audit
 from app.services.video_service import (
 	add_collection_video,
@@ -73,9 +74,7 @@ def _feed_item(video, channel_name: str | None = None) -> VideoFeedItem:
 		title=video.title,
 		description=video.description,
 		thumbnail_url=video.thumbnail_url,
-		# Null when unknown (see video_classification); never a guess.
-		duration_seconds=known_duration_or_none(video.video_source, video.duration_seconds),
-		video_format=video_format(video.video_source, video.duration_seconds),
+		duration_seconds=video.duration_seconds,
 		category_id=video.category_id,
 		language_code=video.language_code,
 		content_rating=video.content_rating,
@@ -109,9 +108,7 @@ def video_feed(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoFeedItem]:
-	# Regular videos only: Shorts (1-60 s) have their own feed, so no video
-	# appears in both.
-	videos = eligible_feed(session, child, category_id, limit, offset, video_format="regular")
+	videos = eligible_feed(session, child, category_id, limit, offset)
 	channels = _channel_names(session, videos) if any(video.video_source == "youtube" for video in videos) else {}
 	return [_feed_item(video, channels.get(video.id)) for video in videos]
 
@@ -353,6 +350,17 @@ def admin_youtube_diagnostics(
 	return YouTubeDiagnosticsPublic(**youtube_review_service.diagnostics(session))
 
 
+@admin_router.post("/youtube/publish-approved", response_model=YouTubeApprovedPublishResult)
+def admin_youtube_publish_approved(
+	request: YouTubeApprovedPublishRequest,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeApprovedPublishResult:
+	return YouTubeApprovedPublishResult(**youtube_review_service.publish_approved_unpublished(
+		session, admin, get_youtube_client(), request.limit, request.after_id
+	))
+
+
 @admin_router.post("/youtube/reviews/{review_id}/approve", response_model=YouTubeReviewPublic)
 def admin_youtube_approve(
 	review_id: UUID,
@@ -381,6 +389,17 @@ def admin_youtube_quarantine(
 	session: Session = Depends(get_db),
 ) -> YouTubeReviewPublic:
 	return YouTubeReviewPublic(**youtube_review_service.decide(session, admin, review_id, "quarantined", request.notes))
+
+
+@admin_router.post("/youtube/reviews/{review_id}/reevaluate", response_model=YouTubeReviewPublic)
+def admin_youtube_reevaluate(
+	review_id: UUID,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeReviewPublic:
+	return YouTubeReviewPublic(**youtube_review_service.reevaluate_quarantined(
+		session, admin, get_youtube_client(), review_id
+	))
 
 
 @admin_router.post("/youtube/reviews/{review_id}/reopen", response_model=YouTubeReviewPublic)

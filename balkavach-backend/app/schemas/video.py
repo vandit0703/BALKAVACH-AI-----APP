@@ -104,14 +104,11 @@ class VideoFeedItem(BaseModel):
 	title: str
 	description: str | None
 	thumbnail_url: str | None
-	# Null when the real duration is unknown (never guessed).
-	duration_seconds: int | None
+	duration_seconds: int
 	category_id: UUID | None
 	language_code: str
 	content_rating: str
 	video_source: str = "hosted"
-	# "short" (1-60 s), "regular" or "unknown"; decided only by the backend.
-	video_format: Literal["short", "regular", "unknown"] = "regular"
 	channel_name: str | None = None
 	# Only for approved YouTube videos, which play in the official embedded
 	# player. Hosted videos never expose a media URL here.
@@ -175,10 +172,11 @@ class YouTubeReviewPublic(BaseModel):
 	description: str | None = None
 	thumbnail_url: str | None = None
 	duration_seconds: int | None = None
-	video_format: Literal["short", "regular", "unknown"] | None = None
 	language_code: str | None = None
+	video_format: str | None = None
 	age_min: int | None = None
 	age_max: int | None = None
+	category_name: str | None = None
 	discovery_topic: str | None = None
 	youtube_category_id: str | None = None
 	publication_source: str = "manual"
@@ -271,16 +269,41 @@ class YouTubeRecheckResult(BaseModel):
 	returned_to_review: int
 
 
+class YouTubeApprovedPublishRequest(BaseModel):
+	limit: int = Field(default=50, ge=1, le=50)
+	after_id: UUID | None = None
+
+
+class YouTubeApprovedPublishResult(BaseModel):
+	checked: int
+	newly_published: int
+	blocked_by_reason: dict[str, int]
+	approved_unpublished_remaining: int
+	next_after_id: UUID | None
+	complete: bool
+
+
 class YouTubeDiagnosticsPublic(BaseModel):
+	total_video_records: int
 	total_discovered: int
 	automatically_published: int
 	manually_published: int
+	approved_published: int
+	approved_unpublished: int
+	pending_review_unpublished: int
 	pending_review: int
 	quarantined: int
 	rejected: int
 	revoked: int
 	unavailable: int
-	approved_unpublished: int
+	rights_not_cleared: int
+	safety_screening_failed: int
+	blocked_by_rights_or_safety: int
+	invalid_age_band: int
+	eligible_approved_unpublished: int
+	published_shorts: int
+	quarantine_reasons: dict[str, int]
+	video_format_counts: dict[str, int]
 	last_discovery_run: datetime | None
 	last_discovery_result: dict[str, int]
 	publication_failure_reasons: dict[str, int]
