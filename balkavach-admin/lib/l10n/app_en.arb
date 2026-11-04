@@ -490,5 +490,128 @@
       }
     }
   },
-  "settingsMaintenanceDefault": "default message"
+  "settingsMaintenanceDefault": "default message",
+  "youtubeTrustChannelTitle": "Trust YouTube channel",
+  "youtubePreview": "Preview on YouTube",
+  "youtubeReevaluate": "Re-evaluate",
+  "youtubeTrustChannel": "Trust channel",
+  "youtubeUntrustChannel": "Remove channel trust",
+  "youtubePublishApproved": "Publish approved unpublished videos",
+  "youtubeSource": "Approval source",
+  "youtubeAllOption": "Any",
+  "youtubeAutomatic": "Automatic",
+  "youtubeManual": "By an administrator",
+  "youtubeAvailability": "Availability",
+  "youtubePublished": "Published",
+  "youtubeUnpublished": "Not published",
+  "youtubeDiagnosticsTitle": "Pipeline diagnostics",
+  "youtubeDiagnosticsRefresh": "Refresh diagnostics",
+  "youtubeDiagnosticsUnavailable": "Diagnostics unavailable: {error}",
+  "@youtubeDiagnosticsUnavailable": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "youtubeQuarantineReason": "Quarantine: {reason} ({count})",
+  "@youtubeQuarantineReason": {
+    "placeholders": {
+      "reason": {
+        "type": "Object"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "youtubeBlockedReason": "Blocked: {reason} ({count})",
+  "@youtubeBlockedReason": {
+    "placeholders": {
+      "reason": {
+        "type": "Object"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "youtubeRights": "Rights: {status}",
+  "@youtubeRights": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "youtubeSummaryTitle": "Review summary",
+  "youtubeCountApproved": "Approved",
+  "youtubeCountPending": "Waiting for a person",
+  "youtubeCountQuarantined": "Quarantined",
+  "youtubeCountRejected": "Rejected",
+  "youtubeCountPublished": "Published in the app",
+  "youtubeApprovedBySource": "Approved automatically: {automatic} · by an administrator: {manual}",
+  "@youtubeApprovedBySource": {
+    "placeholders": {
+      "automatic": {
+        "type": "String"
+      },
+      "manual": {
+        "type": "String"
+      }
+    }
+  },
+  "youtubeAutoNote": "Videos that pass every automatic check are approved and published without an administrator. Only videos that need a person stay in the waiting list.",
+  "youtubeAutoReview": "Process waiting videos",
+  "youtubeAutoReviewResult": "Checked {checked}: {approved} approved automatically, {waiting} still need a person, {quarantined} quarantined.",
+  "@youtubeAutoReviewResult": {
+    "placeholders": {
+      "checked": {
+        "type": "String"
+      },
+      "approved": {
+        "type": "String"
+      },
+      "waiting": {
+        "type": "String"
+      },
+      "quarantined": {
+        "type": "String"
+      }
+    }
+  },
+  "youtubeAutoReviewRetry": "YouTube could not be reached for {count} videos. Nothing was changed; try again later.",
+  "@youtubeAutoReviewRetry": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "youtubeDecisionColumn": "Decision",
+  "youtubeDecisionAutomatic": "Approved automatically",
+  "youtubeDecisionManual": "Approved by an administrator",
+  "youtubeDecisionWaiting": "Waiting",
+  "youtubeReasonLabel": "Reason: {reason}",
+  "@youtubeReasonLabel": {
+    "placeholders": {
+      "reason": {
+        "type": "Object"
+      }
+    }
+  },
+  "youtubeFreshness": "Oldest verification: {oldest} · approved videos past the {hours}-hour limit (hidden from children): {stale}",
+  "@youtubeFreshness": {
+    "placeholders": {
+      "oldest": {
+        "type": "String"
+      },
+      "hours": {
+        "type": "String"
+      },
+      "stale": {
+        "type": "String"
+      }
+    }
+  }
 }

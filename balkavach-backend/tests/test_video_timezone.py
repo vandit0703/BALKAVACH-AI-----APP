@@ -30,6 +30,8 @@ def playback(isolated_test_session, monkeypatch):
     monkeypatch.setattr("app.services.video_access_service.get_video_playback_provider", lambda: _Provider())
     session = isolated_test_session
     parent, family, child, _ = _seed_family(session)
+    # Eligibility needs an age; the shared fixture child has no birth date.
+    child.date_of_birth = datetime.now(timezone.utc).date().replace(year=datetime.now(timezone.utc).year - 8)
     video = _seed_video(session, parent.id)
     now = utc_naive(datetime.now(timezone.utc))
     Reward = get_model("Reward")
@@ -71,3 +73,49 @@ def test_heartbeat_works_on_reloaded_rows(playback):
     session.expire_all()
     beat = record_heartbeat(session, child, started.session_id)
     assert beat.accepted_seconds >= 0
+
+
+def _request(video, entitlement_id):
+    return PlaybackStartRequest(video_id=video.id, entitlement_id=entitlement_id, device_session_id=f"device-{uuid4()}")
+
+
+def test_start_playback_without_a_birth_date_is_refused_not_a_crash(playback):
+    from fastapi import HTTPException
+
+    session, child, video, entitlement_id = playback
+    child.date_of_birth = None
+    session.commit()
+    with pytest.raises(HTTPException) as refused:
+        start_playback(session, child, _request(video, entitlement_id))
+    assert refused.value.status_code == 403
+    assert "not eligible" in refused.value.detail
+    # No playback session was created and no time was consumed.
+    from app.db.base import get_model
+
+    assert session.query(get_model("VideoWatchSession")).filter_by(child_id=child.id).count() == 0
+    assert session.query(get_model("VideoAccessEntitlement")).filter_by(id=entitlement_id).one().consumed_seconds == 0
+
+
+def test_start_playback_with_a_future_birth_date_is_refused(playback):
+    from datetime import timedelta
+
+    from fastapi import HTTPException
+
+    session, child, video, entitlement_id = playback
+    child.date_of_birth = datetime.now(timezone.utc).date() + timedelta(days=30)
+    session.commit()
+    with pytest.raises(HTTPException) as refused:
+        start_playback(session, child, _request(video, entitlement_id))
+    assert refused.value.status_code == 403
+
+
+def test_start_playback_outside_the_video_age_range_is_still_refused(playback):
+    from fastapi import HTTPException
+
+    session, child, video, entitlement_id = playback
+    child.date_of_birth = datetime.now(timezone.utc).date().replace(year=datetime.now(timezone.utc).year - 14)
+    video.age_min, video.age_max = 4, 6
+    session.commit()
+    with pytest.raises(HTTPException) as refused:
+        start_playback(session, child, _request(video, entitlement_id))
+    assert refused.value.status_code == 403

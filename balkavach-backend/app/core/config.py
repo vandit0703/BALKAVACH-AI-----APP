@@ -41,6 +41,9 @@ class Settings(BaseSettings):
 	youtube_discovery_max_results: int = Field(default=10, ge=1, le=50)
 	youtube_auto_publish_max_seconds: int = Field(default=180, ge=1, le=600)
 	youtube_auto_publish_non_trusted: bool = True
+	# Audience for automatically approved videos from non-trusted channels: one of
+	# 3-5, 6-8, 9-12, 13-15. Unset means such videos wait for a person.
+	youtube_auto_publish_age_band: str | None = None
 	youtube_discovery_actor_id: UUID | None = Field(default=None, repr=False)
 	youtube_reverify_hours: int = Field(default=72, ge=1, le=720)
 	notification_provider: str | None = None

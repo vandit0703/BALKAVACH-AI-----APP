@@ -42,3 +42,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Build output. Only the deployed web bundle is tracked on purpose (commit b45e731);
+# the compiler/test caches (build/test_cache holds 50-80 MB .dill files) must not be.
+/build/*
+!/build/web/

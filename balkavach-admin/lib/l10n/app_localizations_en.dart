@@ -991,4 +991,136 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsMaintenanceDefault => 'default message';
+
+  @override
+  String get youtubeTrustChannelTitle => 'Trust YouTube channel';
+
+  @override
+  String get youtubePreview => 'Preview on YouTube';
+
+  @override
+  String get youtubeReevaluate => 'Re-evaluate';
+
+  @override
+  String get youtubeTrustChannel => 'Trust channel';
+
+  @override
+  String get youtubeUntrustChannel => 'Remove channel trust';
+
+  @override
+  String get youtubePublishApproved => 'Publish approved unpublished videos';
+
+  @override
+  String get youtubeSource => 'Approval source';
+
+  @override
+  String get youtubeAllOption => 'Any';
+
+  @override
+  String get youtubeAutomatic => 'Automatic';
+
+  @override
+  String get youtubeManual => 'By an administrator';
+
+  @override
+  String get youtubeAvailability => 'Availability';
+
+  @override
+  String get youtubePublished => 'Published';
+
+  @override
+  String get youtubeUnpublished => 'Not published';
+
+  @override
+  String get youtubeDiagnosticsTitle => 'Pipeline diagnostics';
+
+  @override
+  String get youtubeDiagnosticsRefresh => 'Refresh diagnostics';
+
+  @override
+  String youtubeDiagnosticsUnavailable(Object error) {
+    return 'Diagnostics unavailable: $error';
+  }
+
+  @override
+  String youtubeQuarantineReason(Object reason, String count) {
+    return 'Quarantine: $reason ($count)';
+  }
+
+  @override
+  String youtubeBlockedReason(Object reason, String count) {
+    return 'Blocked: $reason ($count)';
+  }
+
+  @override
+  String youtubeRights(String status) {
+    return 'Rights: $status';
+  }
+
+  @override
+  String get youtubeSummaryTitle => 'Review summary';
+
+  @override
+  String get youtubeCountApproved => 'Approved';
+
+  @override
+  String get youtubeCountPending => 'Waiting for a person';
+
+  @override
+  String get youtubeCountQuarantined => 'Quarantined';
+
+  @override
+  String get youtubeCountRejected => 'Rejected';
+
+  @override
+  String get youtubeCountPublished => 'Published in the app';
+
+  @override
+  String youtubeApprovedBySource(String automatic, String manual) {
+    return 'Approved automatically: $automatic · by an administrator: $manual';
+  }
+
+  @override
+  String get youtubeAutoNote =>
+      'Videos that pass every automatic check are approved and published without an administrator. Only videos that need a person stay in the waiting list.';
+
+  @override
+  String get youtubeAutoReview => 'Process waiting videos';
+
+  @override
+  String youtubeAutoReviewResult(
+    String checked,
+    String approved,
+    String waiting,
+    String quarantined,
+  ) {
+    return 'Checked $checked: $approved approved automatically, $waiting still need a person, $quarantined quarantined.';
+  }
+
+  @override
+  String youtubeAutoReviewRetry(String count) {
+    return 'YouTube could not be reached for $count videos. Nothing was changed; try again later.';
+  }
+
+  @override
+  String get youtubeDecisionColumn => 'Decision';
+
+  @override
+  String get youtubeDecisionAutomatic => 'Approved automatically';
+
+  @override
+  String get youtubeDecisionManual => 'Approved by an administrator';
+
+  @override
+  String get youtubeDecisionWaiting => 'Waiting';
+
+  @override
+  String youtubeReasonLabel(Object reason) {
+    return 'Reason: $reason';
+  }
+
+  @override
+  String youtubeFreshness(String oldest, String hours, String stale) {
+    return 'Oldest verification: $oldest · approved videos past the $hours-hour limit (hidden from children): $stale';
+  }
 }

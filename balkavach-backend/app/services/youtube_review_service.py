@@ -6,10 +6,16 @@ A YouTube video is a ``videos`` row (``video_source = 'youtube'``) plus a
     discovered -> pending_review -> approved | rejected
     with quarantined, revoked and unavailable as side states.
 
-Automated screening only ever moves a candidate to ``pending_review``,
-``quarantined`` or ``unavailable``. Only an administrator's approval publishes a
-video, and the child feed additionally requires the approval to have been
-re-verified against YouTube recently (see ``youtube_visibility_clause``).
+Screening moves a candidate to ``pending_review``, ``quarantined`` or
+``unavailable``. A candidate that screening leaves clean is approved and
+published automatically (``publication_source = 'automatic'``) when every rule in
+``auto_approval_blocker`` passes; ``auto_review`` re-verifies waiting candidates
+against YouTube and applies the same rules. Anything that fails stays unpublished
+with the reason recorded, and an administrator can still approve, reject or
+revoke by hand. Automatic approval never overrides an administrator's decision,
+a user report, or an explicit "rights not cleared". The child feed additionally
+requires the approval to have been re-verified recently (see
+``youtube_visibility_clause``).
 Screening is a keyword and metadata filter: it reduces reviewer load, it does
 not make content safe, and it inspects no video frames, audio or thumbnails.
 """
@@ -302,9 +308,80 @@ def _create_candidate(
 	return review, video
 
 
+AUTO_BLOCKER_TEXT = {
+	"non_trusted_auto_publish_disabled": "automatic approval of non-trusted channels is turned off",
+	"trusted_channel_inactive": "the trusted channel is inactive",
+	"channel_id_mismatch": "the channel does not match the trusted channel record",
+	"trusted_channel_rights_not_cleared": "the trusted channel's rights are not cleared",
+	"rights_not_cleared": "rights are not cleared for this video",
+	"review_not_pending": "the video is not awaiting review",
+	"screening_flags": "screening flags need a person to look at them",
+	"made_for_kids_not_true": "YouTube does not mark the video as made for kids",
+	"duration_exceeds_limit": "the video is longer than the automatic approval limit",
+	"age_band_not_configured": "no age band is configured for automatic approval (set YOUTUBE_AUTO_PUBLISH_AGE_BAND)",
+	"unsupported_age_band": "the audience age range is not one of 3-5, 6-8, 9-12 or 13-15",
+}
+
+
+def configured_auto_age_band() -> tuple[int, int] | None:
+	"""The operator-chosen audience for automatic approval, or ``None`` if unset or invalid."""
+	raw = (settings.youtube_auto_publish_age_band or "").strip()
+	try:
+		low, high = (int(part) for part in raw.split("-", 1))
+	except ValueError:
+		return None
+	return (low, high) if (low, high) in YOUTUBE_AGE_BANDS else None
+
+
+def auto_age_band(trusted_channel) -> tuple[int, int] | None:
+	"""Audience an automatically approved video would get, if it is a supported band."""
+	if trusted_channel is not None:
+		band = (trusted_channel.age_min, trusted_channel.age_max)
+		return band if band in YOUTUBE_AGE_BANDS else None
+	return configured_auto_age_band()
+
+
+def auto_approval_blocker(review, video, trusted_channel=None) -> tuple[str, dict[str, Any]] | None:
+	"""Why this candidate may not be approved automatically, or ``None`` if it may.
+
+	Pure policy: reads attributes only. Every rule that gates automatic
+	publication lives here, so it is the single place to audit.
+	"""
+	if trusted_channel is None:
+		if not settings.youtube_auto_publish_non_trusted:
+			return "non_trusted_auto_publish_disabled", {}
+	else:
+		if not trusted_channel.is_active:
+			return "trusted_channel_inactive", {}
+		if review.channel_id != trusted_channel.channel_id:
+			return "channel_id_mismatch", {"trusted_channel_id": trusted_channel.channel_id}
+		if trusted_channel.rights_status != "cleared":
+			return "trusted_channel_rights_not_cleared", {"rights_status": trusted_channel.rights_status}
+	if trusted_channel is None and review.rights_status != "cleared":
+		return "rights_not_cleared", {"rights_status": review.rights_status}
+	if review.status != "pending_review":
+		return "review_not_pending", {"status": review.status}
+	if review.screening_flags:
+		return "screening_flags", {"flags": list(review.screening_flags)}
+	if review.made_for_kids is not True:
+		return "made_for_kids_not_true", {"made_for_kids": review.made_for_kids}
+	if auto_age_band(trusted_channel) is None:
+		if trusted_channel is None and not (settings.youtube_auto_publish_age_band or "").strip():
+			return "age_band_not_configured", {}
+		return "unsupported_age_band", {}
+	if video.duration_seconds > settings.youtube_auto_publish_max_seconds:
+		return "duration_exceeds_limit", {
+			"duration_seconds": video.duration_seconds,
+			"max_duration_seconds": settings.youtube_auto_publish_max_seconds,
+		}
+	return None
+
+
 def _auto_publish(session: Session, actor, review, video, trusted_channel=None) -> bool:
 	"""Publish a clean, short candidate under the configured discovery policy."""
-	def skipped(reason: str, **details: Any) -> bool:
+	blocker = auto_approval_blocker(review, video, trusted_channel)
+	if blocker is not None:
+		reason, details = blocker
 		logger.info(
 			"youtube.auto_publish.skipped",
 			extra={
@@ -317,35 +394,9 @@ def _auto_publish(session: Session, actor, review, video, trusted_channel=None) 
 			},
 		)
 		return False
-
-	if trusted_channel is None:
-		if not settings.youtube_auto_publish_non_trusted:
-			return skipped("non_trusted_auto_publish_disabled")
-	else:
-		if not trusted_channel.is_active:
-			return skipped("trusted_channel_inactive")
-		if review.channel_id != trusted_channel.channel_id:
-			return skipped("channel_id_mismatch", trusted_channel_id=trusted_channel.channel_id)
-		if trusted_channel.rights_status != "cleared":
-			return skipped("trusted_channel_rights_not_cleared", rights_status=trusted_channel.rights_status)
-	if trusted_channel is None and review.rights_status != "cleared":
-		return skipped("rights_not_cleared", rights_status=review.rights_status)
-	if review.status != "pending_review":
-		return skipped("review_not_pending", status=review.status)
-	if review.screening_flags:
-		return skipped("screening_flags", flags=list(review.screening_flags))
-	if review.made_for_kids is not True:
-		return skipped("made_for_kids_not_true", made_for_kids=review.made_for_kids)
-	if video.duration_seconds > settings.youtube_auto_publish_max_seconds:
-		return skipped(
-			"duration_exceeds_limit",
-			duration_seconds=video.duration_seconds,
-			max_duration_seconds=settings.youtube_auto_publish_max_seconds,
-		)
 	now = _now()
+	video.age_min, video.age_max = auto_age_band(trusted_channel)
 	if trusted_channel is not None:
-		video.age_min = trusted_channel.age_min
-		video.age_max = trusted_channel.age_max
 		video.language_code = trusted_channel.language_code
 		video.category_id = trusted_channel.category_id
 	video.content_rating = "educational"
@@ -482,15 +533,11 @@ def discover(
 				.all()
 			)
 			for review, video in pending_existing:
-				trusted_channel = (
-					session.query(Trusted).filter(Trusted.channel_id == review.channel_id).one_or_none()
-					if Trusted is not None and review.channel_id
-					else None
-				)
-				if trusted_channel is None and review.rights_status == "unreviewed":
-					review.rights_status = "cleared"
-				if _auto_publish(session, actor, review, video, trusted_channel):
+				approved, blocker = _try_auto_approve(session, actor, review, video)
+				if approved:
 					automatically_published += 1
+				elif blocker:
+					_note_waiting(review, blocker)
 		details = client.videos(new_ids) if new_ids else {}
 	except YouTubeError as error:
 		raise to_api_error(error) from error
@@ -503,18 +550,15 @@ def discover(
 			unplayable += 1
 			continue
 		review, video = result
-		trusted_channel = (
-			session.query(Trusted).filter(Trusted.channel_id == review.channel_id).one_or_none()
-			if Trusted is not None and review.channel_id
-			else None
-		)
-		if auto_publish and review.status == "pending_review" and review.rights_status == "unreviewed":
-			# The scheduled discovery job's configured policy is the rights
-			# attestation for non-trusted automatic publication. Explicitly denied
-			# rights remain blocked by _auto_publish.
-			review.rights_status = "cleared"
-		if auto_publish and review.status == "pending_review" and _auto_publish(session, actor, review, video, trusted_channel):
-			automatically_published += 1
+		if auto_publish and review.status == "pending_review":
+			# The configured policy is the rights attestation for non-trusted
+			# automatic publication (see _try_auto_approve); explicitly denied rights
+			# stay blocked, and a blocked video records why it is waiting.
+			approved, blocker = _try_auto_approve(session, actor, review, video)
+			if approved:
+				automatically_published += 1
+			elif blocker:
+				_note_waiting(review, blocker)
 		created.append((review, video))
 	session.commit()
 	return {
@@ -585,7 +629,37 @@ def discover_trusted(session: Session, actor, client: YouTubeClient, max_results
 	return counts
 
 
-def import_video(session: Session, actor, client: YouTubeClient, url: str) -> dict[str, Any]:
+def _try_auto_approve(session: Session, actor, review, video) -> tuple[bool, str | None]:
+	"""Approve and publish one pending candidate if every automatic rule passes.
+
+	Returns ``(approved, blocker_reason)``. The non-trusted rights attestation is
+	applied only for the attempt and rolled back when the attempt is blocked, so a
+	blocked video is not left looking rights-cleared.
+	"""
+	Trusted = get_model("YouTubeTrustedChannel") if has_model("YouTubeTrustedChannel") else None
+	trusted_channel = (
+		session.query(Trusted).filter(Trusted.channel_id == review.channel_id).one_or_none()
+		if Trusted is not None and review.channel_id
+		else None
+	)
+	previous_rights = review.rights_status
+	if trusted_channel is None and settings.youtube_auto_publish_non_trusted and previous_rights == "unreviewed":
+		# The configured policy is the rights attestation; an explicit
+		# "not_cleared" is never overridden.
+		review.rights_status = "cleared"
+	blocker = auto_approval_blocker(review, video, trusted_channel)
+	if blocker is None and _auto_publish(session, actor, review, video, trusted_channel):
+		return True, None
+	review.rights_status = previous_rights
+	return False, blocker[0] if blocker else "not_published"
+
+
+def _note_waiting(review, reason: str, details: dict[str, Any] | None = None) -> None:
+	text = AUTO_BLOCKER_TEXT.get(reason, reason)
+	review.publication_reason = f"Waiting for manual review: {text}"[:500]
+
+
+def import_video(session: Session, actor, client: YouTubeClient, url: str, *, auto_publish: bool = False) -> dict[str, Any]:
 	_require_tables("YouTubeContentReview")
 	video_id = parse_youtube_video_id(url)
 	if video_id is None:
@@ -602,8 +676,13 @@ def import_video(session: Session, actor, client: YouTubeClient, url: str) -> di
 	result = _create_candidate(session, actor, video_id, item)
 	if result is None:
 		raise APIError(409, "youtube_video_unplayable", "This video has no playable duration or already exists")
+	review, video = result
+	if auto_publish and review.status == "pending_review":
+		approved, blocker = _try_auto_approve(session, actor, review, video)
+		if not approved and blocker:
+			_note_waiting(review, blocker)
 	session.commit()
-	return review_public(*result)
+	return review_public(review, video)
 
 
 def list_reviews(
@@ -644,6 +723,19 @@ def diagnostics(session: Session) -> dict[str, Any]:
 		.group_by(Review.publication_source)
 		.all()
 	)
+	approved_by_source = dict(
+		session.query(Review.publication_source, func.count(Review.id))
+		.filter(Review.status == "approved")
+		.group_by(Review.publication_source)
+		.all()
+	)
+	fresh_after = utc_naive(datetime.now(timezone.utc) - timedelta(hours=settings.youtube_reverify_hours))
+	oldest_verified = session.query(func.min(Review.last_verified_at)).filter(Review.status == "approved").scalar()
+	# Approved videos the child feed hides because recheck has not re-verified them in time.
+	approved_stale = session.query(func.count(Review.id)).filter(
+		Review.status == "approved",
+		or_(Review.last_verified_at.is_(None), Review.last_verified_at < fresh_after),
+	).scalar() or 0
 	latest = None
 	last_result: dict[str, int] = {}
 	if has_model("AuditLog"):
@@ -684,7 +776,7 @@ def diagnostics(session: Session) -> dict[str, Any]:
 			for reason in reasons or ["no_screening_reason_recorded"]:
 				quarantine_reasons[reason] = quarantine_reasons.get(reason, 0) + 1
 		if review.status == "pending_review":
-			for reason in [*reasons, "awaiting_explicit_admin_review"]:
+			for reason in [*reasons, "waiting_for_manual_review"]:
 				pending_reasons[reason] = pending_reasons.get(reason, 0) + 1
 		if review.status == "approved" and not video.is_published:
 			publication_reasons = list(reasons)
@@ -765,6 +857,13 @@ def diagnostics(session: Session) -> dict[str, Any]:
 			**{f"pending_review:{key}": value for key, value in pending_reasons.items()},
 			**{f"approved_unpublished:{key}": value for key, value in publication_failure_reasons.items()},
 		},
+		"oldest_approved_verification": utc_aware(oldest_verified) if oldest_verified else None,
+		"approved_stale": approved_stale,
+		"reverify_hours": settings.youtube_reverify_hours,
+		"approved": status_counts.get("approved", 0),
+		"approved_automatic": approved_by_source.get("automatic", 0),
+		"approved_manual": approved_by_source.get("manual", 0),
+		"published": base.filter(Video.is_published.is_(True)).count(),
 		"configuration": {
 			"database": bool(settings.database_url),
 			"youtube_api": bool(settings.youtube_api_key),
@@ -887,6 +986,142 @@ def publish_approved_unpublished(
 		"next_after_id": last_id if has_more else None,
 		"complete": not has_more,
 	}
+
+
+def auto_review(
+	session: Session,
+	actor,
+	client: YouTubeClient,
+	limit: int = 50,
+	include_quarantined: bool = True,
+) -> dict[str, Any]:
+	"""Re-verify waiting candidates with YouTube and approve the ones that qualify.
+
+	Never touches approved, rejected, revoked or administrator-quarantined rows,
+	and never touches a quarantine caused by a user report. Quarantines raised by
+	automated screening are re-screened against fresh metadata: they leave
+	quarantine only if every screening rule now passes, and are then judged by the
+	same rules as any other pending video. A YouTube error leaves every row as it
+	was, so it can be retried later. Re-running is harmless: once approved a row is
+	no longer selected.
+	"""
+	_require_tables("YouTubeContentReview")
+	Review = get_model("YouTubeContentReview")
+	Video = get_model("Video")
+	rows = (
+		session.query(Review, Video)
+		.join(Video, Video.id == Review.video_id)
+		.filter(Review.status == "pending_review")
+		.order_by(Review.last_verified_at.asc().nullsfirst(), Review.id)
+		.limit(limit)
+		.with_for_update(skip_locked=True)
+		.all()
+	)
+	if include_quarantined and len(rows) < limit:
+		quarantined = (
+			session.query(Review, Video)
+			.join(Video, Video.id == Review.video_id)
+			.filter(
+				Review.status == "quarantined",
+				Review.reviewed_by.is_(None),
+				Review.screening_flags != [],
+			)
+		)
+		if has_model("ContentReport"):
+			Report = get_model("ContentReport")
+			quarantined = quarantined.filter(
+				~exists().where(Report.video_id == Review.video_id, Report.status == "open")
+			)
+		rows += (
+			quarantined.order_by(Review.last_verified_at.asc().nullsfirst(), Review.id)
+			.limit(limit - len(rows))
+			.with_for_update(skip_locked=True)
+			.all()
+		)
+	counts: dict[str, Any] = {
+		"checked": 0,
+		"auto_approved": 0,
+		"needs_manual_review": 0,
+		"newly_quarantined": 0,
+		"still_quarantined": 0,
+		"returned_to_pending": 0,
+		"unavailable": 0,
+		"retry_later": 0,
+		"error": None,
+		"blocked_reasons": {},
+		"quarantine_reasons": {},
+	}
+
+	def tally(bucket: str, reason: str) -> None:
+		counts[bucket][reason] = counts[bucket].get(reason, 0) + 1
+
+	for start in range(0, len(rows), 50):
+		batch = rows[start:start + 50]
+		try:
+			found = client.videos([review.youtube_video_id for review, _ in batch], use_cache=False)
+		except YouTubeError as error:
+			# Nothing in this or later batches was judged; leave it all untouched.
+			counts["error"] = to_api_error(error).code
+			counts["retry_later"] += len(rows) - start
+			break
+		for review, video in batch:
+			counts["checked"] += 1
+			item = found.get(review.youtube_video_id)
+			if item is None:
+				_mark_unavailable(session, actor.id, review, video, ["not_returned"])
+				counts["unavailable"] += 1
+				continue
+			status, flags = screen_candidate(item, settings.youtube_region_code)
+			review.last_verified_at = _now()
+			review.made_for_kids = (item.get("status") or {}).get("madeForKids")
+			if status == "unavailable":
+				_mark_unavailable(session, actor.id, review, video, flags)
+				counts["unavailable"] += 1
+				continue
+			old_flags = list(review.screening_flags or [])
+			review.screening_flags = flags
+			if status == "quarantined":
+				if review.status == "pending_review":
+					_move(session, actor.id, review, video, "quarantined", {"auto_review_flags": flags})
+					counts["newly_quarantined"] += 1
+				else:
+					counts["still_quarantined"] += 1
+				for flag in flags:
+					tally("quarantine_reasons", flag)
+				continue
+			snippet = item.get("snippet") or {}
+			video.title = (str(snippet.get("title") or video.title).strip() or video.title)[:200]
+			video.thumbnail_url = safe_thumbnail_url(snippet)
+			duration = parse_iso8601_duration((item.get("contentDetails") or {}).get("duration"))
+			if duration:
+				video.duration_seconds = min(duration, 86400)
+			if review.status == "quarantined":
+				_move(session, actor.id, review, video, "pending_review", {"auto_review_cleared_flags": old_flags})
+				counts["returned_to_pending"] += 1
+			if flags:
+				_note_waiting(review, "screening_flags")
+				for flag in flags:
+					tally("blocked_reasons", f"screening:{flag}")
+				counts["needs_manual_review"] += 1
+				continue
+			approved, blocker = _try_auto_approve(session, actor, review, video)
+			if approved:
+				counts["auto_approved"] += 1
+			else:
+				_note_waiting(review, blocker or "not_published")
+				tally("blocked_reasons", blocker or "not_published")
+				counts["needs_manual_review"] += 1
+	if rows:
+		record_audit(
+			session,
+			actor.id,
+			"youtube.auto_review.completed",
+			"youtube_pipeline",
+			None,
+			{key: value for key, value in counts.items() if isinstance(value, int)},
+		)
+	session.commit()
+	return counts
 
 
 def reevaluate_quarantined(session: Session, actor, client: YouTubeClient, review_id: UUID) -> dict[str, Any]:
@@ -1119,6 +1354,10 @@ def recheck(session: Session, client: YouTubeClient, limit: int, actor_id: UUID 
 			)
 			review.last_verified_at = _now()
 			counts["verified"] += 1
+	if counts["checked"]:
+		# One row per run: the only durable trace that a scheduled or manual recheck
+		# happened (actor is None for the command-line job).
+		record_audit(session, actor_id, "youtube.recheck.completed", "youtube_pipeline", None, dict(counts))
 	session.commit()
 	return counts
 

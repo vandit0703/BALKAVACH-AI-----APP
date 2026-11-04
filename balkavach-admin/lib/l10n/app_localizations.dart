@@ -1923,6 +1923,227 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'default message'**
   String get settingsMaintenanceDefault;
+
+  /// No description provided for @youtubeTrustChannelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trust YouTube channel'**
+  String get youtubeTrustChannelTitle;
+
+  /// No description provided for @youtubePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview on YouTube'**
+  String get youtubePreview;
+
+  /// No description provided for @youtubeReevaluate.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-evaluate'**
+  String get youtubeReevaluate;
+
+  /// No description provided for @youtubeTrustChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'Trust channel'**
+  String get youtubeTrustChannel;
+
+  /// No description provided for @youtubeUntrustChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove channel trust'**
+  String get youtubeUntrustChannel;
+
+  /// No description provided for @youtubePublishApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish approved unpublished videos'**
+  String get youtubePublishApproved;
+
+  /// No description provided for @youtubeSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Approval source'**
+  String get youtubeSource;
+
+  /// No description provided for @youtubeAllOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Any'**
+  String get youtubeAllOption;
+
+  /// No description provided for @youtubeAutomatic.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get youtubeAutomatic;
+
+  /// No description provided for @youtubeManual.
+  ///
+  /// In en, this message translates to:
+  /// **'By an administrator'**
+  String get youtubeManual;
+
+  /// No description provided for @youtubeAvailability.
+  ///
+  /// In en, this message translates to:
+  /// **'Availability'**
+  String get youtubeAvailability;
+
+  /// No description provided for @youtubePublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Published'**
+  String get youtubePublished;
+
+  /// No description provided for @youtubeUnpublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Not published'**
+  String get youtubeUnpublished;
+
+  /// No description provided for @youtubeDiagnosticsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipeline diagnostics'**
+  String get youtubeDiagnosticsTitle;
+
+  /// No description provided for @youtubeDiagnosticsRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh diagnostics'**
+  String get youtubeDiagnosticsRefresh;
+
+  /// No description provided for @youtubeDiagnosticsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics unavailable: {error}'**
+  String youtubeDiagnosticsUnavailable(Object error);
+
+  /// No description provided for @youtubeQuarantineReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Quarantine: {reason} ({count})'**
+  String youtubeQuarantineReason(Object reason, String count);
+
+  /// No description provided for @youtubeBlockedReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked: {reason} ({count})'**
+  String youtubeBlockedReason(Object reason, String count);
+
+  /// No description provided for @youtubeRights.
+  ///
+  /// In en, this message translates to:
+  /// **'Rights: {status}'**
+  String youtubeRights(String status);
+
+  /// No description provided for @youtubeSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review summary'**
+  String get youtubeSummaryTitle;
+
+  /// No description provided for @youtubeCountApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved'**
+  String get youtubeCountApproved;
+
+  /// No description provided for @youtubeCountPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for a person'**
+  String get youtubeCountPending;
+
+  /// No description provided for @youtubeCountQuarantined.
+  ///
+  /// In en, this message translates to:
+  /// **'Quarantined'**
+  String get youtubeCountQuarantined;
+
+  /// No description provided for @youtubeCountRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get youtubeCountRejected;
+
+  /// No description provided for @youtubeCountPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Published in the app'**
+  String get youtubeCountPublished;
+
+  /// No description provided for @youtubeApprovedBySource.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved automatically: {automatic} · by an administrator: {manual}'**
+  String youtubeApprovedBySource(String automatic, String manual);
+
+  /// No description provided for @youtubeAutoNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos that pass every automatic check are approved and published without an administrator. Only videos that need a person stay in the waiting list.'**
+  String get youtubeAutoNote;
+
+  /// No description provided for @youtubeAutoReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Process waiting videos'**
+  String get youtubeAutoReview;
+
+  /// No description provided for @youtubeAutoReviewResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked {checked}: {approved} approved automatically, {waiting} still need a person, {quarantined} quarantined.'**
+  String youtubeAutoReviewResult(
+    String checked,
+    String approved,
+    String waiting,
+    String quarantined,
+  );
+
+  /// No description provided for @youtubeAutoReviewRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'YouTube could not be reached for {count} videos. Nothing was changed; try again later.'**
+  String youtubeAutoReviewRetry(String count);
+
+  /// No description provided for @youtubeDecisionColumn.
+  ///
+  /// In en, this message translates to:
+  /// **'Decision'**
+  String get youtubeDecisionColumn;
+
+  /// No description provided for @youtubeDecisionAutomatic.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved automatically'**
+  String get youtubeDecisionAutomatic;
+
+  /// No description provided for @youtubeDecisionManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved by an administrator'**
+  String get youtubeDecisionManual;
+
+  /// No description provided for @youtubeDecisionWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting'**
+  String get youtubeDecisionWaiting;
+
+  /// No description provided for @youtubeReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason: {reason}'**
+  String youtubeReasonLabel(Object reason);
+
+  /// No description provided for @youtubeFreshness.
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest verification: {oldest} · approved videos past the {hours}-hour limit (hidden from children): {stale}'**
+  String youtubeFreshness(String oldest, String hours, String stale);
 }
 
 class _AppLocalizationsDelegate

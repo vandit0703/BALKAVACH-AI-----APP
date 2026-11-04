@@ -27,6 +27,8 @@ from app.schemas.video import (
 	YouTubeDiscoverResult,
 	YouTubeApprovedPublishRequest,
 	YouTubeApprovedPublishResult,
+	YouTubeAutoReviewRequest,
+	YouTubeAutoReviewResult,
 	YouTubeDiagnosticsPublic,
 	YouTubeImportRequest,
 	YouTubeRecheckRequest,
@@ -39,6 +41,7 @@ from app.schemas.video import (
 	YouTubeTrustedChannelRequest,
 )
 from app.services import youtube_review_service
+from app.services.video_classification import known_duration_or_none, video_format
 from app.services.admin_service import record_audit
 from app.services.video_service import (
 	add_collection_video,
@@ -74,7 +77,9 @@ def _feed_item(video, channel_name: str | None = None) -> VideoFeedItem:
 		title=video.title,
 		description=video.description,
 		thumbnail_url=video.thumbnail_url,
-		duration_seconds=video.duration_seconds,
+		# Null when unknown (see video_classification); never a guess.
+		duration_seconds=known_duration_or_none(video.video_source, video.duration_seconds),
+		video_format=video_format(video.video_source, video.duration_seconds),
 		category_id=video.category_id,
 		language_code=video.language_code,
 		content_rating=video.content_rating,
@@ -108,7 +113,9 @@ def video_feed(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoFeedItem]:
-	videos = eligible_feed(session, child, category_id, limit, offset)
+	# Regular videos only: Shorts (1-60 s) have their own feed, so no video
+	# appears in both.
+	videos = eligible_feed(session, child, category_id, limit, offset, video_format="regular")
 	channels = _channel_names(session, videos) if any(video.video_source == "youtube" for video in videos) else {}
 	return [_feed_item(video, channels.get(video.id)) for video in videos]
 
@@ -280,8 +287,11 @@ def admin_youtube_discover(
 	admin=Depends(require_admin_permission("video:write")),
 	session: Session = Depends(get_db),
 ) -> YouTubeDiscoverResult:
-	"""Search a fixed topic and store new results as unpublished review candidates."""
-	return YouTubeDiscoverResult(**youtube_review_service.discover(session, admin, get_youtube_client(), request))
+	"""Search a fixed topic. Candidates that pass every automatic rule are approved and
+	published; everything else is stored unpublished with the reason it is waiting."""
+	return YouTubeDiscoverResult(**youtube_review_service.discover(
+		session, admin, get_youtube_client(), request, auto_publish=True
+	))
 
 
 @admin_router.post("/youtube/import", response_model=YouTubeReviewPublic, status_code=201)
@@ -290,7 +300,9 @@ def admin_youtube_import(
 	admin=Depends(require_admin_permission("video:write")),
 	session: Session = Depends(get_db),
 ) -> YouTubeReviewPublic:
-	return YouTubeReviewPublic(**youtube_review_service.import_video(session, admin, get_youtube_client(), request.url))
+	return YouTubeReviewPublic(**youtube_review_service.import_video(
+		session, admin, get_youtube_client(), request.url, auto_publish=True
+	))
 
 
 @admin_router.get("/youtube/channels", response_model=list[YouTubeTrustedChannelPublic])
@@ -358,6 +370,18 @@ def admin_youtube_publish_approved(
 ) -> YouTubeApprovedPublishResult:
 	return YouTubeApprovedPublishResult(**youtube_review_service.publish_approved_unpublished(
 		session, admin, get_youtube_client(), request.limit, request.after_id
+	))
+
+
+@admin_router.post("/youtube/auto-review", response_model=YouTubeAutoReviewResult)
+def admin_youtube_auto_review(
+	request: YouTubeAutoReviewRequest,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeAutoReviewResult:
+	"""Re-verify waiting and screening-quarantined videos; approve those that now qualify."""
+	return YouTubeAutoReviewResult(**youtube_review_service.auto_review(
+		session, admin, get_youtube_client(), request.limit, request.include_quarantined
 	))
 
 

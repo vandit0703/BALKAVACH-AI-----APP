@@ -989,4 +989,137 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get settingsMaintenanceDefault => 'ડિફૉલ્ટ સંદેશ';
+
+  @override
+  String get youtubeTrustChannelTitle => 'YouTube ચેનલ પર વિશ્વાસ કરો';
+
+  @override
+  String get youtubePreview => 'YouTube પર જુઓ';
+
+  @override
+  String get youtubeReevaluate => 'ફરી તપાસો';
+
+  @override
+  String get youtubeTrustChannel => 'ચેનલ પર વિશ્વાસ કરો';
+
+  @override
+  String get youtubeUntrustChannel => 'ચેનલનો વિશ્વાસ દૂર કરો';
+
+  @override
+  String get youtubePublishApproved =>
+      'મંજૂર થયેલા અપ્રકાશિત વીડિયો પ્રકાશિત કરો';
+
+  @override
+  String get youtubeSource => 'મંજૂરીનો સ્ત્રોત';
+
+  @override
+  String get youtubeAllOption => 'કોઈપણ';
+
+  @override
+  String get youtubeAutomatic => 'આપમેળે';
+
+  @override
+  String get youtubeManual => 'એડમિન દ્વારા';
+
+  @override
+  String get youtubeAvailability => 'ઉપલબ્ધતા';
+
+  @override
+  String get youtubePublished => 'પ્રકાશિત';
+
+  @override
+  String get youtubeUnpublished => 'પ્રકાશિત નથી';
+
+  @override
+  String get youtubeDiagnosticsTitle => 'પાઇપલાઇન નિદાન';
+
+  @override
+  String get youtubeDiagnosticsRefresh => 'નિદાન તાજું કરો';
+
+  @override
+  String youtubeDiagnosticsUnavailable(Object error) {
+    return 'નિદાન ઉપલબ્ધ નથી: $error';
+  }
+
+  @override
+  String youtubeQuarantineReason(Object reason, String count) {
+    return 'ક્વૉરન્ટીન: $reason ($count)';
+  }
+
+  @override
+  String youtubeBlockedReason(Object reason, String count) {
+    return 'અટકેલ: $reason ($count)';
+  }
+
+  @override
+  String youtubeRights(String status) {
+    return 'અધિકારો: $status';
+  }
+
+  @override
+  String get youtubeSummaryTitle => 'સમીક્ષા સારાંશ';
+
+  @override
+  String get youtubeCountApproved => 'મંજૂર';
+
+  @override
+  String get youtubeCountPending => 'વ્યક્તિની રાહ જોઈ રહ્યા';
+
+  @override
+  String get youtubeCountQuarantined => 'ક્વૉરન્ટીન';
+
+  @override
+  String get youtubeCountRejected => 'નામંજૂર';
+
+  @override
+  String get youtubeCountPublished => 'એપમાં પ્રકાશિત';
+
+  @override
+  String youtubeApprovedBySource(String automatic, String manual) {
+    return 'આપમેળે મંજૂર: $automatic · એડમિન દ્વારા: $manual';
+  }
+
+  @override
+  String get youtubeAutoNote =>
+      'જે વીડિયો બધી સ્વચાલિત તપાસ પાસ કરે છે તે એડમિન વગર મંજૂર અને પ્રકાશિત થાય છે. ફક્ત જેને વ્યક્તિની જરૂર હોય તે જ રાહ યાદીમાં રહે છે.';
+
+  @override
+  String get youtubeAutoReview => 'રાહ જોતા વીડિયો તપાસો';
+
+  @override
+  String youtubeAutoReviewResult(
+    String checked,
+    String approved,
+    String waiting,
+    String quarantined,
+  ) {
+    return '$checked તપાસ્યા: $approved આપમેળે મંજૂર, $waiting ને હજુ વ્યક્તિની જરૂર, $quarantined ક્વૉરન્ટીન.';
+  }
+
+  @override
+  String youtubeAutoReviewRetry(String count) {
+    return '$count વીડિયો માટે YouTube સુધી પહોંચાયું નહીં. કંઈ બદલાયું નથી; પછી ફરી પ્રયત્ન કરો.';
+  }
+
+  @override
+  String get youtubeDecisionColumn => 'નિર્ણય';
+
+  @override
+  String get youtubeDecisionAutomatic => 'આપમેળે મંજૂર';
+
+  @override
+  String get youtubeDecisionManual => 'એડમિન દ્વારા મંજૂર';
+
+  @override
+  String get youtubeDecisionWaiting => 'રાહમાં';
+
+  @override
+  String youtubeReasonLabel(Object reason) {
+    return 'કારણ: $reason';
+  }
+
+  @override
+  String youtubeFreshness(String oldest, String hours, String stale) {
+    return 'સૌથી જૂની ચકાસણી: $oldest · $hours કલાકની મર્યાદા વટાવેલા મંજૂર વીડિયો (બાળકોથી છુપાયેલા): $stale';
+  }
 }

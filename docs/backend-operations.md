@@ -361,3 +361,20 @@ infer success from the presence of tests or from the earlier delivery report.
   backup/PITR point, record the recovery point and expected write loss, and
   coordinate API/app compatibility before reopening traffic. Reconcile external
   object storage separately; database restore does not roll back object writes.
+
+
+### Automatic YouTube approval
+
+Candidates that pass screening and every `auto_approval_blocker` rule (made for
+kids, no screening flags, rights not explicitly denied, duration within
+`YOUTUBE_AUTO_PUBLISH_MAX_SECONDS`, policy `YOUTUBE_AUTO_PUBLISH_NON_TRUSTED` on, or an
+active trusted channel) are approved and published without an administrator.
+Admin discover and URL import now do this; so does
+`python -m app.cli youtube-auto-review [--limit N]` and the end of
+`youtube-discover`. `auto_review` re-fetches each waiting video from YouTube,
+re-screens it, and approves only if it now qualifies. It never touches approved,
+rejected or revoked rows, administrator-quarantined rows, or quarantines caused by
+an open user report. A YouTube error leaves every row unchanged (retry later).
+`python -m app.cli youtube-report` prints status counts and, for every waiting
+video, the flags and reason (read-only). Set `YOUTUBE_AUTO_PUBLISH_NON_TRUSTED=false`
+to return to fully manual approval of non-trusted channels.

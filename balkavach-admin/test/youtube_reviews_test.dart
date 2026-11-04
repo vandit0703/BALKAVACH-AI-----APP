@@ -48,7 +48,7 @@ void main() {
         '/api/v1/admin/videos/youtube/reviews/$_reviewId/approve',
         {..._review(status: 'approved'), 'age_min': 3, 'age_max': 5},
       );
-    await pumpAdmin(tester, server);
+    await pumpAdmin(tester, server, size: const Size(1400, 2200));
     await openSection(tester, 'YouTube review');
 
     expect(find.text('A science lesson'), findsOneWidget);
@@ -80,11 +80,12 @@ void main() {
   ) async {
     final server = baseServer(permissions: ['video:read'])
       ..reply('GET', '/api/v1/admin/videos/youtube/reviews', [_review()]);
-    await pumpAdmin(tester, server);
+    await pumpAdmin(tester, server, size: const Size(1400, 2200));
     await openSection(tester, 'YouTube review');
 
     expect(find.byKey(const Key('youtube.discover')), findsNothing);
     expect(find.byKey(const Key('youtube.recheck')), findsNothing);
+    expect(find.byKey(const Key('youtube.autoReview')), findsNothing);
     await tester.tap(find.byKey(const Key('youtube.inspect.$_reviewId')));
     await tester.pumpAndSettle();
     expect(find.text('Approve'), findsNothing);
@@ -112,7 +113,7 @@ void main() {
         'next_after_id': null,
         'complete': true,
       });
-    await pumpAdmin(tester, server);
+    await pumpAdmin(tester, server, size: const Size(1400, 2200));
     await openSection(tester, 'YouTube review');
 
     await tester.tap(find.byKey(const Key('youtube.publishApproved')));
@@ -124,6 +125,167 @@ void main() {
           .single
           .data,
       {'limit': 50},
+    );
+  });
+
+  Map<String, Object?> diagnostics() => {
+    'approved': 63,
+    'approved_automatic': 5,
+    'approved_manual': 58,
+    'pending_review': 2,
+    'quarantined': 4,
+    'rejected': 1,
+    'published': 60,
+    'oldest_approved_verification': '2026-11-02T07:23:33Z',
+    'approved_stale': 0,
+    'reverify_hours': 72,
+    'quarantine_reasons': <String, int>{'keyword:fight': 3},
+    'publication_failure_reasons': <String, int>{},
+    'last_discovery_result': <String, int>{},
+  };
+
+  testWidgets('shows status counts, who approved and why a video waits', (
+    tester,
+  ) async {
+    final automatic = {
+      ..._review(status: 'approved'),
+      'publication_source': 'automatic',
+      'is_published': true,
+    };
+    final waiting = {
+      ..._review(),
+      'id': '33333333-3333-4333-8333-333333333333',
+      'title': 'Long video',
+      'not_published_reason':
+          'Waiting for manual review: the video is longer than the automatic approval limit',
+    };
+    final server = baseServer()
+      ..reply('GET', '/api/v1/admin/videos/youtube/diagnostics', diagnostics())
+      ..reply('GET', '/api/v1/admin/videos/youtube/reviews', [
+        automatic,
+        waiting,
+      ]);
+    await pumpAdmin(tester, server, size: const Size(1400, 2200));
+    await openSection(tester, 'YouTube review');
+    await tester.pumpAndSettle();
+
+    String count(String key) =>
+        tester.widget<Text>(find.byKey(Key('youtube.count.$key'))).data!;
+    expect(count('approved'), endsWith(': 63'));
+    expect(count('pending_review'), endsWith(': 2'));
+    expect(count('quarantined'), endsWith(': 4'));
+    expect(count('rejected'), endsWith(': 1'));
+    expect(count('published'), endsWith(': 60'));
+    expect(
+      find.textContaining(
+        'Approved automatically: 5 · by an administrator: 58',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('past the 72-hour limit (hidden from children): 0'),
+      findsOneWidget,
+    );
+    expect(find.text('Approved automatically'), findsOneWidget);
+    expect(
+      find.textContaining('longer than the automatic approval limit'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('keyword:fight'), findsOneWidget);
+  });
+
+  testWidgets(
+    '"Process waiting videos" calls the backend and reports the result',
+    (tester) async {
+      final server = baseServer()
+        ..reply('GET', '/api/v1/admin/videos/youtube/reviews', [_review()])
+        ..reply(
+          'GET',
+          '/api/v1/admin/videos/youtube/diagnostics',
+          diagnostics(),
+        )
+        ..reply('POST', '/api/v1/admin/videos/youtube/auto-review', {
+          'checked': 7,
+          'auto_approved': 3,
+          'needs_manual_review': 2,
+          'newly_quarantined': 1,
+          'still_quarantined': 0,
+          'returned_to_pending': 0,
+          'unavailable': 1,
+          'retry_later': 0,
+          'error': null,
+          'blocked_reasons': <String, int>{},
+          'quarantine_reasons': <String, int>{},
+        });
+      await pumpAdmin(tester, server, size: const Size(1400, 2200));
+      await openSection(tester, 'YouTube review');
+      await tester.tap(find.byKey(const Key('youtube.autoReview')));
+      await tester.pumpAndSettle();
+
+      final request = server
+          .to('POST', '/api/v1/admin/videos/youtube/auto-review')
+          .single;
+      expect(request.data, {'limit': 200, 'include_quarantined': true});
+      expect(find.textContaining('3 approved automatically'), findsOneWidget);
+    },
+  );
+
+  testWidgets('a YouTube outage is reported as nothing changed', (
+    tester,
+  ) async {
+    final server = baseServer()
+      ..reply('GET', '/api/v1/admin/videos/youtube/reviews', [_review()])
+      ..reply('GET', '/api/v1/admin/videos/youtube/diagnostics', diagnostics())
+      ..reply('POST', '/api/v1/admin/videos/youtube/auto-review', {
+        'checked': 0,
+        'auto_approved': 0,
+        'needs_manual_review': 0,
+        'newly_quarantined': 0,
+        'still_quarantined': 0,
+        'returned_to_pending': 0,
+        'unavailable': 0,
+        'retry_later': 4,
+        'error': 'youtube_quota_exhausted',
+        'blocked_reasons': <String, int>{},
+        'quarantine_reasons': <String, int>{},
+      });
+    await pumpAdmin(tester, server, size: const Size(1400, 2200));
+    await openSection(tester, 'YouTube review');
+    await tester.tap(find.byKey(const Key('youtube.autoReview')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Nothing was changed'), findsOneWidget);
+  });
+
+  testWidgets('the status counts refresh after discovery', (tester) async {
+    var reads = 0;
+    final server = baseServer()
+      ..reply('GET', '/api/v1/admin/videos/youtube/reviews', [_review()])
+      ..on('GET', '/api/v1/admin/videos/youtube/diagnostics', (_) {
+        reads++;
+        return Reply(200, {...diagnostics(), 'approved': reads == 1 ? 1 : 9});
+      })
+      ..reply('POST', '/api/v1/admin/videos/youtube/discover', {
+        'created': <Object>[],
+        'skipped_existing': 0,
+        'skipped_unplayable': 0,
+        'next_page_token': null,
+        'automatically_published': 0,
+        'quarantined': 0,
+      });
+    await pumpAdmin(tester, server, size: const Size(1400, 2200));
+    await openSection(tester, 'YouTube review');
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Text>(find.byKey(const Key('youtube.count.approved'))).data,
+      endsWith(': 1'),
+    );
+    await tester.tap(find.byKey(const Key('youtube.discover')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('form.submit')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Text>(find.byKey(const Key('youtube.count.approved'))).data,
+      endsWith(': 9'),
     );
   });
 }

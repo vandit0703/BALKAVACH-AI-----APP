@@ -85,7 +85,8 @@ def start_playback(session: Session, child, request: PlaybackStartRequest) -> Pl
 	if video.language_code not in {child_user.preferred_language, "en"}:
 		raise HTTPException(status_code=403, detail="Video language is not eligible for this child")
 	age = child_age(locked_child)
-	if not video.age_min <= age <= video.age_max:
+	# Same rule as the feeds: without a usable birth date the child is not eligible.
+	if age is None or not video.age_min <= age <= video.age_max:
 		raise HTTPException(status_code=403, detail="Video is not eligible for this child")
 
 	VideoWatchSession = get_model("VideoWatchSession")

@@ -682,7 +682,14 @@ def test_trusted_channel_automatically_publishes_only_clean_short_candidates(mon
 		published_at=None,
 		id=uuid4(),
 	)
+	# No age band is guessed: without YOUTUBE_AUTO_PUBLISH_AGE_BAND the video waits.
+	monkeypatch.setattr(reviews.settings, "youtube_auto_publish_age_band", None)
+	assert _auto_publish(None, actor, non_trusted_review, non_trusted_video) is False
+	assert non_trusted_review.status == "pending_review" and non_trusted_video.is_published is False
+	assert (non_trusted_video.age_min, non_trusted_video.age_max) == (4, 12)
+	monkeypatch.setattr(reviews.settings, "youtube_auto_publish_age_band", "9-12")
 	assert _auto_publish(None, actor, non_trusted_review, non_trusted_video) is True
+	assert (non_trusted_video.age_min, non_trusted_video.age_max) == (9, 12)
 	assert non_trusted_review.status == "approved"
 	assert non_trusted_review.publication_source == "automatic"
 	assert non_trusted_video.is_published is True

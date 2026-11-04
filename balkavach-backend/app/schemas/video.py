@@ -104,11 +104,14 @@ class VideoFeedItem(BaseModel):
 	title: str
 	description: str | None
 	thumbnail_url: str | None
-	duration_seconds: int
+	# Null when the real duration is unknown (never guessed).
+	duration_seconds: int | None
 	category_id: UUID | None
 	language_code: str
 	content_rating: str
 	video_source: str = "hosted"
+	# "short" (1-60 s), "regular" or "unknown"; decided only by the backend.
+	video_format: Literal["short", "regular", "unknown"] = "regular"
 	channel_name: str | None = None
 	# Only for approved YouTube videos, which play in the official embedded
 	# player. Hosted videos never expose a media URL here.
@@ -257,6 +260,25 @@ class YouTubeRevokeRequest(BaseModel):
 	reason: str = Field(min_length=3, max_length=2000)
 
 
+class YouTubeAutoReviewRequest(BaseModel):
+	limit: int = Field(default=50, ge=1, le=200)
+	include_quarantined: bool = True
+
+
+class YouTubeAutoReviewResult(BaseModel):
+	checked: int
+	auto_approved: int
+	needs_manual_review: int
+	newly_quarantined: int
+	still_quarantined: int
+	returned_to_pending: int
+	unavailable: int
+	retry_later: int
+	error: str | None = None
+	blocked_reasons: dict[str, int]
+	quarantine_reasons: dict[str, int]
+
+
 class YouTubeRecheckRequest(BaseModel):
 	limit: int = Field(default=100, ge=1, le=500)
 
@@ -308,6 +330,13 @@ class YouTubeDiagnosticsPublic(BaseModel):
 	last_discovery_result: dict[str, int]
 	publication_failure_reasons: dict[str, int]
 	configuration: dict[str, bool]
+	oldest_approved_verification: datetime | None = None
+	approved_stale: int = 0
+	reverify_hours: int = 72
+	approved: int = 0
+	approved_automatic: int = 0
+	approved_manual: int = 0
+	published: int = 0
 
 
 class ContentReportCreate(BaseModel):

@@ -67,6 +67,12 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
 
   bool get _canWrite => ref.watch(sessionProvider)?.can('video:write') ?? false;
 
+  /// Reload the table and the status counts after any action that changes them.
+  void _reloadAll() {
+    setState(() => _reload++);
+    _refreshDiagnostics();
+  }
+
   Future<void> _refreshDiagnostics() async {
     setState(() => _diagnosticsError = null);
     try {
@@ -92,7 +98,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
       do {
         final result = await ref.read(adminApiProvider).post(
           '/api/v1/admin/videos/youtube/publish-approved',
-          {'limit': 50, if (afterId != null) 'after_id': afterId},
+          {'limit': 50, 'after_id': ?afterId},
         );
         checked += (result['checked'] as num?)?.toInt() ?? 0;
         published += (result['newly_published'] as num?)?.toInt() ?? 0;
@@ -110,12 +116,12 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
           context,
           'Checked $checked approved videos; published $published.',
         );
-        setState(() => _reload++);
-        await _refreshDiagnostics();
+        _reloadAll();
       }
     } on Object {
-      if (mounted)
+      if (mounted) {
         showMessage(context, AppLocalizations.of(context).youtubeActionFailed);
+      }
     } finally {
       if (mounted) setState(() => _bulkRunning = false);
     }
@@ -136,8 +142,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
     );
     if (ok && mounted && dialogContext.mounted) {
       Navigator.pop(dialogContext);
-      setState(() => _reload++);
-      await _refreshDiagnostics();
+      _reloadAll();
     }
   }
 
@@ -174,7 +179,38 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
           .read(adminApiProvider)
           .post('/api/v1/admin/videos/youtube/discover', values),
     );
-    if (ok && mounted) setState(() => _reload++);
+    if (ok && mounted) _reloadAll();
+  }
+
+  Future<void> _processWaiting() async {
+    if (_bulkRunning) return;
+    setState(() => _bulkRunning = true);
+    final l10n = AppLocalizations.of(context);
+    try {
+      final result = await ref.read(adminApiProvider).post(
+        '/api/v1/admin/videos/youtube/auto-review',
+        {'limit': 200, 'include_quarantined': true},
+      );
+      if (!mounted) return;
+      int n(String key) => (result[key] as num?)?.toInt() ?? 0;
+      final retry = n('retry_later');
+      showMessage(
+        context,
+        retry > 0
+            ? l10n.youtubeAutoReviewRetry('$retry')
+            : l10n.youtubeAutoReviewResult(
+                '${n('checked')}',
+                '${n('auto_approved')}',
+                '${n('needs_manual_review')}',
+                '${n('newly_quarantined')}',
+              ),
+      );
+      _reloadAll();
+    } on Object {
+      if (mounted) showMessage(context, l10n.youtubeActionFailed);
+    } finally {
+      if (mounted) setState(() => _bulkRunning = false);
+    }
   }
 
   Future<void> _recheck() async {
@@ -185,7 +221,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
         {'limit': 200},
       ),
     );
-    if (ok && mounted) setState(() => _reload++);
+    if (ok && mounted) _reloadAll();
   }
 
   Future<void> _trustChannel(
@@ -197,7 +233,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
     if (channelId.isEmpty || !mounted) return;
     final values = await showFormDialog(
       context,
-      title: 'Trust YouTube channel',
+      title: l10n.youtubeTrustChannelTitle,
       fields: [
         FormFieldSpec(
           key: 'age_band',
@@ -228,7 +264,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
           maxLength: 2000,
         ),
       ],
-      submitLabel: 'Trust channel',
+      submitLabel: l10n.youtubeTrustChannel,
     );
     if (values == null || !mounted) return;
     if (values['rights_cleared'] != true) {
@@ -251,7 +287,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
     );
     if (ok && mounted && dialogContext.mounted) {
       Navigator.pop(dialogContext);
-      setState(() => _reload++);
+      _reloadAll();
     }
   }
 
@@ -272,7 +308,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
     );
     if (ok && mounted && dialogContext.mounted) {
       Navigator.pop(dialogContext);
-      setState(() => _reload++);
+      _reloadAll();
     }
   }
 
@@ -349,7 +385,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
           TextButton.icon(
             onPressed: () => _openSource(row),
             icon: const Icon(Icons.open_in_new),
-            label: const Text('Preview on YouTube'),
+            label: Text(l10n.youtubePreview),
           ),
           if (_canWrite &&
               (row['status'] == 'pending_review' ||
@@ -368,7 +404,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
               key: Key('youtube.reevaluate.${row['id']}'),
               onPressed: () => _reevaluate(row, dialogContext),
               icon: const Icon(Icons.fact_check_outlined),
-              label: const Text('Re-evaluate'),
+              label: Text(l10n.youtubeReevaluate),
             ),
           if (_canWrite && row['status'] == 'approved')
             FilledButton(
@@ -378,12 +414,12 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
           if (_canWrite && row['channel_id'] != null)
             TextButton(
               onPressed: () => _trustChannel(row, dialogContext),
-              child: const Text('Trust channel'),
+              child: Text(l10n.youtubeTrustChannel),
             ),
           if (_canWrite && row['channel_id'] != null)
             TextButton(
               onPressed: () => _untrustChannel(row, dialogContext),
-              child: const Text('Untrust channel'),
+              child: Text(l10n.youtubeUntrustChannel),
             ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
@@ -411,6 +447,32 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
     } on PlatformException {
       if (mounted) showMessage(context, l10n.youtubeActionFailed);
     }
+  }
+
+  /// Who decided and, when the video is not published, why not.
+  Widget _decision(AppLocalizations l10n, Map<String, dynamic> row) {
+    final approved = row['status'] == 'approved';
+    final headline = !approved
+        ? l10n.youtubeDecisionWaiting
+        : row['publication_source'] == 'automatic'
+        ? l10n.youtubeDecisionAutomatic
+        : l10n.youtubeDecisionManual;
+    final reason =
+        (row['not_published_reason'] as String?) ??
+        (row['publication_reason'] as String?);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(headline, key: Key('youtube.decision.${row['id']}')),
+        if (reason != null && reason.isNotEmpty)
+          Text(
+            l10n.youtubeReasonLabel(reason),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+      ],
+    );
   }
 
   Widget _metadata(String label, Object? value) => Padding(
@@ -480,7 +542,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
     );
     if (ok && mounted && dialogContext.mounted) {
       Navigator.pop(dialogContext);
-      setState(() => _reload++);
+      _reloadAll();
     }
   }
 
@@ -515,7 +577,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
     );
     if (ok && mounted && dialogContext.mounted) {
       Navigator.pop(dialogContext);
-      setState(() => _reload++);
+      _reloadAll();
     }
   }
 
@@ -550,7 +612,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
     );
     if (ok && mounted && dialogContext.mounted) {
       Navigator.pop(dialogContext);
-      setState(() => _reload++);
+      _reloadAll();
     }
   }
 
@@ -563,6 +625,13 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
           title: l10n.youtubeReviewsTitle,
           subtitle: l10n.youtubeReviewsSubtitle,
           actions: [
+            if (_canWrite)
+              FilledButton.icon(
+                key: const Key('youtube.autoReview'),
+                onPressed: _bulkRunning ? null : _processWaiting,
+                icon: const Icon(Icons.auto_mode_outlined),
+                label: Text(l10n.youtubeAutoReview),
+              ),
             if (_canWrite)
               OutlinedButton.icon(
                 key: const Key('youtube.recheck'),
@@ -582,7 +651,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
                 key: const Key('youtube.publishApproved'),
                 onPressed: _bulkRunning ? null : _publishApproved,
                 icon: const Icon(Icons.publish_outlined),
-                label: const Text('Publish Approved Unpublished Videos'),
+                label: Text(l10n.youtubePublishApproved),
               ),
           ],
         ),
@@ -623,21 +692,28 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
                   key: const Key('youtube.publication'),
                   initialValue: _publication,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Source'),
-                  items: const [
-                    DropdownMenuItem(value: 'all', child: Text('All')),
+                  decoration: InputDecoration(labelText: l10n.youtubeSource),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'all',
+                      child: Text(l10n.youtubeAllOption),
+                    ),
                     DropdownMenuItem(
                       value: 'automatic',
-                      child: Text('Automatic'),
+                      child: Text(l10n.youtubeAutomatic),
                     ),
-                    DropdownMenuItem(value: 'manual', child: Text('Manual')),
+                    DropdownMenuItem(
+                      value: 'manual',
+                      child: Text(l10n.youtubeManual),
+                    ),
                   ],
                   onChanged: (value) {
-                    if (value != null)
+                    if (value != null) {
                       setState(() {
                         _publication = value;
                         _reload++;
                       });
+                    }
                   },
                 ),
               ),
@@ -647,21 +723,30 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
                   key: const Key('youtube.published'),
                   initialValue: _published,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Availability'),
-                  items: const [
-                    DropdownMenuItem(value: 'all', child: Text('All')),
-                    DropdownMenuItem(value: 'true', child: Text('Published')),
+                  decoration: InputDecoration(
+                    labelText: l10n.youtubeAvailability,
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'all',
+                      child: Text(l10n.youtubeAllOption),
+                    ),
+                    DropdownMenuItem(
+                      value: 'true',
+                      child: Text(l10n.youtubePublished),
+                    ),
                     DropdownMenuItem(
                       value: 'false',
-                      child: Text('Unpublished'),
+                      child: Text(l10n.youtubeUnpublished),
                     ),
                   ],
                   onChanged: (value) {
-                    if (value != null)
+                    if (value != null) {
                       setState(() {
                         _published = value;
                         _reload++;
                       });
+                    }
                   },
                 ),
               ),
@@ -670,15 +755,62 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
         ),
         const SizedBox(height: 12),
         SectionCard(
-          title: 'Pipeline diagnostics',
+          title: l10n.youtubeSummaryTitle,
+          child: _diagnostics == null
+              ? const SizedBox.shrink()
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 24,
+                      runSpacing: 8,
+                      children: [
+                        for (final entry in <String, String>{
+                          l10n.youtubeCountApproved: 'approved',
+                          l10n.youtubeCountPending: 'pending_review',
+                          l10n.youtubeCountQuarantined: 'quarantined',
+                          l10n.youtubeCountRejected: 'rejected',
+                          l10n.youtubeCountPublished: 'published',
+                        }.entries)
+                          Text(
+                            '${entry.key}: ${_diagnostics![entry.value] ?? 0}',
+                            key: Key('youtube.count.${entry.value}'),
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.youtubeApprovedBySource(
+                        '${_diagnostics!['approved_automatic'] ?? 0}',
+                        '${_diagnostics!['approved_manual'] ?? 0}',
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.youtubeFreshness(
+                        '${_diagnostics!['oldest_approved_verification'] ?? '—'}',
+                        '${_diagnostics!['reverify_hours'] ?? 72}',
+                        '${_diagnostics!['approved_stale'] ?? 0}',
+                      ),
+                      key: const Key('youtube.freshness'),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(l10n.youtubeAutoNote),
+                  ],
+                ),
+        ),
+        const SizedBox(height: 12),
+        SectionCard(
+          title: l10n.youtubeDiagnosticsTitle,
           trailing: IconButton(
             key: const Key('youtube.refreshDiagnostics'),
-            tooltip: 'Refresh diagnostics',
+            tooltip: l10n.youtubeDiagnosticsRefresh,
             onPressed: _refreshDiagnostics,
             icon: const Icon(Icons.refresh),
           ),
           child: _diagnosticsError != null
-              ? Text('Diagnostics unavailable: $_diagnosticsError')
+              ? Text(l10n.youtubeDiagnosticsUnavailable('$_diagnosticsError'))
               : _diagnostics == null
               ? const Text(
                   'Refresh diagnostics to inspect the production pipeline.',
@@ -729,13 +861,20 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
                                     as Map<String, dynamic>? ??
                                 const {})
                             .entries)
-                      Text('Quarantine: ${entry.key} (${entry.value})'),
+                      Text(
+                        l10n.youtubeQuarantineReason(
+                          entry.key,
+                          '${entry.value}',
+                        ),
+                      ),
                     for (final entry
                         in (_diagnostics!['publication_failure_reasons']
                                     as Map<String, dynamic>? ??
                                 const {})
                             .entries)
-                      Text('Blocked: ${entry.key} (${entry.value})'),
+                      Text(
+                        l10n.youtubeBlockedReason(entry.key, '${entry.value}'),
+                      ),
                   ],
                 ),
         ),
@@ -770,6 +909,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
             'Channel',
             'Category / age',
             l10n.youtubeStatus,
+            l10n.youtubeDecisionColumn,
             'Screening / rights',
             '',
           ],
@@ -791,10 +931,11 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
               label: '${row['status'] ?? '—'}',
               good: row['status'] == 'approved',
             ),
+            _decision(l10n, row),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Rights: ${row['rights_status'] ?? '—'}'),
+                Text(l10n.youtubeRights('${row['rights_status'] ?? '—'}')),
                 Text(
                   (row['screening_flags'] as List<dynamic>? ?? const []).join(
                     ', ',

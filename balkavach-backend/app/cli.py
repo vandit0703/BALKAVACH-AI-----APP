@@ -8,6 +8,7 @@ getpass and are never accepted from arguments or environment variables.
 
 import argparse
 import getpass
+import json
 import sys
 
 from pydantic import ValidationError
@@ -230,6 +231,12 @@ def _youtube_discover(session_factory, max_results: int) -> int:
 			trusted_totals = discover_trusted(session, actor, client, max_results)
 			for key, value in trusted_totals.items():
 				totals[key] += value
+			from app.services.youtube_review_service import auto_review
+
+			reviewed = auto_review(session, actor, client, limit=200)
+			totals["auto_approved"] = reviewed["auto_approved"]
+			totals["needs_manual_review"] = reviewed["needs_manual_review"]
+			totals["quarantined"] += reviewed["newly_quarantined"]
 			from app.services.admin_service import record_audit
 			record_audit(session, actor.id, "youtube.discovery.completed", "youtube_pipeline", None, totals)
 			session.commit()
@@ -240,6 +247,68 @@ def _youtube_discover(session_factory, max_results: int) -> int:
 		print("Database operation failed during YouTube discovery.", file=sys.stderr)
 		return 2
 	print(", ".join(f"{key}={value}" for key, value in totals.items()))
+	return 0
+
+
+def _youtube_auto_review(session_factory, limit: int) -> int:
+	from app.core.config import settings
+	from app.core.exceptions import APIError
+	from app.integrations.youtube import get_youtube_client
+	from app.services.youtube_review_service import auto_review
+
+	if settings.youtube_discovery_actor_id is None:
+		print("YOUTUBE_DISCOVERY_ACTOR_ID must identify an active administrator.", file=sys.stderr)
+		return 1
+	try:
+		with session_factory() as session:
+			actor = _youtube_discovery_actor(session, settings.youtube_discovery_actor_id)
+			if actor is None:
+				print("YOUTUBE_DISCOVERY_ACTOR_ID must identify an active administrator with video:write permission.", file=sys.stderr)
+				return 1
+			result = auto_review(session, actor, get_youtube_client(), limit)
+	except APIError as error:
+		print(f"Error: {error.message}", file=sys.stderr)
+		return 1
+	except SQLAlchemyError:
+		print("Database operation failed during YouTube auto-review.", file=sys.stderr)
+		return 2
+	print(json.dumps(result, indent=2, sort_keys=True))
+	return 1 if result["error"] else 0
+
+
+def _youtube_report(session_factory) -> int:
+	"""Read-only: status counts and the reason each unapproved video is waiting."""
+	from app.db.base import get_model as model
+	from app.services.youtube_review_service import diagnostics
+
+	try:
+		with session_factory() as session:
+			summary = diagnostics(session)
+			Review, Video = model("YouTubeContentReview"), model("Video")
+			rows = (
+				session.query(Review, Video)
+				.join(Video, Video.id == Review.video_id)
+				.filter(Review.status.in_(["pending_review", "quarantined", "unavailable", "rejected", "revoked"]))
+				.order_by(Review.status, Review.discovered_at)
+				.all()
+			)
+			waiting = [
+				{
+					"youtube_video_id": review.youtube_video_id,
+					"status": review.status,
+					"flags": list(review.screening_flags or []),
+					"made_for_kids": review.made_for_kids,
+					"duration_seconds": video.duration_seconds,
+					"reviewed_by_admin": review.reviewed_by is not None,
+					"reason": review.publication_reason or review.review_notes or review.revoked_reason,
+				}
+				for review, video in rows
+			]
+			session.rollback()
+	except SQLAlchemyError:
+		print("Database read failed.", file=sys.stderr)
+		return 2
+	print(json.dumps({"summary": summary, "waiting": waiting}, indent=2, sort_keys=True, default=str))
 	return 0
 
 
@@ -289,6 +358,12 @@ def main(argv: list[str] | None = None) -> int:
 		choices=range(1, 51),
 		metavar="1-50",
 	)
+	auto = commands.add_parser(
+		"youtube-auto-review",
+		help="Re-verify waiting YouTube videos and approve those that pass every automatic rule",
+	)
+	auto.add_argument("--limit", type=int, default=100, choices=range(1, 201), metavar="1-200")
+	commands.add_parser("youtube-report", help="Read-only report of YouTube review statuses and reasons")
 	args = parser.parse_args(argv)
 
 	from app.db.session import SessionLocal
@@ -299,6 +374,10 @@ def main(argv: list[str] | None = None) -> int:
 
 	if args.command == "youtube-recheck":
 		return _youtube_recheck(SessionLocal, args.limit)
+	if args.command == "youtube-auto-review":
+		return _youtube_auto_review(SessionLocal, args.limit)
+	if args.command == "youtube-report":
+		return _youtube_report(SessionLocal)
 	if args.command == "youtube-discover":
 		from app.core.config import settings
 

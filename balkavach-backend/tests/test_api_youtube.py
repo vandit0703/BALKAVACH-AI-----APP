@@ -51,13 +51,25 @@ class FakeYouTube:
 def youtube(api, monkeypatch):
 	if not has_model("YouTubeContentReview"):
 		pytest.skip("Migration 0008 is not applied to the test database")
+	from app.core.config import settings
+
+	monkeypatch.setattr(settings, "youtube_auto_publish_age_band", "9-12")
 	fake = FakeYouTube()
 	monkeypatch.setattr(video_routes, "get_youtube_client", lambda: fake)
 	return fake
 
 
-def _discover(api, admin):
-	response = api.post("/admin/videos/youtube/discover", admin["token"], {"topic": "science"})
+def _discover(api, admin, auto=False):
+	"""Admin discovery. ``auto=False`` runs it in manual-review mode so the tests of
+	the human approval flow keep their candidates pending."""
+	from app.core.config import settings
+
+	previous = settings.youtube_auto_publish_non_trusted
+	settings.youtube_auto_publish_non_trusted = auto
+	try:
+		response = api.post("/admin/videos/youtube/discover", admin["token"], {"topic": "science"})
+	finally:
+		settings.youtube_auto_publish_non_trusted = previous
 	assert response.status_code == 200, response.text
 	return {row["youtube_video_id"]: row for row in response.json()["created"]}
 
@@ -276,7 +288,7 @@ def test_missing_child_age_excludes_approved_video(api, youtube):
 
 def test_approved_video_appears_then_revocation_removes_it_immediately(api, youtube):
 	admin = api.make_admin()
-	ctx = _family_with_age(api)
+	ctx = _family_with_age(api, 7)  # inside the default 6-8 approval band
 	review = _discover(api, admin)[VIDEO_ID]
 	response = _approve(api, admin, review["id"])
 	assert response.status_code == 200, response.text
@@ -291,9 +303,27 @@ def test_approved_video_appears_then_revocation_removes_it_immediately(api, yout
 
 def test_not_made_for_kids_cannot_be_approved(api, youtube):
 	admin = api.make_admin()
+	# Discovered as not made for kids: screening quarantines it, and a quarantined
+	# video must be re-evaluated before it can even be approved.
 	review = _discover(api, admin)[OTHER_ID]
+	assert review["status"] == "quarantined"
 	response = _approve(api, admin, review["id"], notes="looked fine")
+	assert response.status_code == 409 and response.json()["error"]["code"] == "youtube_re_evaluation_required"
+	reevaluated = api.post(f"/admin/videos/youtube/reviews/{review['id']}/reevaluate", admin["token"], {})
+	assert reevaluated.status_code == 200 and reevaluated.json()["status"] == "quarantined"
+	assert _approve(api, admin, review["id"]).status_code == 409
+	assert reevaluated.json()["is_published"] is False
+
+
+def test_pending_video_that_stops_being_made_for_kids_cannot_be_approved(api, youtube):
+	admin = api.make_admin()
+	review = _discover(api, admin)[VIDEO_ID]
+	assert review["status"] == "pending_review"
+	youtube.items[VIDEO_ID]["status"]["madeForKids"] = False  # YouTube changed its mind
+	response = _approve(api, admin, review["id"])
 	assert response.status_code == 409 and response.json()["error"]["code"] == "not_made_for_kids"
+	rows = api.get("/admin/videos/youtube/reviews", admin["token"]).json()
+	assert next(r for r in rows if r["id"] == review["id"])["is_published"] is False
 
 
 def test_unavailable_search_candidate_is_retained_for_review(api, youtube):
@@ -318,14 +348,20 @@ def test_video_that_disappears_becomes_unavailable(api, youtube):
 
 def test_stale_verification_hides_the_video(api, youtube):
 	admin = api.make_admin()
-	ctx = _family_with_age(api)
+	ctx = _family_with_age(api, 7)  # inside the default 6-8 approval band
 	review = _discover(api, admin)[VIDEO_ID]
 	assert _approve(api, admin, review["id"]).status_code == 200
+	assert _feed_ids(api, ctx["child"]["token"]) == {VIDEO_ID}  # visible while fresh
+	fresh = api.get("/admin/videos/youtube/diagnostics", admin["token"]).json()
+	assert fresh["approved_stale"] == 0 and fresh["reverify_hours"] == 72
+	assert fresh["oldest_approved_verification"] is not None
 	Review = get_model("YouTubeContentReview")
 	row = api.session.query(Review).filter(Review.id == review["id"]).one()
 	row.last_verified_at = datetime.now(timezone.utc) - timedelta(days=60)
 	api.session.commit()
 	assert _feed_ids(api, ctx["child"]["token"]) == set()
+	stale = api.get("/admin/videos/youtube/diagnostics", admin["token"]).json()
+	assert stale["approved_stale"] == 1  # the admin page can show recheck has lapsed
 
 
 def test_generic_admin_routes_cannot_bypass_review(api, youtube):
@@ -373,7 +409,6 @@ def test_hosted_feed_is_unchanged_and_exposes_no_youtube_id(api, youtube):
 		("PT60S", True, False, "short", 60),
 		("PT61S", False, True, "regular", 61),
 		("PT2M", False, True, "regular", 120),
-		("P0D", False, True, "unknown", None),  # live/unknown: stored as 1
 	],
 )
 def test_short_and_regular_feeds_split_by_real_duration(
@@ -400,3 +435,108 @@ def test_feeds_reject_non_child_callers(api, youtube):
 	for path in ("/videos/shorts", "/videos/feed"):
 		assert api.get(path).status_code in (401, 403)
 		assert api.get(path, admin["token"]).status_code == 403
+
+
+def test_admin_discovery_approves_and_publishes_eligible_video_automatically(api, youtube):
+	admin = api.make_admin()
+	ctx = _family_with_age(api)
+	created = _discover(api, admin, auto=True)
+	assert created[VIDEO_ID]["status"] == "approved"
+	assert created[VIDEO_ID]["publication_source"] == "automatic"
+	assert created[VIDEO_ID]["reviewed_by"] is None
+	# A video YouTube does not mark made-for-kids is quarantined, never published.
+	assert created[OTHER_ID]["status"] == "quarantined"
+	assert created[OTHER_ID]["is_published"] is False
+	assert _feed_ids(api, ctx["child"]["token"]) == {VIDEO_ID}
+
+
+def test_auto_review_endpoint_processes_waiting_videos_once(api, youtube):
+	admin = api.make_admin()
+	ctx = _family_with_age(api)
+	created = _discover(api, admin)  # manual mode: both wait
+	assert created[VIDEO_ID]["status"] == "pending_review"
+	first = api.post("/admin/videos/youtube/auto-review", admin["token"], {"limit": 50})
+	assert first.status_code == 200, first.text
+	body = first.json()
+	assert body["auto_approved"] == 1 and body["error"] is None
+	assert _feed_ids(api, ctx["child"]["token"]) == {VIDEO_ID}
+	second = api.post("/admin/videos/youtube/auto-review", admin["token"], {"limit": 50}).json()
+	assert second["auto_approved"] == 0
+	# The still-quarantined (not made for kids) video keeps its reason.
+	assert second["quarantine_reasons"].get("not_made_for_kids") == 1
+
+
+def test_auto_review_leaves_a_manual_approval_untouched(api, youtube):
+	admin = api.make_admin()
+	review = _discover(api, admin)[VIDEO_ID]
+	assert _approve(api, admin, review["id"]).status_code == 200
+	youtube.items[VIDEO_ID]["snippet"]["title"] = "Zombie gore"
+	api.post("/admin/videos/youtube/auto-review", admin["token"], {"limit": 50})
+	rows = api.get("/admin/videos/youtube/reviews?status=approved", admin["token"]).json()
+	row = next(item for item in rows if item["youtube_video_id"] == VIDEO_ID)
+	assert row["publication_source"] == "manual" and row["is_published"] is True
+
+
+def test_auto_review_requires_video_write_permission(api, youtube):
+	parent = api.register_parent()
+	response = api.post("/admin/videos/youtube/auto-review", parent["token"], {"limit": 5})
+	assert response.status_code == 403
+
+
+def test_auto_approved_video_gets_the_configured_supported_age_band(api, youtube):
+	admin = api.make_admin()
+	created = _discover(api, admin, auto=True)
+	assert (created[VIDEO_ID]["age_min"], created[VIDEO_ID]["age_max"]) == (9, 12)
+	batch = api.post("/admin/videos/youtube/publish-approved", admin["token"], {"limit": 50})
+	assert batch.status_code == 200, batch.text
+	assert "unsupported_age_band" not in batch.json()["blocked_by_reason"]
+
+
+def test_unknown_duration_is_quarantined_and_in_neither_feed(api, youtube):
+	"""A duration YouTube does not report (P0D) is screened as ``duration_unknown``:
+	it is quarantined, cannot be approved without re-evaluation, and is in no feed."""
+	youtube.items[VIDEO_ID] = _item(VIDEO_ID, duration="P0D")
+	admin = api.make_admin()
+	ctx = _family_with_age(api, 7)
+	review = _discover(api, admin)[VIDEO_ID]
+	assert review["status"] == "quarantined" and "duration_unknown" in review["screening_flags"]
+	assert _approve(api, admin, review["id"]).status_code == 409
+	token = ctx["child"]["token"]
+	assert VIDEO_ID not in _feed_items(api, token, "/videos/shorts")
+	assert VIDEO_ID not in _feed_items(api, token, "/videos/feed")
+
+
+def test_command_line_recheck_leaves_an_audit_row_without_an_actor(api, youtube):
+	"""``python -m app.cli youtube-recheck`` has no signed-in user; its run must still be traceable."""
+	from app.services.youtube_review_service import recheck
+
+	admin = api.make_admin()
+	review = _discover(api, admin)[VIDEO_ID]
+	assert _approve(api, admin, review["id"]).status_code == 200
+	counts = recheck(api.session, youtube, 200)  # actor_id=None, as the CLI calls it
+	assert counts["checked"] >= 1
+	AuditLog = get_model("AuditLog")
+	rows = api.session.query(AuditLog).filter(AuditLog.action == "youtube.recheck.completed").all()
+	assert len(rows) == 1 and rows[0].actor_user_id is None and rows[0].details["checked"] == counts["checked"]
+
+
+def test_auto_approval_is_safe_when_the_age_band_is_unset(api, youtube, monkeypatch):
+	"""Default deployment: YOUTUBE_AUTO_PUBLISH_AGE_BAND is not set. Nothing from a
+	non-trusted channel may be published, and each video must say why it waits."""
+	from app.core.config import settings
+
+	monkeypatch.setattr(settings, "youtube_auto_publish_age_band", None)
+	admin = api.make_admin()
+	ctx = _family_with_age(api, 7)
+	created = _discover(api, admin, auto=True)  # policy on, band unset
+	assert created[VIDEO_ID]["status"] == "pending_review" and created[VIDEO_ID]["is_published"] is False
+	assert "no age band is configured" in created[VIDEO_ID]["not_published_reason"]
+	assert created[VIDEO_ID]["rights_status"] == "unreviewed"
+	assert (created[VIDEO_ID]["age_min"], created[VIDEO_ID]["age_max"]) == (4, 12)  # untouched, not guessed
+	assert _feed_ids(api, ctx["child"]["token"]) == set()
+	# Re-review does not publish it either...
+	body = api.post("/admin/videos/youtube/auto-review", admin["token"], {"limit": 50}).json()
+	assert body["auto_approved"] == 0 and body["blocked_reasons"].get("age_band_not_configured") == 1
+	# ...but an administrator can still approve it by hand with an explicit band.
+	assert _approve(api, admin, created[VIDEO_ID]["id"]).status_code == 200
+	assert _feed_ids(api, ctx["child"]["token"]) == {VIDEO_ID}
