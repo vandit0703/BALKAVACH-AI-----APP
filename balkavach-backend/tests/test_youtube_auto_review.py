@@ -362,7 +362,7 @@ def test_unknown_duration_is_filled_in_from_youtube(session):
 
 
 def test_trusted_channel_values_apply(session):
-	session.add(Trusted(channel_id=CHANNEL, age_min=6, age_max=8, language_code="hi"))
+	session.add(Trusted(channel_id=CHANNEL, age_min=6, age_max=8, language_code="hi", category_id=uuid4()))
 	row, video = _add(session, "aaaaaaaaaaa")
 	_run(session, FakeYouTube(_yt("aaaaaaaaaaa")))
 	session.refresh(video)
@@ -408,7 +408,7 @@ def test_trusted_channel_with_an_unsupported_band_is_blocked(session):
 
 
 def test_trusted_channel_band_is_used_not_the_non_trusted_setting(session):
-	session.add(Trusted(channel_id=CHANNEL, age_min=9, age_max=12))
+	session.add(Trusted(channel_id=CHANNEL, age_min=9, age_max=12, category_id=uuid4()))
 	row, video = _add(session, "aaaaaaaaaaa")
 	_run(session, FakeYouTube(_yt("aaaaaaaaaaa")))
 	session.refresh(video)

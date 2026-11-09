@@ -80,7 +80,12 @@ accepted for backward compatibility; the key is sent to Google only in the
 `YOUTUBE_DISCOVERY_ACTOR_ID` (an active admin/staff UUID with an assigned
 `video:write` permission, used for audit provenance). Never put these secrets
 in Flutter build configuration. `YOUTUBE_AUTO_PUBLISH_MAX_SECONDS` defaults to
-180 and bounds automatic trusted-channel publication.
+180 and bounds non-trusted automatic publication. Explicitly trusted channels
+use `YOUTUBE_TRUSTED_AUTO_PUBLISH_MAX_SECONDS` (default 3600; maximum 86400).
+Watch completion defaults are configured with
+`YOUTUBE_SHORT_WATCH_COMPLETION_PERCENT` (80),
+`YOUTUBE_SHORT_MIN_WATCH_SECONDS` (6), and
+`YOUTUBE_LONG_WATCH_COMPLETION_PERCENT` (90).
 
 ### YouTube content pipeline
 
@@ -89,17 +94,46 @@ in Flutter build configuration. `YOUTUBE_AUTO_PUBLISH_MAX_SECONDS` defaults to
   (`POST /admin/videos/youtube/import`). Candidates are unpublished `videos` rows
   with a `youtube_content_reviews` row. Metadata screening only sets
   `pending_review`, `quarantined` or `unavailable`; it never approves.
-- Run `python -m app.cli youtube-discover` from a deployment scheduler to make
-  one bounded `search.list` and metadata lookup for each configured topic, then
-  one bounded page per configured topic for each active explicitly trusted
-  channel. Trusted-channel candidates are automatically published only when
-  metadata is clean, made-for-kids, embeddable, public, short, rights-cleared
-  and age-band configured; unknown or flagged candidates remain hidden.
+- Trusting a channel triggers bounded initial discovery. Run
+  `python -m app.cli youtube-discover` from a deployment scheduler to discover
+  future uploads from every active explicitly trusted channel. For each curated
+  topic, discovery searches both YouTube's short-duration and all-duration
+  results, deduplicates IDs, fetches metadata in batches of at most 50, then
+  classifies format from the verified duration. Only 1-60 second items enter the
+  Shorts feed; longer items enter the regular-video feed.
+- Trusted-channel candidates are automatically published only when metadata
+  screening is clean, YouTube marks them made-for-kids, the video is public,
+  processed and embeddable, channel rights are cleared, the administrator has
+  selected an active category and supported age range, and duration is within
+  the configured trusted-channel ceiling. Trust never overrides a video-level
+  screening, rights, availability, age, or playback failure. Missing category,
+  unknown duration, or any screening flag leaves the item unpublished for
+  review. Revoking trust quarantines automatically published videos under the
+  existing policy.
   Schedule this command separately from `youtube-recheck`; discovery records
   provenance and is safe to repeat because YouTube IDs are unique. Discovery
   requires the configured active administrator identity with `video:write`
   permission. This repository does not schedule the command; configure cron or
   the deployment scheduler explicitly.
+
+### Child video history
+
+- Apply the additive migration with `alembic upgrade head` before deploying the
+  history-enabled API or Flutter clients. It creates a unique child/video row
+  without altering playback-entitlement sessions or existing video records.
+- `POST /api/v1/videos/watch-history/{video_id}/progress` records authenticated
+  child progress. Server-side time is capped per update; a Short requires the
+  configured minimum and completion percentage, and a regular video requires
+  the configured long-video threshold. Opening a player alone does not complete
+  a video.
+- `GET /api/v1/videos/watch-history/continue-watching` returns eligible,
+  unfinished regular videos with their saved position. Normal `/videos/feed`
+  and `/videos/shorts` responses exclude completed videos on the backend.
+- Parents can read history only for children in their family through
+  `GET /api/v1/videos/watch-history/children/{child_id}` and authorize replay
+  per completed item through
+  `POST /api/v1/videos/watch-history/children/{child_id}/{video_id}/replay`.
+  Replay preserves the original history record.
 - Supported approval age ranges are exactly 3–5, 6–8, 9–12 and 13–15. Child feed
   requests with missing, future, or out-of-range birth dates receive no videos.
 - Only `POST /admin/videos/youtube/reviews/{id}/approve` or the trusted-channel

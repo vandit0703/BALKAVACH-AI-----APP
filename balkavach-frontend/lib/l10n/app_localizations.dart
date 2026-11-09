@@ -3689,6 +3689,48 @@ abstract class AppLocalizations {
   /// **'Quick videos'**
   String get watchShortsSection;
 
+  /// Section title for unfinished long videos.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue watching'**
+  String get watchContinue;
+
+  /// No description provided for @parentWatchHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Video history'**
+  String get parentWatchHistoryTitle;
+
+  /// No description provided for @parentWatchHistorySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review watched videos and allow replay'**
+  String get parentWatchHistorySubtitle;
+
+  /// No description provided for @parentWatchHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No video history yet.'**
+  String get parentWatchHistoryEmpty;
+
+  /// No description provided for @videoAllowReplay.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow replay'**
+  String get videoAllowReplay;
+
+  /// No description provided for @videoReplayEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Replay allowed'**
+  String get videoReplayEnabled;
+
+  /// No description provided for @videoWatchProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Video watch progress'**
+  String get videoWatchProgress;
+
   /// Category chips heading on Home.
   ///
   /// In en, this message translates to:

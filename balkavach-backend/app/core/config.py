@@ -40,6 +40,10 @@ class Settings(BaseSettings):
 	)
 	youtube_discovery_max_results: int = Field(default=10, ge=1, le=50)
 	youtube_auto_publish_max_seconds: int = Field(default=180, ge=1, le=600)
+	youtube_trusted_auto_publish_max_seconds: int = Field(default=3600, ge=61, le=86400)
+	youtube_short_watch_completion_percent: int = Field(default=80, ge=1, le=100)
+	youtube_short_min_watch_seconds: int = Field(default=6, ge=1, le=60)
+	youtube_long_watch_completion_percent: int = Field(default=90, ge=1, le=100)
 	youtube_auto_publish_non_trusted: bool = True
 	# Audience for automatically approved videos from non-trusted channels: one of
 	# 3-5, 6-8, 9-12, 13-15. Unset means such videos wait for a person.

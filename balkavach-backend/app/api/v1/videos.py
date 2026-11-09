@@ -1,10 +1,11 @@
 from uuid import UUID
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user, require_admin_permission, require_child
+from app.core.dependencies import get_current_user, require_admin_permission, require_child, require_parent
 from app.integrations.youtube import get_youtube_client
 from app.db.base import get_model
 from app.db.session import get_db
@@ -21,6 +22,9 @@ from app.schemas.video import (
 	VideoCollectionCreate,
 	VideoCreate,
 	VideoFeedItem,
+	VideoWatchHistoryPublic,
+	VideoWatchProgressPublic,
+	VideoWatchProgressRequest,
 	VideoUpdate,
 	YouTubeApproveRequest,
 	YouTubeDiscoverRequest,
@@ -53,9 +57,11 @@ from app.services.video_service import (
 	set_video_published,
 	update_video,
 )
+from app.services import video_watch_history_service
 
 router = APIRouter(prefix="/videos", tags=["videos"])
 admin_router = APIRouter(prefix="/admin/videos", tags=["admin videos"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/categories", response_model=list[VideoCategoryPublic])
@@ -131,6 +137,82 @@ def video_shorts(
 	videos = eligible_feed(session, child, category_id, limit, offset, video_format="short")
 	channels = _channel_names(session, videos) if any(video.video_source == "youtube" for video in videos) else {}
 	return [_feed_item(video, channels.get(video.id)) for video in videos]
+
+
+@router.post("/watch-history/{video_id}/progress", response_model=VideoWatchProgressPublic)
+def record_video_progress(
+	video_id: UUID,
+	request: VideoWatchProgressRequest,
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> VideoWatchProgressPublic:
+	return VideoWatchProgressPublic(**video_watch_history_service.record_progress(
+		session, child, video_id, request.position_seconds
+	))
+
+
+@router.get("/watch-history", response_model=list[VideoWatchHistoryPublic])
+def child_video_history(
+	limit: int = Query(default=100, ge=1, le=200),
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> list[VideoWatchHistoryPublic]:
+	return [VideoWatchHistoryPublic(**row) for row in video_watch_history_service.list_child_history(
+		session, child.id, eligible_child=child, limit=limit
+	)]
+
+
+@router.get("/watch-history/continue-watching", response_model=list[VideoWatchHistoryPublic])
+def continue_watching(
+	limit: int = Query(default=20, ge=1, le=50),
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> list[VideoWatchHistoryPublic]:
+	return [VideoWatchHistoryPublic(**row) for row in video_watch_history_service.list_child_history(
+		session, child.id, continue_watching=True, eligible_child=child, limit=limit
+	)]
+
+
+def _require_parent_child(session: Session, parent, child_id: UUID):
+	ChildProfile = get_model("ChildProfile")
+	child = session.query(ChildProfile).filter(
+		ChildProfile.id == child_id,
+		ChildProfile.is_active.is_(True),
+	).one_or_none()
+	if child is None:
+		raise HTTPException(status_code=404, detail="Child profile not found")
+	FamilyMember = get_model("FamilyMember")
+	if not session.query(FamilyMember.id).filter(
+		FamilyMember.family_id == child.family_id,
+		FamilyMember.user_id == parent.id,
+		FamilyMember.is_active.is_(True),
+	).first():
+		raise HTTPException(status_code=404, detail="Child profile not found")
+	return child
+
+
+@router.get("/watch-history/children/{child_id}", response_model=list[VideoWatchHistoryPublic])
+def parent_video_history(
+	child_id: UUID,
+	limit: int = Query(default=100, ge=1, le=200),
+	parent=Depends(require_parent),
+	session: Session = Depends(get_db),
+) -> list[VideoWatchHistoryPublic]:
+	child = _require_parent_child(session, parent, child_id)
+	return [VideoWatchHistoryPublic(**row) for row in video_watch_history_service.list_child_history(
+		session, child.id, limit=limit
+	)]
+
+
+@router.post("/watch-history/children/{child_id}/{video_id}/replay", status_code=204)
+def parent_authorize_video_replay(
+	child_id: UUID,
+	video_id: UUID,
+	parent=Depends(require_parent),
+	session: Session = Depends(get_db),
+) -> None:
+	child = _require_parent_child(session, parent, child_id)
+	video_watch_history_service.authorize_replay(session, child.id, video_id)
 
 
 @router.post("/report", response_model=ContentReportReceipt, status_code=201)
@@ -324,7 +406,14 @@ def admin_youtube_trust_channel(
 	admin=Depends(require_admin_permission("video:write")),
 	session: Session = Depends(get_db),
 ) -> YouTubeTrustedChannelPublic:
-	return YouTubeTrustedChannelPublic.model_validate(youtube_review_service.trust_channel(session, admin, request))
+	channel = youtube_review_service.trust_channel(session, admin, request)
+	try:
+		youtube_review_service.discover_trusted(
+			session, admin, get_youtube_client(), 10, channel_id=channel.channel_id
+		)
+	except Exception:
+		logger.exception("Initial trusted-channel discovery failed for %s", channel.channel_id)
+	return YouTubeTrustedChannelPublic.model_validate(channel)
 
 
 @admin_router.post("/youtube/channels/{channel_id}/untrust", response_model=YouTubeTrustedChannelPublic)

@@ -23,6 +23,8 @@ abstract final class AppRoutes {
   static String parentEditReward(String rewardId) =>
       '/parent/rewards/$rewardId/edit';
   static String parentChild(String childId) => '/parent/children/$childId';
+  static String parentChildWatchHistory(String childId) =>
+      '${parentChild(childId)}/watch-history';
 
   static const childHome = '/child';
   static const childMissions = '/child/missions';

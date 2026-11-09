@@ -39,6 +39,7 @@ MODEL_TABLES = {
 	"VideoCollection": "video_collections",
 	"VideoCollectionItem": "video_collection_items",
 	"VideoWatchSession": "video_watch_sessions",
+	"ChildVideoWatchHistory": "child_video_watch_history",
 	"Reward": "rewards",
 	"RedemptionRequest": "redemption_requests",
 	"VideoAccessEntitlement": "video_access_entitlements",

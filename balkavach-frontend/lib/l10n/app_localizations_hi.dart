@@ -2168,6 +2168,28 @@ class AppLocalizationsHi extends AppLocalizations {
   String get watchShortsSection => 'छोटे वीडियो';
 
   @override
+  String get watchContinue => 'देखना जारी रखें';
+
+  @override
+  String get parentWatchHistoryTitle => 'वीडियो इतिहास';
+
+  @override
+  String get parentWatchHistorySubtitle =>
+      'देखे गए वीडियो देखें और दोबारा चलाने दें';
+
+  @override
+  String get parentWatchHistoryEmpty => 'अभी कोई वीडियो इतिहास नहीं है।';
+
+  @override
+  String get videoAllowReplay => 'दोबारा चलाने दें';
+
+  @override
+  String get videoReplayEnabled => 'दोबारा चलाने की अनुमति दी';
+
+  @override
+  String get videoWatchProgress => 'वीडियो देखने की प्रगति';
+
+  @override
   String get watchTopicsSection => 'विषय खोजें';
 
   @override

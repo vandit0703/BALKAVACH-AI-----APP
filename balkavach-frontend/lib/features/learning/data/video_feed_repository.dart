@@ -24,6 +24,7 @@ class FeedVideo {
     this.categoryId,
     this.youtubeVideoId,
     this.channelName,
+    this.resumePositionSeconds = 0,
     this.format = VideoFormat.regular,
   });
 
@@ -37,6 +38,8 @@ class FeedVideo {
     source: json['video_source'] as String? ?? 'hosted',
     youtubeVideoId: json['youtube_video_id'] as String?,
     channelName: json['channel_name'] as String?,
+    resumePositionSeconds:
+        (json['last_position_seconds'] as num?)?.toInt() ?? 0,
     format: VideoFormat.parse(json['video_format']),
   );
 
@@ -51,6 +54,7 @@ class FeedVideo {
   final String source;
   final String? youtubeVideoId;
   final String? channelName;
+  final int resumePositionSeconds;
 
   /// The server's classification (1-60 s is a short). The app never decides
   /// this itself; a missing duration arrives as `unknown`.
@@ -59,6 +63,29 @@ class FeedVideo {
   /// Playable in the official YouTube embed: a YouTube item with a well-formed id.
   bool get isYouTube =>
       source == 'youtube' && _youtubeIdPattern.hasMatch(youtubeVideoId ?? '');
+}
+
+@immutable
+class VideoWatchHistoryEntry {
+  const VideoWatchHistoryEntry({
+    required this.video,
+    required this.lastWatchedAt,
+    required this.completionPercentage,
+    required this.isCompleted,
+  });
+
+  factory VideoWatchHistoryEntry.fromJson(Map<String, dynamic> json) =>
+      VideoWatchHistoryEntry(
+        video: FeedVideo.fromJson({...json, 'id': json['video_id']}),
+        lastWatchedAt: DateTime.parse(json['last_watched_at'] as String),
+        completionPercentage: (json['completion_percentage'] as num).toInt(),
+        isCompleted: json['is_completed'] as bool,
+      );
+
+  final FeedVideo video;
+  final DateTime lastWatchedAt;
+  final int completionPercentage;
+  final bool isCompleted;
 }
 
 /// Mirrors `video_format` in `app/schemas/video.py`.
@@ -118,6 +145,41 @@ class VideoFeedRepository {
     return parseJsonList(response.data, FeedVideo.fromJson);
   });
 
+  Future<List<FeedVideo>> continueWatching({int limit = 20}) =>
+      guardApi(() async {
+        final response = await _dio.get<List<dynamic>>(
+          '/api/v1/videos/watch-history/continue-watching',
+          queryParameters: {'limit': limit},
+        );
+        return parseJsonList(
+          response.data,
+          (json) => FeedVideo.fromJson({...json, 'id': json['video_id']}),
+        );
+      });
+
+  Future<void> recordProgress(String videoId, int positionSeconds) =>
+      guardApi(() async {
+        await _dio.post<Map<String, dynamic>>(
+          '/api/v1/videos/watch-history/$videoId/progress',
+          data: {'position_seconds': positionSeconds},
+        );
+      });
+
+  Future<List<VideoWatchHistoryEntry>> parentHistory(String childId) =>
+      guardApi(() async {
+        final response = await _dio.get<List<dynamic>>(
+          '/api/v1/videos/watch-history/children/$childId',
+        );
+        return parseJsonList(response.data, VideoWatchHistoryEntry.fromJson);
+      });
+
+  Future<void> authorizeReplay(String childId, String videoId) =>
+      guardApi(() async {
+        await _dio.post<void>(
+          '/api/v1/videos/watch-history/children/$childId/$videoId/replay',
+        );
+      });
+
   Future<void> report(
     String videoId,
     VideoReportReason reason, {
@@ -138,6 +200,16 @@ class VideoFeedRepository {
 final videoFeedRepositoryProvider = Provider<VideoFeedRepository>(
   (ref) => VideoFeedRepository(ref.watch(apiDioProvider)),
 );
+
+final continueWatchingProvider = FutureProvider<List<FeedVideo>>(
+  (ref) => ref.watch(videoFeedRepositoryProvider).continueWatching(),
+);
+
+final parentVideoHistoryProvider =
+    FutureProvider.family<List<VideoWatchHistoryEntry>, String>(
+      (ref, childId) =>
+          ref.watch(videoFeedRepositoryProvider).parentHistory(childId),
+    );
 
 enum PagerStatus { idle, loading, error, done }
 

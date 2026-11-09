@@ -238,6 +238,7 @@ class YouTubeClient:
 			params["regionCode"] = region_code
 		if channel_id:
 			params["channelId"] = channel_id
+			params["order"] = "date"
 		data = self._get("search", params)
 		video_ids: list[str] = []
 		for item in data.get("items") or []:

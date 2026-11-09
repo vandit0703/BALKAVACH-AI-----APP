@@ -446,6 +446,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get youtubeAgeBand => 'आयु वर्ग';
 
   @override
+  String get youtubeVideoCategory => 'शैक्षिक श्रेणी';
+
+  @override
+  String get youtubeCategoriesRequired =>
+      'चैनल या वीडियो स्वीकृत करने से पहले सक्रिय वीडियो श्रेणी बनाएँ।';
+
+  @override
   String get youtubeRightsCleared =>
       'मैंने इस वीडियो को एम्बेड करने के अधिकार और अनुमति जाँची है।';
 

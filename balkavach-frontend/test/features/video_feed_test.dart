@@ -74,6 +74,19 @@ class _FakeRepository implements VideoFeedRepository {
   }
 
   @override
+  Future<List<FeedVideo>> continueWatching({int limit = 20}) async => [];
+
+  @override
+  Future<void> recordProgress(String videoId, int positionSeconds) async {}
+
+  @override
+  Future<List<VideoWatchHistoryEntry>> parentHistory(String childId) async =>
+      [];
+
+  @override
+  Future<void> authorizeReplay(String childId, String videoId) async {}
+
+  @override
   Future<void> report(
     String videoId,
     VideoReportReason reason, {
@@ -148,6 +161,81 @@ void main() {
       expect(
         h.backend.requestsTo('POST', '/api/v1/videos/report').single.data,
         {'video_id': 'v1', 'reason': 'scary', 'details': 'loud noises'},
+      );
+    });
+
+    test(
+      'continue watching maps history rows and sends progress to backend',
+      () async {
+        final h = await Harness.create(session: Fx.childSession());
+        h.backend.reply(
+          'GET',
+          '/api/v1/videos/watch-history/continue-watching',
+          [
+            {
+              ..._video(id: 'history-row'),
+              'video_id': 'history-row',
+              'video_format': 'regular',
+              'last_position_seconds': 75,
+            },
+          ],
+        );
+        h.backend.reply(
+          'POST',
+          '/api/v1/videos/watch-history/history-row/progress',
+          <String, Object?>{},
+        );
+        final repo = h.container().read(videoFeedRepositoryProvider);
+        final videos = await repo.continueWatching();
+        expect(videos.single.id, 'history-row');
+        expect(videos.single.resumePositionSeconds, 75);
+
+        await repo.recordProgress('history-row', 80);
+        expect(
+          h.backend
+              .requestsTo(
+                'POST',
+                '/api/v1/videos/watch-history/history-row/progress',
+              )
+              .single
+              .data,
+          {'position_seconds': 80},
+        );
+      },
+    );
+
+    test('parent history supports per-video replay authorization', () async {
+      final h = await Harness.create(session: Fx.parentSession());
+      h.backend.reply('GET', '/api/v1/videos/watch-history/children/c1', [
+        {
+          ..._video(id: 'v1'),
+          'video_id': 'v1',
+          'video_format': 'regular',
+          'started_at': '2026-11-09T10:00:00Z',
+          'last_watched_at': '2026-11-09T10:05:00Z',
+          'last_position_seconds': 75,
+          'watch_duration_seconds': 75,
+          'completion_percentage': 50,
+          'is_completed': false,
+        },
+      ]);
+      h.backend.reply(
+        'POST',
+        '/api/v1/videos/watch-history/children/c1/v1/replay',
+        <String, Object?>{},
+        status: 204,
+      );
+      final repo = h.container().read(videoFeedRepositoryProvider);
+      final history = await repo.parentHistory('c1');
+      expect(history.single.video.id, 'v1');
+      expect(history.single.completionPercentage, 50);
+      await repo.authorizeReplay('c1', 'v1');
+      expect(
+        h.backend.requestsTo(
+          'POST',
+          '/api/v1/videos/watch-history/children/c1/v1/replay',
+        ),
+        hasLength(1),
       );
     });
 

@@ -185,6 +185,18 @@ class _Profile extends ConsumerWidget {
                             context.push(AppRoutes.parentReportsFor(child.id)),
                       ),
                       NavTile(
+                        key: const Key('profile.videoHistory'),
+                        tonal: true,
+                        icon: Icons.video_library_outlined,
+                        tint: context.colors.primaryFixed,
+                        iconColor: context.colors.primary,
+                        title: l10n.parentWatchHistoryTitle,
+                        subtitle: l10n.parentWatchHistorySubtitle,
+                        onTap: () => context.push(
+                          AppRoutes.parentChildWatchHistory(child.id),
+                        ),
+                      ),
+                      NavTile(
                         key: const Key('profile.childMode'),
                         tonal: true,
                         icon: Icons.rocket_launch_rounded,

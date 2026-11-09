@@ -42,6 +42,9 @@ void main() {
     tester,
   ) async {
     final server = baseServer()
+      ..reply('GET', '/api/v1/admin/videos/categories', [
+        {'id': 'science-id', 'name': 'Science', 'is_active': true},
+      ])
       ..reply('GET', '/api/v1/admin/videos/youtube/reviews', [_review()])
       ..reply(
         'POST',
@@ -69,6 +72,7 @@ void main() {
         .single;
     expect(request.data, {
       'language_code': 'en',
+      'category_id': 'science-id',
       'age_min': 3,
       'age_max': 5,
       'rights_status': 'cleared',

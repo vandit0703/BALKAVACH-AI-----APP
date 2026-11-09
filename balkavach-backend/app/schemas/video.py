@@ -24,6 +24,7 @@ class VideoCategoryPublic(BaseModel):
 	description: str | None
 	icon_url: str | None
 	display_order: int
+	is_active: bool = True
 
 
 class VideoCategoryUpdate(BaseModel):
@@ -118,11 +119,44 @@ class VideoFeedItem(BaseModel):
 	youtube_video_id: str | None = None
 
 
+class VideoWatchProgressRequest(BaseModel):
+	position_seconds: int = Field(ge=0, le=86400)
+
+
+class VideoWatchHistoryPublic(BaseModel):
+	video_id: UUID
+	title: str
+	description: str | None
+	thumbnail_url: str | None
+	duration_seconds: int | None
+	category_id: UUID | None
+	language_code: str
+	video_source: str
+	youtube_video_id: str | None
+	video_format: Literal["short", "regular"]
+	started_at: datetime
+	last_watched_at: datetime
+	last_position_seconds: int
+	watch_duration_seconds: int
+	completion_percentage: int
+	is_completed: bool
+
+
+class VideoWatchProgressPublic(VideoWatchHistoryPublic):
+	accepted_seconds: int
+
+
 YouTubeReviewStatus = Literal[
 	"discovered", "pending_review", "approved", "rejected", "quarantined", "revoked", "unavailable"
 ]
 ReportReason = Literal["inappropriate", "scary", "violent", "misleading", "advertising", "other"]
 YOUTUBE_AGE_BANDS = {(3, 5), (6, 8), (9, 12), (13, 15)}
+YOUTUBE_AGE_RANGES = {
+	(3, 5), (3, 8), (3, 12), (3, 15),
+	(6, 8), (6, 12), (6, 15),
+	(9, 12), (9, 15),
+	(13, 15),
+}
 
 
 class YouTubeDiscoverRequest(BaseModel):
@@ -212,8 +246,8 @@ class YouTubeTrustedChannelRequest(BaseModel):
 
 	@model_validator(mode="after")
 	def validate_age_range(self):
-		if (self.age_min, self.age_max) not in YOUTUBE_AGE_BANDS:
-			raise ValueError("Choose one of the supported age bands: 3-5, 6-8, 9-12 or 13-15")
+		if (self.age_min, self.age_max) not in YOUTUBE_AGE_RANGES:
+			raise ValueError("Choose a complete supported age band or contiguous combination of bands")
 		return self
 
 
@@ -247,8 +281,8 @@ class YouTubeApproveRequest(BaseModel):
 
 	@model_validator(mode="after")
 	def validate_age_range(self):
-		if (self.age_min, self.age_max) not in YOUTUBE_AGE_BANDS:
-			raise ValueError("Choose one of the supported age bands: 3-5, 6-8, 9-12 or 13-15")
+		if (self.age_min, self.age_max) not in YOUTUBE_AGE_RANGES:
+			raise ValueError("Choose a complete supported age band or contiguous combination of bands")
 		return self
 
 

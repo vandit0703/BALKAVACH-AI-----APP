@@ -42,7 +42,7 @@ from app.integrations.youtube import (
 	safe_thumbnail_url,
 	to_api_error,
 )
-from app.schemas.video import YOUTUBE_AGE_BANDS, YouTubeApproveRequest, YouTubeDiscoverRequest
+from app.schemas.video import YOUTUBE_AGE_BANDS, YOUTUBE_AGE_RANGES, YouTubeApproveRequest, YouTubeDiscoverRequest
 from app.services.video_classification import video_format
 from app.services.admin_service import record_audit
 from app.utils import utc_aware, utc_naive
@@ -313,13 +313,14 @@ AUTO_BLOCKER_TEXT = {
 	"trusted_channel_inactive": "the trusted channel is inactive",
 	"channel_id_mismatch": "the channel does not match the trusted channel record",
 	"trusted_channel_rights_not_cleared": "the trusted channel's rights are not cleared",
+	"trusted_channel_category_unassigned": "the trusted channel needs an admin-assigned category",
 	"rights_not_cleared": "rights are not cleared for this video",
 	"review_not_pending": "the video is not awaiting review",
 	"screening_flags": "screening flags need a person to look at them",
 	"made_for_kids_not_true": "YouTube does not mark the video as made for kids",
 	"duration_exceeds_limit": "the video is longer than the automatic approval limit",
 	"age_band_not_configured": "no age band is configured for automatic approval (set YOUTUBE_AUTO_PUBLISH_AGE_BAND)",
-	"unsupported_age_band": "the audience age range is not one of 3-5, 6-8, 9-12 or 13-15",
+	"unsupported_age_band": "the audience range is not a complete age band or contiguous combination of bands",
 }
 
 
@@ -337,7 +338,7 @@ def auto_age_band(trusted_channel) -> tuple[int, int] | None:
 	"""Audience an automatically approved video would get, if it is a supported band."""
 	if trusted_channel is not None:
 		band = (trusted_channel.age_min, trusted_channel.age_max)
-		return band if band in YOUTUBE_AGE_BANDS else None
+		return band if band in YOUTUBE_AGE_RANGES else None
 	return configured_auto_age_band()
 
 
@@ -369,10 +370,17 @@ def auto_approval_blocker(review, video, trusted_channel=None) -> tuple[str, dic
 		if trusted_channel is None and not (settings.youtube_auto_publish_age_band or "").strip():
 			return "age_band_not_configured", {}
 		return "unsupported_age_band", {}
-	if video.duration_seconds > settings.youtube_auto_publish_max_seconds:
+	if trusted_channel is not None and not trusted_channel.category_id:
+		return "trusted_channel_category_unassigned", {}
+	max_seconds = (
+		settings.youtube_trusted_auto_publish_max_seconds
+		if trusted_channel is not None
+		else settings.youtube_auto_publish_max_seconds
+	)
+	if video.duration_seconds > max_seconds:
 		return "duration_exceeds_limit", {
 			"duration_seconds": video.duration_seconds,
-			"max_duration_seconds": settings.youtube_auto_publish_max_seconds,
+			"max_duration_seconds": max_seconds,
 		}
 	return None
 
@@ -571,25 +579,40 @@ def discover(
 	}
 
 
-def discover_trusted(session: Session, actor, client: YouTubeClient, max_results: int) -> dict[str, int]:
-	"""Discover one bounded page per configured topic for each active trusted channel."""
+def discover_trusted(
+	session: Session,
+	actor,
+	client: YouTubeClient,
+	max_results: int,
+	channel_id: str | None = None,
+) -> dict[str, int]:
+	"""Discover bounded Shorts and regular-video pages for active trusted channels."""
 	_require_tables("YouTubeContentReview", "YouTubeTrustedChannel")
 	Trusted = get_model("YouTubeTrustedChannel")
 	Review = get_model("YouTubeContentReview")
 	Video = get_model("Video")
-	channels = session.query(Trusted).filter(Trusted.is_active.is_(True), Trusted.rights_status == "cleared").all()
+	channel_query = session.query(Trusted).filter(
+		Trusted.is_active.is_(True), Trusted.rights_status == "cleared"
+	)
+	if channel_id is not None:
+		channel_query = channel_query.filter(Trusted.channel_id == channel_id)
+	channels = channel_query.all()
 	counts = {"created": 0, "skipped_existing": 0, "automatically_published": 0, "quarantined": 0}
 	try:
 		for channel in channels:
 			for topic in settings.youtube_discovery_topics:
-				page = client.search(
-					topic,
-					short=True,
-					channel_id=channel.channel_id,
-					region_code=settings.youtube_region_code,
-					max_results=max_results,
-				)
-				video_ids = page["video_ids"]
+				video_ids: list[str] = []
+				for short_only in (True, False):
+					page = client.search(
+						topic,
+						short=short_only,
+						channel_id=channel.channel_id,
+						region_code=settings.youtube_region_code,
+						max_results=max_results,
+					)
+					for video_id in page["video_ids"]:
+						if video_id not in video_ids:
+							video_ids.append(video_id)
 				existing = {
 					row[0]
 					for row in session.query(Review.youtube_video_id).filter(Review.youtube_video_id.in_(video_ids)).all()
@@ -610,7 +633,9 @@ def discover_trusted(session: Session, actor, client: YouTubeClient, max_results
 					if _auto_publish(session, actor, review, video, channel):
 						counts["automatically_published"] += 1
 				new_ids = [video_id for video_id in video_ids if video_id not in existing]
-				details = client.videos(new_ids) if new_ids else {}
+				details = {}
+				for start in range(0, len(new_ids), 50):
+					details.update(client.videos(new_ids[start : start + 50]))
 				for video_id in new_ids:
 					result = _create_candidate(session, actor, video_id, details.get(video_id), topic, channel)
 					if result is None:
@@ -752,7 +777,7 @@ def diagnostics(session: Session) -> dict[str, Any]:
 			}
 	age_band_clause = or_(*[
 		and_(Video.age_min == age_min, Video.age_max == age_max)
-		for age_min, age_max in YOUTUBE_AGE_BANDS
+		for age_min, age_max in YOUTUBE_AGE_RANGES
 	])
 	base = session.query(Review, Video).join(Video, Video.id == Review.video_id)
 	pending_reasons: dict[str, int] = {}
@@ -770,7 +795,7 @@ def diagnostics(session: Session) -> dict[str, Any]:
 			reasons.append(f"rights:{review.rights_status}")
 		if review.made_for_kids is not True:
 			reasons.append("made_for_kids_not_true")
-		if (video.age_min, video.age_max) not in YOUTUBE_AGE_BANDS:
+		if (video.age_min, video.age_max) not in YOUTUBE_AGE_RANGES:
 			reasons.append("unsupported_age_band")
 		if review.status == "quarantined":
 			for reason in reasons or ["no_screening_reason_recorded"]:
@@ -927,7 +952,7 @@ def publish_approved_unpublished(
 			continue
 		if review.rights_status != "cleared":
 			blocked = True
-		if (video.age_min, video.age_max) not in YOUTUBE_AGE_BANDS:
+		if (video.age_min, video.age_max) not in YOUTUBE_AGE_RANGES:
 			counts["unsupported_age_band"] = counts.get("unsupported_age_band", 0) + 1
 			blocked = True
 		if video.content_rating not in {"general", "educational"}:

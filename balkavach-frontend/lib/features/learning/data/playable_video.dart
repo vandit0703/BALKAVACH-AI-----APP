@@ -83,6 +83,7 @@ class PlayableVideo {
     this.categoryId,
     this.reportVideoId,
     this.format = VideoFormat.regular,
+    this.resumePositionSeconds = 0,
   });
 
   /// A video from `GET /videos/feed` or `GET /videos/shorts`.
@@ -99,6 +100,7 @@ class PlayableVideo {
     // Every feed video has a server row a grown-up can report.
     reportVideoId: video.id,
     format: video.format,
+    resumePositionSeconds: video.resumePositionSeconds,
     source: video.isYouTube
         ? YouTubeVideoSource(video.youtubeVideoId!)
         : video.source == 'youtube'
@@ -140,6 +142,7 @@ class PlayableVideo {
   /// Short, regular or unknown, as the server classified it. Curated Learn &
   /// Watch items carry no duration, so they are regular.
   final VideoFormat format;
+  final int resumePositionSeconds;
 
   /// `#tags` written in the description, in order, without duplicates.
   List<String> get hashtags {

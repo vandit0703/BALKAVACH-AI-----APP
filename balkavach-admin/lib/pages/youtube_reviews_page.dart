@@ -35,8 +35,14 @@ const _statuses = [
 
 const _ageBands = {
   '3-5': '3–5',
+  '3-8': '3–8 (3–5 + 6–8)',
+  '3-12': '3–12 (3–5 + 6–8 + 9–12)',
+  '3-15': '3–15 (all age groups)',
   '6-8': '6–8',
+  '6-12': '6–12 (6–8 + 9–12)',
+  '6-15': '6–15 (6–8 + 9–12 + 13–15)',
   '9-12': '9–12',
+  '9-15': '9–15 (9–12 + 13–15)',
   '13-15': '13–15',
 };
 
@@ -71,6 +77,28 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
   void _reloadAll() {
     setState(() => _reload++);
     _refreshDiagnostics();
+  }
+
+  Future<Map<String, String>?> _activeVideoCategories() async {
+    final l10n = AppLocalizations.of(context);
+    try {
+      final rows = await ref
+          .read(adminApiProvider)
+          .getList('/api/v1/admin/videos/categories');
+      if (!mounted) return null;
+      final options = {
+        for (final row in rows)
+          if (row['is_active'] == true && row['id'] is String)
+            row['id'] as String: '${row['name'] ?? ''}',
+      };
+      if (options.isNotEmpty) return options;
+      showMessage(context, l10n.youtubeCategoriesRequired);
+    } on Object catch (error) {
+      if (mounted) {
+        showMessage(context, '${l10n.youtubeCategoriesRequired}: $error');
+      }
+    }
+    return null;
   }
 
   Future<void> _refreshDiagnostics() async {
@@ -231,6 +259,8 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
     final l10n = AppLocalizations.of(context);
     final channelId = '${row['channel_id'] ?? ''}';
     if (channelId.isEmpty || !mounted) return;
+    final categories = await _activeVideoCategories();
+    if (categories == null || !mounted) return;
     final values = await showFormDialog(
       context,
       title: l10n.youtubeTrustChannelTitle,
@@ -250,6 +280,14 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
           required: true,
           options: kLanguageNames,
           initial: 'en',
+        ),
+        FormFieldSpec(
+          key: 'category_id',
+          label: l10n.youtubeVideoCategory,
+          kind: FieldKind.choice,
+          required: true,
+          options: categories,
+          initial: categories.keys.first,
         ),
         FormFieldSpec(
           key: 'rights_cleared',
@@ -485,6 +523,8 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
     BuildContext dialogContext,
   ) async {
     final l10n = AppLocalizations.of(context);
+    final categories = await _activeVideoCategories();
+    if (categories == null || !mounted) return;
     final values = await showFormDialog(
       context,
       title: l10n.youtubeActionApprove,
@@ -504,6 +544,14 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
           required: true,
           options: kLanguageNames,
           initial: 'en',
+        ),
+        FormFieldSpec(
+          key: 'category_id',
+          label: l10n.youtubeVideoCategory,
+          kind: FieldKind.choice,
+          required: true,
+          options: categories,
+          initial: categories.keys.first,
         ),
         FormFieldSpec(
           key: 'rights_cleared',

@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, aliased
 
 from app.core.exceptions import APIError
-from app.db.base import get_model
+from app.db.base import get_model, has_model
 from app.schemas.video import VideoCategoryCreate, VideoCollectionCreate, VideoCreate, VideoUpdate
 from app.services.admin_service import record_audit
 from app.services.video_classification import regular_clause, short_clause
@@ -74,6 +74,20 @@ def eligible_feed(
 		query = query.filter(regular_clause(Video))
 	if category_id:
 		query = query.filter(Video.category_id == category_id)
+	if has_model("ChildVideoWatchHistory"):
+		WatchHistory = get_model("ChildVideoWatchHistory")
+		query = query.filter(or_(
+			~exists().where(
+				WatchHistory.child_id == child.id,
+				WatchHistory.video_id == Video.id,
+				WatchHistory.is_completed.is_(True),
+			),
+			exists().where(
+				WatchHistory.child_id == child.id,
+				WatchHistory.video_id == Video.id,
+				WatchHistory.parent_replay_authorized.is_(True),
+			),
+		))
 	result = (
 		query.order_by(
 			case((Video.language_code == user.preferred_language, 0), else_=1),

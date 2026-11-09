@@ -29,9 +29,11 @@ class YouTubeEmbedConfig {
     this.muted = false,
     this.onBlocked,
     this.onProgress,
+    this.onEnded,
     this.onVerticalSwipe,
     this.aspectRatio,
     this.overlay,
+    this.startAtSeconds = 0,
   });
 
   /// The approved video; nothing else may play in this embed.
@@ -59,6 +61,7 @@ class YouTubeEmbedConfig {
   /// Position and length as the player reports them, for a progress bar.
   /// This is display only and is never sent anywhere as viewing time.
   final void Function(Duration position, Duration duration)? onProgress;
+  final ValueChanged<Duration>? onEnded;
 
   /// When set, a vertical fling on the video is handed to the host (the
   /// Shorts feed uses it to change videos) instead of toggling fullscreen.
@@ -75,6 +78,9 @@ class YouTubeEmbedConfig {
   /// the page, so this is the only way to place widgets on top of it. Empty
   /// areas of the overlay let taps through to YouTube's own controls.
   final Widget? overlay;
+
+  /// Resume point supplied by the backend's Continue Watching history.
+  final int startAtSeconds;
 }
 
 typedef YouTubeEmbedBuilder = Widget Function(YouTubeEmbedConfig config);
@@ -116,6 +122,8 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
   StreamSubscription<YoutubeVideoState>? _positions;
   bool _pausedByLifecycle = false;
   bool _blockedReported = false;
+  bool _endedReported = false;
+  bool _startedReported = false;
 
   @override
   void initState() {
@@ -145,8 +153,14 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
     final config = widget.config;
     if (config.muted) await _controller.mute();
     await (config.autoplay
-        ? _controller.loadVideoById(videoId: config.videoId)
-        : _controller.cueVideoById(videoId: config.videoId));
+        ? _controller.loadVideoById(
+            videoId: config.videoId,
+            startSeconds: config.startAtSeconds.toDouble(),
+          )
+        : _controller.cueVideoById(
+            videoId: config.videoId,
+            startSeconds: config.startAtSeconds.toDouble(),
+          ));
   }
 
   @override
@@ -160,6 +174,7 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
   }
 
   void _onPosition(YoutubeVideoState state) {
+    if (_controller.value.playerState != PlayerState.playing) return;
     final duration = _controller.value.metaData.duration;
     widget.config.onProgress?.call(state.position, duration);
   }
@@ -182,6 +197,14 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
   }
 
   void _onValue(YoutubePlayerValue value) {
+    if (value.playerState == PlayerState.playing && !_startedReported) {
+      _startedReported = true;
+      widget.config.onProgress?.call(Duration.zero, value.metaData.duration);
+    }
+    if (value.playerState == PlayerState.ended && !_endedReported) {
+      _endedReported = true;
+      widget.config.onEnded?.call(value.metaData.duration);
+    }
     if (value.hasError) {
       final onBlocked = widget.config.onBlocked;
       if (onBlocked != null && isPermanentYouTubeError(value.error)) {
@@ -288,14 +311,16 @@ class YouTubePlayerScreen extends ConsumerStatefulWidget {
   YouTubePlayerScreen({required FeedVideo video, super.key})
     : title = video.title,
       youtubeVideoId = video.isYouTube ? video.youtubeVideoId : null,
-      reportVideoId = video.id;
+      reportVideoId = video.id,
+      startAtSeconds = video.resumePositionSeconds;
 
   /// A curated Learn & Watch link. It has no video row behind it, so the
   /// report form (which needs one) is not offered.
   YouTubePlayerScreen.curated({required LearningItem item, super.key})
     : title = item.title,
       youtubeVideoId = item.isYouTubeEmbeddable ? item.youtubeVideoId : null,
-      reportVideoId = null;
+      reportVideoId = null,
+      startAtSeconds = 0;
 
   final String title;
 
@@ -304,6 +329,7 @@ class YouTubePlayerScreen extends ConsumerStatefulWidget {
 
   /// The server's video id for the report form, when there is one.
   final String? reportVideoId;
+  final int startAtSeconds;
 
   @override
   ConsumerState<YouTubePlayerScreen> createState() =>
@@ -312,6 +338,7 @@ class YouTubePlayerScreen extends ConsumerStatefulWidget {
 
 class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
   bool _failed = false;
+  DateTime _lastProgressSentAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   /// Bumped on retry so the embed (and its web view) is built afresh.
   int _attempt = 0;
@@ -339,6 +366,28 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
 
   void _onError() {
     if (mounted && !_failed) setState(() => _failed = true);
+  }
+
+  void _recordProgress(Duration position, Duration duration) {
+    _sendProgress(position, force: false);
+  }
+
+  void _sendProgress(Duration position, {required bool force}) {
+    final videoId = widget.reportVideoId;
+    final now = DateTime.now();
+    if (videoId == null ||
+        (!force &&
+            now.difference(_lastProgressSentAt) <
+                const Duration(seconds: 10))) {
+      return;
+    }
+    _lastProgressSentAt = now;
+    unawaited(
+      ref
+          .read(videoFeedRepositoryProvider)
+          .recordProgress(videoId, position.inSeconds)
+          .catchError((Object _) {}),
+    );
   }
 
   Future<void> _report(String videoId) async {
@@ -409,6 +458,10 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
                             onLeaveRequested: _leave,
                             onForeignVideo: _onForeignVideo,
                             onError: _onError,
+                            startAtSeconds: widget.startAtSeconds,
+                            onProgress: _recordProgress,
+                            onEnded: (duration) =>
+                                _sendProgress(duration, force: true),
                           ),
                         ),
                       ),

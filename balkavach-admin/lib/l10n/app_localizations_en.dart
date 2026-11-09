@@ -448,6 +448,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get youtubeAgeBand => 'Age band';
 
   @override
+  String get youtubeVideoCategory => 'Educational category';
+
+  @override
+  String get youtubeCategoriesRequired =>
+      'Create an active video category before approving channels or videos.';
+
+  @override
   String get youtubeRightsCleared =>
       'I verified the rights and permission to embed this video.';
 

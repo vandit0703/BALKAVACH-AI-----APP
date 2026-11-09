@@ -940,6 +940,18 @@ abstract class AppLocalizations {
   /// **'Age band'**
   String get youtubeAgeBand;
 
+  /// No description provided for @youtubeVideoCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Educational category'**
+  String get youtubeVideoCategory;
+
+  /// No description provided for @youtubeCategoriesRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an active video category before approving channels or videos.'**
+  String get youtubeCategoriesRequired;
+
   /// No description provided for @youtubeRightsCleared.
   ///
   /// In en, this message translates to:

@@ -2162,6 +2162,28 @@ class AppLocalizationsGu extends AppLocalizations {
   String get watchShortsSection => 'નાના વિડિઓ';
 
   @override
+  String get watchContinue => 'જોવાનું ચાલુ રાખો';
+
+  @override
+  String get parentWatchHistoryTitle => 'વિડિઓ ઇતિહાસ';
+
+  @override
+  String get parentWatchHistorySubtitle =>
+      'જોયેલા વિડિઓ જુઓ અને ફરી ચલાવવાની મંજૂરી આપો';
+
+  @override
+  String get parentWatchHistoryEmpty => 'હજી કોઈ વિડિઓ ઇતિહાસ નથી.';
+
+  @override
+  String get videoAllowReplay => 'ફરી ચલાવવાની મંજૂરી આપો';
+
+  @override
+  String get videoReplayEnabled => 'ફરી ચલાવવાની મંજૂરી આપી';
+
+  @override
+  String get videoWatchProgress => 'વિડિઓ જોવાની પ્રગતિ';
+
+  @override
   String get watchTopicsSection => 'વિષયો શોધો';
 
   @override

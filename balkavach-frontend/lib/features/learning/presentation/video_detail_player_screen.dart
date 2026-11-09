@@ -11,6 +11,7 @@ import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/playable_video.dart';
+import '../data/video_feed_repository.dart';
 import '../data/video_playback_controller.dart';
 import 'video_player_screen.dart' show formatPlaybackTime;
 import 'widgets/video_actions.dart';
@@ -23,7 +24,7 @@ import 'youtube_player_screen.dart';
 /// branding, ads and fullscreen button). A direct stream plays in the native
 /// player with play/pause, seek, buffering and a fullscreen toggle. Hosted
 /// videos that need an approved reward are never played here. Nothing on
-/// this screen measures or reports viewing time.
+/// video progress is accepted and persisted by the backend.
 class VideoDetailPlayerScreen extends ConsumerStatefulWidget {
   const VideoDetailPlayerScreen({required this.launch, super.key});
 
@@ -43,6 +44,7 @@ class _VideoDetailPlayerScreenState
   bool _blocked = false;
   bool _fullscreen = false;
   bool _muted = false;
+  DateTime _lastProgressSentAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   /// Bumped on retry or on a new video so players are built afresh.
   int _attempt = 0;
@@ -131,6 +133,28 @@ class _VideoDetailPlayerScreenState
   Future<void> _toggleMute() async {
     setState(() => _muted = !_muted);
     await _controller?.setVolume(_muted ? 0 : 1);
+  }
+
+  void _recordWatchProgress(
+    Duration position,
+    Duration duration, {
+    bool force = false,
+  }) {
+    final videoId = _video.reportVideoId;
+    final now = DateTime.now();
+    if (videoId == null ||
+        (!force &&
+            now.difference(_lastProgressSentAt) <
+                const Duration(seconds: 10))) {
+      return;
+    }
+    _lastProgressSentAt = now;
+    unawaited(
+      ref
+          .read(videoFeedRepositoryProvider)
+          .recordProgress(videoId, position.inSeconds)
+          .catchError((Object _) {}),
+    );
   }
 
   Future<void> _setFullscreen(bool value) async {
@@ -398,6 +422,10 @@ class _VideoDetailPlayerScreenState
             onBlocked: () {
               if (mounted && !_blocked) setState(() => _blocked = true);
             },
+            onProgress: _recordWatchProgress,
+            onEnded: (duration) =>
+                _recordWatchProgress(duration, duration, force: true),
+            startAtSeconds: video.resumePositionSeconds,
           ),
         );
       case DirectStreamSource():

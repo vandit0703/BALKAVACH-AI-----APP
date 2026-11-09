@@ -175,6 +175,8 @@
   "youtubeOpenSource": "Open original video",
   "youtubeScreening": "Screening results",
   "youtubeAgeBand": "Age band",
+  "youtubeVideoCategory": "Educational category",
+  "youtubeCategoriesRequired": "Create an active video category before approving channels or videos.",
   "youtubeRightsCleared": "I verified the rights and permission to embed this video.",
   "youtubeRightsRequired": "Confirm the rights review before approval.",
   "youtubeRejectReason": "Reason for rejection",

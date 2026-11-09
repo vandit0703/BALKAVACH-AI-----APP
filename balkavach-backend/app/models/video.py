@@ -1,6 +1,14 @@
 from app.db.base import get_model
 
-_MODELS = {"VideoCategory", "Video", "VideoCollection", "VideoCollectionItem", "VideoWatchSession", "EducationalContent"}
+_MODELS = {
+	"VideoCategory",
+	"Video",
+	"VideoCollection",
+	"VideoCollectionItem",
+	"VideoWatchSession",
+	"ChildVideoWatchHistory",
+	"EducationalContent",
+}
 
 
 def __getattr__(name: str):

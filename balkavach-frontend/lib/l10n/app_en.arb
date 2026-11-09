@@ -1346,6 +1346,16 @@
   "@watchShortsSection": {
     "description": "Shorts row heading on Home."
   },
+  "watchContinue": "Continue watching",
+  "@watchContinue": {
+    "description": "Section title for unfinished long videos."
+  },
+  "parentWatchHistoryTitle": "Video history",
+  "parentWatchHistorySubtitle": "Review watched videos and allow replay",
+  "parentWatchHistoryEmpty": "No video history yet.",
+  "videoAllowReplay": "Allow replay",
+  "videoReplayEnabled": "Replay allowed",
+  "videoWatchProgress": "Video watch progress",
   "watchTopicsSection": "Explore topics",
   "@watchTopicsSection": {
     "description": "Category chips heading on Home."

@@ -26,9 +26,7 @@ import 'widgets/video_actions.dart';
 /// `/educational-content`). No player is created on this page; players only
 /// exist on the Shorts and video screens it opens.
 ///
-/// There is deliberately no "Continue watching" row: the app has no
-/// trustworthy, server-side record of what a child watched, and inventing one
-/// on the device would be fake progress.
+/// Continue Watching is populated only from the child's backend watch history.
 class WatchHomeScreen extends ConsumerStatefulWidget {
   const WatchHomeScreen({super.key});
 
@@ -79,7 +77,13 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen> {
   Future<void> _refresh() async {
     ref
       ..invalidate(learningItemsProvider)
-      ..invalidate(learningCategoriesProvider);
+      ..invalidate(learningCategoriesProvider)
+      ..invalidate(continueWatchingProvider);
+    await Future.wait([_shorts.refresh(), _videos.refresh()]);
+  }
+
+  Future<void> _afterPlayback() async {
+    ref.invalidate(continueWatchingProvider);
     await Future.wait([_shorts.refresh(), _videos.refresh()]);
   }
 
@@ -95,15 +99,17 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen> {
 
   void _openShort(int index) {
     unawaited(
-      context.push(
-        AppRoutes.childShorts,
-        extra: ShortsLaunch(
-          initialVideos: _shorts.items,
-          initialIndex: index,
-          nextOffset: _shorts.nextOffset,
-          exhausted: !_shorts.hasMore,
-        ),
-      ),
+      context
+          .push(
+            AppRoutes.childShorts,
+            extra: ShortsLaunch(
+              initialVideos: _shorts.items,
+              initialIndex: index,
+              nextOffset: _shorts.nextOffset,
+              exhausted: !_shorts.hasMore,
+            ),
+          )
+          .then((_) => _afterPlayback()),
     );
   }
 
@@ -118,10 +124,12 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen> {
       ),
     ].take(20).toList();
     unawaited(
-      context.push(
-        AppRoutes.childWatch,
-        extra: VideoLaunch(video: video, related: related),
-      ),
+      context
+          .push(
+            AppRoutes.childWatch,
+            extra: VideoLaunch(video: video, related: related),
+          )
+          .then((_) => _afterPlayback()),
     );
   }
 
@@ -129,6 +137,8 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final categories = ref.watch(learningCategoriesProvider).value ?? const [];
+    final continueVideos =
+        ref.watch(continueWatchingProvider).value ?? const [];
     final picked = [
       for (final item
           in ref.watch(learningItemsProvider).value ?? const <LearningItem>[])
@@ -161,6 +171,43 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen> {
             ),
             sliver: SliverToBoxAdapter(child: _Greeting(l10n: l10n)),
           ),
+          if (continueVideos.isNotEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SectionHeader(
+                      icon: Icons.play_circle_outline_rounded,
+                      title: l10n.watchContinue,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    SizedBox(
+                      height: 240,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: continueVideos.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(width: AppSpacing.md),
+                        itemBuilder: (context, index) {
+                          final video = PlayableVideo.fromFeed(
+                            continueVideos[index],
+                          );
+                          return SizedBox(
+                            width: 280,
+                            child: _VideoCard(
+                              video: video,
+                              onTap: () => _openVideo(video, [video]),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           if (nothingAtAll)
             SliverToBoxAdapter(
               child: EmptyView(

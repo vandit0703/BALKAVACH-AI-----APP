@@ -2168,6 +2168,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get watchShortsSection => 'Quick videos';
 
   @override
+  String get watchContinue => 'Continue watching';
+
+  @override
+  String get parentWatchHistoryTitle => 'Video history';
+
+  @override
+  String get parentWatchHistorySubtitle =>
+      'Review watched videos and allow replay';
+
+  @override
+  String get parentWatchHistoryEmpty => 'No video history yet.';
+
+  @override
+  String get videoAllowReplay => 'Allow replay';
+
+  @override
+  String get videoReplayEnabled => 'Replay allowed';
+
+  @override
+  String get videoWatchProgress => 'Video watch progress';
+
+  @override
   String get watchTopicsSection => 'Explore topics';
 
   @override

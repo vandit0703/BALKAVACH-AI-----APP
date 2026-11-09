@@ -15,6 +15,7 @@ from app.services.youtube_review_service import discover, discover_trusted
 
 VIDEO_ID = "dQw4w9WgXcQ"
 OTHER_ID = "abcdefghijk"
+REGULAR_ID = "lmnopqrstuv"
 TRUSTED_CHANNEL_ID = "UC1111111111111111111111"
 
 
@@ -38,9 +39,17 @@ def _item(video_id: str, duration: str = "PT45S", **status):
 
 class FakeYouTube:
 	def __init__(self):
-		self.items = {VIDEO_ID: _item(VIDEO_ID), OTHER_ID: _item(OTHER_ID, madeForKids=False)}
+		self.items = {
+			VIDEO_ID: _item(VIDEO_ID),
+			OTHER_ID: _item(OTHER_ID, madeForKids=False),
+			REGULAR_ID: _item(REGULAR_ID, "PT5M"),
+		}
+		self.search_calls = []
 
 	def search(self, topic, **kwargs):
+		self.search_calls.append(kwargs)
+		if kwargs.get("channel_id") and kwargs.get("short") is False:
+			return {"video_ids": [REGULAR_ID, VIDEO_ID], "next_page_token": None}
 		return {"video_ids": [VIDEO_ID, OTHER_ID, VIDEO_ID], "next_page_token": "NEXT"}
 
 	def videos(self, ids, use_cache=True):
@@ -102,6 +111,20 @@ def _family_with_age(api, age=10):
 	child.date_of_birth = birth_date
 	api.session.commit()
 	return ctx
+
+
+def _science_category(api):
+	VideoCategory = get_model("VideoCategory")
+	category = VideoCategory(
+		name="Science",
+		slug="science",
+		description="Science learning",
+		display_order=0,
+		is_active=True,
+	)
+	api.session.add(category)
+	api.session.flush()
+	return category.id
 
 
 def test_discovery_deduplicates_and_screens(api, youtube):
@@ -168,6 +191,7 @@ def test_trusted_channel_rights_are_inherited_on_existing_pending_candidate(api,
 		age_min=6,
 		age_max=8,
 		language_code="en",
+		category_id=_science_category(api),
 		rights_status="cleared",
 		is_active=True,
 		created_by=actor.id,
@@ -179,12 +203,171 @@ def test_trusted_channel_rights_are_inherited_on_existing_pending_candidate(api,
 	Video = get_model("Video")
 	review = api.session.query(Review).filter(Review.youtube_video_id == VIDEO_ID).one()
 	video = api.session.query(Video).filter(Video.id == review.video_id).one()
-	assert result["automatically_published"] == 1
+	assert result["automatically_published"] == 2
 	assert review.status == "approved"
 	assert review.rights_status == "cleared"
 	assert review.publication_source == "automatic"
 	assert video.is_published is True
 	assert (video.age_min, video.age_max) == (6, 8)
+	assert {call.get("short") for call in youtube.search_calls} >= {True, False}
+	regular_review = api.session.query(Review).filter(Review.youtube_video_id == REGULAR_ID).one()
+	regular_video = api.session.query(Video).filter(Video.id == regular_review.video_id).one()
+	assert regular_review.status == "approved"
+	assert regular_video.is_published is True
+	assert regular_video.duration_seconds > 60
+
+
+def test_trusting_channel_discovers_and_publishes_both_video_formats(api, youtube):
+	if not has_model("YouTubeTrustedChannel"):
+		pytest.skip("Migration 0010 is not applied to the test database")
+	admin = api.make_admin()
+	category_id = _science_category(api)
+	response = api.post(
+		"/admin/videos/youtube/channels/trust",
+		admin["token"],
+		{
+			"channel_id": TRUSTED_CHANNEL_ID,
+			"channel_title": "Kids Science",
+			"age_min": 6,
+			"age_max": 8,
+			"language_code": "en",
+			"category_id": str(category_id),
+			"rights_status": "cleared",
+		},
+	)
+	assert response.status_code == 200, response.text
+	Review = get_model("YouTubeContentReview")
+	Video = get_model("Video")
+	for video_id in (VIDEO_ID, REGULAR_ID):
+		review = api.session.query(Review).filter_by(youtube_video_id=video_id).one()
+		video = api.session.query(Video).filter_by(id=review.video_id).one()
+		assert review.status == "approved"
+		assert video.is_published is True
+		assert video.category_id == category_id
+	assert {call.get("short") for call in youtube.search_calls} >= {True, False}
+
+
+def test_child_watch_history_is_independent_and_completed_shorts_leave_feed(api, youtube):
+	if not has_model("ChildVideoWatchHistory"):
+		pytest.skip("Migration 0011 is not applied to the test database")
+	admin = api.make_admin()
+	ctx = _family_with_age(api, age=7)
+	review = _discover(api, admin)[VIDEO_ID]
+	assert _approve(api, admin, review["id"], age_min=6, age_max=8).status_code == 200
+	child = ctx["child"]
+	first = api.post(
+		f"/videos/watch-history/{review['video_id']}/progress",
+		child["token"],
+		{"position_seconds": 10},
+	)
+	assert first.status_code == 200, first.text
+	assert first.json()["is_completed"] is False
+
+	History = get_model("ChildVideoWatchHistory")
+	history = api.session.query(History).filter_by(child_id=child["id"], video_id=review["video_id"]).one()
+	for position in (20, 45):
+		history.last_watched_at = datetime.now(timezone.utc) - timedelta(seconds=30)
+		api.session.commit()
+		response = api.post(
+			f"/videos/watch-history/{review['video_id']}/progress",
+			child["token"],
+			{"position_seconds": position},
+		)
+		assert response.status_code == 200, response.text
+	assert response.json()["is_completed"] is True
+	assert VIDEO_ID not in _feed_ids(api, child["token"], "/videos/shorts")
+
+	second_child = api.create_child(ctx["parent"]["token"], ctx["family"]["id"], "Sibling")
+	ChildProfile = get_model("ChildProfile")
+	second_profile = api.session.query(ChildProfile).filter_by(id=second_child["id"]).one()
+	second_profile.date_of_birth = date.today().replace(year=date.today().year - 7)
+	api.session.commit()
+	second_response = api.post(
+		f"/videos/watch-history/{review['video_id']}/progress",
+		second_child["token"],
+		{"position_seconds": 5},
+	)
+	assert second_response.status_code == 200, second_response.text
+	assert api.session.query(History).filter_by(video_id=review["video_id"]).count() == 2
+
+
+def test_parent_history_and_replay_preserve_original_record(api, youtube):
+	if not has_model("ChildVideoWatchHistory"):
+		pytest.skip("Migration 0011 is not applied to the test database")
+	admin = api.make_admin()
+	ctx = _family_with_age(api, age=7)
+	review = _discover(api, admin)[VIDEO_ID]
+	assert _approve(api, admin, review["id"], age_min=6, age_max=8).status_code == 200
+	History = get_model("ChildVideoWatchHistory")
+	history = History(
+		child_id=ctx["child"]["id"],
+		video_id=review["video_id"],
+		youtube_video_id=VIDEO_ID,
+		video_format="short",
+		started_at=datetime.now(timezone.utc),
+		last_watched_at=datetime.now(timezone.utc),
+		last_position_seconds=45,
+		watch_duration_seconds=45,
+		completion_percentage=100,
+		is_completed=True,
+		parent_replay_authorized=False,
+	)
+	api.session.add(history)
+	api.session.commit()
+	parent_history = api.get(f"/videos/watch-history/children/{ctx['child']['id']}", ctx["parent"]["token"])
+	assert parent_history.status_code == 200, parent_history.text
+	assert len(parent_history.json()) == 1
+	assert api.get(
+		f"/videos/watch-history/children/{ctx['child']['id']}",
+		ctx["child"]["token"],
+	).status_code == 403
+	replay = api.post(
+		f"/videos/watch-history/children/{ctx['child']['id']}/{review['video_id']}/replay",
+		ctx["parent"]["token"],
+	)
+	assert replay.status_code == 204, replay.text
+	assert api.session.query(History).filter_by(child_id=ctx["child"]["id"], video_id=review["video_id"]).count() == 1
+	assert VIDEO_ID in _feed_ids(api, ctx["child"]["token"], "/videos/shorts")
+
+
+def test_partially_watched_regular_video_is_continue_watching_not_a_short(api, youtube):
+	if not has_model("ChildVideoWatchHistory") or not has_model("YouTubeTrustedChannel"):
+		pytest.skip("Migrations 0010 and 0011 are not applied to the test database")
+	admin = api.make_admin()
+	ctx = _family_with_age(api, age=7)
+	actor = api.session.query(get_model("User")).filter_by(id=admin["id"]).one()
+	Trusted = get_model("YouTubeTrustedChannel")
+	api.session.add(Trusted(
+		channel_id=TRUSTED_CHANNEL_ID,
+		channel_title="Kids Science",
+		age_min=6,
+		age_max=8,
+		language_code="en",
+		category_id=_science_category(api),
+		rights_status="cleared",
+		is_active=True,
+		created_by=actor.id,
+	))
+	api.session.commit()
+	discover_trusted(api.session, actor, youtube, 10)
+	Review = get_model("YouTubeContentReview")
+	Video = get_model("Video")
+	review = api.session.query(Review).filter_by(youtube_video_id=REGULAR_ID).one()
+	video = api.session.query(Video).filter_by(id=review.video_id).one()
+	assert video.is_published is True
+	assert REGULAR_ID in _feed_ids(api, ctx["child"]["token"], "/videos/feed")
+	assert REGULAR_ID not in _feed_ids(api, ctx["child"]["token"], "/videos/shorts")
+	progress = api.post(
+		f"/videos/watch-history/{video.id}/progress",
+		ctx["child"]["token"],
+		{"position_seconds": 60},
+	)
+	assert progress.status_code == 200, progress.text
+	assert progress.json()["is_completed"] is False
+	continue_rows = api.get("/videos/watch-history/continue-watching", ctx["child"]["token"])
+	assert continue_rows.status_code == 200, continue_rows.text
+	assert continue_rows.json()[0]["video_id"] == str(video.id)
+	assert continue_rows.json()[0]["last_position_seconds"] == 60
 
 
 def test_approved_unpublished_short_is_revalidated_and_published(api, youtube):

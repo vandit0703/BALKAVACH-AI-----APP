@@ -305,7 +305,7 @@ def test_approval_only_accepts_configured_age_bands():
 
 	from app.schemas.video import YouTubeApproveRequest
 
-	for age_min, age_max in ((3, 5), (6, 8), (9, 12), (13, 15)):
+	for age_min, age_max in ((3, 5), (6, 8), (9, 12), (13, 15), (3, 8), (6, 12), (9, 15)):
 		YouTubeApproveRequest(
 			age_min=age_min,
 			age_max=age_max,
@@ -373,6 +373,7 @@ class StubTrustedChannel(Stub):
 	id = Column(String, primary_key=True)
 	channel_id = Column(String, nullable=False)
 	is_active = Column(Boolean, nullable=False)
+	category_id = Column(String)
 
 
 @pytest.fixture
@@ -621,7 +622,7 @@ def test_trusted_channel_automatically_publishes_only_clean_short_candidates(mon
 		age_min=6,
 		age_max=8,
 		language_code="en",
-		category_id=None,
+		category_id=uuid4(),
 		rights_status="cleared",
 	)
 	review = SimpleNamespace(

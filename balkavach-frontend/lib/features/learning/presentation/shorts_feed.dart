@@ -454,6 +454,7 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
   bool _wasPlaying = false;
   bool _wasBuffering = false;
   bool _wasReady = false;
+  DateTime _lastProgressSentAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
   void initState() {
@@ -682,11 +683,33 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
               _progress.value = total <= 0
                   ? 0
                   : (position.inMilliseconds / total).clamp(0.0, 1.0);
+              _recordWatchProgress(position);
             },
+            onEnded: (duration) => _recordWatchProgress(duration, force: true),
             onVerticalSwipe: widget.onSwipe,
           ),
         ),
       ),
+    );
+  }
+
+  void _recordWatchProgress(Duration position, {bool force = false}) {
+    final videoId = widget.video.reportVideoId;
+    final now = DateTime.now();
+    if (!widget.active ||
+        !widget.foreground ||
+        videoId == null ||
+        (!force &&
+            now.difference(_lastProgressSentAt) <
+                const Duration(seconds: 10))) {
+      return;
+    }
+    _lastProgressSentAt = now;
+    unawaited(
+      ref
+          .read(videoFeedRepositoryProvider)
+          .recordProgress(videoId, position.inSeconds)
+          .catchError((Object _) {}),
     );
   }
 
