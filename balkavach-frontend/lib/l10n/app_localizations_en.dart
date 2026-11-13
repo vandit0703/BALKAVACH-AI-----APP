@@ -2270,4 +2270,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get streakNoActivity => 'No activity recorded yet';
+
+  @override
+  String videoAllowanceRemaining(int minutes) {
+    return '${minutes}m video time left today';
+  }
+
+  @override
+  String get videoAllowanceLocked => 'Video time locked';
+
+  @override
+  String get videoAllowanceUnlockHint =>
+      'Complete daily missions to unlock 15 minutes of video time!';
+
+  @override
+  String get videoTimeExhaustedTitle => 'Video Time\'s Up!';
+
+  @override
+  String get videoTimeExhaustedBody =>
+      'You\'ve used today\'s video time. Complete another mission to unlock 15 more minutes!';
+
+  @override
+  String get videoGoToMissions => 'Go to Missions';
+
+  @override
+  String get videoBackToHome => 'Back to Home';
 }

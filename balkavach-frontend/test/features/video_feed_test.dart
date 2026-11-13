@@ -77,7 +77,23 @@ class _FakeRepository implements VideoFeedRepository {
   Future<List<FeedVideo>> continueWatching({int limit = 20}) async => [];
 
   @override
-  Future<void> recordProgress(String videoId, int positionSeconds) async {}
+  Future<Map<String, dynamic>?> recordProgress(
+    String videoId,
+    int positionSeconds,
+  ) async => null;
+
+  @override
+  Future<VideoAllowance> getAllowance() async => const VideoAllowance(
+    childId: 'child-1',
+    localDate: '2026-11-13',
+    timezone: 'UTC',
+    totalEarnedTodaySeconds: 900,
+    consumedTodaySeconds: 0,
+    remainingSeconds: 900,
+    dailyCapSeconds: 3600,
+    isExhausted: false,
+    activeEntitlementsCount: 1,
+  );
 
   @override
   Future<List<VideoWatchHistoryEntry>> parentHistory(String childId) async =>

@@ -16,6 +16,7 @@ import '../data/learning_repository.dart';
 import '../data/video_feed_repository.dart';
 import '../data/youtube_embed_policy.dart';
 import 'widgets/video_actions.dart' show askGrownUpThenOpen;
+import 'widgets/video_time_exhausted_dialog.dart';
 
 /// What the embed needs from the screen hosting it.
 @immutable
@@ -386,7 +387,16 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
       ref
           .read(videoFeedRepositoryProvider)
           .recordProgress(videoId, position.inSeconds)
-          .catchError((Object _) {}),
+          .then((data) {
+            if (data != null && data['is_exhausted'] == true && mounted) {
+              showVideoTimeExhaustedDialog(context);
+            }
+          })
+          .catchError((Object error) {
+            if (error is ForbiddenException && mounted) {
+              showVideoTimeExhaustedDialog(context);
+            }
+          }),
     );
   }
 

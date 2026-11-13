@@ -3844,6 +3844,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No activity recorded yet'**
   String get streakNoActivity;
+
+  /// No description provided for @videoAllowanceRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m video time left today'**
+  String videoAllowanceRemaining(int minutes);
+
+  /// No description provided for @videoAllowanceLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Video time locked'**
+  String get videoAllowanceLocked;
+
+  /// No description provided for @videoAllowanceUnlockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete daily missions to unlock 15 minutes of video time!'**
+  String get videoAllowanceUnlockHint;
+
+  /// No description provided for @videoTimeExhaustedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Video Time\'s Up!'**
+  String get videoTimeExhaustedTitle;
+
+  /// No description provided for @videoTimeExhaustedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used today\'s video time. Complete another mission to unlock 15 more minutes!'**
+  String get videoTimeExhaustedBody;
+
+  /// No description provided for @videoGoToMissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Missions'**
+  String get videoGoToMissions;
+
+  /// No description provided for @videoBackToHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Home'**
+  String get videoBackToHome;
 }
 
 class _AppLocalizationsDelegate

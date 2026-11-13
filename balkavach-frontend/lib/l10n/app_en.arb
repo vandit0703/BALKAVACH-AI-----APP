@@ -1422,5 +1422,19 @@
     }
   },
   "streakStartNew": "Complete a mission to start your streak!",
-  "streakNoActivity": "No activity recorded yet"
+  "streakNoActivity": "No activity recorded yet",
+  "videoAllowanceRemaining": "{minutes}m video time left today",
+  "@videoAllowanceRemaining": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "videoAllowanceLocked": "Video time locked",
+  "videoAllowanceUnlockHint": "Complete daily missions to unlock 15 minutes of video time!",
+  "videoTimeExhaustedTitle": "Video Time's Up!",
+  "videoTimeExhaustedBody": "You've used today's video time. Complete another mission to unlock 15 more minutes!",
+  "videoGoToMissions": "Go to Missions",
+  "videoBackToHome": "Back to Home"
 }

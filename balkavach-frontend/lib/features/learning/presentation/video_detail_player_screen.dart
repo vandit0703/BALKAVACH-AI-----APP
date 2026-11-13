@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/errors/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
@@ -15,6 +16,7 @@ import '../data/video_feed_repository.dart';
 import '../data/video_playback_controller.dart';
 import 'video_player_screen.dart' show formatPlaybackTime;
 import 'widgets/video_actions.dart';
+import 'widgets/video_time_exhausted_dialog.dart';
 import 'youtube_player_screen.dart';
 
 /// The regular (non-Shorts) watching experience: a player, the video's
@@ -153,7 +155,18 @@ class _VideoDetailPlayerScreenState
       ref
           .read(videoFeedRepositoryProvider)
           .recordProgress(videoId, position.inSeconds)
-          .catchError((Object _) {}),
+          .then((data) {
+            if (data != null && data['is_exhausted'] == true && mounted) {
+              _controller?.pause();
+              showVideoTimeExhaustedDialog(context);
+            }
+          })
+          .catchError((Object error) {
+            if (error is ForbiddenException && mounted) {
+              _controller?.pause();
+              showVideoTimeExhaustedDialog(context);
+            }
+          }),
     );
   }
 

@@ -17,6 +17,7 @@ import '../data/video_feed_repository.dart';
 import 'learning_screen.dart' show learningCategoryName;
 import 'video_player_screen.dart' show formatPlaybackTime;
 import 'widgets/video_actions.dart';
+import 'widgets/video_allowance_card.dart';
 
 /// Home: Watch & Learn. A row of Shorts that opens the full-screen vertical
 /// feed, topic filters, the regular video list and grown-up picks.
@@ -78,12 +79,15 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen> {
     ref
       ..invalidate(learningItemsProvider)
       ..invalidate(learningCategoriesProvider)
-      ..invalidate(continueWatchingProvider);
+      ..invalidate(continueWatchingProvider)
+      ..invalidate(videoAllowanceProvider);
     await Future.wait([_shorts.refresh(), _videos.refresh()]);
   }
 
   Future<void> _afterPlayback() async {
-    ref.invalidate(continueWatchingProvider);
+    ref
+      ..invalidate(continueWatchingProvider)
+      ..invalidate(videoAllowanceProvider);
     await Future.wait([_shorts.refresh(), _videos.refresh()]);
   }
 
@@ -171,6 +175,7 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen> {
             ),
             sliver: SliverToBoxAdapter(child: _Greeting(l10n: l10n)),
           ),
+          const SliverToBoxAdapter(child: VideoAllowanceCard()),
           if (continueVideos.isNotEmpty)
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),

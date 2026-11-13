@@ -622,5 +622,12 @@
   "streakComplete": "अपना स्ट्रीक जारी रखने के लिए एक मिशन पूरा करें!",
   "streakLongest": "सर्वश्रेष्ठ: {count} दिन",
   "streakStartNew": "अपना स्ट्रीक शुरू करने के लिए एक मिशन पूरा करें!",
-  "streakNoActivity": "अभी तक कोई गतिविधि दर्ज नहीं है"
+  "streakNoActivity": "अभी तक कोई गतिविधि दर्ज नहीं है",
+  "videoAllowanceRemaining": "आज {minutes} मिनट वीडियो समय बचा है",
+  "videoAllowanceLocked": "वीडियो समय लॉक है",
+  "videoAllowanceUnlockHint": "15 मिनट वीडियो समय अनलॉक करने के लिए दैनिक मिशन पूरा करें!",
+  "videoTimeExhaustedTitle": "वीडियो समय समाप्त!",
+  "videoTimeExhaustedBody": "आपने आज का वीडियो समय उपयोग कर लिया है। 15 और मिनट अनलॉक करने के लिए एक और मिशन पूरा करें!",
+  "videoGoToMissions": "मिशन पर जाएं",
+  "videoBackToHome": "होम पर वापस जाएं"
 }

@@ -8,6 +8,48 @@ import '../../../core/network/json_utils.dart';
 
 final _youtubeIdPattern = RegExp(r'^[A-Za-z0-9_-]{11}$');
 
+@immutable
+class VideoAllowance {
+  const VideoAllowance({
+    required this.childId,
+    required this.localDate,
+    required this.timezone,
+    required this.totalEarnedTodaySeconds,
+    required this.consumedTodaySeconds,
+    required this.remainingSeconds,
+    required this.dailyCapSeconds,
+    required this.isExhausted,
+    required this.activeEntitlementsCount,
+  });
+
+  factory VideoAllowance.fromJson(Map<String, dynamic> json) => VideoAllowance(
+    childId: json['child_id'] as String,
+    localDate: json['local_date'] as String,
+    timezone: json['timezone'] as String? ?? 'UTC',
+    totalEarnedTodaySeconds:
+        (json['total_earned_today_seconds'] as num?)?.toInt() ?? 0,
+    consumedTodaySeconds:
+        (json['consumed_today_seconds'] as num?)?.toInt() ?? 0,
+    remainingSeconds: (json['remaining_seconds'] as num?)?.toInt() ?? 0,
+    dailyCapSeconds: (json['daily_cap_seconds'] as num?)?.toInt() ?? 3600,
+    isExhausted: json['is_exhausted'] as bool? ?? false,
+    activeEntitlementsCount:
+        (json['active_entitlements_count'] as num?)?.toInt() ?? 0,
+  );
+
+  final String childId;
+  final String localDate;
+  final String timezone;
+  final int totalEarnedTodaySeconds;
+  final int consumedTodaySeconds;
+  final int remainingSeconds;
+  final int dailyCapSeconds;
+  final bool isExhausted;
+  final int activeEntitlementsCount;
+
+  int get remainingMinutes => (remainingSeconds / 60).ceil();
+}
+
 /// `VideoFeedItem`: a video the server has already decided this child may see.
 ///
 /// The app never decides eligibility. YouTube videos only appear here after an
@@ -157,13 +199,23 @@ class VideoFeedRepository {
         );
       });
 
-  Future<void> recordProgress(String videoId, int positionSeconds) =>
-      guardApi(() async {
-        await _dio.post<Map<String, dynamic>>(
-          '/api/v1/videos/watch-history/$videoId/progress',
-          data: {'position_seconds': positionSeconds},
-        );
-      });
+  Future<Map<String, dynamic>?> recordProgress(
+    String videoId,
+    int positionSeconds,
+  ) => guardApi(() async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/videos/watch-history/$videoId/progress',
+      data: {'position_seconds': positionSeconds},
+    );
+    return response.data;
+  });
+
+  Future<VideoAllowance> getAllowance() => guardApi(() async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/v1/video-access/allowance',
+    );
+    return VideoAllowance.fromJson(response.data!);
+  });
 
   Future<List<VideoWatchHistoryEntry>> parentHistory(String childId) =>
       guardApi(() async {
@@ -210,6 +262,10 @@ final parentVideoHistoryProvider =
       (ref, childId) =>
           ref.watch(videoFeedRepositoryProvider).parentHistory(childId),
     );
+
+final videoAllowanceProvider = FutureProvider.autoDispose<VideoAllowance>(
+  (ref) => ref.watch(videoFeedRepositoryProvider).getAllowance(),
+);
 
 enum PagerStatus { idle, loading, error, done }
 

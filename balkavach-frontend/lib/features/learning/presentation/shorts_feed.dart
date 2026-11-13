@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/errors/api_exception.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -18,6 +19,7 @@ import '../data/video_feed_repository.dart';
 import '../data/video_playback_controller.dart';
 import 'video_player_screen.dart' show formatPlaybackTime;
 import 'widgets/video_actions.dart';
+import 'widgets/video_time_exhausted_dialog.dart';
 import 'youtube_player_screen.dart';
 
 /// Colours of the full-bleed Shorts surface: a black video stage, brand
@@ -709,7 +711,18 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
       ref
           .read(videoFeedRepositoryProvider)
           .recordProgress(videoId, position.inSeconds)
-          .catchError((Object _) {}),
+          .then((data) {
+            if (data != null && data['is_exhausted'] == true && mounted) {
+              _controller?.pause();
+              showVideoTimeExhaustedDialog(context);
+            }
+          })
+          .catchError((Object error) {
+            if (error is ForbiddenException && mounted) {
+              _controller?.pause();
+              showVideoTimeExhaustedDialog(context);
+            }
+          }),
     );
   }
 

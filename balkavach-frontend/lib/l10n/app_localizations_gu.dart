@@ -2265,4 +2265,29 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get streakNoActivity => 'હજી સુધી કોઈ પ્રવૃત્તિ નોંધાઈ નથી';
+
+  @override
+  String videoAllowanceRemaining(int minutes) {
+    return 'આજે $minutes મિનિટ વીડિયો સમય બાકી છે';
+  }
+
+  @override
+  String get videoAllowanceLocked => 'વીડિયો સમય લૉક છે';
+
+  @override
+  String get videoAllowanceUnlockHint =>
+      '15 મિનિટ વીડિયો સમય અનલૉક કરવા માટે દૈનિક મિશન પૂર્ણ કરો!';
+
+  @override
+  String get videoTimeExhaustedTitle => 'વીડિયો સમય સમાપ્ત!';
+
+  @override
+  String get videoTimeExhaustedBody =>
+      'તમે આજનો વીડિયો સમય વાપરી લીધો છે. વધુ 15 મિનિટ અનલૉક કરવા માટે બીજું મિશન પૂર્ણ કરો!';
+
+  @override
+  String get videoGoToMissions => 'મિશન પર જાઓ';
+
+  @override
+  String get videoBackToHome => 'હોમ પર પાછા જાઓ';
 }
