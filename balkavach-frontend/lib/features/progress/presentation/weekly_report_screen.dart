@@ -388,6 +388,7 @@ class _ReportBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: AppSpacing.md,
       children: [
+        _StreakBanner(childId: child.id, progress: progress),
         AdaptiveWrap(children: tiles),
         _WeekChartCard(week: week),
         if (report != null) ...[
@@ -407,6 +408,107 @@ class _ReportBody extends StatelessWidget {
           subject: l10n.reportsShareSubject(child.displayName),
         ),
       ],
+    );
+  }
+}
+
+/// A banner at the top of the weekly report showing the child's streak summary.
+/// Tapping it opens the detailed StreakScreen.
+class _StreakBanner extends ConsumerWidget {
+  const _StreakBanner({required this.childId, required this.progress});
+
+  final String childId;
+  final ChildProgress progress;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final colors = context.colors;
+    final streakAsync = ref.watch(streakInfoProvider(childId));
+
+    final streakState = streakAsync.value?.streakState ?? progress.streakState ?? 'active';
+    final currentStreak = streakAsync.value?.currentStreak ?? progress.currentStreak;
+    final longestStreak = streakAsync.value?.longestStreak ?? progress.longestStreak;
+
+    final emoji = switch (streakState) {
+      'at_risk' => '⏳',
+      'broken' => '💔',
+      'recovered' || 'active' || _ => '🔥',
+    };
+
+    final stateTitle = switch (streakState) {
+      'at_risk' => l10n.streakAtRisk,
+      'broken' => l10n.streakBroken,
+      'recovered' => l10n.streakRecovered,
+      'active' || _ => l10n.streakActive,
+    };
+
+    return AppCard(
+      key: const Key('reports.streakBanner'),
+      onTap: () => context.push(
+        Uri(
+          path: AppRoutes.streakScreen,
+          queryParameters: {'childId': childId},
+        ).toString(),
+      ),
+      radius: AppRadius.card,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm + 4,
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: streakState == 'at_risk'
+                ? colors.errorContainer
+                : (streakState == 'broken'
+                    ? colors.surfaceContainerHigh
+                    : colors.secondaryContainer),
+            child: Text(emoji, style: const TextStyle(fontSize: 20)),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Wrap(
+                  spacing: AppSpacing.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      l10n.statStreakValue(currentStreak),
+                      style: context.text.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '• $stateTitle',
+                      style: context.text.bodySmall?.copyWith(
+                        color: streakState == 'at_risk'
+                            ? colors.error
+                            : colors.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  l10n.streakLongest(longestStreak),
+                  style: context.text.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.chevron_right_rounded,
+            color: colors.onSurfaceVariant,
+          ),
+        ],
+      ),
     );
   }
 }

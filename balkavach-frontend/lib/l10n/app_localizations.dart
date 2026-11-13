@@ -3778,6 +3778,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Report'**
   String get shortsActionReport;
+
+  /// No description provided for @streakTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Streak'**
+  String get streakTitle;
+
+  /// No description provided for @streakActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Streak'**
+  String get streakActive;
+
+  /// No description provided for @streakAtRisk.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak at Risk'**
+  String get streakAtRisk;
+
+  /// No description provided for @streakBroken.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak Broken'**
+  String get streakBroken;
+
+  /// No description provided for @streakRecovered.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak Recovered!'**
+  String get streakRecovered;
+
+  /// No description provided for @streakDaysRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =1{1 day} other{{days} days}} {hours, plural, =1{1 hour} other{{hours} hours}} remaining'**
+  String streakDaysRemaining(int days, int hours);
+
+  /// No description provided for @streakHoursRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours, plural, =1{1 hour} other{{hours} hours}} remaining'**
+  String streakHoursRemaining(int hours);
+
+  /// No description provided for @streakComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete a mission to keep your streak going!'**
+  String get streakComplete;
+
+  /// No description provided for @streakLongest.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest: {count} days'**
+  String streakLongest(int count);
+
+  /// No description provided for @streakStartNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete a mission to start your streak!'**
+  String get streakStartNew;
+
+  /// No description provided for @streakNoActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'No activity recorded yet'**
+  String get streakNoActivity;
 }
 
 class _AppLocalizationsDelegate

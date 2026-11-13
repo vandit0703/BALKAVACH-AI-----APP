@@ -19,7 +19,8 @@ String? resolveRedirect({
   // happened on this device or the user would not have signed in.
   if (session != null) {
     if (session.isChild) {
-      return _isWithin(location, AppRoutes.childHome)
+      return _isWithin(location, AppRoutes.childHome) ||
+              _isWithin(location, AppRoutes.streakScreen)
           ? null
           : AppRoutes.childHome;
     }
@@ -29,7 +30,8 @@ String? resolveRedirect({
       if (!onboarding.consentAcknowledged) {
         return location == AppRoutes.consent ? null : AppRoutes.consent;
       }
-      return _isWithin(location, AppRoutes.parentHome)
+      return _isWithin(location, AppRoutes.parentHome) ||
+              _isWithin(location, AppRoutes.streakScreen)
           ? null
           : AppRoutes.parentHome;
     }

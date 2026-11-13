@@ -32,6 +32,7 @@ import '../../features/onboarding/presentation/splash_screen.dart';
 import '../../features/onboarding/presentation/welcome_screen.dart';
 import '../../features/parent_dashboard/presentation/create_mission_screen.dart';
 import '../../features/parent_dashboard/presentation/parent_home_screen.dart';
+import '../../features/progress/presentation/streak_screen.dart';
 import '../../features/progress/presentation/weekly_report_screen.dart';
 import '../../features/rewards/presentation/parent_rewards_screen.dart';
 import '../../features/rewards/presentation/reward_form_screen.dart';
@@ -288,6 +289,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ],
               ),
             ],
+          ),
+          GoRoute(
+            path: AppRoutes.streakScreen,
+            parentNavigatorKey: _rootKey,
+            builder: (_, state) => StreakScreen(
+              childId: state.uri.queryParameters['childId']!,
+            ),
           ),
         ],
       ),

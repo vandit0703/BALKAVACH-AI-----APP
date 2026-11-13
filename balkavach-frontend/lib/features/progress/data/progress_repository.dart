@@ -6,6 +6,56 @@ import '../../../core/errors/api_exception.dart';
 import '../../../core/network/api_client.dart';
 import '../../authentication/presentation/session_controller.dart';
 
+// ---------------------------------------------------------------------------
+// StreakInfo — returned by GET /api/v1/progress/children/{id}/streak
+// ---------------------------------------------------------------------------
+
+@immutable
+class StreakInfo {
+  const StreakInfo({
+    required this.childId,
+    required this.currentStreak,
+    required this.longestStreak,
+    required this.streakState,
+    this.graceDeadline,
+    this.secondsUntilExpiry,
+    this.lastActivityDate,
+    this.lastActivityAt,
+  });
+
+  factory StreakInfo.fromJson(Map<String, dynamic> json) => StreakInfo(
+    childId: json['child_id'] as String,
+    currentStreak: json['current_streak'] as int? ?? 0,
+    longestStreak: json['longest_streak'] as int? ?? 0,
+    streakState: json['streak_state'] as String? ?? 'active',
+    graceDeadline: json['grace_deadline'] == null
+        ? null
+        : DateTime.parse(json['grace_deadline'] as String).toUtc(),
+    secondsUntilExpiry: json['seconds_until_grace_expires'] as int?,
+    lastActivityDate: json['last_activity_date'] == null
+        ? null
+        : _utcCalendarDate(json['last_activity_date'] as String),
+    lastActivityAt: json['last_activity_at'] == null
+        ? null
+        : DateTime.parse(json['last_activity_at'] as String).toUtc(),
+  );
+
+  final String childId;
+  final int currentStreak;
+  final int longestStreak;
+
+  /// One of: "active" | "at_risk" | "broken" | "recovered"
+  final String streakState;
+
+  /// UTC deadline for the grace window; null when active or broken.
+  final DateTime? graceDeadline;
+
+  /// Seconds until the grace window closes, as of the last server response.
+  final int? secondsUntilExpiry;
+  final DateTime? lastActivityDate;
+  final DateTime? lastActivityAt;
+}
+
 /// Parses a `YYYY-MM-DD` API date into midnight UTC, never shifting by the
 /// device's offset.
 DateTime _utcCalendarDate(String value) {
@@ -135,6 +185,9 @@ class ChildProgress {
     this.levelNumber,
     this.levelName,
     this.garden,
+    this.streakState = 'active',
+    this.graceDeadline,
+    this.secondsUntilExpiry,
   });
 
   factory ChildProgress.fromJson(Map<String, dynamic> json) => ChildProgress(
@@ -145,6 +198,11 @@ class ChildProgress {
     levelName: json['level_name'] as String?,
     currentStreak: json['current_streak'] as int? ?? 0,
     longestStreak: json['longest_streak'] as int? ?? 0,
+    streakState: json['streak_state'] as String? ?? 'active',
+    graceDeadline: json['grace_deadline'] == null
+        ? null
+        : DateTime.parse(json['grace_deadline'] as String).toUtc(),
+    secondsUntilExpiry: json['seconds_until_grace_expires'] as int?,
     activityDays: [
       for (final day in json['activity_days'] as List<dynamic>? ?? const [])
         ActivityDay.fromJson(day as Map<String, dynamic>),
@@ -165,6 +223,9 @@ class ChildProgress {
   final String? levelName;
   final int currentStreak;
   final int longestStreak;
+  final String? streakState;
+  final DateTime? graceDeadline;
+  final int? secondsUntilExpiry;
 
   /// Newest first, at most 90 days (server limit).
   final List<ActivityDay> activityDays;
@@ -332,6 +393,14 @@ class ProgressRepository {
     return ChildProgress.fromJson(response.data!);
   });
 
+  /// `GET /api/v1/progress/children/{id}/streak`
+  Future<StreakInfo> streakInfo(String childId) => guardApi(() async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/v1/progress/children/$childId/streak',
+    );
+    return StreakInfo.fromJson(response.data!);
+  });
+
   /// `GET /api/v1/progress/children/{id}/weekly?weeks_back=` (parent or the
   /// child). Returns `null` on a server that predates the endpoint (404).
   Future<WeeklyReport?> weeklyReport(String childId, {int weeksBack = 0}) =>
@@ -366,6 +435,14 @@ final childProgressProvider = FutureProvider.family<ChildProgress, String>((
 ) {
   ref.watch(sessionUserIdProvider);
   return ref.watch(progressRepositoryProvider).childProgress(childId);
+});
+
+final streakInfoProvider = FutureProvider.family<StreakInfo, String>((
+  ref,
+  childId,
+) {
+  ref.watch(sessionUserIdProvider);
+  return ref.watch(progressRepositoryProvider).streakInfo(childId);
 });
 
 /// The week's report, or `null` when the server cannot produce one (older
