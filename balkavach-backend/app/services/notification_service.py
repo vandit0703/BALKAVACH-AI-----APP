@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -102,3 +102,62 @@ def mark_notification_read(session: Session, user_id: UUID, notification_id: UUI
 		session.commit()
 		session.refresh(notification)
 	return notification
+
+
+def notify_streak_event(
+	session: Session,
+	child_user_id: UUID,
+	event_type: str,
+	current_streak: int,
+):
+	"""Send a streak-related notification with 20-hour deduplication."""
+	Notification = get_model("Notification")
+	now = datetime.now(timezone.utc)
+	cutoff = utc_naive(now - timedelta(hours=20))
+
+	existing = (
+		session.query(Notification.id)
+		.filter(
+			Notification.recipient_user_id == child_user_id,
+			Notification.notification_type == event_type,
+			Notification.created_at > cutoff,
+		)
+		.first()
+	)
+	if existing is not None:
+		return None
+
+	titles_messages = {
+		"streak_at_risk": (
+			"Streak at risk!",
+			f"Complete a mission today to keep your {current_streak}-day streak alive!",
+		),
+		"streak_one_day_left": (
+			"Only 1 day left!",
+			f"Your {current_streak}-day streak will reset soon. Complete a mission today!",
+		),
+		"streak_continued": (
+			"Streak extended!",
+			f"Great job! You've reached a {current_streak}-day streak!",
+		),
+		"streak_milestone": (
+			"Streak milestone reached!",
+			f"Incredible! You hit a {current_streak}-day streak milestone!",
+		),
+		"streak_new_after_break": (
+			"New streak started!",
+			"Welcome back! Keep completing missions every day.",
+		),
+	}
+	title, message = titles_messages.get(
+		event_type,
+		("Streak update", f"Your streak is now {current_streak}."),
+	)
+	return create_notification(
+		session,
+		child_user_id,
+		event_type,
+		title,
+		message,
+		now=utc_naive(now),
+	)

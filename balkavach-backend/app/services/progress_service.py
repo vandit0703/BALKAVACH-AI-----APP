@@ -20,7 +20,6 @@ def badge_qualifies(criteria_type: str, criteria_value, values: dict[str, int]) 
 
 def get_progress(session: Session, child_id: UUID) -> dict:
 	ChildProgress = get_model("ChildProgress")
-	ChildStreak = get_model("ChildStreak")
 	ChildActivityDay = get_model("ChildActivityDay")
 	ChildBadge = get_model("ChildBadge")
 	Badge = get_model("Badge")
@@ -30,7 +29,10 @@ def get_progress(session: Session, child_id: UUID) -> dict:
 	level = None
 	if progress and progress.current_level_id:
 		level = session.query(Level).filter(Level.id == progress.current_level_id).one_or_none()
-	streak = session.query(ChildStreak).filter(ChildStreak.child_id == child_id).one_or_none()
+
+	from app.services.streak_service import get_streak_summary
+	streak_summary = get_streak_summary(session, child_id)
+
 	activities = (
 		session.query(ChildActivityDay)
 		.filter(ChildActivityDay.child_id == child_id)
@@ -53,8 +55,13 @@ def get_progress(session: Session, child_id: UUID) -> dict:
 		"garden": build_garden(total_xp, {badge.name for _, badge in badges}),
 		"level_number": level.level_number if level else None,
 		"level_name": level.name if level else None,
-		"current_streak": streak.current_streak if streak else 0,
-		"longest_streak": streak.longest_streak if streak else 0,
+		"current_streak": streak_summary.get("current_streak", 0),
+		"longest_streak": streak_summary.get("longest_streak", 0),
+		"streak_state": streak_summary.get("streak_state", "active"),
+		"grace_deadline": streak_summary.get("grace_deadline"),
+		"seconds_until_grace_expires": streak_summary.get("seconds_until_grace_expires"),
+		"last_activity_date": streak_summary.get("last_activity_date"),
+		"last_activity_at": streak_summary.get("last_activity_at"),
 		"activity_days": [
 			{
 				"activity_date": activity.activity_date,

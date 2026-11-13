@@ -49,6 +49,32 @@ class ProgressPublic(BaseModel):
 	activity_days: list[ActivityDayPublic]
 	badges: list[BadgePublic]
 	garden: GardenPublic | None = None
+	streak_state: str = "active"
+	grace_deadline: datetime | None = None
+	seconds_until_grace_expires: int | None = None
+
+	@field_serializer("grace_deadline")
+	def serialize_grace_deadline(self, value: datetime | None) -> datetime | None:
+		return utc_aware(value) if value is not None else None
+
+
+class StreakPublic(BaseModel):
+	child_id: UUID
+	current_streak: int
+	longest_streak: int
+	streak_state: str
+	grace_deadline: datetime | None = None
+	seconds_until_grace_expires: int | None = None
+	last_activity_date: date | None = None
+	last_activity_at: datetime | None = None
+
+	@field_serializer("grace_deadline")
+	def serialize_grace_deadline(self, value: datetime | None) -> datetime | None:
+		return utc_aware(value) if value is not None else None
+
+	@field_serializer("last_activity_at")
+	def serialize_last_activity_at(self, value: datetime | None) -> datetime | None:
+		return utc_aware(value) if value is not None else None
 
 
 class ReportTotals(BaseModel):
