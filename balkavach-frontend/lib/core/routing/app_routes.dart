@@ -36,6 +36,7 @@ abstract final class AppRoutes {
   static const childShorts = '/child/shorts';
   static const childWatch = '/child/watch';
   static const childProfile = '/child/profile';
+  static const streakScreen = '/streak';
   static String childLearnItem(String id) => '/child/learn/$id';
   static String childLearnPlay(String id) => '/child/learn/$id/play';
   static String childMission(String taskId) => '/child/missions/$taskId';

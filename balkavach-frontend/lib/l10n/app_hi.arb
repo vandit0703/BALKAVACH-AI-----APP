@@ -611,5 +611,16 @@
   "shortsMore": "और देखें",
   "shortsLess": "कम देखें",
   "shortsActionSound": "आवाज़",
-  "shortsActionReport": "रिपोर्ट"
+  "shortsActionReport": "रिपोर्ट",
+  "streakTitle": "मेरा स्ट्रीक",
+  "streakActive": "सक्रिय स्ट्रीक",
+  "streakAtRisk": "स्ट्रीक जोखिम में",
+  "streakBroken": "स्ट्रीक टूटा हुआ",
+  "streakRecovered": "स्ट्रीक वापस आ गया!",
+  "streakDaysRemaining": "{days, plural, =1{1 दिन} other{{days} दिन}} {hours, plural, =1{1 घंटा} other{{hours} घंटे}} शेष",
+  "streakHoursRemaining": "{hours, plural, =1{1 घंटा} other{{hours} घंटे}} शेष",
+  "streakComplete": "अपना स्ट्रीक जारी रखने के लिए एक मिशन पूरा करें!",
+  "streakLongest": "सर्वश्रेष्ठ: {count} दिन",
+  "streakStartNew": "अपना स्ट्रीक शुरू करने के लिए एक मिशन पूरा करें!",
+  "streakNoActivity": "अभी तक कोई गतिविधि दर्ज नहीं है"
 }

@@ -2213,4 +2213,61 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shortsActionReport => 'Report';
+
+  @override
+  String get streakTitle => 'My Streak';
+
+  @override
+  String get streakActive => 'Active Streak';
+
+  @override
+  String get streakAtRisk => 'Streak at Risk';
+
+  @override
+  String get streakBroken => 'Streak Broken';
+
+  @override
+  String get streakRecovered => 'Streak Recovered!';
+
+  @override
+  String streakDaysRemaining(int days, int hours) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours hours',
+      one: '1 hour',
+    );
+    return '$_temp0 $_temp1 remaining';
+  }
+
+  @override
+  String streakHoursRemaining(int hours) {
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours hours',
+      one: '1 hour',
+    );
+    return '$_temp0 remaining';
+  }
+
+  @override
+  String get streakComplete => 'Complete a mission to keep your streak going!';
+
+  @override
+  String streakLongest(int count) {
+    return 'Longest: $count days';
+  }
+
+  @override
+  String get streakStartNew => 'Complete a mission to start your streak!';
+
+  @override
+  String get streakNoActivity => 'No activity recorded yet';
 }

@@ -1387,5 +1387,40 @@
   "shortsActionReport": "Report",
   "@shortsActionReport": {
     "description": "Short label under the report button in Shorts."
-  }
+  },
+  "streakTitle": "My Streak",
+  "streakActive": "Active Streak",
+  "streakAtRisk": "Streak at Risk",
+  "streakBroken": "Streak Broken",
+  "streakRecovered": "Streak Recovered!",
+  "streakDaysRemaining": "{days, plural, =1{1 day} other{{days} days}} {hours, plural, =1{1 hour} other{{hours} hours}} remaining",
+  "@streakDaysRemaining": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "streakHoursRemaining": "{hours, plural, =1{1 hour} other{{hours} hours}} remaining",
+  "@streakHoursRemaining": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "streakComplete": "Complete a mission to keep your streak going!",
+  "streakLongest": "Longest: {count} days",
+  "@streakLongest": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "streakStartNew": "Complete a mission to start your streak!",
+  "streakNoActivity": "No activity recorded yet"
 }

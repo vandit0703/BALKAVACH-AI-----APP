@@ -611,5 +611,16 @@
   "shortsMore": "વધુ જુઓ",
   "shortsLess": "ઓછું જુઓ",
   "shortsActionSound": "અવાજ",
-  "shortsActionReport": "રિપોર્ટ"
+  "shortsActionReport": "રિપોર્ટ",
+  "streakTitle": "મારો સ્ટ્રીક",
+  "streakActive": "સક્રિય સ્ટ્રીક",
+  "streakAtRisk": "સ્ટ્રીક જોખમમાં",
+  "streakBroken": "સ્ટ્રીક તૂટી ગયો",
+  "streakRecovered": "સ્ટ્રીક પુનઃપ્રાપ્ત થયો!",
+  "streakDaysRemaining": "{days, plural, =1{1 દિવસ} other{{days} દિવસ}} {hours, plural, =1{1 કલાક} other{{hours} કલાક}} બાકી",
+  "streakHoursRemaining": "{hours, plural, =1{1 કલાક} other{{hours} કલાક}} બાકી",
+  "streakComplete": "તમારો સ્ટ્રીક ચાલુ રાખવા માટે એક મિશન પૂર્ણ કરો!",
+  "streakLongest": "સૌથી લાંબો: {count} દિવસ",
+  "streakStartNew": "તમારો સ્ટ્રીક શરૂ કરવા માટે એક મિશન પૂર્ણ કરો!",
+  "streakNoActivity": "હજી સુધી કોઈ પ્રવૃત્તિ નોંધાઈ નથી"
 }

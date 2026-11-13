@@ -2207,4 +2207,62 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get shortsActionReport => 'રિપોર્ટ';
+
+  @override
+  String get streakTitle => 'મારો સ્ટ્રીક';
+
+  @override
+  String get streakActive => 'સક્રિય સ્ટ્રીક';
+
+  @override
+  String get streakAtRisk => 'સ્ટ્રીક જોખમમાં';
+
+  @override
+  String get streakBroken => 'સ્ટ્રીક તૂટી ગયો';
+
+  @override
+  String get streakRecovered => 'સ્ટ્રીક પુનઃપ્રાપ્ત થયો!';
+
+  @override
+  String streakDaysRemaining(int days, int hours) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days દિવસ',
+      one: '1 દિવસ',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours કલાક',
+      one: '1 કલાક',
+    );
+    return '$_temp0 $_temp1 બાકી';
+  }
+
+  @override
+  String streakHoursRemaining(int hours) {
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours કલાક',
+      one: '1 કલાક',
+    );
+    return '$_temp0 બાકી';
+  }
+
+  @override
+  String get streakComplete =>
+      'તમારો સ્ટ્રીક ચાલુ રાખવા માટે એક મિશન પૂર્ણ કરો!';
+
+  @override
+  String streakLongest(int count) {
+    return 'સૌથી લાંબો: $count દિવસ';
+  }
+
+  @override
+  String get streakStartNew => 'તમારો સ્ટ્રીક શરૂ કરવા માટે એક મિશન પૂર્ણ કરો!';
+
+  @override
+  String get streakNoActivity => 'હજી સુધી કોઈ પ્રવૃત્તિ નોંધાઈ નથી';
 }
