@@ -250,6 +250,89 @@ def _youtube_discover(session_factory, max_results: int) -> int:
 	return 0
 
 
+def _streak_check(session_factory) -> int:
+	"""Check and update daily streak states and deliver grace period notifications."""
+	import logging
+	from datetime import datetime, timezone
+	from app.db.base import get_model
+	from app.services.notification_service import notify_streak_event
+	from app.services.streak_service import check_and_update_streak_states
+	from app.utils import utc_aware
+
+	logger = logging.getLogger("app.cli.streak_check")
+	try:
+		with session_factory() as session:
+			changes = check_and_update_streak_states(session, child_ids=None)
+			logger.info("check_and_update_streak_states found %d changed row(s)", len(changes))
+
+			ChildProfile = get_model("ChildProfile")
+			ChildStreak = get_model("ChildStreak")
+			now = datetime.now(timezone.utc)
+
+			notifications_sent = 0
+			for change in changes:
+				child_id = change["child_id"]
+				old_state = change["old_state"]
+				new_state = change["new_state"]
+
+				# at_risk -> broken: no notification (streak already gone)
+				if new_state == "broken":
+					continue
+
+				child = session.query(ChildProfile).filter(ChildProfile.id == child_id).first()
+				if not child:
+					continue
+				streak = session.query(ChildStreak).filter(ChildStreak.child_id == child_id).first()
+				current_streak = streak.current_streak if streak else 1
+
+				if old_state == "active" and new_state == "at_risk":
+					is_one_day_left = False
+					if streak and streak.grace_deadline:
+						seconds_left = (utc_aware(streak.grace_deadline) - now).total_seconds()
+						if 0 < seconds_left <= 86400:
+							is_one_day_left = True
+
+					event = "streak_one_day_left" if is_one_day_left else "streak_at_risk"
+					notif = notify_streak_event(session, child.user_id, event, current_streak)
+					if notif:
+						notifications_sent += 1
+
+			# Also check already at_risk streaks with <= 1 day left
+			at_risk_streaks = (
+				session.query(ChildStreak)
+				.filter(
+					ChildStreak.streak_state == "at_risk",
+					ChildStreak.grace_deadline.isnot(None),
+				)
+				.all()
+			)
+			for streak in at_risk_streaks:
+				seconds_left = (utc_aware(streak.grace_deadline) - now).total_seconds()
+				if 0 < seconds_left <= 86400:
+					child = session.query(ChildProfile).filter(ChildProfile.id == streak.child_id).first()
+					if child:
+						notif = notify_streak_event(
+							session,
+							child.user_id,
+							"streak_one_day_left",
+							streak.current_streak or 1,
+						)
+						if notif:
+							notifications_sent += 1
+
+			session.commit()
+			print(
+				f"Streak check complete: {len(changes)} state change(s), {notifications_sent} notification(s) sent."
+			)
+			return 0
+	except SQLAlchemyError:
+		print("Database operation failed during streak check.", file=sys.stderr)
+		return 2
+	except Exception as err:
+		print(f"Error during streak check: {err}", file=sys.stderr)
+		return 1
+
+
 def _youtube_auto_review(session_factory, limit: int) -> int:
 	from app.core.config import settings
 	from app.core.exceptions import APIError
@@ -364,6 +447,7 @@ def main(argv: list[str] | None = None) -> int:
 	)
 	auto.add_argument("--limit", type=int, default=100, choices=range(1, 201), metavar="1-200")
 	commands.add_parser("youtube-report", help="Read-only report of YouTube review statuses and reasons")
+	commands.add_parser("streak-check", help="Check and update daily streak states and deliver notifications")
 	args = parser.parse_args(argv)
 
 	from app.db.session import SessionLocal
@@ -372,6 +456,8 @@ def main(argv: list[str] | None = None) -> int:
 		print("DATABASE_URL is not configured", file=sys.stderr)
 		return 2
 
+	if args.command == "streak-check":
+		return _streak_check(SessionLocal)
 	if args.command == "youtube-recheck":
 		return _youtube_recheck(SessionLocal, args.limit)
 	if args.command == "youtube-auto-review":

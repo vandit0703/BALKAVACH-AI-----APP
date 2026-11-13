@@ -232,29 +232,29 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 					f"You earned {badge.name}.",
 					now=now,
 				)
-		streak_insert = pg_insert(ChildStreak).values(
-			child_id=child.id,
-			current_streak=1,
-			longest_streak=1,
-			last_activity_date=activity_date,
-			updated_at=now,
+		from app.services.streak_service import record_qualifying_activity
+		from app.services.notification_service import notify_streak_event
+
+		streak_result = record_qualifying_activity(
+			session, child.id, task.family_id, now_utc=datetime.now(timezone.utc)
 		)
-		next_streak = case(
-			(ChildStreak.last_activity_date == activity_date, ChildStreak.current_streak),
-			(ChildStreak.last_activity_date == yesterday, ChildStreak.current_streak + 1),
-			else_=1,
-		)
-		session.execute(
-			streak_insert.on_conflict_do_update(
-				index_elements=[ChildStreak.child_id],
-				set_={
-					"current_streak": next_streak,
-					"longest_streak": func.greatest(ChildStreak.longest_streak, next_streak),
-					"last_activity_date": activity_date,
-					"updated_at": now,
-				},
+		if streak_result.get("is_new_after_break"):
+			notify_streak_event(
+				session,
+				child.user_id,
+				"streak_new_after_break",
+				streak_result["current_streak"],
 			)
-		)
+		elif streak_result.get("streak_extended"):
+			c_streak = streak_result["current_streak"]
+			if c_streak in {3, 7, 14, 30, 50, 100, 365} or (c_streak > 0 and c_streak % 100 == 0):
+				notify_streak_event(
+					session, child.user_id, "streak_milestone", c_streak
+				)
+			else:
+				notify_streak_event(
+					session, child.user_id, "streak_continued", c_streak
+				)
 
 	ChildProfile = get_model("ChildProfile")
 	child = session.query(ChildProfile).filter(ChildProfile.id == submission.child_id).one()

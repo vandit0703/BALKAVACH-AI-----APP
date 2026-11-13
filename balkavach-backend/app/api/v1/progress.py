@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_current_user
 from app.db.base import get_model
 from app.db.session import get_db
-from app.schemas.progress import ProgressPublic, WeeklyReportPublic
+from app.schemas.progress import ProgressPublic, StreakPublic, WeeklyReportPublic
 from app.services.progress_service import get_progress
 from app.services.report_service import weekly_report
 
@@ -46,6 +46,18 @@ def child_progress(
 ) -> ProgressPublic:
 	_authorized_child(session, user, child_id)
 	return ProgressPublic.model_validate(get_progress(session, child_id))
+
+
+@router.get("/children/{child_id}/streak", response_model=StreakPublic)
+def child_streak(
+	child_id: UUID,
+	user=Depends(get_current_user),
+	session: Session = Depends(get_db),
+) -> StreakPublic:
+	_authorized_child(session, user, child_id)
+	from app.services.streak_service import get_streak_summary
+
+	return StreakPublic.model_validate(get_streak_summary(session, child_id))
 
 
 @router.get("/children/{child_id}/activity", response_model=list)

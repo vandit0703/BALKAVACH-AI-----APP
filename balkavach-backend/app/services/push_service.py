@@ -73,6 +73,31 @@ GENERIC_TEXT: dict[str, dict[str, tuple[str, str]]] = {
 		"hi": ("नया बैज", "आपने एक नया बैज जीता!"),
 		"gu": ("નવો બેજ", "તમે નવો બેજ જીત્યો!"),
 	},
+	"streak_at_risk": {
+		"en": ("Streak at risk", "Complete a mission today to keep your streak going."),
+		"hi": ("स्ट्राइक खतरे में", "अपनी स्ट्राइक जारी रखने के लिए आज एक मिशन पूरा करें।"),
+		"gu": ("સ્ટ્રીક જોખમમાં", "તમારી સ્ટ્રીક ચાલુ રાખવા માટે આજે એક મિશન પૂર્ણ કરો."),
+	},
+	"streak_one_day_left": {
+		"en": ("One day left", "Only one day left to save your streak!"),
+		"hi": ("एक दिन बचा है", "अपनी स्ट्राइक बचाने के लिए सिर्फ एक दिन बचा है!"),
+		"gu": ("એક દિવસ બાકી", "તમારી સ્ટ્રીક બચાવવા માટે ફક્ત એક દિવસ બાકી છે!"),
+	},
+	"streak_continued": {
+		"en": ("Streak continued", "Great work keeping your daily streak alive!"),
+		"hi": ("स्ट्राइक जारी रही", "अपनी दैनिक स्ट्राइक जारी रखने के लिए बहुत बढ़िया!"),
+		"gu": ("સ્ટ્રીક ચાલુ રહી", "તમારી દૈનિક સ્ટ્રીક ચાલુ રાખવા બદલ ખૂબ સરસ!"),
+	},
+	"streak_milestone": {
+		"en": ("Streak milestone", "Congratulations on reaching a streak milestone!"),
+		"hi": ("स्ट्राइक मील का पत्थर", "स्ट्राइक मील का पत्थर हासिल करने पर बधाई!"),
+		"gu": ("સ્ટ્રીક માઇલસ્ટોન", "સ્ટ્રીક માઇલસ્ટોન હાંસલ કરવા બદલ અભિનંદન!"),
+	},
+	"streak_new_after_break": {
+		"en": ("New streak started", "Welcome back! You've started a new streak."),
+		"hi": ("नई स्ट्राइक शुरू", "वापसी पर स्वागत है! आपने एक नई स्ट्राइक शुरू की है।"),
+		"gu": ("નવી સ્ટ્રીક શરૂ થઈ", "પાછા આવવા બદલ સ્વાગત છે! તમે નવી સ્ટ્રીક શરૂ કરી છે."),
+	},
 }
 
 # Replaced by tests so delivery is synchronous and uses the test transaction.
