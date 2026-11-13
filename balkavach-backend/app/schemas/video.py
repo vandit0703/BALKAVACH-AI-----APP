@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -144,6 +144,8 @@ class VideoWatchHistoryPublic(BaseModel):
 
 class VideoWatchProgressPublic(VideoWatchHistoryPublic):
 	accepted_seconds: int
+	remaining_allowance_seconds: int | None = None
+	is_exhausted: bool = False
 
 
 YouTubeReviewStatus = Literal[
@@ -443,3 +445,15 @@ class PlaybackHeartbeatPublic(BaseModel):
 	watched_seconds: int
 	remaining_seconds: int
 	status: str
+
+
+class VideoAllowancePublic(BaseModel):
+	child_id: UUID
+	local_date: date
+	timezone: str
+	total_earned_today_seconds: int
+	consumed_today_seconds: int
+	remaining_seconds: int
+	daily_cap_seconds: int
+	is_exhausted: bool
+	active_entitlements_count: int

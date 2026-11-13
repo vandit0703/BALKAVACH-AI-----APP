@@ -161,3 +161,45 @@ def notify_streak_event(
 		message,
 		now=utc_naive(now),
 	)
+
+
+def notify_video_entitlement_event(
+	session: Session,
+	child_user_id: UUID,
+	event_type: str,
+	minutes_granted: int = 15,
+	*,
+	task_id: UUID | None = None,
+	submission_id: UUID | None = None,
+	now: datetime | None = None,
+):
+	"""Send a video entitlement event notification to the child."""
+	titles_messages = {
+		"mission_video_time_granted": (
+			"Video time unlocked!",
+			f"Great job! You earned {minutes_granted} minutes of video time.",
+		),
+		"video_time_nearly_exhausted": (
+			"Video time running low",
+			"Only 2 minutes of video time left! Wrap up what you're watching.",
+		),
+		"video_time_exhausted": (
+			"Video time is up!",
+			"You've used all your video time for today. Complete another mission to unlock more!",
+		),
+	}
+	title, message = titles_messages.get(
+		event_type,
+		("Video update", "Your video access has been updated."),
+	)
+	return create_notification(
+		session,
+		child_user_id,
+		event_type,
+		title,
+		message,
+		task_id=task_id,
+		submission_id=submission_id,
+		now=utc_naive(now or datetime.now(timezone.utc)),
+	)
+

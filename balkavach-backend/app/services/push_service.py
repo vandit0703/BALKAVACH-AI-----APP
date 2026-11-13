@@ -98,6 +98,21 @@ GENERIC_TEXT: dict[str, dict[str, tuple[str, str]]] = {
 		"hi": ("नई स्ट्राइक शुरू", "वापसी पर स्वागत है! आपने एक नई स्ट्राइक शुरू की है।"),
 		"gu": ("નવી સ્ટ્રીક શરૂ થઈ", "પાછા આવવા બદલ સ્વાગત છે! તમે નવી સ્ટ્રીક શરૂ કરી છે."),
 	},
+	"mission_video_time_granted": {
+		"en": ("Video time unlocked", "You earned 15 minutes of video time."),
+		"hi": ("वीडियो समय खुला", "आपने 15 मिनट का वीडियो समय कमाया।"),
+		"gu": ("વીડિયો સમય ખુલ્યો", "તમે 15 મિનિટનો વીડિયો સમય મેળવ્યો."),
+	},
+	"video_time_nearly_exhausted": {
+		"en": ("Video time running low", "Only 2 minutes left! Wrap up your video."),
+		"hi": ("वीडियो समय कम बचा है", "केवल 2 मिनट बचे हैं!"),
+		"gu": ("વીડિયો સમય ઓછો રહ્યો", "ફક્ત 2 મિનિટ બાકી છે!"),
+	},
+	"video_time_exhausted": {
+		"en": ("Video time ended", "Complete a mission to earn more video time."),
+		"hi": ("वीडियो समय समाप्त", "अधिक वीडियो समय कमाने के लिए एक मिशन पूरा करें।"),
+		"gu": ("વીડિયો સમય સમાપ્ત", "વધુ વીડિયો સમય મેળવવા માટે મિશન પૂર્ણ કરો."),
+	},
 }
 
 # Replaced by tests so delivery is synchronous and uses the test transaction.

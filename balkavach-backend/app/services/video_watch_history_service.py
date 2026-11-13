@@ -13,6 +13,10 @@ from app.core.exceptions import APIError
 from app.db.base import get_model
 from app.services.video_classification import video_format
 from app.services.video_service import child_age
+from app.services.video_entitlement_service import (
+	consume_video_allowance,
+	get_child_video_allowance_today,
+)
 from app.services.youtube_review_service import youtube_visibility_clause
 from app.utils import utc_aware, utc_naive
 
@@ -113,6 +117,36 @@ def record_progress(session: Session, child, video_id: UUID, position_seconds: i
 		history.last_watched_at = now
 		history.parent_replay_authorized = False
 
+	# Mission-earned video allowance enforcement
+	remaining_allowance = None
+	is_exhausted = False
+	allowance = get_child_video_allowance_today(session, child.id, child.family_id, now_utc=now)
+	if allowance["total_earned_today_seconds"] > 0:
+		if allowance["remaining_seconds"] <= 0:
+			raise APIError(
+				403,
+				"video_time_exhausted",
+				"Video access time has been exhausted. Complete missions to earn more video time.",
+			)
+		if accepted > 0:
+			deducted = consume_video_allowance(
+				session, child.id, child.family_id, accepted, now_utc=now
+			)
+			updated_allowance = get_child_video_allowance_today(
+				session, child.id, child.family_id, now_utc=now
+			)
+			remaining_allowance = updated_allowance["remaining_seconds"]
+			is_exhausted = updated_allowance["is_exhausted"]
+			if deducted == 0 and remaining_allowance <= 0:
+				raise APIError(
+					403,
+					"video_time_exhausted",
+					"Video access time has been exhausted. Complete missions to earn more video time.",
+				)
+		else:
+			remaining_allowance = allowance["remaining_seconds"]
+			is_exhausted = remaining_allowance <= 0
+
 	duration = video.duration_seconds
 	position = min(position_seconds, duration) if duration and duration > 0 else position_seconds
 	percentage = min(100, int(position * 100 / duration)) if duration and duration > 0 else 0
@@ -136,7 +170,12 @@ def record_progress(session: Session, child, video_id: UUID, position_seconds: i
 	except Exception:
 		session.rollback()
 		raise
-	return {**_public(history, video), "accepted_seconds": accepted}
+	return {
+		**_public(history, video),
+		"accepted_seconds": accepted,
+		"remaining_allowance_seconds": remaining_allowance,
+		"is_exhausted": is_exhausted,
+	}
 
 
 def list_child_history(

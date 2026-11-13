@@ -256,6 +256,22 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 					session, child.user_id, "streak_continued", c_streak
 				)
 
+		from app.services.video_entitlement_service import grant_mission_video_entitlement
+		from app.services.notification_service import notify_video_entitlement_event
+
+		entitlement = grant_mission_video_entitlement(
+			session, child, task, submission, now_utc=datetime.now(timezone.utc)
+		)
+		if entitlement and (entitlement.granted_seconds or 0) > 0:
+			notify_video_entitlement_event(
+				session,
+				child.user_id,
+				"mission_video_time_granted",
+				minutes_granted=(entitlement.granted_seconds or 0) // 60,
+				task_id=task.id,
+				submission_id=submission.id,
+			)
+
 	ChildProfile = get_model("ChildProfile")
 	child = session.query(ChildProfile).filter(ChildProfile.id == submission.child_id).one()
 	create_notification(

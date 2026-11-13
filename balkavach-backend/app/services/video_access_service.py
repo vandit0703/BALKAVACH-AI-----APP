@@ -33,6 +33,10 @@ def accepted_heartbeat_seconds(previous: datetime, now: datetime, remaining: int
 
 
 def _matches_entitlement(session: Session, entitlement, video_id: UUID) -> bool:
+	if getattr(entitlement, "source_type", None) == "mission_reward":
+		return True
+	if entitlement.video_id is None and entitlement.video_collection_id is None:
+		return True
 	if entitlement.video_id == video_id:
 		return True
 	if entitlement.video_collection_id is None:
