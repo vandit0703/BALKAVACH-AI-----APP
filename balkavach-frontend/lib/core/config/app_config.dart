@@ -15,7 +15,7 @@ class AppConfig {
     return AppConfig(apiBaseUrl: normalizeBaseUrl(raw));
   }
 
-  static const defaultApiBaseUrl = 'https://balkavach-ai-app.onrender.com';
+  static const defaultApiBaseUrl = 'https://api.balkavach.tech';
 
   /// Server origin without a trailing slash, e.g. `https://host`.
   final String apiBaseUrl;

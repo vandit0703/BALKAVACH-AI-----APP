@@ -48,7 +48,7 @@ Discover/Process) and in the **cron job** that runs `youtube-discover` / `youtub
 
 **Status: not verified.** The repository contains no scheduler or Render configuration
 (no `render.yaml`, Procfile, workflow or crontab). The production API is
-`https://balkavach-ai-app.onrender.com` (the admin panel default). I have no Render
+`https://api.balkavach.tech` (the admin panel default). I have no Render
 access, so whether a recheck job exists is unknown. Indirect evidence from the database on
 2026-11-04 (oldest approved verification was two days old) suggests none is running.
 

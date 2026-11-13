@@ -1,5 +1,5 @@
 {
- "source": "https://balkavach-ai-app.onrender.com/openapi.json",
+ "source": "https://api.balkavach.tech/openapi.json",
  "fetched": "2026-10-13",
  "operations": [
   "DELETE /api/v1/families/{family_id}/children/{child_id}",

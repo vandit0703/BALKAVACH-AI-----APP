@@ -10,7 +10,7 @@ Architecture, design system, API contracts and blockers are documented in
 
 ```sh
 flutter pub get
-flutter run --dart-define=API_BASE_URL=https://balkavach-ai-app.onrender.com
+flutter run --dart-define=API_BASE_URL=https://api.balkavach.tech
 ```
 
 `API_BASE_URL` defaults to the deployed API. Point it at a local backend with

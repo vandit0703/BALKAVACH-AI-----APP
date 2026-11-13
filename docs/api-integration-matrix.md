@@ -14,7 +14,7 @@
 
 
 Source of truth: `balkavach-backend/app/**` cross-checked against the live
-OpenAPI document at `https://balkavach-ai-app.onrender.com/openapi.json`
+OpenAPI document at `https://api.balkavach.tech/openapi.json`
 (fetched 2026-10-12, title `BalKavach API` v0.1.0, 68 operations). The live
 document and the source tree list the same routes.
 

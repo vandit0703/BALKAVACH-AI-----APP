@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Build-time configuration: `--dart-define=API_BASE_URL=https://host`.
 const kApiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'https://balkavach-ai-app.onrender.com',
+  defaultValue: 'https://api.balkavach.tech',
 );
 
 /// A failed API call, reduced to what the panel shows.

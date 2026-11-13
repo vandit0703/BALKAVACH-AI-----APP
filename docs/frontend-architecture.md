@@ -105,7 +105,7 @@ user lands on role selection with a "session has ended" notice
 
 ## Networking rules
 
-- Base URL: `--dart-define=API_BASE_URL=https://balkavach-ai-app.onrender.com`
+- Base URL: `--dart-define=API_BASE_URL=https://api.balkavach.tech`
   (default is the deployed URL; nothing secret goes in a dart-define).
 - Timeouts: connect 20 s, receive 45 s, send 30 s (cold Render instance + DB).
 - `RedactingLogInterceptor` logs method, path, status and duration in debug
@@ -166,6 +166,6 @@ flutter gen-l10n
 dart format --set-exit-if-changed lib test
 flutter analyze
 flutter test
-flutter run --dart-define=API_BASE_URL=https://balkavach-ai-app.onrender.com
+flutter run --dart-define=API_BASE_URL=https://api.balkavach.tech
 flutter build apk --debug
 ```

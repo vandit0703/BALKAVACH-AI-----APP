@@ -3,7 +3,7 @@
 Source: `stitch_bal_kavach_ai_mobile_app/`. Inventory re-done 2026-10-13 against
 the export, the Flutter source in `balkavach-frontend/lib/`, the FastAPI source in
 `balkavach-backend/app/`, and the live OpenAPI document
-(`https://balkavach-ai-app.onrender.com/openapi.json`, 68 operations — same
+(`https://api.balkavach.tech/openapi.json`, 68 operations — same
 routes as the source tree).
 
 ## What the export contains

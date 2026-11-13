@@ -8142,7 +8142,7 @@ if(r.b(m)&&typeof m.h(0,l)=="string"){r=p==null?"Invalid input":p
 p=r+": "+A.f(m.h(0,l))}}}}r=k.c
 if(r==null)r=0
 return new A.eP(r,q,p==null?"Request failed":p)},
-bh_(a){var s,r=A.b5e("https://balkavach-ai-app.onrender.com",B.Pa,"application/json",B.a3n,B.Pi),q=new A.Tn(A.b([B.LS],t.i6))
+bh_(a){var s,r=A.b5e("https://api.balkavach.tech",B.Pa,"application/json",B.a3n,B.Pi),q=new A.Tn(A.b([B.LS],t.i6))
 q.T(q,B.Yy)
 s=new A.RM($,q,$,new A.aiE(51200),!1)
 s.a7n$=r

@@ -11,7 +11,7 @@
 
 Audit date: 2026-10-13. Scope: `balkavach-frontend/` against the FastAPI source in
 `balkavach-backend/app/` and the live OpenAPI document
-(`https://balkavach-ai-app.onrender.com/openapi.json`, 68 operations, identical
+(`https://api.balkavach.tech/openapi.json`, 68 operations, identical
 route list to the source). The backend contract is treated as authoritative. No
 backend code, schema or migration was changed. Nothing was committed or pushed.
 
