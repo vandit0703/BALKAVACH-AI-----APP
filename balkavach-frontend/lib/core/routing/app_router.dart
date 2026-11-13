@@ -292,7 +292,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.streakScreen,
-            parentNavigatorKey: _rootKey,
             builder: (_, state) => StreakScreen(
               childId: state.uri.queryParameters['childId']!,
             ),
