@@ -60,6 +60,8 @@
   "authEmail": "Email",
   "authEmailOrUsername": "Email or username",
   "authPassword": "Password",
+  "authForgotPassword": "Forgot password?",
+  "authResetSent": "If an account exists, a reset link has been sent.",
   "authPasswordHint": "At least 12 characters",
   "authShowPassword": "Show password",
   "authHidePassword": "Hide password",

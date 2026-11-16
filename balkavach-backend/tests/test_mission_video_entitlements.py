@@ -38,6 +38,9 @@ from app.utils import utc_naive
 
 import sqlalchemy as sa
 
+TEST_NOW = datetime(2026, 11, 13, 12, tzinfo=timezone.utc)
+
+
 class FakeEntitlement:
     id = sa.Column("id", sa.String)
     child_id = sa.Column("child_id", sa.String)
@@ -63,7 +66,7 @@ class FakeEntitlement:
         self.video_collection_id = kwargs.get("video_collection_id", None)
         self.granted_seconds = kwargs.get("granted_seconds", 900)
         self.consumed_seconds = kwargs.get("consumed_seconds", 0)
-        self.granted_at = kwargs.get("granted_at", utc_naive(datetime.now(timezone.utc)))
+        self.granted_at = kwargs.get("granted_at", utc_naive(TEST_NOW))
         self.valid_from = kwargs.get("valid_from", self.granted_at)
         self.expires_at = kwargs.get("expires_at", None)
         self.status = kwargs.get("status", "active")
@@ -189,7 +192,9 @@ def test_grant_first_mission_grants_900_seconds():
 
     with patch("app.services.video_entitlement_service.family_timezone_name", return_value="Asia/Kolkata"), \
          patch("app.services.video_entitlement_service.local_today", return_value=date(2026, 11, 13)):
-        entitlement = grant_mission_video_entitlement(session, child, task, submission)
+        entitlement = grant_mission_video_entitlement(
+            session, child, task, submission, now_utc=TEST_NOW
+        )
 
     assert entitlement is not None
     assert entitlement.granted_seconds == 900
@@ -215,22 +220,22 @@ def test_grant_stacking_additive_up_to_four_missions():
          patch("app.services.video_entitlement_service.local_today", return_value=date(2026, 11, 13)):
         # Mission 1 -> 15 min (900s)
         sub1 = MagicMock(id=uuid4())
-        e1 = grant_mission_video_entitlement(session, child, task, sub1)
+        e1 = grant_mission_video_entitlement(session, child, task, sub1, now_utc=TEST_NOW)
         assert e1.granted_seconds == 900
 
         # Mission 2 -> 15 min (900s) -> total 1800s (30m)
         sub2 = MagicMock(id=uuid4())
-        e2 = grant_mission_video_entitlement(session, child, task, sub2)
+        e2 = grant_mission_video_entitlement(session, child, task, sub2, now_utc=TEST_NOW)
         assert e2.granted_seconds == 900
 
         # Mission 3 -> 15 min (900s) -> total 2700s (45m)
         sub3 = MagicMock(id=uuid4())
-        e3 = grant_mission_video_entitlement(session, child, task, sub3)
+        e3 = grant_mission_video_entitlement(session, child, task, sub3, now_utc=TEST_NOW)
         assert e3.granted_seconds == 900
 
         # Mission 4 -> 15 min (900s) -> total 3600s (60m)
         sub4 = MagicMock(id=uuid4())
-        e4 = grant_mission_video_entitlement(session, child, task, sub4)
+        e4 = grant_mission_video_entitlement(session, child, task, sub4, now_utc=TEST_NOW)
         assert e4.granted_seconds == 900
 
         total_granted = sum(e.granted_seconds for e in session.entitlements)
@@ -253,7 +258,7 @@ def test_grant_fifth_mission_capped_at_60_minutes_by_default():
     with patch("app.services.video_entitlement_service.family_timezone_name", return_value="Asia/Kolkata"), \
          patch("app.services.video_entitlement_service.local_today", return_value=date(2026, 11, 13)):
         sub5 = MagicMock(id=uuid4())
-        e5 = grant_mission_video_entitlement(session, child, task, sub5)
+        e5 = grant_mission_video_entitlement(session, child, task, sub5, now_utc=TEST_NOW)
 
     # Capped! Returns None and no extra seconds
     assert e5 is None
@@ -279,7 +284,7 @@ def test_stacking_invariant_consumed_time_does_not_create_cap_room():
     with patch("app.services.video_entitlement_service.family_timezone_name", return_value="Asia/Kolkata"), \
          patch("app.services.video_entitlement_service.local_today", return_value=date(2026, 11, 13)):
         sub = MagicMock(id=uuid4())
-        result = grant_mission_video_entitlement(session, child, task, sub)
+        result = grant_mission_video_entitlement(session, child, task, sub, now_utc=TEST_NOW)
 
     # Even though remaining is 1800s, total granted today is 3600s, so cap room is 0!
     assert result is None
@@ -299,7 +304,7 @@ def test_partial_cap_remainder_grant():
     with patch("app.services.video_entitlement_service.family_timezone_name", return_value="Asia/Kolkata"), \
          patch("app.services.video_entitlement_service.local_today", return_value=date(2026, 11, 13)):
         sub = MagicMock(id=uuid4())
-        result = grant_mission_video_entitlement(session, child, task, sub)
+        result = grant_mission_video_entitlement(session, child, task, sub, now_utc=TEST_NOW)
 
     assert result is not None
     assert result.granted_seconds == 300
@@ -323,7 +328,9 @@ def test_idempotent_grant_returns_existing_entitlement():
 
     with patch("app.services.video_entitlement_service.family_timezone_name", return_value="Asia/Kolkata"), \
          patch("app.services.video_entitlement_service.local_today", return_value=date(2026, 11, 13)):
-        result = grant_mission_video_entitlement(session, child, task, submission)
+        result = grant_mission_video_entitlement(
+            session, child, task, submission, now_utc=TEST_NOW
+        )
 
     assert result.id == existing_ent.id
     assert len(session.added) == 0
@@ -341,7 +348,9 @@ def test_get_child_video_allowance_today_summary():
 
     with patch("app.services.video_entitlement_service.family_timezone_name", return_value="Asia/Kolkata"), \
          patch("app.services.video_entitlement_service.local_today", return_value=date(2026, 11, 13)):
-        allowance = get_child_video_allowance_today(session, child_id, family_id)
+        allowance = get_child_video_allowance_today(
+            session, child_id, family_id, now_utc=TEST_NOW
+        )
 
     assert allowance["total_earned_today_seconds"] == 1800
     assert allowance["consumed_today_seconds"] == 600
@@ -361,7 +370,9 @@ def test_consume_video_allowance_chronological_deduction():
     with patch("app.services.video_entitlement_service.family_timezone_name", return_value="Asia/Kolkata"), \
          patch("app.services.video_entitlement_service.local_today", return_value=date(2026, 11, 13)):
         # Request 250s: 100s finishes e1 (exhausts it), 150s from e2
-        consumed = consume_video_allowance(session, child_id, family_id, 250)
+        consumed = consume_video_allowance(
+            session, child_id, family_id, 250, now_utc=TEST_NOW
+        )
 
     assert consumed == 250
     assert e1.consumed_seconds == 900

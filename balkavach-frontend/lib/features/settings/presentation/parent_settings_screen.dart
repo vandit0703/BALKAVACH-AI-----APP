@@ -15,6 +15,7 @@ import '../../../shared/widgets/brand_header.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/illustration.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../../authentication/data/auth_repository.dart';
 import '../../authentication/presentation/session_controller.dart';
 import '../../child_profile/domain/family_models.dart';
 import '../../child_profile/presentation/family_providers.dart';
@@ -69,6 +70,7 @@ class ParentSettingsScreen extends ConsumerWidget {
               trailing: Chip(label: Text(l10n.settingsAlwaysOn)),
             ),
           ),
+          const _ParentPinCard(),
           _SectionTitle(
             title: l10n.settingsPreferences,
             icon: Icons.tune_rounded,
@@ -478,6 +480,72 @@ class _PreferencesCard extends ConsumerWidget {
             _ => const LoadingView(),
           },
         ],
+      ),
+    );
+  }
+}
+
+class _ParentPinCard extends ConsumerWidget {
+  const _ParentPinCard();
+
+  Future<void> _setPin(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final controller = TextEditingController();
+    try {
+      final pin = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.parentGate),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            obscureText: true,
+            maxLength: 8,
+            decoration: InputDecoration(labelText: l10n.authPassword),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.parentGateStay),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: Text(l10n.parentGateLeave),
+            ),
+          ],
+        ),
+      );
+      if (pin == null || !context.mounted) return;
+      await ref.read(authRepositoryProvider).setParentPin(pin);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.parentGate)),
+        );
+      }
+    } on ApiException catch (error) {
+      if (context.mounted) showErrorSnackBar(context, error);
+    } finally {
+      controller.dispose();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return AppCard(
+      child: _InfoRow(
+        icon: Icons.pin_rounded,
+        tint: context.colors.surfaceContainerHigh,
+        iconColor: context.colors.primary,
+        title: l10n.parentGate,
+        subtitle: l10n.parentGateBody,
+        trailing: SecondaryButton(
+          key: const Key('settings.parentPin'),
+          dense: true,
+          label: l10n.parentGateLeave,
+          onPressed: () => _setPin(context, ref),
+        ),
       ),
     );
   }

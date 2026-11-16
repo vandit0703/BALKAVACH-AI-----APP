@@ -342,7 +342,7 @@ void main() {
       expect(find.text(_expired), findsNothing);
     });
 
-    testWidgets('leaving child mode on purpose shows no expiry notice', (
+    testWidgets('leaving child mode requires a parent PIN', (
       tester,
     ) async {
       final h = await Harness.create(
@@ -355,11 +355,24 @@ void main() {
         Fx.childSession().user.toJson(),
       );
       await _pumpApp(tester, h);
+      h.backend.reply(
+        'POST',
+        '/api/v1/auth/parent-pin/verify',
+        Fx.token(user: Fx.user(role: 'parent')),
+      );
 
       await _tap(tester, find.byKey(const Key('parentGate')));
-      await _tap(tester, find.text('Leave'));
+      await _tap(tester, find.text('Leave').last);
+      final fields = find.byType(TextField);
+      await tester.enterText(fields.at(0), 'parent@example.com');
+      await tester.enterText(fields.at(1), '1234');
+      await _tap(tester, find.text('Leave').last);
 
-      expect(find.text('Who is using Bal Kavach?'), findsOneWidget);
+      expect((await h.storage.read())?.isParent, isTrue);
+      expect(
+        h.backend.requestsTo('POST', '/api/v1/auth/parent-pin/verify'),
+        hasLength(1),
+      );
       expect(find.byKey(const Key('role.sessionEnded')), findsNothing);
     });
 

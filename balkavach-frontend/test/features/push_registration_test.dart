@@ -72,7 +72,7 @@ Future<(Harness, ProviderContainer)> _signedIn(
 }
 
 Future<void> _settle() =>
-    Future<void>.delayed(const Duration(milliseconds: 20));
+  Future<void>.delayed(const Duration(milliseconds: 100));
 
 void main() {
   test(
@@ -202,6 +202,7 @@ void main() {
 
   test('a server failure is reported, not thrown', () async {
     final (h, container) = await _signedIn(_FakeSource());
+    await _settle();
     h.backend.on(
       'PUT',
       _devices,
@@ -214,6 +215,7 @@ void main() {
 
   test('being offline is reported, not thrown', () async {
     final (h, container) = await _signedIn(_FakeSource());
+    await _settle();
     h.backend.on(
       'PUT',
       _devices,

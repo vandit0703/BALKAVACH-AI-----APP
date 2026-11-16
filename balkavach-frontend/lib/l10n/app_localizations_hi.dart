@@ -208,6 +208,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get authPassword => 'पासवर्ड';
 
   @override
+  String get authForgotPassword => 'पासवर्ड भूल गए?';
+
+  @override
+  String get authResetSent =>
+      'यदि खाता मौजूद है, तो रीसेट लिंक भेज दिया गया है।';
+
+  @override
   String get authPasswordHint => 'कम से कम 12 अक्षर';
 
   @override

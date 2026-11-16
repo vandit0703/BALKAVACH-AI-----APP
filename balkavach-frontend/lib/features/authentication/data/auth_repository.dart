@@ -93,6 +93,41 @@ class AuthRepository {
     );
     return Session.fromTokenResponse(response.data!, childId: childId);
   });
+
+  Future<void> requestPasswordReset(String email) => guardApi(() async {
+    await _dio.post<void>(
+      '/api/v1/auth/password/forgot',
+      data: {'email': email.trim()},
+      options: Options(extra: _unauthenticated),
+    );
+  });
+
+  Future<void> resetPassword({
+    required String token,
+    required String password,
+  }) => guardApi(() async {
+    await _dio.post<void>(
+      '/api/v1/auth/password/reset',
+      data: {'token': token, 'password': password},
+      options: Options(extra: _unauthenticated),
+    );
+  });
+
+  Future<void> setParentPin(String pin) => guardApi(() async {
+    await _dio.post<void>('/api/v1/auth/parent-pin', data: {'pin': pin});
+  });
+
+  Future<Session> verifyParentPin({
+    required String email,
+    required String pin,
+  }) => guardApi(() async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/auth/parent-pin/verify',
+      data: {'email': email.trim(), 'pin': pin},
+      options: Options(extra: _unauthenticated),
+    );
+    return Session.fromTokenResponse(response.data!);
+  });
 }
 
 final authRepositoryProvider = Provider<AuthRepository>(

@@ -75,3 +75,8 @@ def authenticate_user(session: Session, request: LoginRequest) -> TokenResponse:
 		response.child_id = child_profile.id
 	session.commit()
 	return response
+
+
+def set_parent_pin(session: Session, parent, pin: str) -> None:
+	parent.parent_pin_hash = hash_password(pin)
+	session.commit()

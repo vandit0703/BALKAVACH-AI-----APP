@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/brand_header.dart';
 import '../../../shared/widgets/buttons.dart';
+import '../../authentication/domain/session.dart';
 import '../../authentication/presentation/session_controller.dart';
 
 /// Child-mode frame: brand header with Parent Gate, plus bottom navigation on
@@ -117,8 +118,7 @@ class ChildShell extends StatelessWidget {
   }
 }
 
-/// Leaves child mode. The backend has no parent PIN (B10), so leaving signs
-/// the child out and a parent must sign in again.
+/// Parent mode always requires a server-verified parent PIN on a child device.
 class ParentGateButton extends ConsumerWidget {
   const ParentGateButton({super.key});
 
@@ -148,8 +148,66 @@ class ParentGateButton extends ConsumerWidget {
           ],
         ),
       );
-      if (leave == true) {
-        await ref.read(sessionControllerProvider.notifier).signOut();
+      if (leave != true || !context.mounted) return;
+      final email = TextEditingController();
+      final pin = TextEditingController();
+      try {
+        final verified = await showDialog<Session>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(l10n.parentGateLeave),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: email,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(labelText: l10n.authEmail),
+                ),
+                TextField(
+                  controller: pin,
+                  keyboardType: TextInputType.number,
+                  obscureText: true,
+                  maxLength: 8,
+                  decoration: InputDecoration(labelText: l10n.authPassword),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.parentGateStay),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  try {
+                    final session = await ref
+                        .read(sessionControllerProvider.notifier)
+                        .verifyParentPin(email: email.text, pin: pin.text);
+                    if (context.mounted) Navigator.pop(context, session);
+                  } on Object {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.authInvalidCredentials)),
+                      );
+                    }
+                  }
+                },
+                child: Text(l10n.parentGateLeave),
+              ),
+            ],
+          ),
+        );
+        if (verified != null && context.mounted) {
+          await Future<void>.delayed(const Duration(milliseconds: 300));
+          await ref
+              .read(sessionControllerProvider.notifier)
+              .adoptVerifiedParentSession(verified);
+          if (context.mounted) context.go(AppRoutes.parentHome);
+        }
+      } finally {
+        email.dispose();
+        pin.dispose();
       }
     }
 

@@ -147,6 +147,15 @@ class SessionController extends AsyncNotifier<Session?> {
     await _adopt(session);
   }
 
+  Future<Session> verifyParentPin({required String email, required String pin}) {
+    return ref.read(authRepositoryProvider).verifyParentPin(
+      email: email,
+      pin: pin,
+    );
+  }
+
+  Future<void> adoptVerifiedParentSession(Session session) => _adopt(session);
+
   /// Ends the session on this device and, best effort, on the server.
   Future<void> signOut() async {
     final current = state.value;

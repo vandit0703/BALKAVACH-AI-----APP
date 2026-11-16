@@ -460,6 +460,18 @@ abstract class AppLocalizations {
   /// **'Password'**
   String get authPassword;
 
+  /// No description provided for @authForgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get authForgotPassword;
+
+  /// No description provided for @authResetSent.
+  ///
+  /// In en, this message translates to:
+  /// **'If an account exists, a reset link has been sent.'**
+  String get authResetSent;
+
   /// No description provided for @authPasswordHint.
   ///
   /// In en, this message translates to:

@@ -208,6 +208,12 @@ class AppLocalizationsGu extends AppLocalizations {
   String get authPassword => 'પાસવર્ડ';
 
   @override
+  String get authForgotPassword => 'પાસવર્ડ ભૂલી ગયા છો?';
+
+  @override
+  String get authResetSent => 'ખાતું હોય તો રીસેટ લિંક મોકલવામાં આવી છે.';
+
+  @override
   String get authPasswordHint => 'ઓછામાં ઓછા 12 અક્ષરો';
 
   @override

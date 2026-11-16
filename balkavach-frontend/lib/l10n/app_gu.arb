@@ -60,6 +60,8 @@
   "authEmail": "ઇમેઇલ",
   "authEmailOrUsername": "ઇમેઇલ અથવા વપરાશકર્તા નામ",
   "authPassword": "પાસવર્ડ",
+  "authForgotPassword": "પાસવર્ડ ભૂલી ગયા છો?",
+  "authResetSent": "ખાતું હોય તો રીસેટ લિંક મોકલવામાં આવી છે.",
   "authPasswordHint": "ઓછામાં ઓછા 12 અક્ષરો",
   "authShowPassword": "પાસવર્ડ બતાવો",
   "authHidePassword": "પાસવર્ડ છુપાવો",

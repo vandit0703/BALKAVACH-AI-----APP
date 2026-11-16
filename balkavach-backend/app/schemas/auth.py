@@ -48,3 +48,21 @@ class TokenResponse(BaseModel):
 
 class RefreshRequest(BaseModel):
 	refresh_token: str = Field(min_length=20, max_length=200)
+
+
+class PasswordResetRequest(BaseModel):
+	email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+	token: str = Field(min_length=20, max_length=200)
+	password: str = Field(min_length=12, max_length=128)
+
+
+class ParentPinSetRequest(BaseModel):
+	pin: str = Field(min_length=4, max_length=8, pattern=r"^\d{4,8}$")
+
+
+class ParentPinVerifyRequest(BaseModel):
+	email: EmailStr
+	pin: str = Field(min_length=4, max_length=8, pattern=r"^\d{4,8}$")

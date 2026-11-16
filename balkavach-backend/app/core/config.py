@@ -19,6 +19,23 @@ class Settings(BaseSettings):
 	access_token_expire_minutes: int = Field(default=30, ge=1, le=1440)
 	refresh_token_expire_days: int = Field(default=30, ge=1, le=365)
 	child_refresh_token_expire_days: int = Field(default=14, ge=1, le=90)
+	login_rate_limit: int = Field(default=8, ge=1, le=100)
+	login_rate_window_seconds: int = Field(default=300, ge=10, le=3600)
+	registration_rate_limit: int = Field(default=5, ge=1, le=50)
+	password_reset_rate_limit: int = Field(default=3, ge=1, le=20)
+	password_reset_window_seconds: int = Field(default=900, ge=60, le=86400)
+	parent_pin_rate_limit: int = Field(default=5, ge=1, le=30)
+	parent_pin_window_seconds: int = Field(default=300, ge=30, le=3600)
+	password_reset_expire_minutes: int = Field(default=30, ge=5, le=1440)
+	password_reset_url: str | None = None
+	password_reset_from_email: str | None = None
+	redis_url: str | None = Field(default=None, repr=False)
+	redis_rate_limit_prefix: str = "balkavach:auth-rate-limit"
+	smtp_host: str | None = None
+	smtp_port: int = Field(default=587, ge=1, le=65535)
+	smtp_username: str | None = Field(default=None, repr=False)
+	smtp_password: str | None = Field(default=None, repr=False)
+	smtp_use_tls: bool = True
 	cors_origins: list[str] = Field(default_factory=list)
 	video_playback_provider: str | None = None
 	youtube_api_key: str | None = Field(

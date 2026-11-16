@@ -207,6 +207,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authPassword => 'Password';
 
   @override
+  String get authForgotPassword => 'Forgot password?';
+
+  @override
+  String get authResetSent =>
+      'If an account exists, a reset link has been sent.';
+
+  @override
   String get authPasswordHint => 'At least 12 characters';
 
   @override

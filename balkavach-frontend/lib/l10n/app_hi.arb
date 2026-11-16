@@ -60,6 +60,8 @@
   "authEmail": "ईमेल",
   "authEmailOrUsername": "ईमेल या उपयोगकर्ता नाम",
   "authPassword": "पासवर्ड",
+  "authForgotPassword": "पासवर्ड भूल गए?",
+  "authResetSent": "यदि खाता मौजूद है, तो रीसेट लिंक भेज दिया गया है।",
   "authPasswordHint": "कम से कम 12 अक्षर",
   "authShowPassword": "पासवर्ड दिखाएं",
   "authHidePassword": "पासवर्ड छिपाएं",

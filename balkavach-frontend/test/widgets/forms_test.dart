@@ -22,6 +22,7 @@ void main() {
         overrides: h.overrides,
       );
 
+      await tester.ensureVisible(find.byKey(const Key('auth.submit')));
       await tester.tap(find.byKey(const Key('auth.submit')));
       await tester.pumpAndSettle();
       expect(find.text('Enter a valid email address.'), findsOneWidget);
