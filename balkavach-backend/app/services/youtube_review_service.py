@@ -58,6 +58,7 @@ TRANSITIONS: dict[str, set[str]] = {
 }
 
 MAX_REPORTS_PER_USER_PER_DAY = 20
+TRUSTED_DISCOVERY_MAX_PAGES = 3
 logger = logging.getLogger(__name__)
 
 # Crude on purpose: a hit sends the candidate to quarantine for a human, it never
@@ -67,7 +68,7 @@ _DENYLIST = (
 	"weapon", "horror", "scary", "creepy", "zombie", "prank", "sexy", "sex", "nude", "naked",
 	"kiss", "kissing", "drunk", "alcohol", "beer", "drug", "drugs", "weed", "vape", "smoking",
 	"suicide", "dead", "death", "fight", "fighting", "violence", "violent", "nsfw", "18+",
-	"injection", "pregnant", "gambling", "casino", "challenge",
+	"injection", "pregnant", "gambling", "casino",
 )
 _DENYLIST_PATTERN = re.compile(
 	r"(?<![a-z0-9])(" + "|".join(re.escape(word) for word in _DENYLIST) + r")(?![a-z0-9])"
@@ -89,19 +90,27 @@ def screen_candidate(item: dict[str, Any], region_code: str | None = None) -> tu
 	details = item.get("contentDetails") or {}
 	flags: list[str] = []
 
-	if status.get("privacyStatus") != "public":
+	privacy_status = status.get("privacyStatus")
+	if privacy_status is not None and privacy_status != "public":
 		flags.append("not_public")
-	if status.get("embeddable") is not True:
+	elif privacy_status is None:
+		flags.append("privacy_status_unknown")
+	if status.get("embeddable") is False:
 		flags.append("not_embeddable")
-	if status.get("uploadStatus") not in (None, "processed"):
+	elif status.get("embeddable") is None:
+		flags.append("embeddable_unknown")
+	upload_status = status.get("uploadStatus")
+	if upload_status is not None and upload_status != "processed":
 		flags.append("not_processed")
+	elif upload_status is None:
+		flags.append("upload_status_unknown")
 	restriction = details.get("regionRestriction") or {}
 	if region_code and (
 		region_code in (restriction.get("blocked") or [])
 		or ("allowed" in restriction and region_code not in (restriction.get("allowed") or []))
 	):
 		flags.append("region_blocked")
-	if flags:
+	if any(flag in flags for flag in ("not_public", "not_embeddable", "not_processed", "region_blocked")):
 		return "unavailable", flags
 
 	quarantine = False
@@ -111,26 +120,26 @@ def screen_candidate(item: dict[str, Any], region_code: str | None = None) -> tu
 	made_for_kids = status.get("madeForKids")
 	if made_for_kids is None:
 		flags.append("made_for_kids_unknown")
-		quarantine = True
 	elif made_for_kids is not True:
 		flags.append("not_made_for_kids")
 		quarantine = True
 	if not parse_iso8601_duration(details.get("duration")):
 		flags.append("duration_unknown")
-		quarantine = True
-	if snippet.get("liveBroadcastContent") not in (None, "none"):
+	live_status = snippet.get("liveBroadcastContent")
+	if live_status not in (None, "none"):
 		flags.append("live_content")
-		quarantine = True
+	elif live_status is None:
+		flags.append("live_status_unknown")
 	text = " ".join(
 		[str(snippet.get("title") or ""), str(snippet.get("description") or "")]
 		+ [str(tag) for tag in (snippet.get("tags") or [])]
 	).lower()
 	for word in sorted(set(_DENYLIST_PATTERN.findall(text))):
 		flags.append(f"keyword:{word}")
-		quarantine = True
 	if not snippet.get("title"):
 		flags.append("missing_title")
-		quarantine = True
+	if not (snippet.get("defaultAudioLanguage") or snippet.get("defaultLanguage")):
+		flags.append("language_unknown")
 	if safe_thumbnail_url(snippet) is None:
 		flags.append("no_thumbnail")
 	return ("quarantined" if quarantine else "pending_review"), flags
@@ -245,6 +254,7 @@ def _create_candidate(
 		item = {}
 	snippet = item.get("snippet") or {}
 	duration = parse_iso8601_duration((item.get("contentDetails") or {}).get("duration"))
+	age_band = auto_age_band(trusted_channel) or (4, 12)
 	status, flags = (
 		("unavailable", ["not_returned"])
 		if not item
@@ -261,10 +271,10 @@ def _create_candidate(
 		external_video_id=video_id,
 		thumbnail_url=safe_thumbnail_url(snippet),
 		duration_seconds=min(duration or 1, 86400),
-		language_code=trusted_channel.language_code if trusted_channel is not None else _language(snippet),
-		age_min=trusted_channel.age_min if trusted_channel is not None else 4,
+		language_code=_language(snippet),
+		age_min=age_band[0],
 		category_id=trusted_channel.category_id if trusted_channel is not None else None,
-		age_max=trusted_channel.age_max if trusted_channel is not None else 12,
+		age_max=age_band[1],
 		content_rating="parent_review_required",
 		is_published=False,
 		display_order=0,
@@ -313,13 +323,12 @@ AUTO_BLOCKER_TEXT = {
 	"trusted_channel_inactive": "the trusted channel is inactive",
 	"channel_id_mismatch": "the channel does not match the trusted channel record",
 	"trusted_channel_rights_not_cleared": "the trusted channel's rights are not cleared",
-	"trusted_channel_category_unassigned": "the trusted channel needs an admin-assigned category",
 	"rights_not_cleared": "rights are not cleared for this video",
 	"review_not_pending": "the video is not awaiting review",
 	"screening_flags": "screening flags need a person to look at them",
 	"made_for_kids_not_true": "YouTube does not mark the video as made for kids",
 	"duration_exceeds_limit": "the video is longer than the automatic approval limit",
-	"age_band_not_configured": "no age band is configured for automatic approval (set YOUTUBE_AUTO_PUBLISH_AGE_BAND)",
+	"age_band_not_configured": "no supported automatic audience age band is configured (set YOUTUBE_AUTO_PUBLISH_AGE_BAND or a trusted-channel age range)",
 	"unsupported_age_band": "the audience range is not a complete age band or contiguous combination of bands",
 }
 
@@ -338,8 +347,12 @@ def auto_age_band(trusted_channel) -> tuple[int, int] | None:
 	"""Audience an automatically approved video would get, if it is a supported band."""
 	if trusted_channel is not None:
 		band = (trusted_channel.age_min, trusted_channel.age_max)
-		return band if band in YOUTUBE_AGE_RANGES else None
-	return configured_auto_age_band()
+		if band in YOUTUBE_AGE_RANGES:
+			return band
+	configured = configured_auto_age_band()
+	if configured is not None:
+		return configured
+	return (3, 15) if trusted_channel is not None else None
 
 
 def auto_approval_blocker(review, video, trusted_channel=None) -> tuple[str, dict[str, Any]] | None:
@@ -358,6 +371,8 @@ def auto_approval_blocker(review, video, trusted_channel=None) -> tuple[str, dic
 			return "channel_id_mismatch", {"trusted_channel_id": trusted_channel.channel_id}
 		if trusted_channel.rights_status != "cleared":
 			return "trusted_channel_rights_not_cleared", {"rights_status": trusted_channel.rights_status}
+	if review.rights_status == "not_cleared":
+		return "rights_not_cleared", {"rights_status": review.rights_status}
 	if trusted_channel is None and review.rights_status != "cleared":
 		return "rights_not_cleared", {"rights_status": review.rights_status}
 	if review.status != "pending_review":
@@ -370,8 +385,6 @@ def auto_approval_blocker(review, video, trusted_channel=None) -> tuple[str, dic
 		if trusted_channel is None and not (settings.youtube_auto_publish_age_band or "").strip():
 			return "age_band_not_configured", {}
 		return "unsupported_age_band", {}
-	if trusted_channel is not None and not trusted_channel.category_id:
-		return "trusted_channel_category_unassigned", {}
 	max_seconds = (
 		settings.youtube_trusted_auto_publish_max_seconds
 		if trusted_channel is not None
@@ -386,7 +399,7 @@ def auto_approval_blocker(review, video, trusted_channel=None) -> tuple[str, dic
 
 
 def _auto_publish(session: Session, actor, review, video, trusted_channel=None) -> bool:
-	"""Publish a clean, short candidate under the configured discovery policy."""
+	"""Publish a clean short or regular candidate under the configured policy."""
 	blocker = auto_approval_blocker(review, video, trusted_channel)
 	if blocker is not None:
 		reason, details = blocker
@@ -405,8 +418,10 @@ def _auto_publish(session: Session, actor, review, video, trusted_channel=None) 
 	now = _now()
 	video.age_min, video.age_max = auto_age_band(trusted_channel)
 	if trusted_channel is not None:
-		video.language_code = trusted_channel.language_code
-		video.category_id = trusted_channel.category_id
+		if trusted_channel.language_code:
+			video.language_code = trusted_channel.language_code
+		if trusted_channel.category_id is not None:
+			video.category_id = trusted_channel.category_id
 	video.content_rating = "educational"
 	video.is_published = True
 	video.published_at = now
@@ -461,7 +476,7 @@ def trust_channel(session: Session, actor, request) -> Any:
 	channel.channel_title = request.channel_title
 	channel.age_min = request.age_min
 	channel.age_max = request.age_max
-	channel.language_code = request.language_code.lower()
+	channel.language_code = request.language_code.lower() if request.language_code else None
 	channel.category_id = request.category_id
 	channel.rights_status = request.rights_status
 	channel.is_active = True
@@ -586,7 +601,7 @@ def discover_trusted(
 	max_results: int,
 	channel_id: str | None = None,
 ) -> dict[str, int]:
-	"""Discover bounded Shorts and regular-video pages for active trusted channels."""
+	"""Discover all uploads from active trusted channels, deduplicating each run."""
 	_require_tables("YouTubeContentReview", "YouTubeTrustedChannel")
 	Trusted = get_model("YouTubeTrustedChannel")
 	Review = get_model("YouTubeContentReview")
@@ -597,61 +612,198 @@ def discover_trusted(
 	if channel_id is not None:
 		channel_query = channel_query.filter(Trusted.channel_id == channel_id)
 	channels = channel_query.all()
-	counts = {"created": 0, "skipped_existing": 0, "automatically_published": 0, "quarantined": 0}
+	counts = {
+		"channels_checked": len(channels),
+		"created": 0,
+		"skipped_existing": 0,
+		"automatically_published": 0,
+		"pending_review": 0,
+		"quarantined": 0,
+		"unavailable": 0,
+		"channels_unavailable": 0,
+		"pages_checked": 0,
+		"channels_pending_initial_scan": 0,
+		"channels_pending_upload_scan": 0,
+	}
 	try:
 		for channel in channels:
-			for topic in settings.youtube_discovery_topics:
-				video_ids: list[str] = []
-				for short_only in (True, False):
-					page = client.search(
-						topic,
-						short=short_only,
-						channel_id=channel.channel_id,
-						region_code=settings.youtube_region_code,
-						max_results=max_results,
-					)
-					for video_id in page["video_ids"]:
-						if video_id not in video_ids:
-							video_ids.append(video_id)
-				existing = {
-					row[0]
-					for row in session.query(Review.youtube_video_id).filter(Review.youtube_video_id.in_(video_ids)).all()
-				} if video_ids else set()
-				counts["skipped_existing"] += len(existing)
-				pending_existing = (
+			playlist_id = client.uploads_playlist(channel.channel_id)
+			if playlist_id is None:
+				counts["channels_unavailable"] += 1
+				continue
+			initial_scan = not channel.uploads_scan_complete
+			page_token = channel.uploads_page_token
+			anchor_video_id = channel.uploads_latest_video_id
+			seen_tokens = {page_token} if page_token else set()
+			seen_video_ids: set[str] = set()
+			pages_this_run = 0
+			while pages_this_run < TRUSTED_DISCOVERY_MAX_PAGES:
+				page = client.playlist_items(playlist_id, page_token=page_token, max_results=max_results)
+				pages_this_run += 1
+				counts["pages_checked"] += 1
+				page_video_ids = [video_id for video_id in page["video_ids"] if video_id not in seen_video_ids]
+				seen_video_ids.update(page_video_ids)
+				if initial_scan and anchor_video_id is None and page_video_ids:
+					anchor_video_id = page_video_ids[0]
+					channel.uploads_latest_video_id = anchor_video_id
+				anchor_found = False
+				if not initial_scan and anchor_video_id in page_video_ids:
+					page_video_ids = page_video_ids[:page_video_ids.index(anchor_video_id)]
+					anchor_found = True
+				elif not initial_scan and anchor_video_id is None and page_video_ids:
+					channel.uploads_latest_video_id = page_video_ids[0]
+					anchor_video_id = page_video_ids[0]
+					anchor_found = True
+				video_ids = page_video_ids
+				existing_rows = (
 					session.query(Review, Video)
 					.join(Video, Video.id == Review.video_id)
-					.filter(
-						Review.youtube_video_id.in_(existing),
-						Review.channel_id == channel.channel_id,
-						Review.status == "pending_review",
-					)
+					.filter(Review.youtube_video_id.in_(video_ids))
 					.with_for_update()
 					.all()
-				)
-				for review, video in pending_existing:
-					if _auto_publish(session, actor, review, video, channel):
-						counts["automatically_published"] += 1
-				new_ids = [video_id for video_id in video_ids if video_id not in existing]
-				details = {}
-				for start in range(0, len(new_ids), 50):
-					details.update(client.videos(new_ids[start : start + 50]))
-				for video_id in new_ids:
-					result = _create_candidate(session, actor, video_id, details.get(video_id), topic, channel)
-					if result is None:
+				) if video_ids else []
+				existing = {review.youtube_video_id: (review, video) for review, video in existing_rows}
+				counts["skipped_existing"] += len(existing)
+				open_report_video_ids: set[UUID] = set()
+				if video_ids and has_model("ContentReport"):
+					Report = get_model("ContentReport")
+					open_report_video_ids = {
+						row[0]
+						for row in session.query(Report.video_id).filter(
+							Report.video_id.in_([video.id for _, video in existing_rows]),
+							Report.status == "open",
+						).all()
+					}
+				to_verify = [
+					video_id for video_id in video_ids
+					if video_id not in existing or (
+						existing[video_id][0].status == "pending_review"
+						and existing[video_id][0].channel_id == channel.channel_id
+					) or (
+						existing[video_id][0].status == "quarantined"
+						and existing[video_id][0].channel_id == channel.channel_id
+						and existing[video_id][0].reviewed_by is None
+						and bool(existing[video_id][0].screening_flags)
+						and existing[video_id][1].id not in open_report_video_ids
+					)
+				]
+				details: dict[str, dict] = {}
+				for start in range(0, len(to_verify), 50):
+					details.update(client.videos(to_verify[start : start + 50], use_cache=False))
+				for video_id in to_verify:
+					item = details.get(video_id)
+					if video_id in existing:
+						review, video = existing[video_id]
+						if review.channel_id != channel.channel_id:
+							continue
+						if review.status == "quarantined" and (
+							review.reviewed_by is not None
+							or not review.screening_flags
+							or video.id in open_report_video_ids
+						):
+							continue
+						if review.status not in {"pending_review", "quarantined"}:
+							continue
+						result = _refresh_trusted_candidate(session, actor, review, video, item, channel)
+						counts[result] += 1
+						continue
+					created = _create_candidate(session, actor, video_id, item, "trusted_channel_uploads", channel)
+					if created is None:
 						counts["skipped_existing"] += 1
 						continue
 					counts["created"] += 1
-					review, video = result
-					if review.status == "quarantined":
+					review, video = created
+					if review.status == "unavailable":
+						counts["unavailable"] += 1
+					elif review.status == "quarantined":
 						counts["quarantined"] += 1
-					elif _auto_publish(session, actor, review, video, channel):
-						counts["automatically_published"] += 1
+					else:
+						blocker = auto_approval_blocker(review, video, channel)
+						if blocker is None and _auto_publish(session, actor, review, video, channel):
+							counts["automatically_published"] += 1
+						else:
+							reason = blocker[0] if blocker else "not_published"
+							_note_waiting(review, reason)
+							counts["pending_review"] += 1
+				next_token = page["next_page_token"]
+				if initial_scan:
+					if next_token is None:
+						channel.uploads_scan_complete = True
+						channel.uploads_page_token = None
+					else:
+						channel.uploads_page_token = next_token
+				else:
+					if anchor_found:
+						channel.uploads_page_token = None
+						if video_ids:
+							channel.uploads_latest_video_id = video_ids[0]
+					elif next_token:
+						channel.uploads_page_token = next_token
+					else:
+						channel.uploads_page_token = None
+						if video_ids:
+							channel.uploads_latest_video_id = video_ids[0]
+				if not next_token or next_token in seen_tokens or anchor_found:
+					if next_token in seen_tokens and initial_scan:
+						channel.uploads_page_token = None
+					break
+				seen_tokens.add(next_token)
+				page_token = next_token
+			if not channel.uploads_scan_complete:
+				counts["channels_pending_initial_scan"] += 1
+			elif channel.uploads_page_token:
+				counts["channels_pending_upload_scan"] += 1
 	except YouTubeError as error:
 		session.rollback()
 		raise to_api_error(error) from error
 	session.commit()
 	return counts
+
+
+def _refresh_trusted_candidate(session: Session, actor, review, video, item, trusted_channel) -> str:
+	if item is None:
+		_mark_unavailable(session, actor.id, review, video, ["not_returned"])
+		return "unavailable"
+	previous_status = review.status
+	old_flags = list(review.screening_flags or [])
+	status, flags = screen_candidate(item, settings.youtube_region_code)
+	review.last_verified_at = _now()
+	review.made_for_kids = (item.get("status") or {}).get("madeForKids")
+	review.screening_flags = flags
+	if status == "unavailable":
+		_mark_unavailable(session, actor.id, review, video, flags)
+		return "unavailable"
+	if status == "quarantined":
+		if previous_status != "quarantined":
+			_move(session, actor.id, review, video, "quarantined", {"trusted_channel_flags": flags})
+		return "quarantined"
+	if previous_status == "quarantined":
+		_move(
+			session,
+			actor.id,
+			review,
+			video,
+			"pending_review",
+			{"trusted_channel_cleared_flags": old_flags},
+		)
+	snippet = item.get("snippet") or {}
+	video.title = (str(snippet.get("title") or video.title).strip() or video.title)[:200]
+	video.description = (str(snippet.get("description") or "")[:5000]) or None
+	video.thumbnail_url = safe_thumbnail_url(snippet)
+	video.language_code = _language(snippet)
+	duration = parse_iso8601_duration((item.get("contentDetails") or {}).get("duration"))
+	if duration is not None:
+		video.duration_seconds = min(duration, 86400)
+	if trusted_channel.category_id is not None:
+		video.category_id = trusted_channel.category_id
+	if not flags:
+		blocker = auto_approval_blocker(review, video, trusted_channel)
+		if blocker is None and _auto_publish(session, actor, review, video, trusted_channel):
+			return "automatically_published"
+		_note_waiting(review, blocker[0] if blocker else "not_published")
+	else:
+		_note_waiting(review, "screening_flags")
+	return "pending_review"
 
 
 def _try_auto_approve(session: Session, actor, review, video) -> tuple[bool, str | None]:

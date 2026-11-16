@@ -6,33 +6,49 @@ Written 2026-11-04. Nothing in this file is a claim that a job *is* running; eve
 
 ## 1. Automatic approval and `YOUTUBE_AUTO_PUBLISH_AGE_BAND`
 
-A discovered video is approved and published without an administrator only when
-every rule in `auto_approval_blocker`
-(`balkavach-backend/app/services/youtube_review_service.py`) passes: YouTube marks it
-made-for-kids, no screening flag (keywords, age restriction, live, unknown duration, no
-title), rights not explicitly denied, duration no longer than
-`YOUTUBE_AUTO_PUBLISH_MAX_SECONDS` (default 180), a valid audience age band, and either an
-active trusted channel or `YOUTUBE_AUTO_PUBLISH_NON_TRUSTED=true`.
+A discovered video is approved and published without an administrator only when every
+mandatory rule in `auto_approval_blocker`
+(`balkavach-backend/app/services/youtube_review_service.py`) passes: YouTube explicitly
+marks it made-for-kids, no safety or metadata review flags remain, rights are not explicitly
+denied, duration is within the applicable limit, and it has a supported age range. Trusted
+channels use `YOUTUBE_TRUSTED_AUTO_PUBLISH_MAX_SECONDS` (default 3600); other channels use
+`YOUTUBE_AUTO_PUBLISH_MAX_SECONDS` (default 180) and also require
+`YOUTUBE_AUTO_PUBLISH_NON_TRUSTED=true`.
+
+Confirmed age-restricted and explicitly not-made-for-kids videos remain quarantined. Confirmed
+private, non-embeddable, unprocessed, or region-blocked videos are unavailable. Missing metadata
+and keyword hits (including educational uses of “challenge”) wait for review and are never
+auto-published. Trusted-channel status does not override an explicit video-level rights denial.
 
 ### The age band
 
-A YouTube video in this product has exactly one audience band. The four supported bands
-are **`3-5`, `6-8`, `9-12`, `13-15`** (`YOUTUBE_AGE_BANDS`). Nothing else is accepted.
+A YouTube video has one age range. The four configured base bands are **`3-5`, `6-8`,
+`9-12`, `13-15`** (`YOUTUBE_AGE_BANDS`); contiguous combinations such as `3-15` are also
+valid trusted-channel ranges (`YOUTUBE_AGE_RANGES`). The global setting accepts only one of
+the four base bands.
 
 | Video from | Band used |
 |---|---|
-| An active **trusted channel** | That channel's own band (set when the channel is trusted). A channel whose stored band is not one of the four blocks approval (`unsupported_age_band`). |
+| An active **trusted channel** | A valid optional channel override, then `YOUTUBE_AUTO_PUBLISH_AGE_BAND`, then the supported `3-15` range. Channel age setup is not required. |
 | Any other channel | `YOUTUBE_AUTO_PUBLISH_AGE_BAND` |
 
 | `YOUTUBE_AUTO_PUBLISH_AGE_BAND` | Accepted values | Effect |
 |---|---|---|
 | `3-5`, `6-8`, `9-12`, `13-15` | exactly these | Every automatically approved non-trusted video is shown to children of **that band only**. |
-| **unset or empty** | | **No non-trusted video is auto-approved.** Each waits in "Pending" with the reason "no age band is configured for automatic approval". Trusted-channel videos still auto-approve. Nothing is guessed. |
-| anything else (`4-12`, `3-15`, `kids`) | | Treated as invalid: same as unset, reason "the audience age range is not one of 3-5, 6-8, 9-12 or 13-15". |
+| **unset or empty** | | **No non-trusted video is auto-approved.** Each waits in "Pending" with the reason "no age band is configured for automatic approval". Trusted-channel videos use the supported `3-15` range if no channel override is saved. |
+| anything else (`4-12`, `3-15`, `kids`) | | Treated as invalid for this setting. Non-trusted videos wait; trusted channels fall back to `3-15` if no supported range is saved on the channel. |
 
-Consequences to understand before setting it:
+Trusted channels are discovered from their YouTube uploads playlist. Trust triggers an
+immediate scan of up to 150 uploads; older history continues in bounded scheduled scans until
+complete. Later scans use the saved latest-upload anchor and are deduplicated. Both Shorts and
+regular videos are processed; the existing child feeds continue to split them by duration.
+Categories are optional because child feeds allow uncategorized videos. Language comes from
+YouTube metadata when available; missing language is sent to review.
 
-* One band applies to **all** non-trusted videos. Setting `9-12` shows a toddler's
+Consequences to understand before setting the global age band:
+
+* One configured band applies to **all** automatically approved videos without a valid
+  channel override. Setting `9-12` shows a toddler's
   nursery rhyme only to 9-12 year olds, and vice versa. Choose the band that is safe for the
   *content you let through*, or keep non-trusted auto-approval off
   (`YOUTUBE_AUTO_PUBLISH_NON_TRUSTED=false`) and approve by hand with a per-video band.
@@ -89,10 +105,15 @@ still shows as "approved/published" in the admin panel.
 
 ### Optional: a second job for discovery and auto-approval
 
-`python -m app.cli youtube-discover` (daily is plenty) discovers new videos, approves the eligible
-ones, then re-reviews waiting ones. It needs `YOUTUBE_DISCOVERY_ACTOR_ID` (an active admin with
-`video:write`) and `YOUTUBE_AUTO_PUBLISH_AGE_BAND`. `python -m app.cli youtube-auto-review --limit 100`
-runs only the re-review step.
+`python -m app.cli youtube-discover` discovers curated candidates, scans trusted-channel upload
+playlists, and re-reviews waiting videos. Schedule it to ingest future trusted uploads and
+continue any initial backfill. It requires `YOUTUBE_DISCOVERY_ACTOR_ID` (an active admin with
+`video:write`), `YOUTUBE_DATA_API_KEY` (or `YOUTUBE_API_KEY`), and `DATABASE_URL`. Set
+`YOUTUBE_DISCOVERY_MAX_RESULTS=50` and run hourly while large trusted-channel backfills are
+pending; each trusted channel is limited to three pages per run. `YOUTUBE_AUTO_PUBLISH_AGE_BAND`
+is optional for trusted channels; without a channel override or global band, trusted videos use
+the supported `3-15` range. `python -m app.cli youtube-auto-review --limit 100` runs only the
+re-review step and does not discover new uploads.
 
 ### How to verify it is working
 

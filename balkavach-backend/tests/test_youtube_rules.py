@@ -50,6 +50,7 @@ def video_item(video_id=VIDEO_ID, **overrides):
 			"description": "A science video for children.",
 			"channelId": "UC123",
 			"channelTitle": "Kids Science",
+			"defaultAudioLanguage": "en",
 			"publishedAt": "2025-01-02T03:04:05Z",
 			"liveBroadcastContent": "none",
 			"thumbnails": {"high": {"url": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"}},
@@ -89,6 +90,33 @@ class TestClientRequests:
 		seen = []
 		client_with(lambda r: seen.append(r) or httpx.Response(200, json={"items": []})).search("animals")
 		assert "videoDuration" not in seen[0].url.params
+
+	def test_uploads_playlist_and_playlist_pages_are_read_from_youtube(self):
+		seen = []
+
+		def handler(request):
+			seen.append(request)
+			if request.url.path.endswith("/channels"):
+				return httpx.Response(200, json={"items": [{
+					"id": "UC1111111111111111111111",
+					"contentDetails": {"relatedPlaylists": {"uploads": "UU1234567890123456789012"}},
+				}]})
+			return httpx.Response(200, json={
+				"items": [
+					{"snippet": {"resourceId": {"videoId": VIDEO_ID}}},
+					{"snippet": {"resourceId": {"videoId": VIDEO_ID}}},
+				],
+				"nextPageToken": "NEXT1",
+			})
+
+		client = client_with(handler)
+		playlist_id = client.uploads_playlist("UC1111111111111111111111")
+		page = client.playlist_items(playlist_id, max_results=2)
+		assert playlist_id == "UU1234567890123456789012"
+		assert page == {"video_ids": [VIDEO_ID], "next_page_token": "NEXT1"}
+		assert seen[0].url.params["part"] == "contentDetails"
+		assert seen[1].url.params["playlistId"] == playlist_id
+		assert seen[1].url.params["maxResults"] == "2"
 
 	def test_empty_results(self):
 		page = client_with(lambda r: httpx.Response(200, json={})).search("art")
@@ -265,17 +293,45 @@ class TestScreening:
 		("override", "flag"),
 		[
 			({"status__madeForKids": False}, "not_made_for_kids"),
-			({"status__madeForKids": None}, "made_for_kids_unknown"),
 			({"contentDetails__contentRating": {"ytRating": "ytAgeRestricted"}}, "age_restricted"),
-			({"contentDetails__duration": "P0D"}, "duration_unknown"),
-			({"snippet__liveBroadcastContent": "live"}, "live_content"),
-			({"snippet__title": "Scary zombie prank"}, "keyword:zombie"),
-			({"snippet__tags": ["Horror"]}, "keyword:horror"),
 		],
 	)
-	def test_uncertain_videos_are_quarantined(self, override, flag):
+	def test_explicit_child_safety_restrictions_are_quarantined(self, override, flag):
 		status, flags = screen_candidate(video_item(**override))
 		assert status == "quarantined" and flag in flags
+
+	@pytest.mark.parametrize(
+		("override", "flag"),
+		[
+			({"status__madeForKids": None}, "made_for_kids_unknown"),
+			({"contentDetails__duration": "P0D"}, "duration_unknown"),
+			({"snippet__liveBroadcastContent": "live"}, "live_content"),
+			({"snippet__liveBroadcastContent": None}, "live_status_unknown"),
+			({"snippet__title": "Scary zombie prank"}, "keyword:zombie"),
+			({"snippet__tags": ["Horror"]}, "keyword:horror"),
+			({"snippet__title": ""}, "missing_title"),
+			({"snippet__defaultAudioLanguage": None}, "language_unknown"),
+		],
+	)
+	def test_uncertain_or_heuristic_flags_go_to_review(self, override, flag):
+		status, flags = screen_candidate(video_item(**override))
+		assert status == "pending_review" and flag in flags
+
+	def test_educational_challenge_is_not_a_keyword_flag(self):
+		status, flags = screen_candidate(video_item(snippet__title="A science challenge for kids"))
+		assert status == "pending_review" and not any(flag.startswith("keyword:") for flag in flags)
+
+	@pytest.mark.parametrize(
+		("status_values", "flag"),
+		[
+			({"privacyStatus": None}, "privacy_status_unknown"),
+			({"embeddable": None}, "embeddable_unknown"),
+			({"uploadStatus": None}, "upload_status_unknown"),
+		],
+	)
+	def test_missing_playability_metadata_goes_to_review(self, status_values, flag):
+		status, flags = screen_candidate(video_item(**{f"status__{key}": value for key, value in status_values.items()}))
+		assert status == "pending_review" and flag in flags
 
 	def test_keywords_match_whole_words_only(self):
 		assert screen_candidate(video_item(snippet__title="Skilled gunnery? no: warthogs and killdeer birds"))[0] == "pending_review"
@@ -329,6 +385,16 @@ class TestTransitions:
 	)
 	def test_allowed(self, current, target):
 		assert can_transition(current, target)
+
+	def test_trusted_channel_request_needs_no_age_language_or_category_overrides(self):
+		from app.schemas.video import YouTubeTrustedChannelRequest
+
+		request = YouTubeTrustedChannelRequest(
+			channel_id="UC1111111111111111111111",
+			rights_status="cleared",
+		)
+		assert request.age_min is None and request.age_max is None
+		assert request.language_code is None and request.category_id is None
 
 	@pytest.mark.parametrize(
 		("current", "target"),

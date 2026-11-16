@@ -252,42 +252,23 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
     if (ok && mounted) _reloadAll();
   }
 
-  Future<void> _trustChannel(
-    Map<String, dynamic> row,
-    BuildContext dialogContext,
-  ) async {
+  Future<void> _addChannel() async {
     final l10n = AppLocalizations.of(context);
-    final channelId = '${row['channel_id'] ?? ''}';
-    if (channelId.isEmpty || !mounted) return;
-    final categories = await _activeVideoCategories();
-    if (categories == null || !mounted) return;
+    if (_bulkRunning) return;
     final values = await showFormDialog(
       context,
       title: l10n.youtubeTrustChannelTitle,
       fields: [
         FormFieldSpec(
-          key: 'age_band',
-          label: l10n.youtubeAgeBand,
-          kind: FieldKind.choice,
+          key: 'channel_id',
+          label: 'YouTube channel ID',
           required: true,
-          options: _ageBands,
-          initial: _ageBands.keys.first,
+          maxLength: 64,
         ),
         FormFieldSpec(
-          key: 'language_code',
-          label: l10n.fieldLanguage,
-          kind: FieldKind.choice,
-          required: true,
-          options: kLanguageNames,
-          initial: 'en',
-        ),
-        FormFieldSpec(
-          key: 'category_id',
-          label: l10n.youtubeVideoCategory,
-          kind: FieldKind.choice,
-          required: true,
-          options: categories,
-          initial: categories.keys.first,
+          key: 'channel_title',
+          label: 'Channel name',
+          maxLength: 200,
         ),
         FormFieldSpec(
           key: 'rights_cleared',
@@ -309,23 +290,35 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
       showMessage(context, l10n.youtubeRightsRequired);
       return;
     }
-    final range = (values.remove('age_band') as String).split('-');
     values
       ..remove('rights_cleared')
-      ..['channel_id'] = channelId
-      ..['channel_title'] = row['channel_title']
-      ..['age_min'] = int.parse(range.first)
-      ..['age_max'] = int.parse(range.last)
       ..['rights_status'] = 'cleared';
-    final ok = await runAction(
-      context,
-      () => ref
-          .read(adminApiProvider)
-          .post('/api/v1/admin/videos/youtube/channels/trust', values),
-    );
-    if (ok && mounted && dialogContext.mounted) {
-      Navigator.pop(dialogContext);
+    setState(() {
+      _bulkRunning = true;
+      _bulkProgress = 'Trusting channel and discovering uploads';
+    });
+    try {
+      final result = await ref.read(adminApiProvider).post(
+        '/api/v1/admin/videos/youtube/channels/trust',
+        values,
+      );
+      if (!mounted) return;
+      final discovery = result['initial_discovery'] as Map<String, dynamic>? ??
+          const <String, dynamic>{};
+      showMessage(
+        context,
+        'Discovered ${discovery['created'] ?? 0}; automatically published '
+        '${discovery['automatically_published'] ?? 0}; pending review '
+        '${discovery['pending_review'] ?? 0}; quarantined '
+        '${discovery['quarantined'] ?? 0}; unavailable '
+        '${discovery['unavailable'] ?? 0}; channels still scanning '
+        '${discovery['channels_pending_initial_scan'] ?? 0}.',
+      );
       _reloadAll();
+    } on Object catch (error) {
+      if (mounted) showMessage(context, 'Initial channel discovery failed: $error');
+    } finally {
+      if (mounted) setState(() => _bulkRunning = false);
     }
   }
 
@@ -448,11 +441,6 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
             FilledButton(
               onPressed: () => _revoke(row, dialogContext),
               child: Text(l10n.youtubeActionRevoke),
-            ),
-          if (_canWrite && row['channel_id'] != null)
-            TextButton(
-              onPressed: () => _trustChannel(row, dialogContext),
-              child: Text(l10n.youtubeTrustChannel),
             ),
           if (_canWrite && row['channel_id'] != null)
             TextButton(
@@ -673,6 +661,13 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
           title: l10n.youtubeReviewsTitle,
           subtitle: l10n.youtubeReviewsSubtitle,
           actions: [
+            if (_canWrite)
+              OutlinedButton.icon(
+                key: const Key('youtube.addChannel'),
+                onPressed: _bulkRunning ? null : _addChannel,
+                icon: const Icon(Icons.add_link),
+                label: const Text('Add channel'),
+              ),
             if (_canWrite)
               FilledButton.icon(
                 key: const Key('youtube.autoReview'),

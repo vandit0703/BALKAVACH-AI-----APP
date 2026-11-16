@@ -407,13 +407,12 @@ def admin_youtube_trust_channel(
 	session: Session = Depends(get_db),
 ) -> YouTubeTrustedChannelPublic:
 	channel = youtube_review_service.trust_channel(session, admin, request)
-	try:
-		youtube_review_service.discover_trusted(
-			session, admin, get_youtube_client(), 10, channel_id=channel.channel_id
-		)
-	except Exception:
-		logger.exception("Initial trusted-channel discovery failed for %s", channel.channel_id)
-	return YouTubeTrustedChannelPublic.model_validate(channel)
+	discovery = youtube_review_service.discover_trusted(
+		session, admin, get_youtube_client(), 50, channel_id=channel.channel_id
+	)
+	channel_data = YouTubeTrustedChannelPublic.model_validate(channel).model_dump()
+	channel_data["initial_discovery"] = discovery
+	return YouTubeTrustedChannelPublic(**channel_data)
 
 
 @admin_router.post("/youtube/channels/{channel_id}/untrust", response_model=YouTubeTrustedChannelPublic)

@@ -27,6 +27,7 @@ def _item(video_id: str, duration: str = "PT45S", **status):
 			"description": "Learning for children.",
 			"channelId": TRUSTED_CHANNEL_ID,
 			"channelTitle": "Kids Science",
+			"defaultAudioLanguage": "en",
 			"liveBroadcastContent": "none",
 			"thumbnails": {"high": {"url": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"}},
 		},
@@ -45,6 +46,8 @@ class FakeYouTube:
 			REGULAR_ID: _item(REGULAR_ID, "PT5M"),
 		}
 		self.search_calls = []
+		self.upload_calls = []
+		self.upload_ids = list(self.items)
 
 	def search(self, topic, **kwargs):
 		self.search_calls.append(kwargs)
@@ -54,6 +57,18 @@ class FakeYouTube:
 
 	def videos(self, ids, use_cache=True):
 		return {video_id: self.items[video_id] for video_id in ids if video_id in self.items}
+
+	def uploads_playlist(self, channel_id):
+		self.upload_calls.append(channel_id)
+		return f"UU{channel_id[2:]}"
+
+	def playlist_items(self, playlist_id, *, page_token=None, max_results=50):
+		start = int(page_token or 0)
+		end = start + max_results
+		return {
+			"video_ids": self.upload_ids[start:end],
+			"next_page_token": str(end) if end < len(self.upload_ids) else None,
+		}
 
 
 @pytest.fixture
@@ -209,7 +224,7 @@ def test_trusted_channel_rights_are_inherited_on_existing_pending_candidate(api,
 	assert review.publication_source == "automatic"
 	assert video.is_published is True
 	assert (video.age_min, video.age_max) == (6, 8)
-	assert {call.get("short") for call in youtube.search_calls} >= {True, False}
+	assert youtube.upload_calls == [TRUSTED_CHANNEL_ID]
 	regular_review = api.session.query(Review).filter(Review.youtube_video_id == REGULAR_ID).one()
 	regular_video = api.session.query(Video).filter(Video.id == regular_review.video_id).one()
 	assert regular_review.status == "approved"
@@ -221,21 +236,17 @@ def test_trusting_channel_discovers_and_publishes_both_video_formats(api, youtub
 	if not has_model("YouTubeTrustedChannel"):
 		pytest.skip("Migration 0010 is not applied to the test database")
 	admin = api.make_admin()
-	category_id = _science_category(api)
 	response = api.post(
 		"/admin/videos/youtube/channels/trust",
 		admin["token"],
 		{
 			"channel_id": TRUSTED_CHANNEL_ID,
 			"channel_title": "Kids Science",
-			"age_min": 6,
-			"age_max": 8,
-			"language_code": "en",
-			"category_id": str(category_id),
 			"rights_status": "cleared",
 		},
 	)
 	assert response.status_code == 200, response.text
+	assert response.json()["initial_discovery"]["automatically_published"] == 2
 	Review = get_model("YouTubeContentReview")
 	Video = get_model("Video")
 	for video_id in (VIDEO_ID, REGULAR_ID):
@@ -243,8 +254,72 @@ def test_trusting_channel_discovers_and_publishes_both_video_formats(api, youtub
 		video = api.session.query(Video).filter_by(id=review.video_id).one()
 		assert review.status == "approved"
 		assert video.is_published is True
-		assert video.category_id == category_id
-	assert {call.get("short") for call in youtube.search_calls} >= {True, False}
+		assert video.category_id is None
+	assert youtube.upload_calls == [TRUSTED_CHANNEL_ID]
+
+
+def test_trusted_channel_discovers_future_uploads_and_keeps_formats_separate(api, youtube):
+	if not has_model("YouTubeTrustedChannel"):
+		pytest.skip("Migration 0010 is not applied to the test database")
+	admin = api.make_admin()
+	ctx = _family_with_age(api, age=10)
+	youtube.upload_ids = [VIDEO_ID, REGULAR_ID, VIDEO_ID]
+	response = api.post(
+		"/admin/videos/youtube/channels/trust",
+		admin["token"],
+		{"channel_id": TRUSTED_CHANNEL_ID, "rights_status": "cleared"},
+	)
+	assert response.status_code == 200, response.text
+	assert response.json()["initial_discovery"]["created"] == 2
+	assert response.json()["initial_discovery"]["automatically_published"] == 2
+
+	future_id = "futvideo123"
+	youtube.items[future_id] = _item(future_id)
+	youtube.upload_ids.insert(0, future_id)
+	actor = api.session.query(get_model("User")).filter_by(id=admin["id"]).one()
+	first_future_run = discover_trusted(api.session, actor, youtube, max_results=1)
+	second_future_run = discover_trusted(api.session, actor, youtube, max_results=1)
+	assert first_future_run["created"] == 1
+	assert first_future_run["automatically_published"] == 1
+	assert second_future_run["created"] == 0
+	assert second_future_run["automatically_published"] == 0
+
+	short_ids = _feed_ids(api, ctx["child"]["token"], "/videos/shorts")
+	regular_ids = _feed_ids(api, ctx["child"]["token"], "/videos/feed")
+	assert short_ids == {VIDEO_ID, future_id}
+	assert regular_ids == {REGULAR_ID}
+
+
+def test_trusted_channel_does_not_override_explicit_video_rights_denial(api, youtube):
+	if not has_model("YouTubeTrustedChannel"):
+		pytest.skip("Migration 0010 is not applied to the test database")
+	admin = api.make_admin()
+	actor = api.session.query(get_model("User")).filter_by(id=admin["id"]).one()
+	discover(api.session, actor, youtube, YouTubeDiscoverRequest(topic="science"))
+	Review = get_model("YouTubeContentReview")
+	Video = get_model("Video")
+	review = api.session.query(Review).filter_by(youtube_video_id=VIDEO_ID).one()
+	video = api.session.query(Video).filter_by(id=review.video_id).one()
+	review.rights_status = "not_cleared"
+	api.session.commit()
+	trusted = get_model("YouTubeTrustedChannel")(
+		channel_id=TRUSTED_CHANNEL_ID,
+		age_min=9,
+		age_max=12,
+		language_code="en",
+		rights_status="cleared",
+		is_active=True,
+		created_by=actor.id,
+	)
+	api.session.add(trusted)
+	api.session.commit()
+	youtube.upload_ids = [VIDEO_ID]
+	discover_trusted(api.session, actor, youtube, max_results=50)
+	api.session.refresh(review)
+	api.session.refresh(video)
+	assert review.status == "pending_review"
+	assert review.rights_status == "not_cleared"
+	assert video.is_published is False
 
 
 def test_child_watch_history_is_independent_and_completed_shorts_leave_feed(api, youtube):
@@ -675,15 +750,16 @@ def test_auto_approved_video_gets_the_configured_supported_age_band(api, youtube
 	assert "unsupported_age_band" not in batch.json()["blocked_by_reason"]
 
 
-def test_unknown_duration_is_quarantined_and_in_neither_feed(api, youtube):
+def test_unknown_duration_requires_review_and_is_in_neither_feed(api, youtube):
 	"""A duration YouTube does not report (P0D) is screened as ``duration_unknown``:
-	it is quarantined, cannot be approved without re-evaluation, and is in no feed."""
+	it waits for review, cannot be approved without resolving the flag, and is in no feed."""
 	youtube.items[VIDEO_ID] = _item(VIDEO_ID, duration="P0D")
 	admin = api.make_admin()
 	ctx = _family_with_age(api, 7)
 	review = _discover(api, admin)[VIDEO_ID]
-	assert review["status"] == "quarantined" and "duration_unknown" in review["screening_flags"]
-	assert _approve(api, admin, review["id"]).status_code == 409
+	assert review["status"] == "pending_review" and "duration_unknown" in review["screening_flags"]
+	approval = _approve(api, admin, review["id"])
+	assert approval.status_code == 409 and approval.json()["error"]["code"] == "youtube_screening_failed"
 	token = ctx["child"]["token"]
 	assert VIDEO_ID not in _feed_items(api, token, "/videos/shorts")
 	assert VIDEO_ID not in _feed_items(api, token, "/videos/feed")

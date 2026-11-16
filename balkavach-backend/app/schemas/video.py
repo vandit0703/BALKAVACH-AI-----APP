@@ -239,16 +239,18 @@ class YouTubeDiscoverResult(BaseModel):
 class YouTubeTrustedChannelRequest(BaseModel):
 	channel_id: str = Field(pattern=r"^UC[A-Za-z0-9_-]{22}$", max_length=64)
 	channel_title: str | None = Field(default=None, max_length=200)
-	age_min: int = Field(ge=3, le=15)
-	age_max: int = Field(ge=3, le=15)
-	language_code: str = Field(min_length=2, max_length=10)
+	age_min: int | None = Field(default=None, ge=3, le=15)
+	age_max: int | None = Field(default=None, ge=3, le=15)
+	language_code: str | None = Field(default=None, min_length=2, max_length=10)
 	category_id: UUID | None = None
 	rights_status: Literal["cleared"]
 	notes: str | None = Field(default=None, max_length=2000)
 
 	@model_validator(mode="after")
 	def validate_age_range(self):
-		if (self.age_min, self.age_max) not in YOUTUBE_AGE_RANGES:
+		if (self.age_min is None) != (self.age_max is None):
+			raise ValueError("Provide both age bounds or leave both unconfigured")
+		if self.age_min is not None and (self.age_min, self.age_max) not in YOUTUBE_AGE_RANGES:
 			raise ValueError("Choose a complete supported age band or contiguous combination of bands")
 		return self
 
@@ -259,9 +261,9 @@ class YouTubeTrustedChannelPublic(BaseModel):
 	id: UUID
 	channel_id: str
 	channel_title: str | None
-	age_min: int
-	age_max: int
-	language_code: str
+	age_min: int | None
+	age_max: int | None
+	language_code: str | None
 	category_id: UUID | None
 	rights_status: str
 	is_active: bool
@@ -269,6 +271,8 @@ class YouTubeTrustedChannelPublic(BaseModel):
 	created_at: datetime
 	updated_at: datetime
 	notes: str | None
+	uploads_scan_complete: bool = False
+	initial_discovery: dict[str, int | bool] | None = None
 
 
 class YouTubeApproveRequest(BaseModel):

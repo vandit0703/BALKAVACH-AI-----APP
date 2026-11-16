@@ -44,6 +44,8 @@ class Video(Base):
 	content_rating: Mapped[str] = mapped_column(String(30), default="parent_review_required")
 	is_published: Mapped[bool] = mapped_column(Boolean, default=False)
 	published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+	display_order: Mapped[int] = mapped_column(Integer, default=0)
+	uploaded_by: Mapped[object | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
 
 
 class Review(Base):
@@ -51,13 +53,18 @@ class Review(Base):
 	id: Mapped[object] = _id()
 	video_id: Mapped[object] = mapped_column(Uuid(as_uuid=True))
 	youtube_video_id: Mapped[str] = mapped_column(String(11), unique=True)
+	source_url: Mapped[str] = mapped_column(Text, default="")
+	discovery_topic: Mapped[str | None] = mapped_column(String(80), nullable=True)
 	channel_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+	channel_title: Mapped[str | None] = mapped_column(String(200), nullable=True)
+	source_published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 	made_for_kids: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
 	status: Mapped[str] = mapped_column(String(20), default="discovered")
 	screening_flags: Mapped[list] = mapped_column(JSON, default=list)
 	rights_status: Mapped[str] = mapped_column(String(20), default="unreviewed")
 	reviewed_by: Mapped[object | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
 	reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+	discovered_by: Mapped[object | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
 	last_verified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 	updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 	youtube_category_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
@@ -71,10 +78,13 @@ class Trusted(Base):
 	channel_id: Mapped[str] = mapped_column(String(64))
 	is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 	rights_status: Mapped[str] = mapped_column(String(20), default="cleared")
-	age_min: Mapped[int] = mapped_column(Integer, default=6)
-	age_max: Mapped[int] = mapped_column(Integer, default=8)
-	language_code: Mapped[str] = mapped_column(String(10), default="en")
+	age_min: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
+	age_max: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
+	language_code: Mapped[str | None] = mapped_column(String(10), nullable=True, default=None)
 	category_id: Mapped[object | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+	uploads_scan_complete: Mapped[bool] = mapped_column(Boolean, default=False)
+	uploads_page_token: Mapped[str | None] = mapped_column(String(128), nullable=True)
+	uploads_latest_video_id: Mapped[str | None] = mapped_column(String(11), nullable=True)
 
 
 class Report(Base):
@@ -113,6 +123,7 @@ def _yt(video_id, duration="PT45S", title="Counting with animals", **status):
 			"title": title,
 			"description": "Learning for children.",
 			"channelId": CHANNEL,
+			"defaultAudioLanguage": "en",
 			"liveBroadcastContent": "none",
 			"thumbnails": {"high": {"url": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"}},
 		},
@@ -124,6 +135,7 @@ def _yt(video_id, duration="PT45S", title="Counting with animals", **status):
 class FakeYouTube:
 	def __init__(self, *items, error=None):
 		self.items = {item["id"]: item for item in items}
+		self.upload_ids = list(self.items)
 		self.error = error
 		self.calls = 0
 
@@ -132,6 +144,17 @@ class FakeYouTube:
 		if self.error:
 			raise self.error
 		return {i: self.items[i] for i in ids if i in self.items}
+
+	def uploads_playlist(self, channel_id):
+		return f"UU{channel_id[2:]}"
+
+	def playlist_items(self, playlist_id, *, page_token=None, max_results=50):
+		start = int(page_token or 0)
+		end = start + max_results
+		return {
+			"video_ids": self.upload_ids[start:end],
+			"next_page_token": str(end) if end < len(self.upload_ids) else None,
+		}
 
 
 @pytest.fixture
@@ -218,13 +241,25 @@ def test_valid_video_is_approved_and_published_automatically(session):
 	assert row.rights_status == "cleared" and video.content_rating == "educational"
 
 
-def test_keyword_hit_is_quarantined_not_published(session):
+def test_keyword_hit_requires_review_and_is_not_published(session):
 	row, video = _add(session, "aaaaaaaaaaa")
 	result = _run(session, FakeYouTube(_yt("aaaaaaaaaaa", title="Zombie fight night")))
 	session.refresh(row), session.refresh(video)
-	assert result["newly_quarantined"] == 1 and result["auto_approved"] == 0
-	assert (row.status, video.is_published) == ("quarantined", False)
+	assert result["needs_manual_review"] == 1 and result["auto_approved"] == 0
+	assert (row.status, video.is_published) == ("pending_review", False)
 	assert {"keyword:zombie", "keyword:fight"} <= set(row.screening_flags)
+
+
+def test_educational_challenge_title_can_be_automatically_published(session):
+	row, video = _add(session, "aaaaaaaaaaa")
+	result = _run(
+		session,
+		FakeYouTube(_yt("aaaaaaaaaaa", title="A science challenge for kids")),
+	)
+	session.refresh(row), session.refresh(video)
+	assert result["auto_approved"] == 1
+	assert row.status == "approved" and video.is_published
+	assert not row.screening_flags
 
 
 @pytest.mark.parametrize("override", [{"embeddable": False}, {"privacyStatus": "private"}])
@@ -243,13 +278,14 @@ def test_video_missing_from_youtube_is_unavailable(session):
 	assert row.status == "unavailable" and not video.is_published
 
 
-def test_made_for_kids_unknown_is_quarantined(session):
+def test_made_for_kids_unknown_waits_for_review(session):
 	row, _ = _add(session, "aaaaaaaaaaa")
 	item = _yt("aaaaaaaaaaa")
 	item["status"]["madeForKids"] = None
 	result = _run(session, FakeYouTube(item))
 	session.refresh(row)
-	assert row.status == "quarantined" and "made_for_kids_unknown" in result["quarantine_reasons"]
+	assert row.status == "pending_review" and result["needs_manual_review"] == 1
+	assert "made_for_kids_unknown" in row.screening_flags
 
 
 def test_youtube_outage_changes_nothing_and_is_retryable(session):
@@ -303,12 +339,13 @@ def test_quarantine_with_cleared_flags_is_reevaluated_and_approved(session):
 	assert (row.status, video.is_published, row.screening_flags) == ("approved", True, [])
 
 
-def test_quarantine_that_still_fails_stays_quarantined_with_reasons(session):
+def test_heuristic_quarantine_returns_to_review_with_reasons(session):
 	row, video = _add(session, "aaaaaaaaaaa", "quarantined", flags=["keyword:fight"])
 	result = _run(session, FakeYouTube(_yt("aaaaaaaaaaa", title="Big fight")))
 	session.refresh(row)
-	assert result["still_quarantined"] == 1 and result["quarantine_reasons"] == {"keyword:fight": 1}
-	assert (row.status, video.is_published) == ("quarantined", False)
+	assert result["returned_to_pending"] == 1 and result["needs_manual_review"] == 1
+	assert result["blocked_reasons"] == {"screening:keyword:fight": 1}
+	assert (row.status, video.is_published) == ("pending_review", False)
 
 
 def test_report_and_administrator_quarantines_are_left_for_a_person(session):
@@ -369,6 +406,151 @@ def test_trusted_channel_values_apply(session):
 	assert (video.age_min, video.age_max, video.language_code) == (6, 8, "hi")
 
 
+def test_trusted_channel_without_overrides_uses_existing_age_rules(session, monkeypatch):
+	monkeypatch.setattr(settings, "youtube_auto_publish_age_band", None)
+	session.add(Trusted(channel_id=CHANNEL, rights_status="cleared", is_active=True))
+	row, video = _add(session, "aaaaaaaaaaa")
+	result = _run(session, FakeYouTube(_yt("aaaaaaaaaaa")))
+	session.refresh(video)
+	assert result["auto_approved"] == 1
+	assert (video.age_min, video.age_max) == (3, 15)
+	assert video.category_id is None and video.language_code == "en"
+
+
+def test_trusted_discovery_publishes_all_formats_and_future_uploads(session):
+	short_id = "aaaaaaaaaaa"
+	regular_id = "bbbbbbbbbbb"
+	older_ids = ["ccccccccccc", "ddddddddddd"]
+	trusted = Trusted(channel_id=CHANNEL, rights_status="cleared", is_active=True)
+	session.add(trusted)
+	client = FakeYouTube(
+		_yt(short_id),
+		_yt(regular_id, duration="PT5M"),
+		*[_yt(video_id) for video_id in older_ids],
+	)
+	first = svc.discover_trusted(session, ACTOR, client, max_results=1)
+	assert first["created"] == 3 and first["automatically_published"] == 3
+	assert first["channels_pending_initial_scan"] == 1
+	backfill = svc.discover_trusted(session, ACTOR, client, max_results=1)
+	assert backfill["created"] == 1 and backfill["channels_pending_initial_scan"] == 0
+	assert first["pending_review"] == first["quarantined"] == first["unavailable"] == 0
+	assert svc.video_format("youtube", 45) == "short"
+	assert svc.video_format("youtube", 300) == "regular"
+
+	future_ids = ["eeeeeeeeeee", "fffffffffff", "ggggggggggg", "hhhhhhhhhhh"]
+	for video_id in future_ids:
+		client.items[video_id] = _yt(video_id)
+	client.upload_ids[0:0] = reversed(future_ids)
+	future = svc.discover_trusted(session, ACTOR, client, max_results=1)
+	future_backfill = svc.discover_trusted(session, ACTOR, client, max_results=1)
+	repeat = svc.discover_trusted(session, ACTOR, client, max_results=1)
+	assert future["created"] == 3 and future["automatically_published"] == 3
+	assert future["channels_pending_upload_scan"] == 1
+	assert future_backfill["created"] == 1 and future_backfill["channels_pending_upload_scan"] == 0
+	assert repeat["created"] == 0 and repeat["automatically_published"] == 0
+	assert session.query(Review).count() == 8 and session.query(Video).count() == 8
+
+
+def test_existing_trusted_channel_automatically_processes_pending_upload(session):
+	video_id = "iiiiiiiiiii"
+	trusted = Trusted(
+		channel_id=CHANNEL,
+		rights_status="cleared",
+		is_active=True,
+		age_min=9,
+		age_max=12,
+		language_code="hi",
+	)
+	session.add(trusted)
+	row, video = _add(session, video_id, rights_status="unreviewed")
+	result = svc.discover_trusted(session, ACTOR, FakeYouTube(_yt(video_id)), max_results=50)
+	session.refresh(row), session.refresh(video)
+	assert result["automatically_published"] == 1
+	assert row.status == "approved" and row.rights_status == "cleared"
+	assert row.publication_source == "automatic" and video.is_published
+	assert (video.age_min, video.age_max, video.language_code) == (9, 12, "hi")
+
+
+def test_trusted_discovery_recovers_old_heuristic_quarantine(session):
+	video_id = "jjjjjjjjjjj"
+	session.add(Trusted(channel_id=CHANNEL, rights_status="cleared", is_active=True))
+	row, video = _add(
+		session,
+		video_id,
+		"quarantined",
+		flags=["keyword:challenge"],
+	)
+	result = svc.discover_trusted(
+		session,
+		ACTOR,
+		FakeYouTube(_yt(video_id, title="A science challenge for kids")),
+		max_results=50,
+	)
+	session.refresh(row), session.refresh(video)
+	assert result["automatically_published"] == 1
+	assert row.status == "approved" and row.screening_flags == [] and video.is_published
+
+
+def test_trusted_discovery_preserves_admin_and_report_quarantines(session):
+	session.add(Trusted(channel_id=CHANNEL, rights_status="cleared", is_active=True))
+	reported, reported_video = _add(
+		session,
+		"kkkkkkkkkkk",
+		"quarantined",
+		flags=["keyword:fight"],
+	)
+	admin_review, admin_video = _add(
+		session,
+		"lllllllllll",
+		"quarantined",
+		flags=["age_restricted"],
+		reviewed_by=uuid4(),
+	)
+	session.add(Report(video_id=reported_video.id, status="open"))
+	session.commit()
+	client = FakeYouTube(
+		_yt("kkkkkkkkkkk"),
+		_yt("lllllllllll"),
+	)
+	result = svc.discover_trusted(session, ACTOR, client, max_results=50)
+	session.refresh(reported), session.refresh(admin_review)
+	session.refresh(reported_video), session.refresh(admin_video)
+	assert result["automatically_published"] == 0
+	assert (reported.status, reported_video.is_published) == ("quarantined", False)
+	assert (admin_review.status, admin_video.is_published) == ("quarantined", False)
+	assert client.calls == 0
+
+
+@pytest.mark.parametrize("override,expected_status", [
+	({"madeForKids": False}, "quarantined"),
+	({"contentRating": {"ytRating": "ytAgeRestricted"}}, "quarantined"),
+])
+def test_trusted_discovery_never_publishes_confirmed_safety_restrictions(session, override, expected_status):
+	video_id = "ddddddddddd"
+	item = _yt(video_id)
+	if "madeForKids" in override:
+		item["status"]["madeForKids"] = override["madeForKids"]
+	else:
+		item["contentDetails"]["contentRating"] = override["contentRating"]
+	session.add(Trusted(channel_id=CHANNEL, rights_status="cleared", is_active=True))
+	result = svc.discover_trusted(session, ACTOR, FakeYouTube(item), max_results=50)
+	row = session.query(Review).one()
+	video = session.query(Video).one()
+	assert result["quarantined"] == 1
+	assert row.status == expected_status and not video.is_published
+
+
+def test_trusted_discovery_preserves_explicit_video_rights_denial(session):
+	video_id = "eeeeeeeeeee"
+	session.add(Trusted(channel_id=CHANNEL, rights_status="cleared", is_active=True))
+	row, video = _add(session, video_id, rights_status="not_cleared")
+	result = svc.discover_trusted(session, ACTOR, FakeYouTube(_yt(video_id)), max_results=50)
+	session.refresh(row), session.refresh(video)
+	assert result["pending_review"] == 1
+	assert row.status == "pending_review" and row.rights_status == "not_cleared"
+	assert not video.is_published
+
+
 # --- age bands ---------------------------------------------------------------
 
 @pytest.mark.parametrize("band", ["3-5", "6-8", "9-12", "13-15"])
@@ -399,12 +581,13 @@ def test_no_band_is_guessed_when_none_valid_is_configured(session, monkeypatch, 
 	assert row.publication_reason.startswith("Waiting for manual review")
 
 
-def test_trusted_channel_with_an_unsupported_band_is_blocked(session):
+def test_trusted_channel_with_an_unsupported_override_uses_global_band(session):
 	session.add(Trusted(channel_id=CHANNEL, age_min=4, age_max=12))
 	row, video = _add(session, "aaaaaaaaaaa")
 	result = _run(session, FakeYouTube(_yt("aaaaaaaaaaa")))
 	session.refresh(video)
-	assert result["blocked_reasons"] == {"unsupported_age_band": 1} and not video.is_published
+	assert result["auto_approved"] == 1 and not result["blocked_reasons"]
+	assert (video.age_min, video.age_max) == (6, 8) and video.is_published
 
 
 def test_trusted_channel_band_is_used_not_the_non_trusted_setting(session):

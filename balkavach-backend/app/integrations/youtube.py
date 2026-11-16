@@ -250,6 +250,51 @@ class YouTubeClient:
 			next_token = None
 		return {"video_ids": video_ids, "next_page_token": next_token}
 
+	def uploads_playlist(self, channel_id: str) -> str | None:
+		"""Return the uploads playlist for a well-formed YouTube channel id."""
+		if not re.fullmatch(r"UC[A-Za-z0-9_-]{22}", channel_id):
+			raise ValueError("Malformed channel id")
+		data = self._get("channels", {"part": "contentDetails", "id": channel_id, "maxResults": 1})
+		for item in data.get("items") or []:
+			if (item or {}).get("id") != channel_id:
+				continue
+			playlist_id = (((item or {}).get("contentDetails") or {}).get("relatedPlaylists") or {}).get("uploads")
+			if isinstance(playlist_id, str) and re.fullmatch(r"[A-Za-z0-9_-]{10,64}", playlist_id):
+				return playlist_id
+		return None
+
+	def playlist_items(
+		self,
+		playlist_id: str,
+		*,
+		page_token: str | None = None,
+		max_results: int = 50,
+	) -> dict:
+		"""Return one page of upload playlist video ids."""
+		if not re.fullmatch(r"[A-Za-z0-9_-]{10,64}", playlist_id):
+			raise ValueError("Malformed playlist id")
+		if page_token is not None and not PAGE_TOKEN_PATTERN.fullmatch(page_token):
+			raise ValueError("Malformed page token")
+		if not 1 <= max_results <= 50:
+			raise ValueError("max_results must be between 1 and 50")
+		params: dict[str, Any] = {
+			"part": "snippet,contentDetails",
+			"playlistId": playlist_id,
+			"maxResults": max_results,
+		}
+		if page_token:
+			params["pageToken"] = page_token
+		data = self._get("playlistItems", params)
+		video_ids: list[str] = []
+		for item in data.get("items") or []:
+			video_id = (((item or {}).get("snippet") or {}).get("resourceId") or {}).get("videoId")
+			if isinstance(video_id, str) and VIDEO_ID_PATTERN.fullmatch(video_id) and video_id not in video_ids:
+				video_ids.append(video_id)
+		next_token = data.get("nextPageToken")
+		if not (isinstance(next_token, str) and PAGE_TOKEN_PATTERN.fullmatch(next_token)):
+			next_token = None
+		return {"video_ids": video_ids, "next_page_token": next_token}
+
 	def videos(self, video_ids: list[str], *, use_cache: bool = True) -> dict[str, dict]:
 		"""``videos.list`` for up to 50 ids, keyed by id. Ids YouTube does not return are absent."""
 		unique = list(dict.fromkeys(video_ids))
