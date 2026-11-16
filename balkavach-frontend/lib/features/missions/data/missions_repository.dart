@@ -7,6 +7,7 @@ import '../../../core/errors/api_exception.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/json_utils.dart';
 import '../../../shared/media/photo_picker.dart';
+import '../domain/daily_mission_models.dart';
 import '../domain/mission_models.dart';
 
 /// `GET /tasks` page size limit (`le=100` on the server) and our page cap.
@@ -22,6 +23,21 @@ class MissionsRepository {
   MissionsRepository(this._dio);
 
   final Dio _dio;
+
+  Future<DailyMissionChoices> getDailyChoices() => guardApi(() async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/v1/daily-missions/today',
+    );
+    return DailyMissionChoices.fromJson(response.data!);
+  });
+
+  Future<DailyMissionAssignment> selectDailyMission(String assignmentId) =>
+      guardApi(() async {
+        final response = await _dio.post<Map<String, dynamic>>(
+          '/api/v1/daily-missions/$assignmentId/select',
+        );
+        return DailyMissionAssignment.fromJson(response.data!);
+      });
 
   /// `GET /api/v1/tasks/categories` (any signed-in user).
   Future<List<TaskCategory>> listCategories() => guardApi(() async {

@@ -17,6 +17,7 @@ class _MissionsPageState extends ConsumerState<MissionsPage> {
   final _search = TextEditingController();
   String _query = '';
   String _state = '';
+  int _catalogRevision = 0;
 
   @override
   void dispose() {
@@ -49,6 +50,11 @@ class _MissionsPageState extends ConsumerState<MissionsPage> {
               onChanged: (v) => setState(() => _state = v),
             ),
           ],
+        ),
+        _DailyMissionCatalog(
+          revision: _catalogRevision,
+          canWrite: canWrite,
+          onChanged: () => setState(() => _catalogRevision++),
         ),
         PagedTable(
           reloadKey: '$_query|$_state',
@@ -125,6 +131,67 @@ class _MissionsPageState extends ConsumerState<MissionsPage> {
           },
         ),
       ],
+    );
+  }
+}
+
+class _DailyMissionCatalog extends ConsumerWidget {
+  const _DailyMissionCatalog({
+    required this.revision,
+    required this.canWrite,
+    required this.onChanged,
+  });
+
+  final int revision;
+  final bool canWrite;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      key: ValueKey(revision),
+      future: ref.read(adminApiProvider).getList(
+        '/api/v1/admin/daily-missions/templates',
+      ),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final templates = snapshot.data!;
+        return Card(
+          child: ExpansionTile(
+            title: Text(l10n.navMissions),
+            subtitle: Text(l10n.colActiveMissions),
+            children: [
+              for (final template in templates)
+                ListTile(
+                  title: Text('${template['slug']}'),
+                  subtitle: Text(
+                    '${template['theme']} - ${template['mission_type']}',
+                  ),
+                  trailing: canWrite
+                      ? Switch(
+                          value: template['is_published'] == true,
+                          onChanged: (publish) async {
+                            final done = await runAction(
+                              context,
+                              () => ref.read(adminApiProvider).patch(
+                                '/api/v1/admin/daily-missions/templates/${template['id']}/publish',
+                                {},
+                                query: {'publish': publish},
+                              ),
+                              success: publish
+                                  ? l10n.statusActive
+                                  : l10n.statusDeactivated,
+                            );
+                            if (done) onChanged();
+                          },
+                        )
+                      : null,
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

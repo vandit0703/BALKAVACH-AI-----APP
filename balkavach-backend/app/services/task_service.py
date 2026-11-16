@@ -56,6 +56,19 @@ def submit_completion(session: Session, task_id: UUID, child, request: TaskSubmi
 	)
 	session.add(submission)
 	session.flush()
+	DailyMissionAssignment = get_model("DailyMissionAssignment")
+	daily_assignment = (
+		session.query(DailyMissionAssignment)
+		.filter(
+			DailyMissionAssignment.task_id == task.id,
+			DailyMissionAssignment.child_id == child.id,
+			DailyMissionAssignment.is_current.is_(True),
+		)
+		.with_for_update()
+		.one_or_none()
+	)
+	if daily_assignment is not None:
+		daily_assignment.status = "pending_parent_approval"
 	if request.proof_upload_id:
 		claim_upload_for_submission(session, child, request.proof_upload_id, submission.id)
 	for parent_id in family_parent_ids(session, task.family_id):
@@ -108,6 +121,19 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 	now = utc_naive(datetime.now(timezone.utc))
 	submission.status = request.decision
 	submission.reviewed_at = now
+	DailyMissionAssignment = get_model("DailyMissionAssignment")
+	daily_assignment = (
+		session.query(DailyMissionAssignment)
+		.filter(
+			DailyMissionAssignment.task_id == task.id,
+			DailyMissionAssignment.child_id == submission.child_id,
+			DailyMissionAssignment.is_current.is_(True),
+		)
+		.with_for_update()
+		.one_or_none()
+	)
+	if daily_assignment is not None:
+		daily_assignment.status = "approved" if request.decision == "approved" else "rejected"
 	session.add(
 		TaskReview(
 			submission_id=submission.id,
@@ -132,6 +158,22 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 					description=f"Approved task: {task.title}",
 				)
 			)
+		if daily_assignment is not None:
+			mystery_bonus = (daily_assignment.snapshot or {}).get("mystery_bonus")
+			if isinstance(mystery_bonus, dict) and mystery_bonus.get("type") == "stars":
+				bonus = int(mystery_bonus.get("amount", 0))
+				if bonus > 0:
+					StarTransaction = get_model("StarTransaction")
+					session.add(
+						StarTransaction(
+							child_id=child.id,
+							amount=bonus,
+							transaction_type="daily_surprise_bonus",
+							submission_id=submission.id,
+							idempotency_key=f"daily-surprise:{submission.id}:stars",
+							description="Daily Surprise Mission bonus",
+						)
+					)
 		if task.xp_reward:
 			XPTransaction = get_model("XPTransaction")
 			session.add(
