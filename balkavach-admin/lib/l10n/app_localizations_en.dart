@@ -418,10 +418,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get youtubeReviewsSubtitle =>
-      'Review candidates before they can appear in a child video feed.';
+      'Find channels, trust them, and review videos that need attention.';
 
   @override
   String get youtubeDiscover => 'Discover candidates';
+
+  @override
+  String get youtubeDiscoverChannels => 'Discover channels';
+
+  @override
+  String get youtubeTrustedChannels => 'Trusted channels';
+
+  @override
+  String get youtubeChannelSearchHint => 'Search YouTube channels';
+
+  @override
+  String get youtubeNoChannelsFound => 'No channels found.';
+
+  @override
+  String get youtubeNoTrustedChannels => 'No channels trusted yet.';
+
+  @override
+  String get youtubeChannelTrusted => 'Trusted';
+
+  @override
+  String get youtubeChannelNotTrusted => 'Not trusted';
+
+  @override
+  String get youtubeUntrustConfirm =>
+      'Stop discovering and publishing from this channel?';
+
+  @override
+  String get youtubeReviewQueue => 'Videos for review';
+
+  @override
+  String get youtubeNoReviewVideos => 'No videos need review.';
 
   @override
   String get youtubeRecheck => 'Recheck approved videos';

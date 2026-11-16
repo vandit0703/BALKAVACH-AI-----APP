@@ -39,6 +39,7 @@ from app.integrations.youtube import (
 	canonical_watch_url,
 	parse_iso8601_duration,
 	parse_youtube_video_id,
+	safe_channel_thumbnail_url,
 	safe_thumbnail_url,
 	to_api_error,
 )
@@ -474,6 +475,7 @@ def trust_channel(session: Session, actor, request) -> Any:
 		channel = Trusted(channel_id=request.channel_id, created_by=actor.id)
 		session.add(channel)
 	channel.channel_title = request.channel_title
+	channel.thumbnail_url = safe_channel_thumbnail_url(request.thumbnail_url)
 	channel.age_min = request.age_min
 	channel.age_max = request.age_max
 	channel.language_code = request.language_code.lower() if request.language_code else None

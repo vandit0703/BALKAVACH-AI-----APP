@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, require_admin_permission, require_child, require_parent
-from app.integrations.youtube import get_youtube_client
+from app.integrations.youtube import YouTubeError, get_youtube_client, to_api_error
 from app.db.base import get_model
 from app.db.session import get_db
 from app.schemas.video import (
@@ -31,6 +31,7 @@ from app.schemas.video import (
 	YouTubeDiscoverResult,
 	YouTubeApprovedPublishRequest,
 	YouTubeApprovedPublishResult,
+	YouTubeChannelDiscoveryPublic,
 	YouTubeAutoReviewRequest,
 	YouTubeAutoReviewResult,
 	YouTubeDiagnosticsPublic,
@@ -397,6 +398,27 @@ def admin_youtube_channels(
 	return [
 		YouTubeTrustedChannelPublic.model_validate(row)
 		for row in youtube_review_service.list_trusted_channels(session, limit, offset)
+	]
+
+
+@admin_router.get("/youtube/channels/discover", response_model=list[YouTubeChannelDiscoveryPublic])
+def admin_youtube_discover_channels(
+	query: str = Query(min_length=2, max_length=100),
+	max_results: int = Query(default=10, ge=1, le=25),
+	admin=Depends(require_admin_permission("video:read")),
+	session: Session = Depends(get_db),
+) -> list[YouTubeChannelDiscoveryPublic]:
+	try:
+		results = get_youtube_client().search_channels(query, max_results=max_results)
+	except YouTubeError as error:
+		raise to_api_error(error) from error
+	Trusted = get_model("YouTubeTrustedChannel")
+	trusted_ids = {
+		row[0] for row in session.query(Trusted.channel_id).filter(Trusted.is_active.is_(True)).all()
+	}
+	return [
+		YouTubeChannelDiscoveryPublic(**channel, is_trusted=channel["channel_id"] in trusted_ids)
+		for channel in results
 	]
 
 

@@ -34,6 +34,7 @@ _WATCH_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com"}
 _EMBED_HOSTS = _WATCH_HOSTS | {"www.youtube-nocookie.com", "youtube-nocookie.com"}
 _SHORT_HOSTS = {"youtu.be"}
 _THUMBNAIL_HOSTS = {"i.ytimg.com"}
+_CHANNEL_THUMBNAIL_HOSTS = {"yt3.ggpht.com", "yt3.googleusercontent.com"}
 
 QUOTA_REASONS = {"quotaExceeded", "dailyLimitExceeded", "rateLimitExceeded", "userRateLimitExceeded"}
 KEY_REASONS = {"keyInvalid", "keyExpired", "accessNotConfigured", "forbidden", "ipRefererBlocked"}
@@ -110,6 +111,15 @@ def safe_thumbnail_url(snippet: dict[str, Any]) -> str | None:
 		parts = urlsplit(url)
 		if parts.scheme == "https" and (parts.hostname or "").lower() in _THUMBNAIL_HOSTS:
 			return url
+	return None
+
+
+def safe_channel_thumbnail_url(value: str | None) -> str | None:
+	if not isinstance(value, str):
+		return None
+	parts = urlsplit(value)
+	if parts.scheme == "https" and (parts.hostname or "").lower() in _CHANNEL_THUMBNAIL_HOSTS:
+		return value
 	return None
 
 
@@ -262,6 +272,46 @@ class YouTubeClient:
 			if isinstance(playlist_id, str) and re.fullmatch(r"[A-Za-z0-9_-]{10,64}", playlist_id):
 				return playlist_id
 		return None
+
+	def search_channels(self, query: str, *, max_results: int = 10) -> list[dict[str, str | None]]:
+		"""Search public YouTube channels for an administrator's trust workflow."""
+		query = query.strip()
+		if not 2 <= len(query) <= 100:
+			raise ValueError("Channel search must contain between 2 and 100 characters")
+		if not 1 <= max_results <= 25:
+			raise ValueError("max_results must be between 1 and 25")
+		data = self._get(
+			"search",
+			{
+				"part": "snippet",
+				"q": query,
+				"type": "channel",
+				"safeSearch": "strict",
+				"maxResults": max_results,
+			},
+		)
+		channels: list[dict[str, str | None]] = []
+		seen: set[str] = set()
+		for item in data.get("items") or []:
+			channel_id = ((item or {}).get("id") or {}).get("channelId")
+			snippet = (item or {}).get("snippet") or {}
+			if not isinstance(channel_id, str) or not re.fullmatch(r"UC[A-Za-z0-9_-]{22}", channel_id):
+				continue
+			if channel_id in seen:
+				continue
+			seen.add(channel_id)
+			thumbnails = snippet.get("thumbnails") or {}
+			thumbnail_url = next((
+				safe_channel_thumbnail_url((thumbnails.get(size) or {}).get("url"))
+				for size in ("high", "medium", "default")
+				if safe_channel_thumbnail_url((thumbnails.get(size) or {}).get("url"))
+			), None)
+			channels.append({
+				"channel_id": channel_id,
+				"channel_title": str(snippet.get("title") or "").strip() or None,
+				"thumbnail_url": thumbnail_url,
+			})
+		return channels
 
 	def playlist_items(
 		self,

@@ -118,6 +118,49 @@ class TestClientRequests:
 		assert seen[1].url.params["playlistId"] == playlist_id
 		assert seen[1].url.params["maxResults"] == "2"
 
+	def test_channel_search_is_strict_deduplicated_and_filters_thumbnails(self):
+		seen = []
+
+		def handler(request):
+			seen.append(request)
+			return httpx.Response(200, json={"items": [
+				{
+					"id": {"channelId": "UC1111111111111111111111"},
+					"snippet": {
+						"title": "Science channel",
+						"thumbnails": {"default": {"url": "https://yt3.ggpht.com/channel.png"}},
+					},
+				},
+				{
+					"id": {"channelId": "UC1111111111111111111111"},
+					"snippet": {"title": "Duplicate"},
+				},
+				{
+					"id": {"channelId": "UC2222222222222222222222"},
+					"snippet": {
+						"title": "Unsafe image",
+						"thumbnails": {"default": {"url": "https://evil.example/channel.png"}},
+					},
+				},
+			]})
+
+		channels = client_with(handler).search_channels("science", max_results=7)
+		assert channels == [
+			{
+				"channel_id": "UC1111111111111111111111",
+				"channel_title": "Science channel",
+				"thumbnail_url": "https://yt3.ggpht.com/channel.png",
+			},
+			{
+				"channel_id": "UC2222222222222222222222",
+				"channel_title": "Unsafe image",
+				"thumbnail_url": None,
+			},
+		]
+		assert seen[0].url.params["type"] == "channel"
+		assert seen[0].url.params["safeSearch"] == "strict"
+		assert seen[0].url.params["maxResults"] == "7"
+
 	def test_empty_results(self):
 		page = client_with(lambda r: httpx.Response(200, json={})).search("art")
 		assert page == {"video_ids": [], "next_page_token": None}

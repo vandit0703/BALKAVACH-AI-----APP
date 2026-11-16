@@ -70,6 +70,13 @@ class FakeYouTube:
 			"next_page_token": str(end) if end < len(self.upload_ids) else None,
 		}
 
+	def search_channels(self, query, *, max_results=10):
+		return [{
+			"channel_id": TRUSTED_CHANNEL_ID,
+			"channel_title": "Kids Science",
+			"thumbnail_url": "https://yt3.ggpht.com/channel.png",
+		}]
+
 
 @pytest.fixture
 def youtube(api, monkeypatch):
@@ -101,6 +108,23 @@ def _discover(api, admin, auto=False):
 def _approve(api, admin, review_id, **overrides):
 	body = {"age_min": 6, "age_max": 8, "language_code": "en", "rights_status": "cleared", **overrides}
 	return api.post(f"/admin/videos/youtube/reviews/{review_id}/approve", admin["token"], body)
+
+
+def test_admin_can_discover_channels_and_see_trust_status(api, youtube):
+	if not has_model("YouTubeTrustedChannel"):
+		pytest.skip("Migration 0010 is not applied to the test database")
+	admin = api.make_admin()
+	response = api.get(
+		"/admin/videos/youtube/channels/discover?query=science",
+		admin["token"],
+	)
+	assert response.status_code == 200, response.text
+	assert response.json() == [{
+		"channel_id": TRUSTED_CHANNEL_ID,
+		"channel_title": "Kids Science",
+		"thumbnail_url": "https://yt3.ggpht.com/channel.png",
+		"is_trusted": False,
+	}]
 
 
 def _feed_ids(api, token, path=None):

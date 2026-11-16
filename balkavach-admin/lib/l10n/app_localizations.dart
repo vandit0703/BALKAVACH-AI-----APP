@@ -883,7 +883,7 @@ abstract class AppLocalizations {
   /// No description provided for @youtubeReviewsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Review candidates before they can appear in a child video feed.'**
+  /// **'Find channels, trust them, and review videos that need attention.'**
   String get youtubeReviewsSubtitle;
 
   /// No description provided for @youtubeDiscover.
@@ -891,6 +891,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Discover candidates'**
   String get youtubeDiscover;
+
+  /// No description provided for @youtubeDiscoverChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover channels'**
+  String get youtubeDiscoverChannels;
+
+  /// No description provided for @youtubeTrustedChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted channels'**
+  String get youtubeTrustedChannels;
+
+  /// No description provided for @youtubeChannelSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search YouTube channels'**
+  String get youtubeChannelSearchHint;
+
+  /// No description provided for @youtubeNoChannelsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No channels found.'**
+  String get youtubeNoChannelsFound;
+
+  /// No description provided for @youtubeNoTrustedChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'No channels trusted yet.'**
+  String get youtubeNoTrustedChannels;
+
+  /// No description provided for @youtubeChannelTrusted.
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted'**
+  String get youtubeChannelTrusted;
+
+  /// No description provided for @youtubeChannelNotTrusted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not trusted'**
+  String get youtubeChannelNotTrusted;
+
+  /// No description provided for @youtubeUntrustConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop discovering and publishing from this channel?'**
+  String get youtubeUntrustConfirm;
+
+  /// No description provided for @youtubeReviewQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos for review'**
+  String get youtubeReviewQueue;
+
+  /// No description provided for @youtubeNoReviewVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'No videos need review.'**
+  String get youtubeNoReviewVideos;
 
   /// No description provided for @youtubeRecheck.
   ///

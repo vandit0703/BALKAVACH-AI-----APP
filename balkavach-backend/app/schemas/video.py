@@ -239,6 +239,7 @@ class YouTubeDiscoverResult(BaseModel):
 class YouTubeTrustedChannelRequest(BaseModel):
 	channel_id: str = Field(pattern=r"^UC[A-Za-z0-9_-]{22}$", max_length=64)
 	channel_title: str | None = Field(default=None, max_length=200)
+	thumbnail_url: str | None = Field(default=None, max_length=1000)
 	age_min: int | None = Field(default=None, ge=3, le=15)
 	age_max: int | None = Field(default=None, ge=3, le=15)
 	language_code: str | None = Field(default=None, min_length=2, max_length=10)
@@ -261,6 +262,7 @@ class YouTubeTrustedChannelPublic(BaseModel):
 	id: UUID
 	channel_id: str
 	channel_title: str | None
+	thumbnail_url: str | None = None
 	age_min: int | None
 	age_max: int | None
 	language_code: str | None
@@ -273,6 +275,13 @@ class YouTubeTrustedChannelPublic(BaseModel):
 	notes: str | None
 	uploads_scan_complete: bool = False
 	initial_discovery: dict[str, int | bool] | None = None
+
+
+class YouTubeChannelDiscoveryPublic(BaseModel):
+	channel_id: str
+	channel_title: str | None
+	thumbnail_url: str | None
+	is_trusted: bool = False
 
 
 class YouTubeApproveRequest(BaseModel):

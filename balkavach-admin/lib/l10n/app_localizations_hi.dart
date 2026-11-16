@@ -416,10 +416,40 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get youtubeReviewsSubtitle =>
-      'बच्चों की वीडियो सूची में दिखने से पहले उम्मीदवारों की समीक्षा करें।';
+      'चैनल खोजें, उन्हें विश्वसनीय बनाएँ और समीक्षा वाले वीडियो देखें।';
 
   @override
   String get youtubeDiscover => 'उम्मीदवार खोजें';
+
+  @override
+  String get youtubeDiscoverChannels => 'चैनल खोजें';
+
+  @override
+  String get youtubeTrustedChannels => 'विश्वसनीय चैनल';
+
+  @override
+  String get youtubeChannelSearchHint => 'YouTube चैनल खोजें';
+
+  @override
+  String get youtubeNoChannelsFound => 'कोई चैनल नहीं मिला।';
+
+  @override
+  String get youtubeNoTrustedChannels => 'अभी कोई चैनल विश्वसनीय नहीं है।';
+
+  @override
+  String get youtubeChannelTrusted => 'विश्वसनीय';
+
+  @override
+  String get youtubeChannelNotTrusted => 'विश्वसनीय नहीं';
+
+  @override
+  String get youtubeUntrustConfirm => 'क्या इस चैनल की खोज और प्रकाशन रोकें?';
+
+  @override
+  String get youtubeReviewQueue => 'समीक्षा के लिए वीडियो';
+
+  @override
+  String get youtubeNoReviewVideos => 'समीक्षा के लिए कोई वीडियो नहीं है।';
 
   @override
   String get youtubeRecheck => 'स्वीकृत वीडियो फिर जाँचें';
