@@ -6,6 +6,7 @@ import '../../../core/storage/app_preferences.dart';
 import '../../../shared/media/photo_picker.dart';
 import '../../authentication/presentation/session_controller.dart';
 import '../data/missions_repository.dart';
+import '../domain/daily_mission_models.dart';
 import '../domain/mission_models.dart';
 import '../domain/mission_status.dart';
 
@@ -27,6 +28,11 @@ final childMissionsProvider = FutureProvider<List<Mission>>((ref) {
   final childId = ref.watch(activeChildIdProvider);
   if (childId == null) return const <Mission>[];
   return ref.watch(missionsRepositoryProvider).listMissions();
+});
+
+final dailyMissionChoicesProvider = FutureProvider<DailyMissionChoices>((ref) {
+  ref.watch(activeChildIdProvider);
+  return ref.watch(missionsRepositoryProvider).getDailyChoices();
 });
 
 /// Missions for the parent's family.

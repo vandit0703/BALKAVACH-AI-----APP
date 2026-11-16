@@ -9,9 +9,13 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/async/refresh_quietly.dart';
 import '../../../shared/models/app_assets.dart';
+import '../../../shared/widgets/app_card.dart';
+import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/gamification.dart';
 import '../../../shared/widgets/lazy_list_page.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../data/missions_repository.dart';
+import '../domain/daily_mission_models.dart';
 import '../domain/mission_models.dart';
 import '../domain/mission_status.dart';
 import 'mission_providers.dart';
@@ -91,6 +95,7 @@ class _MissionsScreenState extends ConsumerState<MissionsScreen> {
         return LazyListPage(
           maxWidth: columns == 2 ? ContentWidth.wide : ContentWidth.list,
           header: [
+            const _DailyChoices(),
             if (snapshot != null && !snapshot.reviewsAvailable)
               InlineNotice(message: l10n.reviewsUnavailable),
             if (usedCategories.isNotEmpty)
@@ -144,6 +149,104 @@ class _MissionsScreenState extends ConsumerState<MissionsScreen> {
         );
       },
     );
+  }
+}
+
+class _DailyChoices extends ConsumerStatefulWidget {
+  const _DailyChoices();
+
+  @override
+  ConsumerState<_DailyChoices> createState() => _DailyChoicesState();
+}
+
+class _DailyChoicesState extends ConsumerState<_DailyChoices> {
+  String? _selecting;
+
+  Future<void> _select(String assignmentId) async {
+    if (_selecting != null) return;
+    setState(() => _selecting = assignmentId);
+    final selected = await AsyncValue.guard<DailyMissionAssignment>(
+      () => ref.read(missionsRepositoryProvider).selectDailyMission(assignmentId),
+    );
+    if (!mounted) return;
+    setState(() => _selecting = null);
+    final taskId = selected.value?.taskId;
+    if (taskId != null) {
+      ref.invalidate(dailyMissionChoicesProvider);
+      await context.push(AppRoutes.childMission(taskId));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final choices = ref.watch(dailyMissionChoicesProvider);
+    return switch (choices) {
+      AsyncData(value: final value) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            AppLocalizations.of(context).missionsTitle,
+            style: context.text.headlineSmall,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.md,
+            runSpacing: AppSpacing.md,
+            children: [
+              for (final choice in value.choices)
+                SizedBox(
+                  width: 280,
+                  child: AppCard(
+                    color: choice.content.isSurprise
+                        ? context.colors.tertiaryContainer
+                        : context.colors.surfaceContainerLow,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          choice.content.isSurprise
+                              ? Icons.auto_awesome_rounded
+                              : Icons.explore_rounded,
+                          color: context.colors.primary,
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          choice.content.title,
+                          style: context.text.titleLarge,
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(choice.content.description),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          AppLocalizations.of(context).missionEarn(
+                            choice.content.starReward,
+                          ),
+                          style: context.text.labelLarge,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        PrimaryButton(
+                          label: AppLocalizations.of(context).missionStartMission,
+                          icon: Icons.play_arrow_rounded,
+                          loading: _selecting == choice.id,
+                          onPressed: choice.isSelectable
+                              ? () => _select(choice.id)
+                              : choice.taskId == null
+                              ? null
+                              : () async => context.push(
+                                AppRoutes.childMission(choice.taskId!),
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+        ],
+      ),
+      _ => const SizedBox.shrink(),
+    };
   }
 }
 

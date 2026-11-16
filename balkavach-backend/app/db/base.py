@@ -60,6 +60,9 @@ MODEL_TABLES = {
 	"YouTubeContentReview": "youtube_content_reviews",
 	"YouTubeTrustedChannel": "youtube_trusted_channels",
 	"ContentReport": "content_reports",
+	"DailyMissionTemplate": "daily_mission_templates",
+	"DailyMissionVariation": "daily_mission_variations",
+	"DailyMissionAssignment": "daily_mission_assignments",
 }
 
 _prepare_lock = RLock()
