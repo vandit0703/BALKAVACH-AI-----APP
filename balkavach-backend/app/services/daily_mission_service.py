@@ -21,6 +21,13 @@ THEMES_BY_WEEKDAY = {
     5: "saturday_rhythm_rockstar",
     6: "sunday_future_inventor",
 }
+REQUIRED_AGE_BANDS = ("4_6", "7_10", "11_15")
+REQUIRED_LOCALES = ("en", "gu", "hi")
+
+
+def has_complete_localized_variations(rows) -> bool:
+    required = {(age_band, locale) for age_band in REQUIRED_AGE_BANDS for locale in REQUIRED_LOCALES}
+    return required.issubset(set(rows))
 
 
 def age_band_for_birth_date(birth_date: date, today: date) -> str | None:
@@ -243,9 +250,24 @@ def start_assignment(session: Session, child, assignment_id: UUID):
 
 def skip_assignment(session: Session, child, assignment_id: UUID):
     Assignment = get_model("DailyMissionAssignment")
-    row = session.query(Assignment).filter(Assignment.id == assignment_id, Assignment.child_id == child.id, Assignment.is_current.is_(True), Assignment.status == "available").with_for_update().one_or_none()
+    row = session.query(Assignment).filter(
+        Assignment.id == assignment_id,
+        Assignment.child_id == child.id,
+        Assignment.is_current.is_(True),
+        Assignment.status.in_(["available", "selected", "in_progress", "rejected"]),
+    ).with_for_update().one_or_none()
     if row is None:
-        raise APIError(409, "daily_mission_cannot_skip", "Only an unselected mission can be skipped")
+        raise APIError(409, "daily_mission_cannot_skip", "This mission cannot be skipped while it is awaiting review or already approved")
+    if row.task_id is not None:
+        TaskSubmission = get_model("TaskSubmission")
+        if session.query(TaskSubmission.id).filter(
+            TaskSubmission.task_id == row.task_id,
+            TaskSubmission.child_id == child.id,
+            TaskSubmission.status == "pending",
+        ).first() is not None:
+            raise APIError(409, "daily_mission_cannot_skip", "A submitted mission must be reviewed before it can be skipped")
+        Task = get_model("Task")
+        session.query(Task).filter(Task.id == row.task_id).update({"is_active": False})
     row.status = "skipped"
     row.is_current = False
     row.skipped_at = utc_naive(_now())
@@ -258,7 +280,7 @@ def weekly_summary(session: Session, child, now_utc: datetime | None = None):
     today = local_today(session, child.family_id, now_utc)
     week_start = today - timedelta(days=today.weekday())
     Assignment = get_model("DailyMissionAssignment")
-    rows = session.query(Assignment).filter(Assignment.child_id == child.id, Assignment.local_date >= week_start, Assignment.local_date <= today).all()
+    rows = session.query(Assignment).filter(Assignment.child_id == child.id, Assignment.local_date >= week_start, Assignment.local_date <= today).order_by(Assignment.created_at.asc()).all()
     approved = [row for row in rows if row.status == "approved"]
     return {
         "week_start": week_start,
@@ -267,5 +289,11 @@ def weekly_summary(session: Session, child, now_utc: datetime | None = None):
         "approved_xp": sum(int(row.snapshot.get("xp_reward", 0)) for row in approved),
         "approved_stars": sum(int(row.snapshot.get("star_reward", 0)) for row in approved),
         "skipped_count": sum(row.status == "skipped" for row in rows),
-        "daily_status": {row.local_date.isoformat(): row.status for row in rows if row.is_current},
+        "daily_status": {
+            local_date.isoformat(): status
+            for local_date, status in (
+                (day, next(row.status for row in reversed(rows) if row.local_date == day))
+                for day in {row.local_date for row in rows}
+            )
+        },
     }

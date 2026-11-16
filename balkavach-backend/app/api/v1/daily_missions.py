@@ -26,6 +26,7 @@ from app.services.daily_mission_service import (
     select_assignment,
     skip_assignment,
     start_assignment,
+    has_complete_localized_variations,
     weekly_summary,
 )
 from app.services.timezone_service import family_timezone_name
@@ -214,9 +215,13 @@ def publish_daily_template(template_id: UUID, publish: bool, admin=Depends(requi
     if row is None:
         raise APIError(404, "daily_template_not_found", "Daily mission template not found")
     if publish:
-        count = session.query(Variation.id).filter(Variation.template_id == row.id).count()
-        if count < 3:
-            raise APIError(422, "daily_template_incomplete", "Publish requires all three age-band variations")
+        variations = session.query(Variation.age_band, Variation.locale).filter(Variation.template_id == row.id).all()
+        if not has_complete_localized_variations(variations):
+            raise APIError(
+                422,
+                "daily_template_incomplete",
+                "Publish requires English, Gujarati, and Hindi content for all age bands",
+            )
     row.is_published = publish
     _commit(session)
     return {"id": row.id, "is_published": row.is_published}

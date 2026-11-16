@@ -4,7 +4,10 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.daily_mission import DailyMissionVariationCreate
-from app.services.daily_mission_service import age_band_for_birth_date
+from app.services.daily_mission_service import (
+    age_band_for_birth_date,
+    has_complete_localized_variations,
+)
 
 
 def test_age_band_uses_server_date_and_birthday_boundary():
@@ -41,3 +44,13 @@ def test_variation_accepts_safe_completion_contract():
         duration_minutes=8,
     )
     assert variation.age_band == "4_6"
+
+
+def test_publishing_requires_all_age_bands_in_all_supported_locales():
+    complete = [
+        (age_band, locale)
+        for age_band in ("4_6", "7_10", "11_15")
+        for locale in ("en", "gu", "hi")
+    ]
+    assert has_complete_localized_variations(complete)
+    assert not has_complete_localized_variations(complete[:-1])
