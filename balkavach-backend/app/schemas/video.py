@@ -117,10 +117,12 @@ class VideoFeedItem(BaseModel):
 	# Only for approved YouTube videos, which play in the official embedded
 	# player. Hosted videos never expose a media URL here.
 	youtube_video_id: str | None = None
+	last_position_seconds: int = 0
 
 
 class VideoWatchProgressRequest(BaseModel):
 	position_seconds: int = Field(ge=0, le=86400)
+	is_playing: bool = True
 
 
 class VideoWatchHistoryPublic(BaseModel):

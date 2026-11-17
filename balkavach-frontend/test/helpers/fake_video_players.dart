@@ -164,11 +164,14 @@ class EmbedRecorder {
       _FakeEmbed(config: config, recorder: this);
 
   YouTubeEmbedConfig only() {
-    if (mounted.length != 1) {
-      throw StateError('expected one embed, found ${mounted.keys.toList()}');
+    final playing = mounted.values.where((config) => config.autoplay).toList();
+    if (playing.length != 1) {
+      throw StateError('expected one active embed, found ${playing.length}');
     }
-    return mounted.values.single;
+    return playing.single;
   }
+
+  int get activeCount => mounted.values.where((config) => config.autoplay).length;
 }
 
 class _FakeEmbed extends StatefulWidget {

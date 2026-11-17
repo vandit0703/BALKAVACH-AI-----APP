@@ -1,10 +1,11 @@
 """Mission-earned video access entitlement and daily allowance management.
 
-Phase 3 Product Rules:
+Mission reward allowance rules:
 - Parent approval is mandatory before video time is granted.
 - Each approved mission grants 900 seconds (15 minutes) of video access.
 - Daily stacking is additive (15m, 30m, 45m, 60m).
-- Default daily cap is 3,600 seconds (60 minutes), configurable up to 14,400 seconds (4 hours).
+- Mission grants have a separate daily cap of 3,600 seconds (60 minutes) by default,
+  configurable up to 14,400 seconds (4 hours). The 900-second free allowance is additional.
 - The daily cap is enforced against the total mission allowance *granted today* in the
   family's local calendar day, NOT remaining balance. Consumed time does not create room.
 - Idempotency is enforced by unique submission_id on video_access_entitlements.
@@ -29,6 +30,7 @@ from app.utils import utc_naive
 logger = logging.getLogger(__name__)
 
 MISSION_REWARD_ALLOWANCE_SECONDS = 900  # 15 minutes per mission
+FREE_DAILY_ALLOWANCE_SECONDS = 900  # 15 minutes for every child
 DEFAULT_DAILY_ALLOWANCE_SECONDS = 3600  # 60 minutes default cap
 MIN_DAILY_ALLOWANCE_SECONDS = 900  # 15 minutes minimum cap
 MAX_DAILY_ALLOWANCE_SECONDS = 14400  # 4 hours maximum allowed cap
@@ -62,7 +64,7 @@ def get_child_video_allowance_today(
     family_id: UUID,
     now_utc: datetime | None = None,
 ) -> dict[str, Any]:
-    """Calculate the child's mission video allowance for the family's local calendar day."""
+    """Calculate free and mission video allowance for the family-local calendar day."""
     if now_utc is None:
         now_utc = datetime.now(timezone.utc)
     now_naive = utc_naive(now_utc)
@@ -87,7 +89,22 @@ def get_child_video_allowance_today(
 
     total_earned = sum(int(e.granted_seconds or 0) for e in entitlements)
     total_consumed = sum(int(e.consumed_seconds or 0) for e in entitlements)
-    remaining = max(0, total_earned - total_consumed)
+    DailyUsage = get_model("ChildVideoDailyUsage")
+    free_consumed = int(
+        session.query(DailyUsage.free_watched_seconds)
+        .filter(
+            DailyUsage.child_id == child_id,
+            DailyUsage.local_date == today,
+        )
+        .scalar()
+        or 0
+    )
+    free_consumed = min(FREE_DAILY_ALLOWANCE_SECONDS, free_consumed)
+    total_earned += FREE_DAILY_ALLOWANCE_SECONDS
+    total_consumed += free_consumed
+    remaining = max(0, FREE_DAILY_ALLOWANCE_SECONDS - free_consumed) + max(
+        0, sum(int(e.granted_seconds or 0) - int(e.consumed_seconds or 0) for e in entitlements)
+    )
     daily_cap = get_daily_cap_seconds(session, family_id)
 
     # If the local day has passed beyond `end`, any remaining allowance for today expires
@@ -102,7 +119,7 @@ def get_child_video_allowance_today(
         "total_earned_today_seconds": total_earned,
         "consumed_today_seconds": total_consumed,
         "remaining_seconds": remaining,
-        "daily_cap_seconds": daily_cap,
+        "daily_cap_seconds": FREE_DAILY_ALLOWANCE_SECONDS + daily_cap,
         "is_exhausted": remaining <= 0,
         "active_entitlements_count": len(
             [e for e in entitlements if e.status == "active" and (e.consumed_seconds or 0) < (e.granted_seconds or 0)]

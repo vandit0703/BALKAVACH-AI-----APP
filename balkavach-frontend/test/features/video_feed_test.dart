@@ -79,7 +79,9 @@ class _FakeRepository implements VideoFeedRepository {
   @override
   Future<Map<String, dynamic>?> recordProgress(
     String videoId,
-    int positionSeconds,
+    int positionSeconds, {
+    bool isPlaying = true,
+  }
   ) async => null;
 
   @override
@@ -215,7 +217,18 @@ void main() {
               )
               .single
               .data,
-          {'position_seconds': 80},
+          {'position_seconds': 80, 'is_playing': true},
+        );
+        await repo.recordProgress('history-row', 81, isPlaying: false);
+        expect(
+          h.backend
+              .requestsTo(
+                'POST',
+                '/api/v1/videos/watch-history/history-row/progress',
+              )
+              .last
+              .data,
+          {'position_seconds': 81, 'is_playing': false},
         );
       },
     );

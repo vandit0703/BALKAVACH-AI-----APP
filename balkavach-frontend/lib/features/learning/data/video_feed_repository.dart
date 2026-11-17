@@ -202,10 +202,11 @@ class VideoFeedRepository {
   Future<Map<String, dynamic>?> recordProgress(
     String videoId,
     int positionSeconds,
+    {bool isPlaying = true}
   ) => guardApi(() async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/api/v1/videos/watch-history/$videoId/progress',
-      data: {'position_seconds': positionSeconds},
+      data: {'position_seconds': positionSeconds, 'is_playing': isPlaying},
     );
     return response.data;
   });

@@ -28,6 +28,7 @@ Map<String, Object?> _short({
   String source = 'youtube',
   String? channel = 'Kids Science Club',
   String? description,
+  int resumePositionSeconds = 0,
 }) => {
   'id': id,
   'title': title,
@@ -40,6 +41,7 @@ Map<String, Object?> _short({
   'video_source': source,
   'youtube_video_id': source == 'youtube' ? youtubeId : null,
   'channel_name': channel,
+  'last_position_seconds': resumePositionSeconds,
 };
 
 String _ytId(int i) => 'abcdefghi${i.toString().padLeft(2, '0')}';
@@ -80,6 +82,17 @@ Future<_Rig> _pumpFeed(
   } else {
     h.backend.reply('GET', _shortsPath, shorts ?? const <Object?>[]);
   }
+  h.backend.reply('GET', '/api/v1/video-access/allowance', {
+    'child_id': 'child-1',
+    'local_date': '2026-11-17',
+    'timezone': 'UTC',
+    'total_earned_today_seconds': 900,
+    'consumed_today_seconds': 0,
+    'remaining_seconds': 900,
+    'daily_cap_seconds': 900,
+    'is_exhausted': false,
+    'active_entitlements_count': 0,
+  });
   final rig = _Rig(
     h,
     EmbedRecorder(),
@@ -130,6 +143,7 @@ void main() {
             title: 'Why is the sky blue?',
             youtubeId: _ytId(1),
             description: 'Light scatters in the air.',
+            resumePositionSeconds: 17,
           ),
         ],
       );
@@ -137,10 +151,17 @@ void main() {
       expect(find.text('Why is the sky blue?'), findsOneWidget);
       expect(find.text('Kids Science Club'), findsOneWidget);
       expect(find.text('Light scatters in the air.'), findsOneWidget);
+      expect(find.text('15:00'), findsOneWidget);
+      expect(find.byTooltip('15m video time left today'), findsOneWidget);
       final config = rig.embeds.only();
       expect(config.videoId, _ytId(1));
       expect(config.autoplay, isTrue);
+      expect(config.startAtSeconds, 17);
       expect(config.onVerticalSwipe, isNotNull);
+      expect(
+        rig.embeds.mounted.values.where((item) => !item.autoplay),
+        isEmpty,
+      );
       // In-app only: nothing was opened outside, and no native stream exists.
       expect(rig.opener.opened, isEmpty);
       expect(rig.players.created, isEmpty);
@@ -153,10 +174,16 @@ void main() {
       final rig = await _pumpFeed(tester, shorts: _page(0, 3));
 
       expect(rig.embeds.only().videoId, _ytId(0));
+      expect(rig.embeds.mounted.containsKey(_ytId(1)), isTrue);
+      expect(rig.embeds.mounted[_ytId(1)]!.autoplay, isFalse);
       await _swipeUp(tester);
       expect(find.text('Short 1'), findsOneWidget);
-      // The previous embed was torn down, not merely hidden.
+      // The prepared embed is promoted to active on the swipe.
       expect(rig.embeds.only().videoId, _ytId(1));
+      expect(
+        rig.embeds.history.where((item) => item.videoId == _ytId(1)),
+        hasLength(1),
+      );
 
       await _swipeUp(tester);
       expect(rig.embeds.only().videoId, _ytId(2));
@@ -191,7 +218,8 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      expect(rig.embeds.mounted, hasLength(1));
+      expect(rig.embeds.activeCount, 1);
+      expect(rig.embeds.mounted.length, lessThanOrEqualTo(2));
       final settled = rig.embeds.only().videoId;
       final index = int.parse(settled.substring(settled.length - 2));
       expect(find.text('Short $index'), findsOneWidget);
@@ -314,7 +342,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('videos.shorts.blocked')), findsOneWidget);
       expect(find.byKey(const Key('videos.shorts.retry')), findsNothing);
-      expect(rig.embeds.mounted, isEmpty);
+      expect(rig.embeds.activeCount, 0);
+      expect(rig.embeds.mounted.containsKey(_ytId(1)), isTrue);
 
       // The child can still move on.
       await _swipeUp(tester);
@@ -425,7 +454,8 @@ void main() {
 
     testWidgets('leaving the screen disposes the player', (tester) async {
       final rig = await _pumpFeed(tester, shorts: _page(0, 2));
-      expect(rig.embeds.mounted, hasLength(1));
+      expect(rig.embeds.mounted.length, lessThanOrEqualTo(2));
+      expect(rig.embeds.activeCount, 1);
 
       await tester.pumpWidget(const SizedBox());
       expect(rig.embeds.mounted, isEmpty);
@@ -465,10 +495,15 @@ void main() {
     const c = 'https://cdn.example.org/c.mp4';
     const d = 'https://cdn.example.org/d.mp4';
 
-    PlayableVideo stream(String key, String url) => PlayableVideo(
+    PlayableVideo stream(
+      String key,
+      String url, {
+      int resumePositionSeconds = 0,
+    }) => PlayableVideo(
       key: key,
       title: 'Stream $key',
       source: DirectStreamSource(Uri.parse(url)),
+      resumePositionSeconds: resumePositionSeconds,
     );
 
     final mixed = [
@@ -513,7 +548,7 @@ void main() {
     }
 
     int activePlayers(EmbedRecorder e, PlaybackRegistry p) =>
-        e.mounted.length + p.playing.length;
+      e.activeCount + p.playing.length;
 
     testWidgets('only the settled page plays; the next stream is prepared', (
       tester,
@@ -521,10 +556,26 @@ void main() {
       final (embeds, players) = await pumpPager(tester);
 
       expect(players.forUrl(a).single.isPlaying, isTrue);
-      expect(embeds.mounted, isEmpty);
       expect(activePlayers(embeds, players), 1);
-      // Page b is YouTube: no web view is created until it is on screen.
-      expect(embeds.history, isEmpty);
+      // Page b is cued before the swipe, but is not allowed to autoplay.
+      expect(embeds.mounted.containsKey(_ytId(7)), isTrue);
+      expect(embeds.mounted[_ytId(7)]!.autoplay, isFalse);
+    });
+
+    testWidgets('a prepared direct stream seeks to its saved position', (
+      tester,
+    ) async {
+      final (embeds, players) = await pumpPager(
+        tester,
+        videos: [
+          stream('resume', a, resumePositionSeconds: 18),
+          stream('next', c),
+        ],
+      );
+
+      expect(embeds.mounted, isEmpty);
+      expect(players.forUrl(a).single.seeks, [const Duration(seconds: 18)]);
+      expect(players.forUrl(a).single.isPlaying, isTrue);
     });
 
     testWidgets('swiping pauses and releases the previous player', (
@@ -542,7 +593,7 @@ void main() {
       expect(activePlayers(embeds, players), 1);
 
       await _swipeUp(tester); // to c (stream)
-      expect(embeds.mounted, isEmpty);
+      expect(embeds.activeCount, 0);
       expect(next.isPlaying, isTrue);
       expect(players.forUrl(c), hasLength(1), reason: 'preloaded one reused');
       final after = players.forUrl(d).single;

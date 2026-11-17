@@ -30,6 +30,7 @@ class YouTubeEmbedConfig {
     this.muted = false,
     this.onBlocked,
     this.onProgress,
+    this.onPlayingChanged,
     this.onEnded,
     this.onVerticalSwipe,
     this.aspectRatio,
@@ -62,6 +63,7 @@ class YouTubeEmbedConfig {
   /// Position and length as the player reports them, for a progress bar.
   /// This is display only and is never sent anywhere as viewing time.
   final void Function(Duration position, Duration duration)? onProgress;
+  final ValueChanged<bool>? onPlayingChanged;
   final ValueChanged<Duration>? onEnded;
 
   /// When set, a vertical fling on the video is handed to the host (the
@@ -125,6 +127,7 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
   bool _blockedReported = false;
   bool _endedReported = false;
   bool _startedReported = false;
+  bool? _lastReportedPlaying;
 
   @override
   void initState() {
@@ -172,6 +175,13 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
         widget.config.muted ? _controller.mute() : _controller.unMute(),
       );
     }
+    if (oldWidget.config.autoplay != widget.config.autoplay) {
+      unawaited(
+        widget.config.autoplay
+            ? _controller.playVideo()
+            : _controller.pauseVideo(),
+      );
+    }
   }
 
   void _onPosition(YoutubeVideoState state) {
@@ -198,6 +208,11 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
   }
 
   void _onValue(YoutubePlayerValue value) {
+    final isPlaying = value.playerState == PlayerState.playing;
+    if (_lastReportedPlaying != isPlaying) {
+      _lastReportedPlaying = isPlaying;
+      widget.config.onPlayingChanged?.call(isPlaying);
+    }
     if (value.playerState == PlayerState.playing && !_startedReported) {
       _startedReported = true;
       widget.config.onProgress?.call(Duration.zero, value.metaData.duration);
@@ -339,7 +354,10 @@ class YouTubePlayerScreen extends ConsumerStatefulWidget {
 
 class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
   bool _failed = false;
+  bool _allowanceExhausted = false;
+  bool _leaving = false;
   DateTime _lastProgressSentAt = DateTime.fromMillisecondsSinceEpoch(0);
+  Duration _lastPosition = Duration.zero;
 
   /// Bumped on retry so the embed (and its web view) is built afresh.
   int _attempt = 0;
@@ -370,10 +388,16 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
   }
 
   void _recordProgress(Duration position, Duration duration) {
+    _lastPosition = position;
     _sendProgress(position, force: false);
   }
 
-  void _sendProgress(Duration position, {required bool force}) {
+  void _sendProgress(
+    Duration position, {
+    required bool force,
+    bool isPlaying = true,
+  }) {
+    _lastPosition = position;
     final videoId = widget.reportVideoId;
     final now = DateTime.now();
     if (videoId == null ||
@@ -386,18 +410,48 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
     unawaited(
       ref
           .read(videoFeedRepositoryProvider)
-          .recordProgress(videoId, position.inSeconds)
+          .recordProgress(
+            videoId,
+            position.inSeconds,
+            isPlaying: isPlaying,
+          )
           .then((data) {
-            if (data != null && data['is_exhausted'] == true && mounted) {
-              showVideoTimeExhaustedDialog(context);
+            if (data != null && data['is_exhausted'] == true) {
+              _stopForExhaustedAllowance();
             }
           })
           .catchError((Object error) {
-            if (error is ForbiddenException && mounted) {
-              showVideoTimeExhaustedDialog(context);
+            if (error is ForbiddenException) {
+              _stopForExhaustedAllowance();
             }
           }),
     );
+  }
+
+  void _stopForExhaustedAllowance() {
+    if (!mounted || _allowanceExhausted) return;
+    setState(() => _allowanceExhausted = true);
+    showVideoTimeExhaustedDialog(context);
+  }
+
+  Future<void> _leaveRoute() async {
+    if (_leaving) return;
+    final navigator = Navigator.of(context);
+    if (!navigator.canPop()) return;
+    setState(() => _leaving = true);
+    final videoId = widget.reportVideoId;
+    if (videoId != null) {
+      try {
+        await ref.read(videoFeedRepositoryProvider).recordProgress(
+          videoId,
+          _lastPosition.inSeconds,
+          isPlaying: false,
+        );
+      } on Object {
+        // The route should still close if the final heartbeat cannot be sent.
+      }
+    }
+    if (mounted) navigator.pop();
   }
 
   Future<void> _report(String videoId) async {
@@ -417,7 +471,12 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
     final reportVideoId = widget.reportVideoId;
     final embed = ref.watch(youtubeEmbedBuilderProvider);
 
-    return Scaffold(
+    return PopScope(
+      canPop: reportVideoId == null || _leaving,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && reportVideoId != null) unawaited(_leaveRoute());
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text(
           reportVideoId == null ? l10n.learnTitle : l10n.videoFeedTitle,
@@ -431,7 +490,7 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
               borderRadius: BorderRadius.circular(AppRadius.md),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: _failed || videoId == null
+                child: _failed || videoId == null || _allowanceExhausted
                     ? ColoredBox(
                         color: colors.surfaceContainerHighest,
                         child: Padding(
@@ -440,7 +499,9 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                l10n.youtubePlayerError,
+                                _allowanceExhausted
+                                    ? l10n.videoAllowanceLocked
+                                    : l10n.youtubePlayerError,
                                 key: const Key('youtube.error'),
                                 textAlign: TextAlign.center,
                               ),
@@ -470,8 +531,16 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
                             onError: _onError,
                             startAtSeconds: widget.startAtSeconds,
                             onProgress: _recordProgress,
-                            onEnded: (duration) =>
-                                _sendProgress(duration, force: true),
+                            onPlayingChanged: (isPlaying) => _sendProgress(
+                              _lastPosition,
+                              force: true,
+                              isPlaying: isPlaying,
+                            ),
+                            onEnded: (duration) => _sendProgress(
+                              duration,
+                              force: true,
+                              isPlaying: false,
+                            ),
                           ),
                         ),
                       ),
@@ -495,6 +564,7 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
             ],
           ],
         ),
+      ),
       ),
     );
   }

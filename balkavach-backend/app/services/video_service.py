@@ -76,6 +76,18 @@ def eligible_feed(
 		query = query.filter(Video.category_id == category_id)
 	if has_model("ChildVideoWatchHistory"):
 		WatchHistory = get_model("ChildVideoWatchHistory")
+		partially_watched = exists().where(
+			WatchHistory.child_id == child.id,
+			WatchHistory.video_id == Video.id,
+			WatchHistory.is_completed.is_(False),
+			WatchHistory.last_position_seconds > 0,
+		)
+		parent_replay = exists().where(
+			WatchHistory.child_id == child.id,
+			WatchHistory.video_id == Video.id,
+			WatchHistory.is_completed.is_(True),
+			WatchHistory.parent_replay_authorized.is_(True),
+		)
 		query = query.filter(or_(
 			~exists().where(
 				WatchHistory.child_id == child.id,
@@ -90,6 +102,7 @@ def eligible_feed(
 		))
 	result = (
 		query.order_by(
+			case((parent_replay, 2), (partially_watched, 1), else_=0),
 			case((Video.language_code == user.preferred_language, 0), else_=1),
 			Video.display_order,
 			Video.published_at.desc().nullslast(),

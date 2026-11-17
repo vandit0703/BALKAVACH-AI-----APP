@@ -78,11 +78,19 @@ class FakeFamilySetting:
     mission_settings = sa.Column("mission_settings", sa.JSON)
 
 
+class FakeDailyUsage:
+    child_id = sa.Column("child_id", sa.String)
+    local_date = sa.Column("local_date", sa.Date)
+    free_watched_seconds = sa.Column("free_watched_seconds", sa.Integer)
+
+
 def fake_get_model(name: str):
     if name == "VideoAccessEntitlement":
         return FakeEntitlement
     if name == "FamilySetting":
         return FakeFamilySetting
+    if name == "ChildVideoDailyUsage":
+        return FakeDailyUsage
     return MagicMock()
 
 
@@ -101,6 +109,8 @@ class FakeQuery:
                 if col_name and val is not None:
                     def matches(i):
                         if isinstance(i, tuple):
+                            return True
+                        if isinstance(i, (int, float)):
                             return True
                         attr_val = getattr(i, col_name, None)
                         if attr_val is None:
@@ -137,17 +147,23 @@ class FakeQuery:
             raise ValueError("No items found")
         return self._items[0]
 
+    def scalar(self):
+        return self._items[0] if self._items else None
+
 
 class FakeSession:
-    def __init__(self, entitlements=None, settings_dict=None):
+    def __init__(self, entitlements=None, settings_dict=None, free_usage=0):
         self.entitlements = list(entitlements or [])
         self.settings_dict = settings_dict or {}
+        self.free_usage = free_usage
         self.added = []
         self.flushed = False
 
     def query(self, *args, **kwargs):
         arg0 = args[0] if args else None
         arg_str = str(arg0)
+        if "free_watched_seconds" in arg_str:
+            return FakeQuery([self.free_usage])
         if "mission_settings" in arg_str:
             return FakeQuery([(None,)])
         if (
@@ -352,11 +368,28 @@ def test_get_child_video_allowance_today_summary():
             session, child_id, family_id, now_utc=TEST_NOW
         )
 
-    assert allowance["total_earned_today_seconds"] == 1800
+    assert allowance["total_earned_today_seconds"] == 2700
     assert allowance["consumed_today_seconds"] == 600
-    assert allowance["remaining_seconds"] == 1200
+    assert allowance["remaining_seconds"] == 2100
     assert allowance["is_exhausted"] is False
-    assert allowance["daily_cap_seconds"] == DEFAULT_DAILY_ALLOWANCE_SECONDS
+    assert allowance["daily_cap_seconds"] == DEFAULT_DAILY_ALLOWANCE_SECONDS + 900
+
+
+def test_daily_free_usage_reduces_only_the_free_allowance():
+    child_id = uuid4()
+    family_id = uuid4()
+    session = FakeSession(free_usage=300)
+
+    with patch("app.services.video_entitlement_service.family_timezone_name", return_value="UTC"), \
+         patch("app.services.video_entitlement_service.local_today", return_value=date(2026, 11, 13)):
+        allowance = get_child_video_allowance_today(
+            session, child_id, family_id, now_utc=TEST_NOW
+        )
+
+    assert allowance["total_earned_today_seconds"] == 900
+    assert allowance["consumed_today_seconds"] == 300
+    assert allowance["remaining_seconds"] == 600
+    assert allowance["is_exhausted"] is False
 
 
 def test_consume_video_allowance_chronological_deduction():
@@ -497,7 +530,7 @@ def test_mission_approved_before_midnight_expires_at_local_midnight():
 
 
 def test_allowance_expires_when_clock_crosses_midnight():
-    """When now_utc is past the local day's end, remaining allowance is 0 (exhausted)."""
+    """The next family-local day starts with a fresh free allowance."""
     child_id = uuid4()
     family_id = uuid4()
 
@@ -514,7 +547,7 @@ def test_allowance_expires_when_clock_crosses_midnight():
     )
     session = FakeSession(entitlements=[ent])
 
-    # Now it is 18:35 UTC (00:05 IST next day, 2026-11-14)
+    # Now it is 18:35 UTC (00:05 IST next day, 2026-11-14).
     after_midnight = datetime(2026, 11, 13, 18, 35, 0, tzinfo=timezone.utc)
 
     with patch("app.services.timezone_service.family_timezone_name", return_value="Asia/Kolkata"), \
@@ -523,8 +556,8 @@ def test_allowance_expires_when_clock_crosses_midnight():
 
     # In local today (2026-11-14), no entitlements were granted yet today
     assert allowance["local_date"] == date(2026, 11, 14)
-    assert allowance["remaining_seconds"] == 0
-    assert allowance["is_exhausted"] is True
+    assert allowance["remaining_seconds"] == 900
+    assert allowance["is_exhausted"] is False
 
 
 def test_utc_date_differs_from_family_local_date():

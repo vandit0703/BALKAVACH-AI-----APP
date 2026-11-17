@@ -83,6 +83,7 @@ class _ShortsFeedState extends ConsumerState<ShortsFeed> {
   late final int _start;
   int _current = 0;
   bool _muted = false;
+  int? _remainingSeconds;
 
   @override
   void initState() {
@@ -128,6 +129,7 @@ class _ShortsFeedState extends ConsumerState<ShortsFeed> {
   @override
   Widget build(BuildContext context) {
     final items = _pager.items;
+    _remainingSeconds ??= ref.watch(videoAllowanceProvider).value?.remainingSeconds;
     final ended =
         _pager.status == PagerStatus.done || _pager.status == PagerStatus.error;
     if (items.isEmpty) {
@@ -135,7 +137,11 @@ class _ShortsFeedState extends ConsumerState<ShortsFeed> {
         color: _ShortsColors.background,
         child: Column(
           children: [
-            _ShortsTopBar(onBack: widget.onBack, loadingMore: false),
+            _ShortsTopBar(
+              onBack: widget.onBack,
+              loadingMore: false,
+              remainingSeconds: _remainingSeconds,
+            ),
             Expanded(child: _emptyBody(context)),
           ],
         ),
@@ -148,6 +154,9 @@ class _ShortsFeedState extends ConsumerState<ShortsFeed> {
       onToggleMute: () => setState(() => _muted = !_muted),
       onBack: widget.onBack,
       loadingMore: _pager.status == PagerStatus.loading,
+        remainingSeconds: _remainingSeconds,
+        onAllowanceChanged: (seconds) =>
+          setState(() => _remainingSeconds = seconds),
       trailing: ended ? _endPage(context) : null,
       onPageChanged: (index) {
         _current = index;
@@ -283,8 +292,10 @@ class ShortsPlayerPager extends StatefulWidget {
     this.onToggleMute,
     this.onBack,
     this.loadingMore = false,
+    this.remainingSeconds,
     this.trailing,
     this.onPageChanged,
+    this.onAllowanceChanged,
     super.key,
   });
 
@@ -296,10 +307,12 @@ class ShortsPlayerPager extends StatefulWidget {
 
   /// Shows a small spinner in the top bar while the next page loads.
   final bool loadingMore;
+  final int? remainingSeconds;
 
   /// An extra last page (end of feed, or a paging error).
   final Widget? trailing;
   final ValueChanged<int>? onPageChanged;
+  final ValueChanged<int>? onAllowanceChanged;
 
   @override
   State<ShortsPlayerPager> createState() => _ShortsPlayerPagerState();
@@ -390,6 +403,8 @@ class _ShortsPlayerPagerState extends State<ShortsPlayerPager>
             onToggleMute: widget.onToggleMute,
             onBack: widget.onBack,
             loadingMore: widget.loadingMore,
+            remainingSeconds: widget.remainingSeconds,
+            onAllowanceChanged: widget.onAllowanceChanged,
             showSwipeHint: index == 0 && videos.length > 1,
             onSwipe: _onSwipe,
           );
@@ -412,6 +427,8 @@ class _ShortsPage extends ConsumerStatefulWidget {
     this.onToggleMute,
     this.onBack,
     this.loadingMore = false,
+    this.remainingSeconds,
+    this.onAllowanceChanged,
     super.key,
   });
 
@@ -419,6 +436,8 @@ class _ShortsPage extends ConsumerStatefulWidget {
   final VoidCallback? onToggleMute;
   final VoidCallback? onBack;
   final bool loadingMore;
+  final int? remainingSeconds;
+  final ValueChanged<int>? onAllowanceChanged;
 
   /// Settled and visible: the only page that may play.
   final bool active;
@@ -445,6 +464,7 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
   /// The child tapped to pause; cleared when the page stops being active.
   bool _userPaused = false;
   bool _failed = false;
+  bool _allowanceExhausted = false;
 
   /// YouTube refused to embed this video: retrying will not help.
   bool _blocked = false;
@@ -457,6 +477,7 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
   bool _wasBuffering = false;
   bool _wasReady = false;
   DateTime _lastProgressSentAt = DateTime.fromMillisecondsSinceEpoch(0);
+  Duration _lastPosition = Duration.zero;
 
   @override
   void initState() {
@@ -475,6 +496,12 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
     if (state != AppLifecycleState.resumed &&
         controller != null &&
         controller.isPlaying) {
+      _recordWatchProgress(
+        _lastPosition,
+        force: true,
+        allowInactive: true,
+        isPlaying: false,
+      );
       unawaited(controller.pause());
     }
   }
@@ -482,6 +509,15 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
   @override
   void didUpdateWidget(_ShortsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if ((oldWidget.active && !widget.active) ||
+        (oldWidget.foreground && !widget.foreground)) {
+      _recordWatchProgress(
+        _lastPosition,
+        force: true,
+        allowInactive: true,
+        isPlaying: false,
+      );
+    }
     if (!widget.active) _userPaused = false;
     _syncStream();
   }
@@ -518,6 +554,10 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
       setState(() => _failed = true);
       return;
     }
+    final resumeAt = widget.video.resumePositionSeconds;
+    if (resumeAt > 0 && resumeAt < controller.duration.inSeconds) {
+      await controller.seekTo(Duration(seconds: resumeAt));
+    }
     _applyPlayback();
     setState(() {});
   }
@@ -537,6 +577,14 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
   void _onPlayer() {
     final controller = _controller;
     if (controller == null || !mounted) return;
+    _lastPosition = controller.position;
+    _recordWatchProgress(
+      _lastPosition,
+      isPlaying: controller.isPlaying && !controller.isBuffering,
+    );
+    if (controller.isPlaying && !controller.isBuffering) {
+      _recordWatchProgress(_lastPosition);
+    }
     final total = controller.duration.inMilliseconds;
     _progress.value = total <= 0
         ? 0
@@ -579,6 +627,11 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
     if (_controller?.isInitialised != true) return;
     setState(() => _userPaused = !_userPaused);
     _applyPlayback();
+    _recordWatchProgress(
+      _lastPosition,
+      force: true,
+      isPlaying: !_userPaused,
+    );
   }
 
   @override
@@ -610,12 +663,14 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
         child: _ShortsTopBar(
           onBack: widget.onBack,
           loadingMore: widget.loadingMore,
+          remainingSeconds: widget.remainingSeconds,
         ),
       );
 
       if (source is YouTubeVideoSource &&
-          widget.active &&
+          widget.prepare &&
           !_failed &&
+          !_allowanceExhausted &&
           !_blocked) {
         // The official player fills everything below the top bar. YouTube
         // draws its own title bar at the top of the player, so the player
@@ -668,9 +723,10 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
         child: embed(
           YouTubeEmbedConfig(
             videoId: videoId,
-            autoplay: true,
+            autoplay: widget.active && widget.foreground,
             muted: widget.muted,
             aspectRatio: aspect,
+            startAtSeconds: widget.video.resumePositionSeconds,
             overlay: _overlay(bottomReserve: kYouTubeControlsReserve),
             onLeaveRequested: (uri) => askGrownUpThenOpen(context, ref, uri),
             onForeignVideo: () {},
@@ -681,13 +737,22 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
               if (mounted && !_blocked) setState(() => _blocked = true);
             },
             onProgress: (position, duration) {
+              _lastPosition = position;
               final total = duration.inMilliseconds;
               _progress.value = total <= 0
                   ? 0
                   : (position.inMilliseconds / total).clamp(0.0, 1.0);
               _recordWatchProgress(position);
             },
-            onEnded: (duration) => _recordWatchProgress(duration, force: true),
+            onPlayingChanged: (isPlaying) => _recordWatchProgress(
+              _lastPosition,
+              force: true,
+              isPlaying: isPlaying,
+            ),
+            onEnded: (duration) {
+              _lastPosition = duration;
+              _recordWatchProgress(duration, force: true, isPlaying: false);
+            },
             onVerticalSwipe: widget.onSwipe,
           ),
         ),
@@ -695,11 +760,16 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
     );
   }
 
-  void _recordWatchProgress(Duration position, {bool force = false}) {
+  void _recordWatchProgress(
+    Duration position, {
+    bool force = false,
+    bool allowInactive = false,
+    bool isPlaying = true,
+  }) {
     final videoId = widget.video.reportVideoId;
     final now = DateTime.now();
-    if (!widget.active ||
-        !widget.foreground ||
+    if ((!widget.active && !allowInactive) ||
+      (!widget.foreground && !allowInactive) ||
         videoId == null ||
         (!force &&
             now.difference(_lastProgressSentAt) <
@@ -710,20 +780,33 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
     unawaited(
       ref
           .read(videoFeedRepositoryProvider)
-          .recordProgress(videoId, position.inSeconds)
+          .recordProgress(
+            videoId,
+            position.inSeconds,
+            isPlaying: isPlaying,
+          )
           .then((data) {
-            if (data != null && data['is_exhausted'] == true && mounted) {
-              _controller?.pause();
-              showVideoTimeExhaustedDialog(context);
+            final remaining = data?['remaining_allowance_seconds'];
+            if (remaining is num) {
+              widget.onAllowanceChanged?.call(remaining.toInt());
+            }
+            if (data != null && data['is_exhausted'] == true) {
+              _stopForExhaustedAllowance();
             }
           })
           .catchError((Object error) {
-            if (error is ForbiddenException && mounted) {
-              _controller?.pause();
-              showVideoTimeExhaustedDialog(context);
+            if (error is ForbiddenException) {
+              _stopForExhaustedAllowance();
             }
           }),
     );
+  }
+
+  void _stopForExhaustedAllowance() {
+    if (!mounted || _allowanceExhausted) return;
+    _controller?.pause();
+    setState(() => _allowanceExhausted = true);
+    showVideoTimeExhaustedDialog(context);
   }
 
   /// The picture when no web view is on screen: a still, a message, or a
@@ -744,6 +827,14 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
               : l10n.learnNotReady,
         );
       case YouTubeVideoSource():
+        if (_allowanceExhausted) {
+          return _StageMessage(
+            key: const Key('videos.shorts.allowanceExhausted'),
+            background: still,
+            icon: Icons.lock_clock_rounded,
+            message: l10n.videoAllowanceLocked,
+          );
+        }
         if (_blocked) {
           return _StageMessage(
             key: const Key('videos.shorts.blocked'),
@@ -864,10 +955,15 @@ BoxFit shortsFitFor({required double videoAspect, required double boxAspect}) {
 }
 
 class _ShortsTopBar extends StatelessWidget {
-  const _ShortsTopBar({required this.onBack, required this.loadingMore});
+  const _ShortsTopBar({
+    required this.onBack,
+    required this.loadingMore,
+    this.remainingSeconds,
+  });
 
   final VoidCallback? onBack;
   final bool loadingMore;
+  final int? remainingSeconds;
 
   @override
   Widget build(BuildContext context) {
@@ -909,6 +1005,45 @@ class _ShortsTopBar extends StatelessWidget {
                   ),
                 ),
               ),
+              if (remainingSeconds != null) ...[
+                const SizedBox(width: AppSpacing.xs),
+                Tooltip(
+                  message: remainingSeconds! > 0
+                      ? l10n.videoAllowanceRemaining(
+                          (remainingSeconds! / 60).ceil(),
+                        )
+                      : l10n.videoAllowanceLocked,
+                  child: Semantics(
+                    label: remainingSeconds! > 0
+                        ? l10n.videoAllowanceRemaining(
+                            (remainingSeconds! / 60).ceil(),
+                          )
+                        : l10n.videoAllowanceLocked,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          remainingSeconds! > 0
+                              ? Icons.hourglass_top_rounded
+                              : Icons.lock_clock_rounded,
+                          color: _ShortsColors.onDark,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          formatPlaybackTime(
+                            Duration(seconds: remainingSeconds!),
+                          ),
+                          style: context.text.bodySmall?.copyWith(
+                            color: _ShortsColors.onDark,
+                            shadows: _textShadows,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               if (loadingMore)
                 const SizedBox.square(
                   dimension: 18,

@@ -25,8 +25,8 @@ import 'youtube_player_screen.dart';
 /// A YouTube video plays in the official embed (YouTube's own controls,
 /// branding, ads and fullscreen button). A direct stream plays in the native
 /// player with play/pause, seek, buffering and a fullscreen toggle. Hosted
-/// videos that need an approved reward are never played here. Nothing on
-/// video progress is accepted and persisted by the backend.
+/// videos that need an approved reward are never played here. Feed-video
+/// progress is persisted by the child-scoped watch-history endpoint.
 class VideoDetailPlayerScreen extends ConsumerStatefulWidget {
   const VideoDetailPlayerScreen({required this.launch, super.key});
 
@@ -44,9 +44,12 @@ class _VideoDetailPlayerScreenState
   VideoPlaybackController? _controller;
   bool _failed = false;
   bool _blocked = false;
+  bool _allowanceExhausted = false;
   bool _fullscreen = false;
+  bool _leaving = false;
   bool _muted = false;
   DateTime _lastProgressSentAt = DateTime.fromMillisecondsSinceEpoch(0);
+  Duration _lastPosition = Duration.zero;
 
   /// Bumped on retry or on a new video so players are built afresh.
   int _attempt = 0;
@@ -82,11 +85,23 @@ class _VideoDetailPlayerScreenState
       setState(() => _failed = true);
       return;
     }
+    final resumeAt = _video.resumePositionSeconds;
+    if (resumeAt > 0 && resumeAt < controller.duration.inSeconds) {
+      await controller.seekTo(Duration(seconds: resumeAt));
+    }
     await controller.setVolume(_muted ? 0 : 1);
     await controller.play();
   }
 
   void _onPlayer() {
+    final controller = _controller;
+    if (controller == null) return;
+    _lastPosition = controller.position;
+    _recordWatchProgress(
+      _lastPosition,
+      controller.duration,
+      isPlaying: controller.isPlaying && !controller.isBuffering,
+    );
     final failed = _controller?.errorMessage != null;
     if (mounted && failed && !_failed) setState(() => _failed = true);
   }
@@ -107,6 +122,12 @@ class _VideoDetailPlayerScreenState
   });
 
   void _open(PlayableVideo next) {
+    _recordWatchProgress(
+      _controller?.position ?? _lastPosition,
+      _controller?.duration ?? Duration.zero,
+      force: true,
+      isPlaying: false,
+    );
     setState(() {
       _release();
       _video = next;
@@ -130,6 +151,12 @@ class _VideoDetailPlayerScreenState
     final controller = _controller;
     if (controller == null || !controller.isInitialised) return;
     await (controller.isPlaying ? controller.pause() : controller.play());
+    _recordWatchProgress(
+      controller.position,
+      controller.duration,
+      force: true,
+      isPlaying: controller.isPlaying && !controller.isBuffering,
+    );
   }
 
   Future<void> _toggleMute() async {
@@ -141,7 +168,9 @@ class _VideoDetailPlayerScreenState
     Duration position,
     Duration duration, {
     bool force = false,
+    bool isPlaying = true,
   }) {
+    _lastPosition = position;
     final videoId = _video.reportVideoId;
     final now = DateTime.now();
     if (videoId == null ||
@@ -154,20 +183,49 @@ class _VideoDetailPlayerScreenState
     unawaited(
       ref
           .read(videoFeedRepositoryProvider)
-          .recordProgress(videoId, position.inSeconds)
+          .recordProgress(
+            videoId,
+            position.inSeconds,
+            isPlaying: isPlaying,
+          )
           .then((data) {
-            if (data != null && data['is_exhausted'] == true && mounted) {
-              _controller?.pause();
-              showVideoTimeExhaustedDialog(context);
+            if (data != null && data['is_exhausted'] == true) {
+              _stopForExhaustedAllowance();
             }
           })
           .catchError((Object error) {
-            if (error is ForbiddenException && mounted) {
-              _controller?.pause();
-              showVideoTimeExhaustedDialog(context);
+            if (error is ForbiddenException) {
+              _stopForExhaustedAllowance();
             }
           }),
     );
+  }
+
+  void _stopForExhaustedAllowance() {
+    if (!mounted || _allowanceExhausted) return;
+    _controller?.pause();
+    setState(() => _allowanceExhausted = true);
+    showVideoTimeExhaustedDialog(context);
+  }
+
+  Future<void> _leave() async {
+    if (_leaving) return;
+    final navigator = Navigator.of(context);
+    if (!navigator.canPop()) return;
+    setState(() => _leaving = true);
+    final videoId = _video.reportVideoId;
+    if (videoId != null) {
+      try {
+        await ref.read(videoFeedRepositoryProvider).recordProgress(
+          videoId,
+          (_controller?.position ?? _lastPosition).inSeconds,
+          isPlaying: false,
+        );
+      } on Object {
+        // The route should still close if the final heartbeat cannot be sent.
+      }
+    }
+    if (mounted) navigator.pop();
   }
 
   Future<void> _setFullscreen(bool value) async {
@@ -246,7 +304,12 @@ class _VideoDetailPlayerScreenState
     final channel = _video.channelName;
     final reportId = _video.reportVideoId;
 
-    return Scaffold(
+    return PopScope(
+      canPop: _video.reportVideoId == null || _leaving,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _video.reportVideoId != null) unawaited(_leave());
+      },
+      child: Scaffold(
       appBar: AppBar(
         leading: BackButton(onPressed: () => Navigator.of(context).maybePop()),
         title: Text(l10n.watchTitle),
@@ -377,6 +440,7 @@ class _VideoDetailPlayerScreenState
           },
         ),
       ),
+      ),
     );
   }
 
@@ -399,6 +463,14 @@ class _VideoDetailPlayerScreenState
               : l10n.learnNotReady,
         );
       case YouTubeVideoSource(:final videoId):
+        if (_allowanceExhausted) {
+          return _StageNotice(
+            key: const Key('detail.allowanceExhausted'),
+            background: still,
+            icon: Icons.lock_clock_rounded,
+            message: l10n.videoAllowanceLocked,
+          );
+        }
         if (_blocked) {
           return _StageNotice(
             key: const Key('detail.blocked'),
@@ -436,8 +508,18 @@ class _VideoDetailPlayerScreenState
               if (mounted && !_blocked) setState(() => _blocked = true);
             },
             onProgress: _recordWatchProgress,
-            onEnded: (duration) =>
-                _recordWatchProgress(duration, duration, force: true),
+            onPlayingChanged: (isPlaying) => _recordWatchProgress(
+              _lastPosition,
+              video.duration ?? Duration.zero,
+              force: true,
+              isPlaying: isPlaying,
+            ),
+            onEnded: (duration) => _recordWatchProgress(
+              duration,
+              duration,
+              force: true,
+              isPlaying: false,
+            ),
             startAtSeconds: video.resumePositionSeconds,
           ),
         );

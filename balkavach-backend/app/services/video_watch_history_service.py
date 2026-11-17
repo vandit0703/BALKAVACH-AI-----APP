@@ -14,6 +14,7 @@ from app.db.base import get_model
 from app.services.video_classification import video_format
 from app.services.video_service import child_age
 from app.services.video_entitlement_service import (
+	FREE_DAILY_ALLOWANCE_SECONDS,
 	consume_video_allowance,
 	get_child_video_allowance_today,
 )
@@ -71,7 +72,13 @@ def _eligible_video(session: Session, child, video_id: UUID):
 	return video
 
 
-def record_progress(session: Session, child, video_id: UUID, position_seconds: int) -> dict:
+def record_progress(
+	session: Session,
+	child,
+	video_id: UUID,
+	position_seconds: int,
+	is_playing: bool = True,
+) -> dict:
 	ChildProfile = get_model("ChildProfile")
 	child = session.query(ChildProfile).filter(
 		ChildProfile.id == child.id,
@@ -106,14 +113,7 @@ def record_progress(session: Session, child, video_id: UUID, position_seconds: i
 		session.flush()
 		accepted = 0
 	else:
-		previous = history.last_watched_at
-		if previous.tzinfo is not None:
-			previous = utc_naive(previous)
-		accepted = min(
-			MAX_PROGRESS_INTERVAL_SECONDS,
-			max(0, int((now - previous).total_seconds())),
-		)
-		history.watch_duration_seconds += accepted
+		accepted = 0
 		history.last_watched_at = now
 		history.parent_replay_authorized = False
 
@@ -121,31 +121,57 @@ def record_progress(session: Session, child, video_id: UUID, position_seconds: i
 	remaining_allowance = None
 	is_exhausted = False
 	allowance = get_child_video_allowance_today(session, child.id, child.family_id, now_utc=now)
-	if allowance["total_earned_today_seconds"] > 0:
-		if allowance["remaining_seconds"] <= 0:
-			raise APIError(
-				403,
-				"video_time_exhausted",
-				"Video access time has been exhausted. Complete missions to earn more video time.",
+	if allowance["remaining_seconds"] <= 0:
+		raise APIError(
+			403,
+			"video_time_exhausted",
+			"Video access time has been exhausted. Complete missions to earn more video time.",
+		)
+	DailyUsage = get_model("ChildVideoDailyUsage")
+	daily_usage = session.query(DailyUsage).filter(
+		DailyUsage.child_id == child.id,
+		DailyUsage.local_date == allowance["local_date"],
+	).with_for_update().one_or_none()
+	if daily_usage is None:
+		daily_usage = DailyUsage(
+			child_id=child.id,
+			local_date=allowance["local_date"],
+			free_watched_seconds=0,
+			last_heartbeat_at=now,
+			is_playing=is_playing,
+		)
+		session.add(daily_usage)
+		session.flush()
+		accepted = 0
+	else:
+		previous = daily_usage.last_heartbeat_at or now
+		if previous.tzinfo is not None:
+			previous = utc_naive(previous)
+		accepted = min(
+			MAX_PROGRESS_INTERVAL_SECONDS,
+			max(0, int((now - previous).total_seconds())),
+		) if daily_usage.is_playing else 0
+		daily_usage.last_heartbeat_at = now
+		daily_usage.is_playing = is_playing
+	accepted = min(accepted, allowance["remaining_seconds"])
+	history.watch_duration_seconds += accepted
+	if accepted > 0:
+		free_remaining = max(
+			0,
+			FREE_DAILY_ALLOWANCE_SECONDS - int(daily_usage.free_watched_seconds or 0),
+		)
+		free_accepted = min(accepted, free_remaining)
+		daily_usage.free_watched_seconds += free_accepted
+		mission_accepted = accepted - free_accepted
+		if mission_accepted:
+			consume_video_allowance(
+				session, child.id, child.family_id, mission_accepted, now_utc=now
 			)
-		if accepted > 0:
-			deducted = consume_video_allowance(
-				session, child.id, child.family_id, accepted, now_utc=now
-			)
-			updated_allowance = get_child_video_allowance_today(
-				session, child.id, child.family_id, now_utc=now
-			)
-			remaining_allowance = updated_allowance["remaining_seconds"]
-			is_exhausted = updated_allowance["is_exhausted"]
-			if deducted == 0 and remaining_allowance <= 0:
-				raise APIError(
-					403,
-					"video_time_exhausted",
-					"Video access time has been exhausted. Complete missions to earn more video time.",
-				)
-		else:
-			remaining_allowance = allowance["remaining_seconds"]
-			is_exhausted = remaining_allowance <= 0
+		updated_allowance = get_child_video_allowance_today(
+			session, child.id, child.family_id, now_utc=now
+		)
+		remaining_allowance = updated_allowance["remaining_seconds"]
+		is_exhausted = updated_allowance["is_exhausted"]
 
 	duration = video.duration_seconds
 	position = min(position_seconds, duration) if duration and duration > 0 else position_seconds

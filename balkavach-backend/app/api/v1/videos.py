@@ -77,7 +77,11 @@ def list_video_categories(
 	return [VideoCategoryPublic.model_validate(category) for category in categories]
 
 
-def _feed_item(video, channel_name: str | None = None) -> VideoFeedItem:
+def _feed_item(
+	video,
+	channel_name: str | None = None,
+	last_position_seconds: int = 0,
+) -> VideoFeedItem:
 	is_youtube = video.video_source == "youtube"
 	return VideoFeedItem(
 		id=video.id,
@@ -93,6 +97,7 @@ def _feed_item(video, channel_name: str | None = None) -> VideoFeedItem:
 		video_source=video.video_source,
 		youtube_video_id=video.external_video_id if is_youtube else None,
 		channel_name=channel_name if is_youtube else None,
+		last_position_seconds=last_position_seconds,
 	)
 
 
@@ -112,6 +117,21 @@ def _channel_names(session: Session, videos) -> dict[UUID, str]:
 	}
 
 
+def _resume_positions(session: Session, child, videos) -> dict[UUID, int]:
+	if not videos:
+		return {}
+	WatchHistory = get_model("ChildVideoWatchHistory")
+	return dict(
+		session.query(WatchHistory.video_id, WatchHistory.last_position_seconds)
+		.filter(
+			WatchHistory.child_id == child.id,
+			WatchHistory.video_id.in_(video.id for video in videos),
+			WatchHistory.is_completed.is_(False),
+		)
+		.all()
+	)
+
+
 @router.get("/feed", response_model=list[VideoFeedItem])
 def video_feed(
 	category_id: UUID | None = None,
@@ -124,7 +144,8 @@ def video_feed(
 	# appears in both.
 	videos = eligible_feed(session, child, category_id, limit, offset, video_format="regular")
 	channels = _channel_names(session, videos) if any(video.video_source == "youtube" for video in videos) else {}
-	return [_feed_item(video, channels.get(video.id)) for video in videos]
+	positions = _resume_positions(session, child, videos)
+	return [_feed_item(video, channels.get(video.id), positions.get(video.id, 0)) for video in videos]
 
 
 @router.get("/shorts", response_model=list[VideoFeedItem])
@@ -137,7 +158,8 @@ def video_shorts(
 ) -> list[VideoFeedItem]:
 	videos = eligible_feed(session, child, category_id, limit, offset, video_format="short")
 	channels = _channel_names(session, videos) if any(video.video_source == "youtube" for video in videos) else {}
-	return [_feed_item(video, channels.get(video.id)) for video in videos]
+	positions = _resume_positions(session, child, videos)
+	return [_feed_item(video, channels.get(video.id), positions.get(video.id, 0)) for video in videos]
 
 
 @router.post("/watch-history/{video_id}/progress", response_model=VideoWatchProgressPublic)
@@ -148,7 +170,7 @@ def record_video_progress(
 	session: Session = Depends(get_db),
 ) -> VideoWatchProgressPublic:
 	return VideoWatchProgressPublic(**video_watch_history_service.record_progress(
-		session, child, video_id, request.position_seconds
+		session, child, video_id, request.position_seconds, request.is_playing
 	))
 
 

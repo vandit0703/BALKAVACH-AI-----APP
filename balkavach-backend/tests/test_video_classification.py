@@ -128,6 +128,7 @@ def client(monkeypatch):
 
 	monkeypatch.setattr(video_routes, "eligible_feed", fake_feed)
 	monkeypatch.setattr(video_routes, "_channel_names", lambda session, videos: {})
+	monkeypatch.setattr(video_routes, "_resume_positions", lambda session, child, videos: {})
 	app.dependency_overrides[require_child] = lambda: SimpleNamespace(id=uuid4())
 	app.dependency_overrides[get_db] = lambda: None
 	try:
@@ -154,6 +155,7 @@ def test_items_carry_the_backend_label_and_never_a_guessed_duration(client):
 		("unknown", None),
 		("regular", 600),
 	]
+	assert all(i["last_position_seconds"] == 0 for i in items)
 	# Hosted media never carries a playable URL in a feed.
 	assert all("video_url" not in item and "storage_key" not in item for item in items)
 	assert items[2]["youtube_video_id"] is None

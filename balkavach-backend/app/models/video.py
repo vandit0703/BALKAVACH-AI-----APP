@@ -7,6 +7,7 @@ _MODELS = {
 	"VideoCollectionItem",
 	"VideoWatchSession",
 	"ChildVideoWatchHistory",
+	"ChildVideoDailyUsage",
 	"EducationalContent",
 }
 
