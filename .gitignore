@@ -14,5 +14,6 @@ dist/
 *.egg-info/
 .env
 notes.txt
+servecmd.txt
 
 
