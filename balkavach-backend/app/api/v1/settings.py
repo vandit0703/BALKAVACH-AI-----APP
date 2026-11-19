@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_current_user, require_parent
 from app.db.base import get_model
 from app.db.session import get_db
+from app.schemas.notification import NotificationPreferencesPublic, NotificationPreferencesUpdate
+from app.services import notification_preferences_service as notification_preferences
 from app.schemas.settings import (
 	ConsentCreate,
 	ConsentPublic,
@@ -113,6 +115,15 @@ def update_family_settings(
 	if not session.query(Family.id).filter(Family.id == family_id).with_for_update().first():
 		raise HTTPException(status_code=404, detail="Family not found")
 	setting = session.query(FamilySetting).filter(FamilySetting.family_id == family_id).with_for_update().one_or_none()
+	if "mission_settings" in values:
+		# Notification preferences are owned by their own endpoint: a client that
+		# sends back an old copy of mission_settings must not undo a newer change.
+		incoming = dict(values["mission_settings"])
+		incoming.pop(notification_preferences.PREFERENCES_KEY, None)
+		existing = (setting.mission_settings or {}) if setting is not None else {}
+		if notification_preferences.PREFERENCES_KEY in existing:
+			incoming[notification_preferences.PREFERENCES_KEY] = existing[notification_preferences.PREFERENCES_KEY]
+		values["mission_settings"] = incoming
 	if setting is None:
 		setting = FamilySetting(
 			family_id=family_id,
@@ -130,6 +141,42 @@ def update_family_settings(
 	session.commit()
 	session.refresh(setting)
 	return FamilySettingsPublic.model_validate(setting)
+
+
+@router.get("/families/{family_id}/notification-preferences", response_model=NotificationPreferencesPublic)
+def get_notification_preferences(
+	family_id: UUID,
+	parent=Depends(require_parent),
+	session: Session = Depends(get_db),
+) -> NotificationPreferencesPublic:
+	"""Which pushes this family receives, and its quiet hours (parent only)."""
+	notification_preferences.require_parent_of_family(session, family_id, parent.id)
+	return NotificationPreferencesPublic.model_validate(notification_preferences.describe(session, family_id))
+
+
+@router.patch("/families/{family_id}/notification-preferences", response_model=NotificationPreferencesPublic)
+def update_notification_preferences(
+	family_id: UUID,
+	request: NotificationPreferencesUpdate,
+	parent=Depends(require_parent),
+	session: Session = Depends(get_db),
+) -> NotificationPreferencesPublic:
+	"""Partial update. Safety notifications cannot be turned off. Applies to pushes; in-app notifications are kept."""
+	notification_preferences.require_parent_of_family(session, family_id, parent.id)
+	values = request.model_dump(exclude_unset=True)
+	if any(value is None for value in values.values()):
+		raise HTTPException(status_code=422, detail="Preference values cannot be null")
+	quiet = values.get("quiet_hours") or {}
+	if any(value is None for value in quiet.values()):
+		raise HTTPException(status_code=422, detail="Quiet-hour values cannot be null")
+	result = notification_preferences.update(
+		session,
+		family_id,
+		parent.id,
+		categories=values.get("categories"),
+		quiet_hours=quiet,
+	)
+	return NotificationPreferencesPublic.model_validate(result)
 
 
 @router.post("/families/{family_id}/consents", response_model=ConsentPublic, status_code=201)

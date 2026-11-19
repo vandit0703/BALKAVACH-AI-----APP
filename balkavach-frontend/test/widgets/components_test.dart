@@ -70,7 +70,7 @@ void main() {
   ) async {
     await _pump(
       tester,
-      const ShieldLogo(size: 80, semanticLabel: 'Bal Kavach AI'),
+      const ShieldLogo(size: 80, semanticLabel: 'BALKAVACH'),
     );
     expect(find.bySemanticsLabel('Bal Kavach AI'), findsOneWidget);
     expect(tester.getSize(find.byType(ShieldLogo)), const Size(80, 80));

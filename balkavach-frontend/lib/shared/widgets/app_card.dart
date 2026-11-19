@@ -52,7 +52,7 @@ class AppCard extends StatelessWidget {
   }
 }
 
-/// Eyebrow pill used above titles ("BAL KAVACH ECOSYSTEM", "PLAYFUL SAFETY").
+/// Eyebrow pill used above titles ("BALKAVACH ECOSYSTEM", "PLAYFUL SAFETY").
 class EyebrowPill extends StatelessWidget {
   const EyebrowPill({
     required this.label,

@@ -112,6 +112,16 @@ class MissionsRepository {
     await _dio.delete<void>('/api/v1/tasks/$taskId');
   });
 
+  /// `GET /api/v1/notifications/{id}`: one of the signed-in user's own
+  /// notifications (404 for anyone else's or a deleted one).
+  Future<AppNotification> getNotification(String notificationId) =>
+      guardApi(() async {
+        final response = await _dio.get<Map<String, dynamic>>(
+          '/api/v1/notifications/$notificationId',
+        );
+        return AppNotification.fromJson(response.data!);
+      });
+
   /// `POST /api/v1/notifications/{id}/read`.
   Future<void> markNotificationRead(String notificationId) =>
       guardApi(() async {

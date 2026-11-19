@@ -92,15 +92,15 @@ CATALOGUE: dict[str, dict[str, list[str]]] = {
 	},
 	"identity": {
 		"en": [
-			"I'm Panda, your BalKavach buddy! I love missions, drawing and fun facts.",
+			"I'm Panda, your BALKAVACH buddy! I love missions, drawing and fun facts.",
 			"My name is Panda! I help you with missions and cheer for you.",
 		],
 		"hi": [
-			"मैं पांडा हूँ, तुम्हारा बालकवच दोस्त! मुझे मिशन, ड्रॉइंग और मज़ेदार बातें पसंद हैं।",
+			"मैं पांडा हूँ, तुम्हारा BALKAVACH दोस्त! मुझे मिशन, ड्रॉइंग और मज़ेदार बातें पसंद हैं।",
 			"मेरा नाम पांडा है! मैं मिशन में तुम्हारी मदद करता हूँ और तुम्हारा हौसला बढ़ाता हूँ।",
 		],
 		"gu": [
-			"હું પાંડા છું, તમારો બાલકવચ દોસ્ત! મને મિશન, ચિત્રો અને મજાની વાતો ગમે છે.",
+			"હું પાંડા છું, તમારો BALKAVACH દોસ્ત! મને મિશન, ચિત્રો અને મજાની વાતો ગમે છે.",
 			"મારું નામ પાંડા છે! હું મિશનમાં તમારી મદદ કરું છું અને તમને હિંમત આપું છું.",
 		],
 	},

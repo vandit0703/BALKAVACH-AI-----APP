@@ -13,10 +13,13 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/learning_repository.dart';
+import '../data/play_ticket_client.dart' show TicketStop;
 import '../data/playback_guard.dart';
+import '../data/ticketed_playback.dart';
 import '../data/video_feed_repository.dart';
 import '../data/youtube_embed_policy.dart';
 import 'video_lock_screen.dart';
+import 'widgets/ticket_notice.dart';
 import 'widgets/video_actions.dart' show askGrownUpThenOpen;
 
 /// What the embed needs from the screen hosting it.
@@ -380,20 +383,53 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
   /// Bumped on retry so the embed (and its web view) is built afresh.
   int _attempt = 0;
 
+  /// Play tickets (D6), when the build enables them; otherwise legacy.
+  late final TicketedPlayback _tickets = ticketedPlaybackFor(
+    ref,
+    metered: widget.reportVideoId != null,
+    onChanged: _onTicketChanged,
+  );
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startTicket());
+  }
+
+  void _startTicket() {
+    final id = widget.reportVideoId;
+    if (mounted && id != null && _tickets.handles) {
+      unawaited(_tickets.begin(id));
+    }
+  }
+
+  void _onTicketChanged() {
+    if (!mounted) return;
+    if (_tickets.stopReason == TicketStop.exhausted) {
+      _stopForExhaustedAllowance();
+      return;
+    }
+    setState(() {});
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _tickets.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_tickets.handles) {
+      // Ticket mode: leaving the foreground pauses the heartbeats (the embed
+      // pauses itself); playing again resumes them through onPlayingChanged.
+      if (state != AppLifecycleState.resumed) {
+        _tickets.report(_lastPosition, isPlaying: false);
+      }
+      return;
+    }
     // The embed pauses itself in the background. On return, ask the server
     // again (a paused report is free) so a lock that happened meanwhile shows.
     if (state == AppLifecycleState.resumed && !_allowanceExhausted) {
@@ -402,6 +438,13 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
   }
 
   void _retry() {
+    if (_tickets.phase == TicketPhase.stopped) {
+      // A fresh ticket; never a fall back to the legacy path.
+      _tickets.reset();
+      setState(() => _attempt++);
+      _startTicket();
+      return;
+    }
     if (_offline) {
       unawaited(_retryOnline());
       return;
@@ -476,6 +519,11 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
   }) {
     _lastPosition = position;
     final videoId = widget.reportVideoId;
+    if (videoId != null && _tickets.handles) {
+      // Ticket mode: heartbeats meter this playback, record_progress never.
+      _tickets.report(position, isPlaying: isPlaying);
+      return;
+    }
     final now = DateTime.now();
     if (videoId == null ||
         (!force &&
@@ -511,7 +559,9 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
     if (!navigator.canPop()) return;
     setState(() => _leaving = true);
     final videoId = widget.reportVideoId;
-    if (videoId != null) {
+    if (videoId != null && _tickets.handles) {
+      await _tickets.finish(_lastPosition);
+    } else if (videoId != null) {
       try {
         await ref
             .read(videoFeedRepositoryProvider)
@@ -539,6 +589,7 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
     final videoId = widget.youtubeVideoId;
     final reportVideoId = widget.reportVideoId;
     final embed = ref.watch(youtubeEmbedBuilderProvider);
+    final ticketMessage = ticketNotice(l10n, _tickets);
 
     return PopScope(
       canPop: reportVideoId == null || _leaving,
@@ -568,7 +619,8 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
                         _failed ||
                             videoId == null ||
                             _allowanceExhausted ||
-                            _offline
+                            _offline ||
+                            !_tickets.mayPlay
                         ? ColoredBox(
                             color: colors.surfaceContainerHighest,
                             child: Padding(
@@ -585,14 +637,19 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
                                             ? l10n.videoAllowanceLocked
                                             : _offline
                                             ? l10n.videoOfflinePaused
-                                            : l10n.youtubePlayerError,
+                                            : ticketMessage ??
+                                                  l10n.youtubePlayerError,
                                         key: const Key('youtube.error'),
                                         textAlign: TextAlign.center,
                                       ),
                                       // Load failures (offline, embed hiccup) may
                                       // pass; a missing id never will.
                                       if (videoId != null &&
-                                          !_allowanceExhausted) ...[
+                                          !_allowanceExhausted &&
+                                          !_tickets.waiting &&
+                                          (_tickets.phase !=
+                                                  TicketPhase.stopped ||
+                                              ticketRetryable(_tickets))) ...[
                                         const SizedBox(height: AppSpacing.sm),
                                         SecondaryButton(
                                           key: const Key('youtube.retry'),
@@ -624,11 +681,16 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
                                   force: true,
                                   isPlaying: isPlaying,
                                 ),
-                                onEnded: (duration) => _sendProgress(
-                                  duration,
-                                  force: true,
-                                  isPlaying: false,
-                                ),
+                                onEnded: (duration) {
+                                  _lastPosition = duration;
+                                  _tickets.handles
+                                      ? unawaited(_tickets.finish(duration))
+                                      : _sendProgress(
+                                          duration,
+                                          force: true,
+                                          isPlaying: false,
+                                        );
+                                },
                               ),
                             ),
                           ),

@@ -5,6 +5,8 @@ import 'core/config/runtime_config.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'features/learning/presentation/widgets/low_time_notice.dart';
+import 'features/notifications/presentation/notification_open_coordinator.dart';
 import 'features/notifications/presentation/push_registration.dart';
 import 'features/onboarding/presentation/onboarding_controller.dart';
 import 'l10n/app_localizations.dart';
@@ -16,7 +18,10 @@ class BalKavachApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(runtimeConfigProvider).value;
     // Keeps this phone's push token registered for whoever is signed in.
-    ref.watch(pushRegistrationProvider);
+    ref
+      ..watch(pushRegistrationProvider)
+      // Opens the right screen when a push is tapped (cold start or running).
+      ..watch(notificationOpenCoordinatorProvider);
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
@@ -25,12 +30,15 @@ class BalKavachApp extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: ref.watch(appRouterProvider),
-      builder: (context, child) => Column(
-        children: [
-          if (config != null && config.maintenanceEnabled)
-            _MaintenanceBanner(message: config.maintenanceMessage),
-          Expanded(child: child ?? const SizedBox.shrink()),
-        ],
+      scaffoldMessengerKey: rootMessengerKey,
+      builder: (context, child) => LowTimeNoticeListener(
+        child: Column(
+          children: [
+            if (config != null && config.maintenanceEnabled)
+              _MaintenanceBanner(message: config.maintenanceMessage),
+            Expanded(child: child ?? const SizedBox.shrink()),
+          ],
+        ),
       ),
     );
   }

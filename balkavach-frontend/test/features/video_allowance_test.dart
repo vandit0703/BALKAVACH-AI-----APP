@@ -157,7 +157,7 @@ void main() {
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Video Time's Up!"), findsOneWidget);
+      expect(find.text('Video time is done for today'), findsOneWidget);
       expect(
         find.byKey(const Key('video.exhausted.toMissions')),
         findsOneWidget,
@@ -167,7 +167,7 @@ void main() {
       await tester.tap(find.byKey(const Key('video.exhausted.close')));
       await tester.pumpAndSettle();
 
-      expect(find.text("Video Time's Up!"), findsNothing);
+      expect(find.text('Video time is done for today'), findsNothing);
     });
   });
 }

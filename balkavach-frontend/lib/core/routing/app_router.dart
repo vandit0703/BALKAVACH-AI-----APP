@@ -27,6 +27,7 @@ import '../../features/missions/presentation/mission_detail_screen.dart';
 import '../../features/missions/presentation/mission_submit_screen.dart';
 import '../../features/missions/presentation/mission_waiting_screen.dart';
 import '../../features/missions/presentation/missions_screen.dart';
+import '../../features/notifications/presentation/notification_settings_screen.dart';
 import '../../features/onboarding/presentation/consent_screen.dart';
 import '../../features/onboarding/presentation/onboarding_controller.dart';
 import '../../features/onboarding/presentation/role_selection_screen.dart';
@@ -144,6 +145,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'settings',
             builder: (_, _) => const ParentSettingsScreen(),
+            routes: [
+              GoRoute(
+                path: 'notifications',
+                builder: (_, _) => const NotificationSettingsScreen(),
+              ),
+            ],
           ),
           GoRoute(
             path: 'rewards',
@@ -305,9 +312,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.streakScreen,
-            builder: (_, state) => StreakScreen(
-              childId: state.uri.queryParameters['childId']!,
-            ),
+            builder: (_, state) =>
+                StreakScreen(childId: state.uri.queryParameters['childId']!),
           ),
         ],
       ),

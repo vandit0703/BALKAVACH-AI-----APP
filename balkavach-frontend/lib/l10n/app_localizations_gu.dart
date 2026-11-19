@@ -9,16 +9,13 @@ class AppLocalizationsGu extends AppLocalizations {
   AppLocalizationsGu([String locale = 'gu']) : super(locale);
 
   @override
-  String get appTitle => 'બાલ કવચ AI';
+  String get appTitle => 'BALKAVACH';
 
   @override
   String get brandEyebrow => 'બાળકોનો ડિજિટલ રક્ષક';
 
   @override
-  String get brandName => 'બાલ કવચ';
-
-  @override
-  String get brandSuffix => 'AI';
+  String get brandName => 'BALKAVACH';
 
   @override
   String get retry => 'ફરી પ્રયાસ કરો';
@@ -37,7 +34,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get errorNetwork =>
-      'બાલ કવચ સાથે જોડાઈ શકાતું નથી. તમારું ઇન્ટરનેટ કનેક્શન તપાસો.';
+      'BALKAVACH સાથે જોડાઈ શકાતું નથી. તમારું ઇન્ટરનેટ કનેક્શન તપાસો.';
 
   @override
   String get errorTimeout =>
@@ -83,7 +80,7 @@ class AppLocalizationsGu extends AppLocalizations {
       'ખાનગી • જાહેરાત-મુક્ત • 100% માતા-પિતા નિયંત્રિત';
 
   @override
-  String get consentEyebrow => 'બાલ કવચ ઇકોસિસ્ટમ';
+  String get consentEyebrow => 'BALKAVACH ઇકોસિસ્ટમ';
 
   @override
   String get consentTitle => 'માતા-પિતાની સુરક્ષા પહેલા';
@@ -132,7 +129,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get consentContinue => 'હું સંમત છું, આગળ વધો';
 
   @override
-  String get roleTitle => 'બાલ કવચ કોણ વાપરે છે?';
+  String get roleTitle => 'BALKAVACH કોણ વાપરે છે?';
 
   @override
   String get roleSubtitle =>
@@ -704,7 +701,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get waitingBackToMissions => 'મિશન પર પાછા';
 
   @override
-  String get serverChecking => 'બાલ કવચ સર્વર તપાસી રહ્યા છીએ…';
+  String get serverChecking => 'BALKAVACH સર્વર તપાસી રહ્યા છીએ…';
 
   @override
   String get serverOnline => 'સર્વર ચાલુ છે';
@@ -1141,14 +1138,14 @@ class AppLocalizationsGu extends AppLocalizations {
   String get settingsEmail => 'ઇમેઇલ સૂચનાઓ';
 
   @override
-  String get settingsEmailBody => 'બાલ કવચ હજી ઇમેઇલ મોકલતું નથી.';
+  String get settingsEmailBody => 'BALKAVACH હજી ઇમેઇલ મોકલતું નથી.';
 
   @override
   String get settingsPrivacyTitle => 'ગોપનીયતા અને સંમતિ';
 
   @override
   String get settingsPrivacyBody =>
-      'તમે પરિવાર માટે આપેલી સંમતિ, જે Bal Kavach પાસે સાચવેલી છે.';
+      'તમે પરિવાર માટે આપેલી સંમતિ, જે BALKAVACH પાસે સાચવેલી છે.';
 
   @override
   String get settingsNoConsents => 'હજુ કોઈ સંમતિ રેકોર્ડ નથી.';
@@ -1168,13 +1165,13 @@ class AppLocalizationsGu extends AppLocalizations {
   String get settingsLogOut => 'લૉગ આઉટ';
 
   @override
-  String get settingsFooter => 'Bal Kavach AI • ભારતીય પરિવારો માટે';
+  String get settingsFooter => 'BALKAVACH • ભારતીય પરિવારો માટે';
 
   @override
   String get rewardsTitle => 'બાળ ઇનામ';
 
   @override
-  String get rewardsVault => 'Bal Kavach તિજોરી';
+  String get rewardsVault => 'BALKAVACH તિજોરી';
 
   @override
   String get rewardsBalance => 'હાલનું સ્ટાર બેલેન્સ';
@@ -1711,7 +1708,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get maintenanceDefault =>
-      'બાલ કવચ અપડેટ થઈ રહ્યું છે. થોડા સમય માટે કેટલીક બાબતો કામ ન કરે.';
+      'BALKAVACH અપડેટ થઈ રહ્યું છે. થોડા સમય માટે કેટલીક બાબતો કામ ન કરે.';
 
   @override
   String get settingsTimezone => 'સમય ઝોન';
@@ -1763,7 +1760,7 @@ class AppLocalizationsGu extends AppLocalizations {
       'સૂચનાઓમાં તમારા બાળકનું નામ કે મિશનની વિગતો ક્યારેય દેખાતી નથી.';
 
   @override
-  String get safetyPointNoAds => 'બાલ કવચ કોઈ જાહેરાત બતાવતું નથી.';
+  String get safetyPointNoAds => 'BALKAVACH કોઈ જાહેરાત બતાવતું નથી.';
 
   @override
   String get childSignOutDevices => 'બધા ઉપકરણો પર સાઇન આઉટ કરો';
@@ -2030,7 +2027,7 @@ class AppLocalizationsGu extends AppLocalizations {
       'YouTube ના વિડિયો YouTube ના પોતાના પ્લેયરમાં ચાલે છે અને તેમાં જાહેરાતો આવી શકે છે.';
 
   @override
-  String get youtubeLeaveTitle => 'બાલ કવચ છોડવું છે?';
+  String get youtubeLeaveTitle => 'BALKAVACH છોડવું છે?';
 
   @override
   String get youtubeLeaveBody =>
@@ -2044,7 +2041,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get youtubeOtherVideoBlocked =>
-      'આ વિડિયો બાલ કવચમાં નથી, તેથી અહીં ચાલી શકતો નથી.';
+      'આ વિડિયો BALKAVACH માં નથી, તેથી અહીં ચાલી શકતો નથી.';
 
   @override
   String get youtubePlayerError => 'આ વિડિયો હમણાં ચાલી શકતો નથી.';
@@ -2135,7 +2132,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get videoNotEmbeddable =>
-      'આ વિડિઓ બાલ કવચમાં ચાલી શકતો નથી. બીજો જુઓ!';
+      'આ વિડિઓ BALKAVACH માં ચાલી શકતો નથી. બીજો જુઓ!';
 
   @override
   String get videoLoading => 'લોડ થઈ રહ્યું છે…';
@@ -2285,11 +2282,11 @@ class AppLocalizationsGu extends AppLocalizations {
       '15 મિનિટ વીડિયો સમય અનલૉક કરવા માટે દૈનિક મિશન પૂર્ણ કરો!';
 
   @override
-  String get videoTimeExhaustedTitle => 'વીડિયો સમય સમાપ્ત!';
+  String get videoTimeExhaustedTitle => 'આજનો વીડિયો સમય પૂરો થયો';
 
   @override
   String get videoTimeExhaustedBody =>
-      'તમે આજનો વીડિયો સમય વાપરી લીધો છે. વધુ 15 મિનિટ અનલૉક કરવા માટે બીજું મિશન પૂર્ણ કરો!';
+      'તમે આજનો વીડિયો સમય વાપરી લીધો છે. એક મિશન પૂરું કરો અને તમારા વડીલ મંજૂર કરે ત્યારે વધુ સમય મળશે.';
 
   @override
   String get videoGoToMissions => 'મિશન પર જાઓ';
@@ -2460,7 +2457,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get inviteTitle => 'અન્ય વાલીઓને આમંત્રિત કરો';
 
   @override
-  String get inviteCardPanda => 'પાંડા, બાલ કવચનો સાથી';
+  String get inviteCardPanda => 'પાંડા, BALKAVACH નો સાથી';
 
   @override
   String get inviteCardHeadline => 'પહેલાં મિશન, પછી વીડિયો';
@@ -2471,7 +2468,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get inviteMessage =>
-      'તમારા બાળક સાથે બાલ કવચ અજમાવો: પહેલાં રોજના મિશન, પછી સુરક્ષિત વીડિયો સમય, અને નિયંત્રણ વાલીના હાથમાં.';
+      'તમારા બાળક સાથે BALKAVACH અજમાવો: પહેલાં રોજના મિશન, પછી સુરક્ષિત વીડિયો સમય, અને નિયંત્રણ વાલીના હાથમાં.';
 
   @override
   String get inviteWhatsApp => 'વોટ્સએપ પર શેર કરો';
@@ -2489,7 +2486,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get invitePrivacyNote => 'આ કાર્ડમાં તમારા બાળકની કોઈ માહિતી નથી.';
 
   @override
-  String get settingsInviteSubtitle => 'બીજા પરિવાર સાથે બાલ કવચ શેર કરો';
+  String get settingsInviteSubtitle => 'બીજા પરિવાર સાથે BALKAVACH શેર કરો';
 
   @override
   String get pandaName => 'પાંડા';
@@ -2538,7 +2535,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get pandaVideoUp1 =>
-      'હમણાં માટે વીડિયો સમય પૂરો. નવું મિશન વધુ સમય ખોલશે!';
+      'હમણાં માટે વીડિયો સમય પૂરો. ચાલો આંખોને આરામ આપીએ અને એક મિશન પસંદ કરીએ!';
 
   @override
   String get pandaVideoUp2 => 'આજનો વીડિયો સમય બસ આટલો. ચાલો એક મિશન કરીએ!';
@@ -2635,7 +2632,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get pandaMicExplainBody =>
-      'પાંડા ફક્ત ત્યારે જ સાંભળે છે જ્યારે તમે માઇક દબાવો, અને તમે બોલી લો એટલે બંધ થઈ જાય છે. તમારા ફોનની બોલવાની સેવા તમારા શબ્દોને લખાણમાં ફેરવે છે. ઘણા ફોનમાં આ Google ની સેવા હોય છે, જે ઇન્ટરનેટ વાપરી શકે છે. બાલકવચ કોઈ રેકોર્ડિંગ રાખતું નથી. તમે હંમેશાં લખીને પણ કહી શકો છો.';
+      'પાંડા ફક્ત ત્યારે જ સાંભળે છે જ્યારે તમે માઇક દબાવો, અને તમે બોલી લો એટલે બંધ થઈ જાય છે. તમારા ફોનની બોલવાની સેવા તમારા શબ્દોને લખાણમાં ફેરવે છે. ઘણા ફોનમાં આ Google ની સેવા હોય છે, જે ઇન્ટરનેટ વાપરી શકે છે. BALKAVACH કોઈ રેકોર્ડિંગ રાખતું નથી. તમે હંમેશાં લખીને પણ કહી શકો છો.';
 
   @override
   String get pandaMicAllow => 'હા, માઇક વાપરો';
@@ -2688,4 +2685,199 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get pandaSuggestStars => 'મારા સ્ટાર';
+
+  @override
+  String get videoLockStepsTitle => 'વધુ વીડિયો સમય કેવી રીતે મળે';
+
+  @override
+  String get videoLockStep1 => 'એક મિશન પસંદ કરો';
+
+  @override
+  String get videoLockStep2 => 'તે પૂરું કરીને મોકલો';
+
+  @override
+  String get videoLockStep3 => 'તમારા વડીલ તે તપાસીને મંજૂર કરશે';
+
+  @override
+  String get videoLockStepsNote =>
+      'મંજૂરી મળતાં જ નવો વીડિયો સમય અહીં આપમેળે દેખાશે.';
+
+  @override
+  String get videoLockChecking => 'તમારો વીડિયો સમય તપાસી રહ્યા છીએ…';
+
+  @override
+  String get videoLockCheckAgain => 'ફરી તપાસો';
+
+  @override
+  String get videoLockTimeBackTitle => 'વીડિયો સમય પાછો આવ્યો!';
+
+  @override
+  String videoLockTimeBackBody(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: 'તમારી પાસે $minutes મિનિટનો વીડિયો સમય છે.',
+      one: 'તમારી પાસે 1 મિનિટનો વીડિયો સમય છે.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get videoLockWatchNow => 'વીડિયો જુઓ';
+
+  @override
+  String videoLowTimeNotice(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other:
+          'લગભગ $minutes મિનિટનો વીડિયો સમય બાકી છે. હવે તમારો વિડિયો પૂરો કરો!',
+      one: 'લગભગ 1 મિનિટનો વીડિયો સમય બાકી છે. હવે તમારો વિડિયો પૂરો કરો!',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notifPrefsTitle => 'સૂચના પસંદગીઓ';
+
+  @override
+  String get notifPrefsEntrySubtitle =>
+      'તમારા પરિવારના ફોન પર કયા એલર્ટ આવે તે પસંદ કરો અને શાંત સમય નક્કી કરો';
+
+  @override
+  String get notifPrefsParentOnly =>
+      'સૂચના પસંદગીઓ ફક્ત માતા-પિતા બદલી શકે છે.';
+
+  @override
+  String get notifPrefsIntro =>
+      'આ પસંદગીઓ નક્કી કરે છે કે તમારા પરિવારના ફોન પર કયા એલર્ટ દેખાય. બધું જ એપની સૂચના યાદીમાં તો દેખાશે જ, તેથી કંઈ ચૂકાશે નહીં.';
+
+  @override
+  String get notifPrefsPushOff =>
+      'આ ફોન પર તમારા ખાતા માટે પુશ સૂચનાઓ બંધ છે, તેથી એલર્ટ ફક્ત એપની અંદર દેખાશે.';
+
+  @override
+  String get notifPrefsPushDenied =>
+      'આ ફોનને સૂચનાઓ બતાવવાની પરવાનગી નથી. એલર્ટ મેળવવા માટે ફોનના સેટિંગ્સમાં પરવાનગી આપો.';
+
+  @override
+  String get notifPrefsPushUnavailable =>
+      'એપનું આ સંસ્કરણ હજી પુશ એલર્ટ મેળવી શકતું નથી. તમારી પસંદગીઓ પરિવાર માટે તો પણ સાચવવામાં આવે છે.';
+
+  @override
+  String get notifPrefsGroupMissions => 'મિશન';
+
+  @override
+  String get notifPrefsGroupStreaks => 'સ્ટ્રીક';
+
+  @override
+  String get notifPrefsGroupVideos => 'વીડિયો સમય';
+
+  @override
+  String get notifPrefsGroupRewards => 'ઇનામ અને બેજ';
+
+  @override
+  String get notifPrefsGroupSafety => 'સુરક્ષા';
+
+  @override
+  String get notifPrefsNewMissions => 'નવા મિશન';
+
+  @override
+  String get notifPrefsNewMissionsBody =>
+      'બાળક માટે નવું મિશન તૈયાર હોય ત્યારે તેને જણાવો.';
+
+  @override
+  String get notifPrefsMissionReviews => 'મિશન મંજૂરી';
+
+  @override
+  String get notifPrefsMissionReviewsBody =>
+      'કોઈ મિશન સમીક્ષાની રાહ જોતું હોય ત્યારે તમને, અને તે મંજૂર થાય અથવા ફરી કરવાનું હોય ત્યારે બાળકને જણાવો.';
+
+  @override
+  String get notifPrefsStreaks => 'સ્ટ્રીક રિમાઇન્ડર અને સિદ્ધિઓ';
+
+  @override
+  String get notifPrefsStreaksBody =>
+      'સ્ટ્રીક તૂટવાનું જોખમ હોય ત્યારે બાળકને યાદ અપાવો અને નવી સિદ્ધિઓની ઉજવણી કરો.';
+
+  @override
+  String get notifPrefsVideoAllowance => 'વીડિયો સમયની માહિતી';
+
+  @override
+  String get notifPrefsVideoAllowanceBody =>
+      'બાળક વીડિયો સમય મેળવે અને થોડો જ સમય બાકી હોય ત્યારે તેને જણાવો.';
+
+  @override
+  String get notifPrefsVideoTimeUp => 'વીડિયો સમય પૂરો';
+
+  @override
+  String get notifPrefsVideoTimeUpBody =>
+      'આજનો વીડિયો સમય પૂરો થાય ત્યારે બાળકને જણાવો.';
+
+  @override
+  String get notifPrefsRewards => 'ઇનામ અને બેજ';
+
+  @override
+  String get notifPrefsRewardsBody => 'ઇનામની વિનંતીઓ, મંજૂરીઓ અને નવા બેજ.';
+
+  @override
+  String get notifPrefsSafety => 'સુરક્ષા એલર્ટ';
+
+  @override
+  String get notifPrefsSafetyBody =>
+      'જેમ કે, બાળકના ડિવાઇસ પર પેરેન્ટ સાઇન-ઇનના ઘણા ખોટા પ્રયાસો.';
+
+  @override
+  String get notifPrefsAlwaysOnNote => 'બાળકની સુરક્ષા માટે હંમેશા ચાલુ.';
+
+  @override
+  String get notifPrefsQuietTitle => 'શાંત સમય';
+
+  @override
+  String get notifPrefsQuietSwitch => 'શાંત સમયમાં એલર્ટ રોકો';
+
+  @override
+  String get notifPrefsQuietBody =>
+      'આ સમય દરમિયાન કોઈ એલર્ટ દેખાશે નહીં. તે એપની સૂચના યાદીમાં રાહ જોશે.';
+
+  @override
+  String get notifPrefsQuietStart => 'શરૂ';
+
+  @override
+  String get notifPrefsQuietEnd => 'સમાપ્ત';
+
+  @override
+  String notifPrefsQuietOvernight(String start, String end) {
+    return 'આ આખી રાત ચાલે છે, $start થી બીજા દિવસે સવારે $end સુધી.';
+  }
+
+  @override
+  String notifPrefsQuietZone(String zone) {
+    return 'સમય તમારા પરિવારના સમય ઝોનમાં છે: $zone';
+  }
+
+  @override
+  String get notifPrefsQuietZoneDefault =>
+      'તમારા પરિવારનો સમય ઝોન હજી સાચવ્યો નથી, તેથી UTC વપરાય છે. તેને આપમેળે સાચવવા માટે માતા-પિતાના ફોન પર સેટિંગ્સ ખોલો.';
+
+  @override
+  String get notifPrefsQuietSafetyNote =>
+      'સુરક્ષા એલર્ટ શાંત સમયમાં પણ મોકલવામાં આવે છે.';
+
+  @override
+  String get notifPrefsQuietSame => 'શરૂ અને સમાપ્ત થવાનો સમય અલગ હોવો જોઈએ.';
+
+  @override
+  String get videoTicketStarting => 'તમારો વીડિયો તૈયાર થઈ રહ્યો છે…';
+
+  @override
+  String get videoTicketSuperseded =>
+      'આ વીડિયો બીજા ડિવાઇસ પર ચાલુ થયો, એટલે અહીં બંધ થયો. અહીં જોવા માટે ફરી પ્રયાસ કરો દબાવો.';
+
+  @override
+  String get videoTicketStopped =>
+      'વીડિયો બંધ થયો. આગળ જોવા માટે ફરી પ્રયાસ કરો દબાવો.';
+
+  @override
+  String get videoTicketRevoked => 'આ વીડિયો અત્યારે ઉપલબ્ધ નથી.';
 }

@@ -23,7 +23,7 @@ MIN_PASSWORD_LENGTH = 12
 
 _STRINGS = {
 	"en": {
-		"title": "Reset your BalKavach password",
+		"title": "Reset your BALKAVACH password",
 		"intro": "Choose a new password for your parent account.",
 		"password": "New password",
 		"confirm": "Confirm new password",
@@ -37,10 +37,10 @@ _STRINGS = {
 		"invalid": "This reset link is invalid or has expired. Request a new one from the app.",
 		"busy": "Too many attempts or the service is busy. Please try again in a few minutes.",
 		"network": "Could not reach the server. Check your connection and try again.",
-		"done": "Your password was changed. You have been signed out everywhere. Open the BalKavach app and sign in with the new password.",
+		"done": "Your password was changed. You have been signed out everywhere. Open the BALKAVACH app and sign in with the new password.",
 	},
 	"hi": {
-		"title": "अपना BalKavach पासवर्ड रीसेट करें",
+		"title": "अपना BALKAVACH पासवर्ड रीसेट करें",
 		"intro": "अपने पैरेंट खाते के लिए नया पासवर्ड चुनें।",
 		"password": "नया पासवर्ड",
 		"confirm": "नया पासवर्ड दोबारा लिखें",
@@ -54,10 +54,10 @@ _STRINGS = {
 		"invalid": "यह रीसेट लिंक अमान्य है या समाप्त हो चुका है। ऐप से नया लिंक मँगवाएँ।",
 		"busy": "बहुत अधिक प्रयास हुए हैं या सेवा व्यस्त है। कुछ मिनट बाद फिर कोशिश करें।",
 		"network": "सर्वर तक नहीं पहुँच सके। अपना कनेक्शन जाँचें और फिर कोशिश करें।",
-		"done": "आपका पासवर्ड बदल गया है और आप हर जगह साइन आउट हो गए हैं। BalKavach ऐप खोलकर नए पासवर्ड से साइन इन करें।",
+		"done": "आपका पासवर्ड बदल गया है और आप हर जगह साइन आउट हो गए हैं। BALKAVACH ऐप खोलकर नए पासवर्ड से साइन इन करें।",
 	},
 	"gu": {
-		"title": "તમારો BalKavach પાસવર્ડ રીસેટ કરો",
+		"title": "તમારો BALKAVACH પાસવર્ડ રીસેટ કરો",
 		"intro": "તમારા પેરેન્ટ એકાઉન્ટ માટે નવો પાસવર્ડ પસંદ કરો.",
 		"password": "નવો પાસવર્ડ",
 		"confirm": "નવો પાસવર્ડ ફરી લખો",
@@ -71,7 +71,7 @@ _STRINGS = {
 		"invalid": "આ રીસેટ લિંક અમાન્ય છે અથવા સમાપ્ત થઈ ગઈ છે. એપમાંથી નવી લિંક મંગાવો.",
 		"busy": "ઘણા પ્રયાસો થયા છે અથવા સેવા વ્યસ્ત છે. થોડી મિનિટો પછી ફરી પ્રયાસ કરો.",
 		"network": "સર્વર સુધી પહોંચી શકાયું નથી. તમારું કનેક્શન તપાસો અને ફરી પ્રયાસ કરો.",
-		"done": "તમારો પાસવર્ડ બદલાઈ ગયો છે અને તમે બધે સાઇન આઉટ થઈ ગયા છો. BalKavach એપ ખોલીને નવા પાસવર્ડથી સાઇન ઇન કરો.",
+		"done": "તમારો પાસવર્ડ બદલાઈ ગયો છે અને તમે બધે સાઇન આઉટ થઈ ગયા છો. BALKAVACH એપ ખોલીને નવા પાસવર્ડથી સાઇન ઇન કરો.",
 	},
 }
 
@@ -81,7 +81,7 @@ _PAGE = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>BalKavach</title>
+<title>BALKAVACH</title>
 <style nonce="__NONCE__">
 :root{color-scheme:light dark;--bg:#f6f7fb;--fg:#1c1b1f;--card:#fff;--accent:#5b4bd5;--err:#b3261e;--ok:#146c2e;--line:#c9c5d0}
 @media (prefers-color-scheme:dark){:root{--bg:#121316;--fg:#e6e1e5;--card:#1d1b20;--accent:#b8b0ff;--err:#f2b8b5;--ok:#8fd9a0;--line:#49454f}}

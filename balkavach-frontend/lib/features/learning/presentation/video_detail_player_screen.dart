@@ -10,12 +10,15 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../data/play_ticket_client.dart' show TicketStop;
 import '../data/playable_video.dart';
 import '../data/playback_guard.dart';
+import '../data/ticketed_playback.dart';
 import '../data/video_feed_repository.dart';
 import '../data/video_playback_controller.dart';
 import 'video_lock_screen.dart';
 import 'video_player_screen.dart' show formatPlaybackTime;
+import 'widgets/ticket_notice.dart';
 import 'widgets/video_actions.dart';
 import 'youtube_player_screen.dart';
 
@@ -87,11 +90,45 @@ class _VideoDetailPlayerScreenState
     return _relatedFallback;
   }
 
+  /// Play tickets (D6) for the current video, when the build enables them.
+  late TicketedPlayback _tickets = _newTickets();
+
+  TicketedPlayback _newTickets() => ticketedPlaybackFor(
+    ref,
+    metered: _video.reportVideoId != null,
+    onChanged: _onTicketChanged,
+  );
+
+  void _startTicket() {
+    final id = _video.reportVideoId;
+    if (mounted && id != null && _tickets.handles) {
+      unawaited(_tickets.begin(id));
+    }
+  }
+
+  void _onTicketChanged() {
+    if (!mounted) return;
+    if (_tickets.stopReason == TicketStop.exhausted) {
+      _stopForExhaustedAllowance();
+      return;
+    }
+    final controller = _controller;
+    if (controller != null && controller.isInitialised) {
+      if (_tickets.phase == TicketPhase.granted && !controller.isPlaying) {
+        unawaited(controller.play());
+      } else if (!_tickets.mayPlay && controller.isPlaying) {
+        unawaited(controller.pause());
+      }
+    }
+    setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _start();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startTicket());
   }
 
   void _start() {
@@ -117,7 +154,8 @@ class _VideoDetailPlayerScreenState
       await controller.seekTo(Duration(seconds: resumeAt));
     }
     await controller.setVolume(_muted ? 0 : 1);
-    await controller.play();
+    // In ticket mode the stream waits for its ticket (_onTicketChanged plays it).
+    if (_tickets.mayPlay) await controller.play();
   }
 
   void _onPlayer() {
@@ -161,12 +199,22 @@ class _VideoDetailPlayerScreenState
   Future<void> _open(PlayableVideo next) async {
     // The server confirms time remains before the next video starts.
     if (!await ensureVideoAllowance(context, ref) || !mounted) return;
-    _recordWatchProgress(
-      _controller?.position ?? _lastPosition,
-      _controller?.duration ?? Duration.zero,
-      force: true,
-      isPlaying: false,
-    );
+    if (_tickets.handles) {
+      // One ticket per video: end this one, then ask for the next.
+      final old = _tickets;
+      await old.finish(_controller?.position ?? _lastPosition);
+      old.dispose();
+      if (!mounted) return;
+      _video = next;
+      _tickets = _newTickets();
+    } else {
+      _recordWatchProgress(
+        _controller?.position ?? _lastPosition,
+        _controller?.duration ?? Duration.zero,
+        force: true,
+        isPlaying: false,
+      );
+    }
     setState(() {
       _release();
       _video = next;
@@ -176,6 +224,7 @@ class _VideoDetailPlayerScreenState
       _attempt++;
       _start();
     });
+    _startTicket();
     if (_scroll.hasClients) {
       unawaited(
         _scroll.animateTo(
@@ -212,6 +261,11 @@ class _VideoDetailPlayerScreenState
   }) {
     _lastPosition = position;
     final videoId = _video.reportVideoId;
+    if (videoId != null && _tickets.handles) {
+      // Ticket mode: heartbeats meter this playback, record_progress never.
+      _tickets.report(position, isPlaying: isPlaying);
+      return;
+    }
     final now = DateTime.now();
     if (videoId == null ||
         (!force &&
@@ -250,7 +304,14 @@ class _VideoDetailPlayerScreenState
     }
   }
 
+  void _retryTicket() {
+    _tickets.reset();
+    setState(() => _attempt++);
+    _startTicket();
+  }
+
   Future<void> _retryOnline() async {
+    if (_tickets.handles) return _retryTicket();
     final videoId = _video.reportVideoId;
     if (videoId == null) return;
     final report = await _guard.report(
@@ -284,7 +345,9 @@ class _VideoDetailPlayerScreenState
     if (!navigator.canPop()) return;
     setState(() => _leaving = true);
     final videoId = _video.reportVideoId;
-    if (videoId != null) {
+    if (videoId != null && _tickets.handles) {
+      await _tickets.finish(_controller?.position ?? _lastPosition);
+    } else if (videoId != null) {
       try {
         await ref
             .read(videoFeedRepositoryProvider)
@@ -324,6 +387,11 @@ class _VideoDetailPlayerScreenState
     // Nothing plays behind another app. The YouTube embed pauses itself.
     if (state != AppLifecycleState.resumed) {
       unawaited(_controller?.pause());
+      if (_tickets.handles) {
+        _tickets.report(_controller?.position ?? _lastPosition, isPlaying: false);
+      }
+    } else if (_tickets.handles) {
+      // Ticket mode: playing again resumes the heartbeats.
     } else if (!_allowanceExhausted) {
       // Ask the server again (a paused report is free) so a lock that
       // happened meanwhile shows, instead of trusting what was on screen.
@@ -339,6 +407,7 @@ class _VideoDetailPlayerScreenState
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _tickets.dispose();
     _release();
     _scroll.dispose();
     if (_fullscreen) unawaited(_restoreSystemUi());
@@ -593,6 +662,20 @@ class _VideoDetailPlayerScreenState
       placeholderColor: Colors.black,
       iconColor: AppPalette.onPrimary,
     );
+    final ticketMessage = ticketNotice(l10n, _tickets);
+    if (ticketMessage != null &&
+        !_allowanceExhausted &&
+        video.source is! UnavailableSource) {
+      return _StageNotice(
+        key: const Key('detail.ticket'),
+        background: still,
+        icon: _tickets.stopReason == TicketStop.superseded
+            ? Icons.devices_rounded
+            : Icons.hourglass_top_rounded,
+        message: ticketMessage,
+        onRetry: ticketRetryable(_tickets) ? _retryTicket : null,
+      );
+    }
     switch (video.source) {
       case UnavailableSource(:final reason):
         return _StageNotice(
@@ -666,12 +749,17 @@ class _VideoDetailPlayerScreenState
               isPlaying: isPlaying,
             ),
             onEnded: (duration) {
-              _recordWatchProgress(
-                duration,
-                duration,
-                force: true,
-                isPlaying: false,
-              );
+              if (_tickets.handles) {
+                _lastPosition = duration;
+                unawaited(_tickets.finish(duration));
+              } else {
+                _recordWatchProgress(
+                  duration,
+                  duration,
+                  force: true,
+                  isPlaying: false,
+                );
+              }
               if (mounted && !_ended) setState(() => _ended = true);
             },
             startAtSeconds: video.resumePositionSeconds,

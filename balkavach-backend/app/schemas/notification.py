@@ -3,7 +3,7 @@ from uuid import UUID
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_serializer
 
 from app.utils import utc_aware
 
@@ -35,3 +35,37 @@ class DeviceRegistration(BaseModel):
 
 class DeviceUnregistration(BaseModel):
     token: str = Field(min_length=20, max_length=4096)
+
+
+class QuietHours(BaseModel):
+    enabled: bool
+    start: str
+    end: str
+
+
+class QuietHoursUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: StrictBool | None = None
+    start: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):([0-5]\d)$")
+    end: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):([0-5]\d)$")
+
+
+class NotificationPreferencesUpdate(BaseModel):
+    """Partial change; only the fields sent are changed. ``null`` is rejected."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    categories: dict[str, StrictBool] | None = Field(default=None, max_length=20)
+    quiet_hours: QuietHoursUpdate | None = None
+
+
+class NotificationPreferencesPublic(BaseModel):
+    family_id: UUID
+    categories: dict[str, bool]
+    locked_categories: list[str]
+    quiet_hours: QuietHours
+    quiet_hours_exempt_categories: list[str]
+    timezone: str
+    timezone_is_default: bool
+    updated_at: datetime | None

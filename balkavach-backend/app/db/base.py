@@ -64,6 +64,8 @@ MODEL_TABLES = {
 	"DailyMissionTemplate": "daily_mission_templates",
 	"DailyMissionVariation": "daily_mission_variations",
 	"DailyMissionAssignment": "daily_mission_assignments",
+	# Deferred (D6): not created yet. Use has_model() before get_model().
+	"VideoPlayTicket": "video_play_tickets",
 }
 
 _prepare_lock = RLock()

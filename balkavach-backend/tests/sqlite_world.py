@@ -56,11 +56,19 @@ class PasswordResetToken(World):
 	used_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
+class Family(World):
+	__tablename__ = "families"
+	id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+
+
 class FamilySetting(World):
 	__tablename__ = "family_settings"
 	family_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+	default_language: Mapped[str] = mapped_column(String, default="en")
 	mission_settings: Mapped[dict] = mapped_column(JSON, default=dict)
+	reward_settings: Mapped[dict] = mapped_column(JSON, default=dict)
 	video_settings: Mapped[dict] = mapped_column(JSON, default=dict)
+	updated_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
 class ChildProfile(World):
@@ -163,7 +171,55 @@ class ChildStreak(World):
 	updated_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
+class FamilyMember(World):
+	__tablename__ = "family_members"
+	id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+	family_id: Mapped[UUID] = mapped_column(Uuid)
+	user_id: Mapped[UUID] = mapped_column(Uuid)
+	is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class UserSetting(World):
+	__tablename__ = "user_settings"
+	user_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+	language_code: Mapped[str] = mapped_column(String, default="en")
+	push_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+	email_notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class DeviceToken(World):
+	__tablename__ = "device_tokens"
+	id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+	user_id: Mapped[UUID] = mapped_column(Uuid)
+	token: Mapped[str] = mapped_column(String, unique=True)
+	platform: Mapped[str] = mapped_column(String, default="android")
+	app_version: Mapped[str | None] = mapped_column(String)
+	is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+	created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+	last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Notification(World):
+	__tablename__ = "notifications"
+	id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+	recipient_user_id: Mapped[UUID] = mapped_column(Uuid)
+	notification_type: Mapped[str] = mapped_column(String)
+	title: Mapped[str] = mapped_column(String, default="t")
+	message: Mapped[str] = mapped_column(String, default="m")
+	related_task_id: Mapped[UUID | None] = mapped_column(Uuid)
+	related_submission_id: Mapped[UUID | None] = mapped_column(Uuid)
+	related_redemption_id: Mapped[UUID | None] = mapped_column(Uuid)
+	is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+	read_at: Mapped[datetime | None] = mapped_column(DateTime)
+	created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+
+
 MODELS = {
+	"Family": Family,
+	"FamilyMember": FamilyMember,
+	"UserSetting": UserSetting,
+	"DeviceToken": DeviceToken,
+	"Notification": Notification,
 	"User": User,
 	"AuthSession": AuthSession,
 	"PasswordResetToken": PasswordResetToken,

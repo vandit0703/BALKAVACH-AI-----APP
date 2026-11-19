@@ -4,7 +4,7 @@
     <!-- Talk to Panda: tap-to-talk only, asked for on first use, never in the background. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
-        android:label="Bal Kavach AI"
+        android:label="BALKAVACH"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

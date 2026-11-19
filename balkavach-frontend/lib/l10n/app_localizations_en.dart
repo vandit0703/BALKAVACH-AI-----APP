@@ -9,16 +9,13 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Bal Kavach AI';
+  String get appTitle => 'BALKAVACH';
 
   @override
   String get brandEyebrow => 'KIDS DIGITAL GUARDIAN';
 
   @override
-  String get brandName => 'Bal Kavach';
-
-  @override
-  String get brandSuffix => 'AI';
+  String get brandName => 'BALKAVACH';
 
   @override
   String get retry => 'Try again';
@@ -37,7 +34,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorNetwork =>
-      'Can\'t reach Bal Kavach. Check your internet connection.';
+      'Can\'t reach BALKAVACH. Check your internet connection.';
 
   @override
   String get errorTimeout =>
@@ -82,7 +79,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcomeFooter => 'Private • Ad-Free • 100% Parent Controlled';
 
   @override
-  String get consentEyebrow => 'BAL KAVACH ECOSYSTEM';
+  String get consentEyebrow => 'BALKAVACH ECOSYSTEM';
 
   @override
   String get consentTitle => 'Parent Safety First';
@@ -131,7 +128,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consentContinue => 'I Agree & Continue';
 
   @override
-  String get roleTitle => 'Who is using Bal Kavach?';
+  String get roleTitle => 'Who is using BALKAVACH?';
 
   @override
   String get roleSubtitle =>
@@ -707,7 +704,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get waitingBackToMissions => 'Back to missions';
 
   @override
-  String get serverChecking => 'Checking the Bal Kavach server…';
+  String get serverChecking => 'Checking the BALKAVACH server…';
 
   @override
   String get serverOnline => 'Server online';
@@ -1090,7 +1087,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String removeChildConfirmBody(String name) {
-    return '$name will no longer be able to use child mode, and the profile disappears from your family. Bal Kavach keeps the mission and star records on the server.';
+    return '$name will no longer be able to use child mode, and the profile disappears from your family. BALKAVACH keeps the mission and star records on the server.';
   }
 
   @override
@@ -1145,14 +1142,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsEmail => 'Email notifications';
 
   @override
-  String get settingsEmailBody => 'Bal Kavach doesn\'t send emails yet.';
+  String get settingsEmailBody => 'BALKAVACH doesn\'t send emails yet.';
 
   @override
   String get settingsPrivacyTitle => 'Privacy & Consent';
 
   @override
   String get settingsPrivacyBody =>
-      'Consent you gave for your family, as stored by Bal Kavach.';
+      'Consent you gave for your family, as stored by BALKAVACH.';
 
   @override
   String get settingsNoConsents => 'No consent records yet.';
@@ -1172,13 +1169,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLogOut => 'Log Out';
 
   @override
-  String get settingsFooter => 'Bal Kavach AI • Made for Indian families';
+  String get settingsFooter => 'BALKAVACH • Made for Indian families';
 
   @override
   String get rewardsTitle => 'Child Rewards';
 
   @override
-  String get rewardsVault => 'Bal Kavach Vault';
+  String get rewardsVault => 'BALKAVACH Vault';
 
   @override
   String get rewardsBalance => 'Current Star Balance';
@@ -1716,7 +1713,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get maintenanceDefault =>
-      'Bal Kavach is being updated. Some things may not work for a while.';
+      'BALKAVACH is being updated. Some things may not work for a while.';
 
   @override
   String get settingsTimezone => 'Time zone';
@@ -1768,7 +1765,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Notifications never show your child\'s name or mission details.';
 
   @override
-  String get safetyPointNoAds => 'Bal Kavach shows no ads.';
+  String get safetyPointNoAds => 'BALKAVACH shows no ads.';
 
   @override
   String get childSignOutDevices => 'Sign out on all devices';
@@ -2036,7 +2033,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Videos from YouTube play in YouTube\'s own player and may show ads.';
 
   @override
-  String get youtubeLeaveTitle => 'Leave Bal Kavach?';
+  String get youtubeLeaveTitle => 'Leave BALKAVACH?';
 
   @override
   String get youtubeLeaveBody =>
@@ -2050,7 +2047,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get youtubeOtherVideoBlocked =>
-      'That video isn\'t in Bal Kavach, so it can\'t play here.';
+      'That video isn\'t in BALKAVACH, so it can\'t play here.';
 
   @override
   String get youtubePlayerError => 'This video can\'t play right now.';
@@ -2142,7 +2139,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get videoNotEmbeddable =>
-      'This video can\'t play inside Bal Kavach. Try another one!';
+      'This video can\'t play inside BALKAVACH. Try another one!';
 
   @override
   String get videoLoading => 'Loading…';
@@ -2291,11 +2288,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Complete daily missions to unlock 15 minutes of video time!';
 
   @override
-  String get videoTimeExhaustedTitle => 'Video Time\'s Up!';
+  String get videoTimeExhaustedTitle => 'Video time is done for today';
 
   @override
   String get videoTimeExhaustedBody =>
-      'You\'ve used today\'s video time. Complete another mission to unlock 15 more minutes!';
+      'You’ve used today’s video time. Finish a mission and ask your grown-up to approve it to earn more.';
 
   @override
   String get videoGoToMissions => 'Go to Missions';
@@ -2466,7 +2463,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inviteTitle => 'Invite other parents';
 
   @override
-  String get inviteCardPanda => 'Panda, the Bal Kavach guide';
+  String get inviteCardPanda => 'Panda, the BALKAVACH guide';
 
   @override
   String get inviteCardHeadline => 'Missions first, then videos';
@@ -2477,7 +2474,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inviteMessage =>
-      'Try Bal Kavach with your child: daily missions first, then safe video time, with a parent in charge.';
+      'Try BALKAVACH with your child: daily missions first, then safe video time, with a parent in charge.';
 
   @override
   String get inviteWhatsApp => 'Share on WhatsApp';
@@ -2496,7 +2493,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'This card has no information about your child.';
 
   @override
-  String get settingsInviteSubtitle => 'Share Bal Kavach with another family';
+  String get settingsInviteSubtitle => 'Share BALKAVACH with another family';
 
   @override
   String get pandaName => 'Panda';
@@ -2549,7 +2546,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pandaVideoUp1 =>
-      'Video time is up for now. A new mission unlocks more!';
+      'Video time is done for now. Let’s rest our eyes and pick a mission!';
 
   @override
   String get pandaVideoUp2 =>
@@ -2647,7 +2644,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pandaMicExplainBody =>
-      'Panda only listens after you tap the mic, and stops when you finish talking. Your phone’s speech service turns your words into text. On many phones this is a Google service that may use the internet. BalKavach does not keep any recording. You can always type instead.';
+      'Panda only listens after you tap the mic, and stops when you finish talking. Your phone’s speech service turns your words into text. On many phones this is a Google service that may use the internet. BALKAVACH does not keep any recording. You can always type instead.';
 
   @override
   String get pandaMicAllow => 'Yes, use the mic';
@@ -2700,4 +2697,200 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pandaSuggestStars => 'My stars';
+
+  @override
+  String get videoLockStepsTitle => 'How to get more video time';
+
+  @override
+  String get videoLockStep1 => 'Pick a mission';
+
+  @override
+  String get videoLockStep2 => 'Finish it and send it';
+
+  @override
+  String get videoLockStep3 => 'Your grown-up checks it and approves';
+
+  @override
+  String get videoLockStepsNote =>
+      'New video time shows up here by itself once it is approved.';
+
+  @override
+  String get videoLockChecking => 'Checking your video time…';
+
+  @override
+  String get videoLockCheckAgain => 'Check again';
+
+  @override
+  String get videoLockTimeBackTitle => 'Video time is back!';
+
+  @override
+  String videoLockTimeBackBody(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: 'You have $minutes minutes of video time.',
+      one: 'You have 1 minute of video time.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get videoLockWatchNow => 'Watch videos';
+
+  @override
+  String videoLowTimeNotice(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other:
+          'About $minutes minutes of video time left. Time to finish up your video!',
+      one: 'About 1 minute of video time left. Time to finish up your video!',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notifPrefsTitle => 'Notification preferences';
+
+  @override
+  String get notifPrefsEntrySubtitle =>
+      'Choose which alerts reach your family\'s phones, and set quiet hours';
+
+  @override
+  String get notifPrefsParentOnly =>
+      'Only a parent can change notification preferences.';
+
+  @override
+  String get notifPrefsIntro =>
+      'These choices decide which alerts pop up on your family\'s phones. Everything still appears in the app\'s notification list, so nothing is lost.';
+
+  @override
+  String get notifPrefsPushOff =>
+      'Push notifications are turned off for your account on this phone, so alerts will only appear inside the app.';
+
+  @override
+  String get notifPrefsPushDenied =>
+      'This phone is not allowed to show notifications. Allow them in the phone\'s settings to receive alerts.';
+
+  @override
+  String get notifPrefsPushUnavailable =>
+      'This version of the app cannot receive push alerts yet. Your choices are still saved for the family.';
+
+  @override
+  String get notifPrefsGroupMissions => 'Missions';
+
+  @override
+  String get notifPrefsGroupStreaks => 'Streaks';
+
+  @override
+  String get notifPrefsGroupVideos => 'Video time';
+
+  @override
+  String get notifPrefsGroupRewards => 'Rewards and badges';
+
+  @override
+  String get notifPrefsGroupSafety => 'Safety';
+
+  @override
+  String get notifPrefsNewMissions => 'New missions';
+
+  @override
+  String get notifPrefsNewMissionsBody =>
+      'Tell your child when a new mission is ready for them.';
+
+  @override
+  String get notifPrefsMissionReviews => 'Mission approvals';
+
+  @override
+  String get notifPrefsMissionReviewsBody =>
+      'Tell you when a mission is waiting for review, and your child when it is approved or needs another try.';
+
+  @override
+  String get notifPrefsStreaks => 'Streak reminders and milestones';
+
+  @override
+  String get notifPrefsStreaksBody =>
+      'Remind your child when a streak is at risk and celebrate new milestones.';
+
+  @override
+  String get notifPrefsVideoAllowance => 'Video time updates';
+
+  @override
+  String get notifPrefsVideoAllowanceBody =>
+      'Tell your child when they earn video time and when only a little is left.';
+
+  @override
+  String get notifPrefsVideoTimeUp => 'Video time finished';
+
+  @override
+  String get notifPrefsVideoTimeUpBody =>
+      'Tell your child when today\'s video time has run out.';
+
+  @override
+  String get notifPrefsRewards => 'Rewards and badges';
+
+  @override
+  String get notifPrefsRewardsBody =>
+      'Reward requests, approvals and new badges.';
+
+  @override
+  String get notifPrefsSafety => 'Safety alerts';
+
+  @override
+  String get notifPrefsSafetyBody =>
+      'For example, several wrong parent sign-in attempts on a child\'s device.';
+
+  @override
+  String get notifPrefsAlwaysOnNote => 'Always on for your child\'s safety.';
+
+  @override
+  String get notifPrefsQuietTitle => 'Quiet hours';
+
+  @override
+  String get notifPrefsQuietSwitch => 'Pause alerts during quiet hours';
+
+  @override
+  String get notifPrefsQuietBody =>
+      'No alerts pop up during this time. They wait in the app\'s notification list instead.';
+
+  @override
+  String get notifPrefsQuietStart => 'Starts';
+
+  @override
+  String get notifPrefsQuietEnd => 'Ends';
+
+  @override
+  String notifPrefsQuietOvernight(String start, String end) {
+    return 'Runs overnight, from $start until $end the next morning.';
+  }
+
+  @override
+  String notifPrefsQuietZone(String zone) {
+    return 'Times are in your family\'s time zone: $zone';
+  }
+
+  @override
+  String get notifPrefsQuietZoneDefault =>
+      'Your family has no time zone saved yet, so UTC is used. Open Settings on a parent\'s phone to save it automatically.';
+
+  @override
+  String get notifPrefsQuietSafetyNote =>
+      'Safety alerts are still sent during quiet hours.';
+
+  @override
+  String get notifPrefsQuietSame => 'Start and end times must be different.';
+
+  @override
+  String get videoTicketStarting => 'Getting your video ready…';
+
+  @override
+  String get videoTicketSuperseded =>
+      'This video started playing on another device, so it stopped here. Tap Try again to watch here instead.';
+
+  @override
+  String get videoTicketStopped =>
+      'The video stopped. Tap Try again to keep watching.';
+
+  @override
+  String get videoTicketRevoked => 'This video isn’t available right now.';
 }

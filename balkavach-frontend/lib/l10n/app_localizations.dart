@@ -103,7 +103,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'Bal Kavach AI'**
+  /// **'BALKAVACH'**
   String get appTitle;
 
   /// No description provided for @brandEyebrow.
@@ -115,14 +115,8 @@ abstract class AppLocalizations {
   /// No description provided for @brandName.
   ///
   /// In en, this message translates to:
-  /// **'Bal Kavach'**
+  /// **'BALKAVACH'**
   String get brandName;
-
-  /// No description provided for @brandSuffix.
-  ///
-  /// In en, this message translates to:
-  /// **'AI'**
-  String get brandSuffix;
 
   /// No description provided for @retry.
   ///
@@ -157,7 +151,7 @@ abstract class AppLocalizations {
   /// No description provided for @errorNetwork.
   ///
   /// In en, this message translates to:
-  /// **'Can\'t reach Bal Kavach. Check your internet connection.'**
+  /// **'Can\'t reach BALKAVACH. Check your internet connection.'**
   String get errorNetwork;
 
   /// No description provided for @errorTimeout.
@@ -241,7 +235,7 @@ abstract class AppLocalizations {
   /// No description provided for @consentEyebrow.
   ///
   /// In en, this message translates to:
-  /// **'BAL KAVACH ECOSYSTEM'**
+  /// **'BALKAVACH ECOSYSTEM'**
   String get consentEyebrow;
 
   /// No description provided for @consentTitle.
@@ -325,7 +319,7 @@ abstract class AppLocalizations {
   /// No description provided for @roleTitle.
   ///
   /// In en, this message translates to:
-  /// **'Who is using Bal Kavach?'**
+  /// **'Who is using BALKAVACH?'**
   String get roleTitle;
 
   /// No description provided for @roleSubtitle.
@@ -1315,7 +1309,7 @@ abstract class AppLocalizations {
   /// No description provided for @serverChecking.
   ///
   /// In en, this message translates to:
-  /// **'Checking the Bal Kavach server…'**
+  /// **'Checking the BALKAVACH server…'**
   String get serverChecking;
 
   /// No description provided for @serverOnline.
@@ -1880,7 +1874,7 @@ abstract class AppLocalizations {
   /// No description provided for @removeChildConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'{name} will no longer be able to use child mode, and the profile disappears from your family. Bal Kavach keeps the mission and star records on the server.'**
+  /// **'{name} will no longer be able to use child mode, and the profile disappears from your family. BALKAVACH keeps the mission and star records on the server.'**
   String removeChildConfirmBody(String name);
 
   /// No description provided for @removeChildConfirm.
@@ -1982,7 +1976,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsEmailBody.
   ///
   /// In en, this message translates to:
-  /// **'Bal Kavach doesn\'t send emails yet.'**
+  /// **'BALKAVACH doesn\'t send emails yet.'**
   String get settingsEmailBody;
 
   /// No description provided for @settingsPrivacyTitle.
@@ -1994,7 +1988,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsPrivacyBody.
   ///
   /// In en, this message translates to:
-  /// **'Consent you gave for your family, as stored by Bal Kavach.'**
+  /// **'Consent you gave for your family, as stored by BALKAVACH.'**
   String get settingsPrivacyBody;
 
   /// No description provided for @settingsNoConsents.
@@ -2030,7 +2024,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsFooter.
   ///
   /// In en, this message translates to:
-  /// **'Bal Kavach AI • Made for Indian families'**
+  /// **'BALKAVACH • Made for Indian families'**
   String get settingsFooter;
 
   /// No description provided for @rewardsTitle.
@@ -2042,7 +2036,7 @@ abstract class AppLocalizations {
   /// No description provided for @rewardsVault.
   ///
   /// In en, this message translates to:
-  /// **'Bal Kavach Vault'**
+  /// **'BALKAVACH Vault'**
   String get rewardsVault;
 
   /// No description provided for @rewardsBalance.
@@ -2864,7 +2858,7 @@ abstract class AppLocalizations {
   /// No description provided for @maintenanceDefault.
   ///
   /// In en, this message translates to:
-  /// **'Bal Kavach is being updated. Some things may not work for a while.'**
+  /// **'BALKAVACH is being updated. Some things may not work for a while.'**
   String get maintenanceDefault;
 
   /// No description provided for @settingsTimezone.
@@ -2948,7 +2942,7 @@ abstract class AppLocalizations {
   /// No description provided for @safetyPointNoAds.
   ///
   /// In en, this message translates to:
-  /// **'Bal Kavach shows no ads.'**
+  /// **'BALKAVACH shows no ads.'**
   String get safetyPointNoAds;
 
   /// No description provided for @childSignOutDevices.
@@ -3440,7 +3434,7 @@ abstract class AppLocalizations {
   /// No description provided for @youtubeLeaveTitle.
   ///
   /// In en, this message translates to:
-  /// **'Leave Bal Kavach?'**
+  /// **'Leave BALKAVACH?'**
   String get youtubeLeaveTitle;
 
   /// No description provided for @youtubeLeaveBody.
@@ -3464,7 +3458,7 @@ abstract class AppLocalizations {
   /// No description provided for @youtubeOtherVideoBlocked.
   ///
   /// In en, this message translates to:
-  /// **'That video isn\'t in Bal Kavach, so it can\'t play here.'**
+  /// **'That video isn\'t in BALKAVACH, so it can\'t play here.'**
   String get youtubeOtherVideoBlocked;
 
   /// No description provided for @youtubePlayerError.
@@ -3638,7 +3632,7 @@ abstract class AppLocalizations {
   /// YouTube refused to embed this video.
   ///
   /// In en, this message translates to:
-  /// **'This video can\'t play inside Bal Kavach. Try another one!'**
+  /// **'This video can\'t play inside BALKAVACH. Try another one!'**
   String get videoNotEmbeddable;
 
   /// Video is buffering.
@@ -3878,13 +3872,13 @@ abstract class AppLocalizations {
   /// No description provided for @videoTimeExhaustedTitle.
   ///
   /// In en, this message translates to:
-  /// **'Video Time\'s Up!'**
+  /// **'Video time is done for today'**
   String get videoTimeExhaustedTitle;
 
   /// No description provided for @videoTimeExhaustedBody.
   ///
   /// In en, this message translates to:
-  /// **'You\'ve used today\'s video time. Complete another mission to unlock 15 more minutes!'**
+  /// **'You’ve used today’s video time. Finish a mission and ask your grown-up to approve it to earn more.'**
   String get videoTimeExhaustedBody;
 
   /// No description provided for @videoGoToMissions.
@@ -4166,7 +4160,7 @@ abstract class AppLocalizations {
   /// No description provided for @inviteCardPanda.
   ///
   /// In en, this message translates to:
-  /// **'Panda, the Bal Kavach guide'**
+  /// **'Panda, the BALKAVACH guide'**
   String get inviteCardPanda;
 
   /// No description provided for @inviteCardHeadline.
@@ -4184,7 +4178,7 @@ abstract class AppLocalizations {
   /// No description provided for @inviteMessage.
   ///
   /// In en, this message translates to:
-  /// **'Try Bal Kavach with your child: daily missions first, then safe video time, with a parent in charge.'**
+  /// **'Try BALKAVACH with your child: daily missions first, then safe video time, with a parent in charge.'**
   String get inviteMessage;
 
   /// No description provided for @inviteWhatsApp.
@@ -4220,7 +4214,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsInviteSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Share Bal Kavach with another family'**
+  /// **'Share BALKAVACH with another family'**
   String get settingsInviteSubtitle;
 
   /// No description provided for @pandaName.
@@ -4304,7 +4298,7 @@ abstract class AppLocalizations {
   /// No description provided for @pandaVideoUp1.
   ///
   /// In en, this message translates to:
-  /// **'Video time is up for now. A new mission unlocks more!'**
+  /// **'Video time is done for now. Let’s rest our eyes and pick a mission!'**
   String get pandaVideoUp1;
 
   /// No description provided for @pandaVideoUp2.
@@ -4448,7 +4442,7 @@ abstract class AppLocalizations {
   /// No description provided for @pandaMicExplainBody.
   ///
   /// In en, this message translates to:
-  /// **'Panda only listens after you tap the mic, and stops when you finish talking. Your phone’s speech service turns your words into text. On many phones this is a Google service that may use the internet. BalKavach does not keep any recording. You can always type instead.'**
+  /// **'Panda only listens after you tap the mic, and stops when you finish talking. Your phone’s speech service turns your words into text. On many phones this is a Google service that may use the internet. BALKAVACH does not keep any recording. You can always type instead.'**
   String get pandaMicExplainBody;
 
   /// No description provided for @pandaMicAllow.
@@ -4540,6 +4534,318 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'My stars'**
   String get pandaSuggestStars;
+
+  /// No description provided for @videoLockStepsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How to get more video time'**
+  String get videoLockStepsTitle;
+
+  /// No description provided for @videoLockStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a mission'**
+  String get videoLockStep1;
+
+  /// No description provided for @videoLockStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish it and send it'**
+  String get videoLockStep2;
+
+  /// No description provided for @videoLockStep3.
+  ///
+  /// In en, this message translates to:
+  /// **'Your grown-up checks it and approves'**
+  String get videoLockStep3;
+
+  /// No description provided for @videoLockStepsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'New video time shows up here by itself once it is approved.'**
+  String get videoLockStepsNote;
+
+  /// No description provided for @videoLockChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking your video time…'**
+  String get videoLockChecking;
+
+  /// No description provided for @videoLockCheckAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Check again'**
+  String get videoLockCheckAgain;
+
+  /// No description provided for @videoLockTimeBackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Video time is back!'**
+  String get videoLockTimeBackTitle;
+
+  /// No description provided for @videoLockTimeBackBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes, plural, =1{You have 1 minute of video time.} other{You have {minutes} minutes of video time.}}'**
+  String videoLockTimeBackBody(int minutes);
+
+  /// No description provided for @videoLockWatchNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch videos'**
+  String get videoLockWatchNow;
+
+  /// No description provided for @videoLowTimeNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes, plural, =1{About 1 minute of video time left. Time to finish up your video!} other{About {minutes} minutes of video time left. Time to finish up your video!}}'**
+  String videoLowTimeNotice(int minutes);
+
+  /// No description provided for @notifPrefsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification preferences'**
+  String get notifPrefsTitle;
+
+  /// No description provided for @notifPrefsEntrySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which alerts reach your family\'s phones, and set quiet hours'**
+  String get notifPrefsEntrySubtitle;
+
+  /// No description provided for @notifPrefsParentOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only a parent can change notification preferences.'**
+  String get notifPrefsParentOnly;
+
+  /// No description provided for @notifPrefsIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'These choices decide which alerts pop up on your family\'s phones. Everything still appears in the app\'s notification list, so nothing is lost.'**
+  String get notifPrefsIntro;
+
+  /// No description provided for @notifPrefsPushOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Push notifications are turned off for your account on this phone, so alerts will only appear inside the app.'**
+  String get notifPrefsPushOff;
+
+  /// No description provided for @notifPrefsPushDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone is not allowed to show notifications. Allow them in the phone\'s settings to receive alerts.'**
+  String get notifPrefsPushDenied;
+
+  /// No description provided for @notifPrefsPushUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This version of the app cannot receive push alerts yet. Your choices are still saved for the family.'**
+  String get notifPrefsPushUnavailable;
+
+  /// No description provided for @notifPrefsGroupMissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Missions'**
+  String get notifPrefsGroupMissions;
+
+  /// No description provided for @notifPrefsGroupStreaks.
+  ///
+  /// In en, this message translates to:
+  /// **'Streaks'**
+  String get notifPrefsGroupStreaks;
+
+  /// No description provided for @notifPrefsGroupVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'Video time'**
+  String get notifPrefsGroupVideos;
+
+  /// No description provided for @notifPrefsGroupRewards.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewards and badges'**
+  String get notifPrefsGroupRewards;
+
+  /// No description provided for @notifPrefsGroupSafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety'**
+  String get notifPrefsGroupSafety;
+
+  /// No description provided for @notifPrefsNewMissions.
+  ///
+  /// In en, this message translates to:
+  /// **'New missions'**
+  String get notifPrefsNewMissions;
+
+  /// No description provided for @notifPrefsNewMissionsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell your child when a new mission is ready for them.'**
+  String get notifPrefsNewMissionsBody;
+
+  /// No description provided for @notifPrefsMissionReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Mission approvals'**
+  String get notifPrefsMissionReviews;
+
+  /// No description provided for @notifPrefsMissionReviewsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell you when a mission is waiting for review, and your child when it is approved or needs another try.'**
+  String get notifPrefsMissionReviewsBody;
+
+  /// No description provided for @notifPrefsStreaks.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak reminders and milestones'**
+  String get notifPrefsStreaks;
+
+  /// No description provided for @notifPrefsStreaksBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind your child when a streak is at risk and celebrate new milestones.'**
+  String get notifPrefsStreaksBody;
+
+  /// No description provided for @notifPrefsVideoAllowance.
+  ///
+  /// In en, this message translates to:
+  /// **'Video time updates'**
+  String get notifPrefsVideoAllowance;
+
+  /// No description provided for @notifPrefsVideoAllowanceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell your child when they earn video time and when only a little is left.'**
+  String get notifPrefsVideoAllowanceBody;
+
+  /// No description provided for @notifPrefsVideoTimeUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Video time finished'**
+  String get notifPrefsVideoTimeUp;
+
+  /// No description provided for @notifPrefsVideoTimeUpBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell your child when today\'s video time has run out.'**
+  String get notifPrefsVideoTimeUpBody;
+
+  /// No description provided for @notifPrefsRewards.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewards and badges'**
+  String get notifPrefsRewards;
+
+  /// No description provided for @notifPrefsRewardsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Reward requests, approvals and new badges.'**
+  String get notifPrefsRewardsBody;
+
+  /// No description provided for @notifPrefsSafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety alerts'**
+  String get notifPrefsSafety;
+
+  /// No description provided for @notifPrefsSafetyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'For example, several wrong parent sign-in attempts on a child\'s device.'**
+  String get notifPrefsSafetyBody;
+
+  /// No description provided for @notifPrefsAlwaysOnNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Always on for your child\'s safety.'**
+  String get notifPrefsAlwaysOnNote;
+
+  /// No description provided for @notifPrefsQuietTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quiet hours'**
+  String get notifPrefsQuietTitle;
+
+  /// No description provided for @notifPrefsQuietSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause alerts during quiet hours'**
+  String get notifPrefsQuietSwitch;
+
+  /// No description provided for @notifPrefsQuietBody.
+  ///
+  /// In en, this message translates to:
+  /// **'No alerts pop up during this time. They wait in the app\'s notification list instead.'**
+  String get notifPrefsQuietBody;
+
+  /// No description provided for @notifPrefsQuietStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts'**
+  String get notifPrefsQuietStart;
+
+  /// No description provided for @notifPrefsQuietEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Ends'**
+  String get notifPrefsQuietEnd;
+
+  /// No description provided for @notifPrefsQuietOvernight.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs overnight, from {start} until {end} the next morning.'**
+  String notifPrefsQuietOvernight(String start, String end);
+
+  /// No description provided for @notifPrefsQuietZone.
+  ///
+  /// In en, this message translates to:
+  /// **'Times are in your family\'s time zone: {zone}'**
+  String notifPrefsQuietZone(String zone);
+
+  /// No description provided for @notifPrefsQuietZoneDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Your family has no time zone saved yet, so UTC is used. Open Settings on a parent\'s phone to save it automatically.'**
+  String get notifPrefsQuietZoneDefault;
+
+  /// No description provided for @notifPrefsQuietSafetyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety alerts are still sent during quiet hours.'**
+  String get notifPrefsQuietSafetyNote;
+
+  /// No description provided for @notifPrefsQuietSame.
+  ///
+  /// In en, this message translates to:
+  /// **'Start and end times must be different.'**
+  String get notifPrefsQuietSame;
+
+  /// No description provided for @videoTicketStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting your video ready…'**
+  String get videoTicketStarting;
+
+  /// No description provided for @videoTicketSuperseded.
+  ///
+  /// In en, this message translates to:
+  /// **'This video started playing on another device, so it stopped here. Tap Try again to watch here instead.'**
+  String get videoTicketSuperseded;
+
+  /// No description provided for @videoTicketStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'The video stopped. Tap Try again to keep watching.'**
+  String get videoTicketStopped;
+
+  /// No description provided for @videoTicketRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'This video isn’t available right now.'**
+  String get videoTicketRevoked;
 }
 
 class _AppLocalizationsDelegate

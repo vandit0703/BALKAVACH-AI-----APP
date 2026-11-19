@@ -142,6 +142,12 @@ void main() {
             path: AppRoutes.childMissions,
             builder: (_, _) => const Scaffold(body: Text('MISSIONS PAGE')),
           ),
+          GoRoute(
+            path: '/child/missions/:taskId',
+            builder: (_, state) => Scaffold(
+              body: Text('MISSION ${state.pathParameters['taskId']}'),
+            ),
+          ),
         ],
       );
       setWindow(tester, size);
@@ -267,6 +273,18 @@ void main() {
       await tester.pumpAndSettle();
       // Navigated away, but a retry on the list would still show it unread.
       expect(h.backend.requests.where((r) => r.method == 'POST'), isNotEmpty);
+    });
+
+    testWidgets('a mission review opens that mission (Phase 7)', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        list: (_) => FakeReply(200, [_n('a1', 'task_approved')]),
+      );
+      await tester.tap(find.byKey(const Key('notifications.item.a1')));
+      await tester.pumpAndSettle();
+      expect(find.text('MISSION ${Fx.taskId}'), findsOneWidget);
     });
 
     testWidgets('empty state', (tester) async {

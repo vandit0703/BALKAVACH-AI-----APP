@@ -50,9 +50,9 @@ def test_page_posts_to_the_reset_api_and_removes_the_token_from_the_url():
 
 def test_page_has_english_hindi_and_gujarati_text_in_real_script():
 	text = client.get("/reset-password").text
-	assert "Reset your BalKavach password" in text
-	assert "अपना BalKavach पासवर्ड रीसेट करें" in text
-	assert "તમારો BalKavach પાસવર્ડ રીસેટ કરો" in text
+	assert "Reset your BALKAVACH password" in text
+	assert "अपना BALKAVACH पासवर्ड रीसेट करें" in text
+	assert "તમારો BALKAVACH પાસવર્ડ રીસેટ કરો" in text
 
 
 def test_page_is_not_part_of_the_published_api_schema():

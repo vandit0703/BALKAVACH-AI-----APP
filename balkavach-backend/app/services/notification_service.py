@@ -88,6 +88,19 @@ def list_notifications(session: Session, user_id: UUID, limit: int, offset: int)
 	)
 
 
+def get_notification(session: Session, user_id: UUID, notification_id: UUID):
+	"""One of the caller's own notifications; 404 for anyone else's (no existence oracle)."""
+	Notification = get_model("Notification")
+	notification = (
+		session.query(Notification)
+		.filter(Notification.id == notification_id, Notification.recipient_user_id == user_id)
+		.one_or_none()
+	)
+	if notification is None:
+		raise HTTPException(status_code=404, detail="Notification not found")
+	return notification
+
+
 def mark_notification_read(session: Session, user_id: UUID, notification_id: UUID):
 	Notification = get_model("Notification")
 	notification = session.query(Notification).filter(
@@ -179,13 +192,15 @@ def notify_video_entitlement_event(
 			"Video time unlocked!",
 			f"Great job! You earned {minutes_granted} minutes of video time.",
 		),
+		# The live low-time / time-up alerts come from video_time_alerts.py
+		# (localised, real minutes); these are kept for direct callers.
 		"video_time_nearly_exhausted": (
-			"Video time running low",
-			"Only 2 minutes of video time left! Wrap up what you're watching.",
+			"A little video time left",
+			"Just a little video time left today. Time to finish up your video!",
 		),
 		"video_time_exhausted": (
-			"Video time is up!",
-			"You've used all your video time for today. Complete another mission to unlock more!",
+			"Video time is done for today",
+			"Finish a mission and ask your grown-up to approve it to earn more video time.",
 		),
 	}
 	title, message = titles_messages.get(

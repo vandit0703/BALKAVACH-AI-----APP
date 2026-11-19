@@ -7,7 +7,7 @@ from app.core.dependencies import get_current_user
 from app.db.session import get_db
 from app.schemas.notification import DeviceRegistration, DeviceUnregistration, NotificationPublic
 from app.services.device_service import register_device, unregister_device
-from app.services.notification_service import list_notifications, mark_notification_read
+from app.services.notification_service import get_notification, list_notifications, mark_notification_read
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -23,6 +23,16 @@ def get_notifications(
 		NotificationPublic.model_validate(item)
 		for item in list_notifications(session, user.id, limit, offset)
 	]
+
+
+@router.get("/{notification_id}", response_model=NotificationPublic)
+def get_one(
+	notification_id: UUID,
+	user=Depends(get_current_user),
+	session: Session = Depends(get_db),
+) -> NotificationPublic:
+	"""Used when a push is opened: the app looks up what it points at (the push itself carries no content)."""
+	return NotificationPublic.model_validate(get_notification(session, user.id, notification_id))
 
 
 @router.post("/{notification_id}/read", response_model=NotificationPublic)

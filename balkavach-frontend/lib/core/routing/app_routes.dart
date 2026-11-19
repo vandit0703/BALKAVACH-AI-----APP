@@ -21,6 +21,7 @@ abstract final class AppRoutes {
   static String parentReportsFor(String childId) =>
       Uri(path: parentReports, queryParameters: {'child': childId}).toString();
   static const parentSettings = '/parent/settings';
+  static const parentNotificationSettings = '/parent/settings/notifications';
   static const parentRewards = '/parent/rewards';
   static const parentNewReward = '/parent/rewards/new';
   static String parentEditReward(String rewardId) =>

@@ -71,6 +71,7 @@ Future<_Rig> _pumpFeed(
   Locale locale = const Locale('en'),
   Size size = const Size(393, 852),
   FakeReply Function(RequestOptions)? progress,
+  bool exhausted = false,
 }) async {
   final h = await Harness.create(
     session: Fx.childSession(),
@@ -90,10 +91,10 @@ Future<_Rig> _pumpFeed(
     'local_date': '2026-11-17',
     'timezone': 'UTC',
     'total_earned_today_seconds': 900,
-    'consumed_today_seconds': 0,
-    'remaining_seconds': 900,
+    'consumed_today_seconds': exhausted ? 900 : 0,
+    'remaining_seconds': exhausted ? 0 : 900,
     'daily_cap_seconds': 900,
-    'is_exhausted': false,
+    'is_exhausted': exhausted,
     'active_entitlements_count': 0,
   });
   // Progress reports are answered by the server; unanswered ones would (rightly)
@@ -1100,6 +1101,8 @@ void main() {
           'video_time_exhausted',
           'Video access time has been exhausted.',
         ),
+        // A real server agrees with itself: the allowance is also used up.
+        exhausted: true,
       );
       rig.embeds.only().onPlayingChanged!(true);
       await tester.pumpAndSettle();

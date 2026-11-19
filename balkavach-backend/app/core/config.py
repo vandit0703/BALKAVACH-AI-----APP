@@ -48,6 +48,9 @@ class Settings(BaseSettings):
 	smtp_use_tls: bool = True
 	cors_origins: list[str] = Field(default_factory=list)
 	video_playback_provider: str | None = None
+	# D6 play tickets. Off by default. Has no effect until the deferred
+	# video_play_tickets table exists (app/services/charging_path.py).
+	video_play_tickets_enabled: bool = False
 	youtube_api_key: str | None = Field(
 		default=None,
 		validation_alias=AliasChoices("YOUTUBE_DATA_API_KEY", "YOUTUBE_API_KEY"),

@@ -1,5 +1,6 @@
 """Persistent child-specific watch progress and history."""
 
+import logging
 import math
 from datetime import datetime, timezone
 from uuid import UUID
@@ -18,8 +19,12 @@ from app.services.video_entitlement_service import (
 	consume_video_allowance,
 	get_child_video_allowance_today,
 )
+from app.services.charging_path import play_tickets_active
+from app.services.video_time_alerts import emit_video_time_alert
 from app.services.youtube_review_service import youtube_visibility_clause
 from app.utils import utc_aware, utc_naive
+
+logger = logging.getLogger(__name__)
 
 MAX_PROGRESS_INTERVAL_SECONDS = 30
 # Real playback advances the position at about wall-clock speed; a larger jump is a seek.
@@ -103,30 +108,16 @@ def _eligible_video(session: Session, child, video_id: UUID):
 	return video
 
 
-def record_progress(
-	session: Session,
-	child,
-	video_id: UUID,
-	position_seconds: int,
-	is_playing: bool = True,
-) -> dict:
-	ChildProfile = get_model("ChildProfile")
-	child = session.query(ChildProfile).filter(
-		ChildProfile.id == child.id,
-		ChildProfile.is_active.is_(True),
-	).with_for_update().one_or_none()
-	if child is None:
-		raise HTTPException(status_code=404, detail="Child profile not found")
-	video = _eligible_video(session, child, video_id)
+def get_or_create_watch_history(session: Session, child, video, now: datetime):
+	"""The child's history row for ``video`` (locked), created on first watch."""
 	WatchHistory = get_model("ChildVideoWatchHistory")
-	now = utc_naive(datetime.now(timezone.utc))
-	format_name = video_format(video.video_source, video.duration_seconds)
-	format_name = "short" if format_name == "short" else "regular"
+	format_name = "short" if video_format(video.video_source, video.duration_seconds) == "short" else "regular"
 	history = session.query(WatchHistory).filter(
 		WatchHistory.child_id == child.id,
 		WatchHistory.video_id == video.id,
 	).with_for_update().one_or_none()
-	if history is None:
+	created = history is None
+	if created:
 		history = WatchHistory(
 			child_id=child.id,
 			video_id=video.id,
@@ -142,73 +133,76 @@ def record_progress(
 		)
 		session.add(history)
 		session.flush()
-		accepted = 0
-		previous_position = 0
 	else:
-		accepted = 0
-		previous_position = int(history.last_position_seconds or 0)
 		history.last_watched_at = now
 		history.parent_replay_authorized = False
+	return history, format_name, created
 
-	# Mission-earned video allowance enforcement
-	remaining_allowance = None
-	is_exhausted = False
-	allowance = get_child_video_allowance_today(session, child.id, child.family_id, now_utc=now)
-	if allowance["remaining_seconds"] <= 0:
-		raise APIError(
-			403,
-			"video_time_exhausted",
-			"Video access time has been exhausted. Complete missions to earn more video time.",
-		)
+
+def get_or_create_daily_usage(session: Session, child, local_date, now: datetime, is_playing: bool):
+	"""Today's free-allowance ledger row (locked). Returns (row, created)."""
 	DailyUsage = get_model("ChildVideoDailyUsage")
 	daily_usage = session.query(DailyUsage).filter(
 		DailyUsage.child_id == child.id,
-		DailyUsage.local_date == allowance["local_date"],
+		DailyUsage.local_date == local_date,
 	).with_for_update().one_or_none()
-	if daily_usage is None:
-		daily_usage = DailyUsage(
-			child_id=child.id,
-			local_date=allowance["local_date"],
-			free_watched_seconds=0,
-			last_heartbeat_at=now,
-			is_playing=is_playing,
-		)
-		session.add(daily_usage)
-		session.flush()
-		accepted = 0
-	else:
-		previous = daily_usage.last_heartbeat_at or now
-		if previous.tzinfo is not None:
-			previous = utc_naive(previous)
-		accepted = accepted_progress_seconds(
-			elapsed_seconds=(now - previous).total_seconds(),
-			was_playing=bool(daily_usage.is_playing),
-			is_playing=is_playing,
-			previous_position=previous_position,
-			position=position_seconds,
-		)
-		daily_usage.last_heartbeat_at = now
-		daily_usage.is_playing = is_playing
-	accepted = min(accepted, allowance["remaining_seconds"])
-	history.watch_duration_seconds += accepted
-	if accepted > 0:
-		free_remaining = max(
-			0,
-			FREE_DAILY_ALLOWANCE_SECONDS - int(daily_usage.free_watched_seconds or 0),
-		)
-		free_accepted = min(accepted, free_remaining)
-		daily_usage.free_watched_seconds += free_accepted
-		mission_accepted = accepted - free_accepted
-		if mission_accepted:
-			consume_video_allowance(
-				session, child.id, child.family_id, mission_accepted, now_utc=now
-			)
-		updated_allowance = get_child_video_allowance_today(
-			session, child.id, child.family_id, now_utc=now
-		)
-		remaining_allowance = updated_allowance["remaining_seconds"]
-		is_exhausted = updated_allowance["is_exhausted"]
+	if daily_usage is not None:
+		return daily_usage, False
+	daily_usage = DailyUsage(
+		child_id=child.id,
+		local_date=local_date,
+		free_watched_seconds=0,
+		last_heartbeat_at=now,
+		is_playing=is_playing,
+	)
+	session.add(daily_usage)
+	session.flush()
+	return daily_usage, True
 
+
+def apply_allowance_charge(
+	session: Session,
+	child,
+	daily_usage,
+	accepted: int,
+	allowance_before: dict,
+	now_aware: datetime,
+) -> tuple[int, bool, int]:
+	"""Charge ``accepted`` seconds: free time first, then mission grants oldest
+	first; re-read the allowance; raise the low-time / time-up alert.
+
+	The one ledger writer, shared by ``record_progress`` and the play-ticket
+	heartbeat; ``charging_path.play_tickets_active()`` decides which of the two
+	may call it. Returns (remaining_seconds, is_exhausted, free_seconds_charged).
+	"""
+	free_remaining = max(0, FREE_DAILY_ALLOWANCE_SECONDS - int(daily_usage.free_watched_seconds or 0))
+	free_accepted = min(accepted, free_remaining)
+	daily_usage.free_watched_seconds += free_accepted
+	mission_accepted = accepted - free_accepted
+	if mission_accepted:
+		consume_video_allowance(session, child.id, child.family_id, mission_accepted, now_utc=now_aware)
+	# Sessions run with autoflush=False: without this the re-read below misses
+	# the free seconds just charged and over-reports what is left.
+	session.flush()
+	updated = get_child_video_allowance_today(session, child.id, child.family_id, now_utc=now_aware)
+	remaining = int(updated["remaining_seconds"])
+	# Low-time / time-up alert, once per threshold. A savepoint keeps a
+	# notification problem from undoing the charge above.
+	try:
+		with session.begin_nested():
+			emit_video_time_alert(
+				session,
+				child,
+				before_seconds=int(allowance_before["remaining_seconds"]),
+				after_seconds=remaining,
+				now=now_aware,
+			)
+	except Exception:  # noqa: BLE001 - the deduction must still be committed
+		logger.exception("Video time alert could not be created")
+	return remaining, bool(updated["is_exhausted"]), free_accepted
+
+
+def update_watch_position(history, video, format_name: str, position_seconds: int, now: datetime) -> None:
 	duration = video.duration_seconds
 	position = min(position_seconds, duration) if duration and duration > 0 else position_seconds
 	percentage = min(100, int(position * 100 / duration)) if duration and duration > 0 else 0
@@ -227,6 +221,66 @@ def record_progress(
 		if history.watch_duration_seconds >= threshold and history.completion_percentage >= percent_threshold:
 			history.is_completed = True
 			history.completed_at = history.completed_at or now
+
+
+def record_progress(
+	session: Session,
+	child,
+	video_id: UUID,
+	position_seconds: int,
+	is_playing: bool = True,
+) -> dict:
+	ChildProfile = get_model("ChildProfile")
+	child = session.query(ChildProfile).filter(
+		ChildProfile.id == child.id,
+		ChildProfile.is_active.is_(True),
+	).with_for_update().one_or_none()
+	if child is None:
+		raise HTTPException(status_code=404, detail="Child profile not found")
+	if play_tickets_active():
+		# Exactly one charging path: with tickets active, only ticket heartbeats charge.
+		raise APIError(409, "play_ticket_required", "This app version must use play tickets")
+	video = _eligible_video(session, child, video_id)
+	# One instant for the whole report: aware for the allowance/timezone helpers
+	# (utc_naive() refuses naive values), naive for the stored timestamps.
+	now_aware = datetime.now(timezone.utc)
+	now = utc_naive(now_aware)
+	history, format_name, created = get_or_create_watch_history(session, child, video, now)
+	previous_position = 0 if created else int(history.last_position_seconds or 0)
+
+	# Mission-earned video allowance enforcement
+	remaining_allowance = None
+	is_exhausted = False
+	allowance = get_child_video_allowance_today(session, child.id, child.family_id, now_utc=now_aware)
+	if allowance["remaining_seconds"] <= 0:
+		raise APIError(
+			403,
+			"video_time_exhausted",
+			"Video access time has been exhausted. Complete missions to earn more video time.",
+		)
+	daily_usage, usage_created = get_or_create_daily_usage(session, child, allowance["local_date"], now, is_playing)
+	accepted = 0
+	if not usage_created:
+		previous = daily_usage.last_heartbeat_at or now
+		if previous.tzinfo is not None:
+			previous = utc_naive(previous)
+		accepted = accepted_progress_seconds(
+			elapsed_seconds=(now - previous).total_seconds(),
+			was_playing=bool(daily_usage.is_playing),
+			is_playing=is_playing,
+			previous_position=previous_position,
+			position=position_seconds,
+		)
+		daily_usage.last_heartbeat_at = now
+		daily_usage.is_playing = is_playing
+	accepted = min(accepted, allowance["remaining_seconds"])
+	history.watch_duration_seconds += accepted
+	if accepted > 0:
+		remaining_allowance, is_exhausted, _ = apply_allowance_charge(
+			session, child, daily_usage, accepted, allowance, now_aware
+		)
+
+	update_watch_position(history, video, format_name, position_seconds, now)
 	try:
 		session.commit()
 	except Exception:

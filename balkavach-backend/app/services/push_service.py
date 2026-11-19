@@ -5,11 +5,26 @@ commit promotes it to "ready" and a rolled-back transaction discards it; the
 request wrapper (``get_db``) delivers the ready pushes after the endpoint
 returns. Delivery never raises into the request, never carries names or task
 titles (only a generic localised sentence plus the notification id), and honours
-``user_settings.push_enabled``.
+``user_settings.push_enabled`` plus the family's per-category preferences and
+quiet hours (``notification_preferences_service``).
+
+Three different things, never to be confused:
+
+* **created** - the ``notifications`` row exists (in-app centre). Always happens.
+* **accepted** - the provider (FCM) answered ``ok`` for a device token.
+* **delivered** - the phone showed it. The server cannot observe this.
+
+A ``retry`` answer is retried a few times inside the same worker with a short
+backoff. There is no durable queue (``notification_deliveries`` is deferred), so
+a push still failing after the last attempt, or lost in a process restart, is
+dropped and only counted in the log.
 """
 
 import logging
+import time
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import event
@@ -17,6 +32,8 @@ from sqlalchemy.orm import Session
 
 from app.db.base import get_model
 from app.integrations import get_push_notification_provider
+from app.services import notification_preferences_service as preferences
+from app.services.timezone_service import family_timezone_name, parse_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -108,20 +125,40 @@ GENERIC_TEXT: dict[str, dict[str, tuple[str, str]]] = {
 		"hi": ("वीडियो समय खुला", "आपने 15 मिनट का वीडियो समय कमाया।"),
 		"gu": ("વીડિયો સમય ખુલ્યો", "તમે 15 મિનિટનો વીડિયો સમય મેળવ્યો."),
 	},
+	# Push text cannot carry the exact minutes, so it says "a little"; the in-app
+	# notification (video_time_alerts.py) has the server's real figure.
 	"video_time_nearly_exhausted": {
-		"en": ("Video time running low", "Only 2 minutes left! Wrap up your video."),
-		"hi": ("वीडियो समय कम बचा है", "केवल 2 मिनट बचे हैं!"),
-		"gu": ("વીડિયો સમય ઓછો રહ્યો", "ફક્ત 2 મિનિટ બાકી છે!"),
+		"en": ("A little video time left", "Just a little video time left today. Time to finish up your video!"),
+		"hi": ("थोड़ा सा वीडियो टाइम बचा है", "आज बस थोड़ा सा वीडियो टाइम बचा है। अब अपना वीडियो पूरा कर लो!"),
+		"gu": ("થોડો વિડિયો સમય બાકી છે", "આજે થોડો જ વિડિયો સમય બાકી છે. હવે તમારો વિડિયો પૂરો કરો!"),
 	},
 	"video_time_exhausted": {
-		"en": ("Video time ended", "Complete a mission to earn more video time."),
-		"hi": ("वीडियो समय समाप्त", "अधिक वीडियो समय कमाने के लिए एक मिशन पूरा करें।"),
-		"gu": ("વીડિયો સમય સમાપ્ત", "વધુ વીડિયો સમય મેળવવા માટે મિશન પૂર્ણ કરો."),
+		"en": (
+			"Video time is done for today",
+			"Finish a mission and ask your grown-up to approve it to earn more video time.",
+		),
+		"hi": (
+			"आज का वीडियो टाइम पूरा हुआ",
+			"एक मिशन पूरा करो और अपने बड़ों से मंज़ूरी लो, तब और वीडियो टाइम मिलेगा।",
+		),
+		"gu": (
+			"આજનો વિડિયો સમય પૂરો થયો",
+			"એક મિશન પૂરું કરો અને તમારા વડીલ મંજૂર કરે ત્યારે વધુ વિડિયો સમય મળશે.",
+		),
 	},
 }
 
 # Replaced by tests so delivery is synchronous and uses the test transaction.
 _runner = _executor.submit
+
+MAX_ATTEMPTS = 3
+RETRY_DELAYS_SECONDS = (0.5, 2.0)
+# Replaced by tests (no real sleeping, fixed clock).
+_sleep = time.sleep
+
+
+def _now() -> datetime:
+	return datetime.now(timezone.utc)
 
 
 def _default_session_factory():
@@ -179,28 +216,89 @@ def _deliver(provider, items: list[tuple[UUID, str, UUID]]) -> None:
 		logger.exception("Push delivery failed")
 
 
-def _deliver_with_session(session: Session, provider, items) -> None:
+def _preference_decision(session: Session, user_id: UUID, role: str | None, notification_type: str) -> str:
+	"""``send`` / ``muted`` / ``quiet_hours`` under the recipient's family settings.
+
+	A parent in more than one family gets the push if any of them allows it. If the
+	settings cannot be read the push is sent (fail open) and a warning is logged:
+	the in-app notification exists either way.
+	"""
+	try:
+		family_ids = preferences.family_ids_for_user(session, user_id, role)
+		if not family_ids:
+			return "send"
+		now = _now()
+		decisions = []
+		for family_id in family_ids:
+			effective, _ = preferences.load_family_preferences(session, family_id)
+			zone = parse_timezone(family_timezone_name(session, family_id))
+			decisions.append(preferences.push_decision(effective, zone, notification_type, now))
+	except Exception:
+		logger.warning("Push preferences unreadable for a %s notification; sending", notification_type)
+		return "send"
+	return "send" if "send" in decisions else decisions[0]
+
+
+def _send_with_retry(provider, token: str, title: str, body: str, data: dict[str, str]) -> str:
+	"""Final provider answer for one token; a persistent ``retry`` becomes ``retry_exhausted``."""
+	for attempt in range(MAX_ATTEMPTS):
+		try:
+			result = provider.send(token, title, body, data)
+		except Exception:
+			logger.exception("Push provider raised")
+			return "error"
+		if result != "retry":
+			return result if result in {"ok", "invalid_token", "error"} else "error"
+		if attempt < MAX_ATTEMPTS - 1:
+			_sleep(RETRY_DELAYS_SECONDS[min(attempt, len(RETRY_DELAYS_SECONDS) - 1)])
+	return "retry_exhausted"
+
+
+def _deliver_with_session(session: Session, provider, items) -> Counter:
+	"""Send each staged push once. Returns the outcome counts (also logged; no names or tokens)."""
 	DeviceToken = get_model("DeviceToken")
 	UserSetting = get_model("UserSetting")
 	User = get_model("User")
+	stats: Counter = Counter()
+	seen: set[tuple[UUID, UUID]] = set()
 	for user_id, notification_type, notification_id in items:
+		if (user_id, notification_id) in seen:
+			stats["duplicate_skipped"] += 1
+			continue
+		seen.add((user_id, notification_id))
 		setting = session.query(UserSetting.push_enabled).filter(UserSetting.user_id == user_id).first()
 		if setting is not None and setting[0] is False:
+			stats["push_off"] += 1
 			continue
-		language = session.query(User.preferred_language).filter(User.id == user_id).scalar() or "en"
 		texts = GENERIC_TEXT.get(notification_type)
 		if texts is None:
+			stats["no_template"] += 1
+			continue
+		user_row = session.query(User.preferred_language, User.role).filter(User.id == user_id).first()
+		language = (user_row[0] if user_row else None) or "en"
+		role = user_row[1] if user_row else None
+		decision = _preference_decision(session, user_id, role, notification_type)
+		if decision != "send":
+			stats[f"suppressed_{decision}"] += 1
+			logger.info("Push suppressed (%s): type=%s notification=%s", decision, notification_type, notification_id)
 			continue
 		title, body = texts.get(language) or texts["en"]
 		devices = session.query(DeviceToken).filter(DeviceToken.user_id == user_id, DeviceToken.is_active.is_(True)).all()
+		if not devices:
+			stats["no_active_device"] += 1
+		tokens_sent: set[str] = set()
 		for device in devices:
-			try:
-				result = provider.send(
-					device.token, title, body, {"type": notification_type, "notification_id": str(notification_id)}
-				)
-			except Exception:
-				logger.exception("Push provider raised")
+			if device.token in tokens_sent:
 				continue
+			tokens_sent.add(device.token)
+			result = _send_with_retry(
+				provider, device.token, title, body, {"type": notification_type, "notification_id": str(notification_id)}
+			)
+			stats[f"provider_{result}"] += 1
 			if result == "invalid_token":
 				device.is_active = False
+			elif result in {"error", "retry_exhausted"}:
+				logger.warning("Push not accepted (%s): type=%s notification=%s", result, notification_type, notification_id)
 		session.commit()
+	logger.info("Push run finished: %s", dict(sorted(stats.items())))
+	return stats

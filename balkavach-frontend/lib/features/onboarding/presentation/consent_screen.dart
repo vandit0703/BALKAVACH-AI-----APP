@@ -8,8 +8,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/app_card.dart';
+import '../../../shared/widgets/brand_logo.dart';
 import '../../../shared/widgets/buttons.dart';
-import '../../../shared/widgets/shield_logo.dart';
 import 'onboarding_controller.dart';
 
 /// Parent Safety First. The acknowledgement is stored on the device here and
@@ -76,7 +76,7 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
       body: ScrollablePage(
         maxWidth: ContentWidth.form,
         children: [
-          Center(child: ShieldLogo(size: 104, semanticLabel: l10n.appTitle)),
+          const Center(child: BrandLogo(size: 168)),
           Center(
             child: EyebrowPill(
               label: l10n.consentEyebrow,

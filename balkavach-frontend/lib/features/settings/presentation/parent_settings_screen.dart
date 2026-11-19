@@ -475,6 +475,21 @@ class _PreferencesCard extends ConsumerWidget {
                       ? null
                       : (v) => _update(context, ref, push: v),
                 ),
+                if (familyId != null)
+                  ListTile(
+                    key: const Key('settings.notificationPreferences'),
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(
+                      radius: 22,
+                      backgroundColor: colors.surfaceContainerHigh,
+                      child: Icon(Icons.tune_rounded, color: colors.primary),
+                    ),
+                    title: Text(l10n.notifPrefsTitle),
+                    subtitle: Text(l10n.notifPrefsEntrySubtitle),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () =>
+                        context.push(AppRoutes.parentNotificationSettings),
+                  ),
                 const SizedBox(height: AppSpacing.sm),
                 _InfoRow(
                   key: const Key('settings.email'),

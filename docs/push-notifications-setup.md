@@ -14,7 +14,7 @@ It needs a Firebase project and a service account that this repository does not
 | When a push is sent | After the request that created the notification commits successfully; never for a rolled-back request; never raises into the request |
 | Flows | Ten notification type strings: `task_assigned`, `task_submitted`, `task_approved`, `task_rejected`, `task_resubmission_requested`, `badge_unlocked`, `reward_requested`, `reward_approved`, `reward_rejected`, `reward_fulfilled`. Recipients are the assigned/eligible child, active family parent(s), or child as appropriate. |
 | Privacy | The push text is a fixed, localised sentence (English, Hindi, Gujarati by the user's language). It **never** contains the child's name, a mission title, a review note or a reward name. The `data` payload is only `{type, notification_id}`. |
-| Preferences | Honours `user_settings.push_enabled`; the app unregisters the device when it is turned off |
+| Preferences | Honours `user_settings.push_enabled` (the app unregisters the device when it is turned off) **and**, since Phase 7, the family's per-category preferences and quiet hours (`docs/phase-7-notifications.md`). Muted or quiet-hour pushes are skipped; the in-app notification is always kept. Safety alerts (`parent_mode_locked`) are always sent. |
 | Invalid tokens | FCM `UNREGISTERED` / invalid-argument → the token is deactivated |
 | Sign-out | The app awaits an unregister attempt before dropping credentials, then deletes the local FCM token. Unregister is best-effort: an API error is ignored and there is no durable retry, so a stale server token can remain until re-registration or provider invalidation. Do not treat shared-device isolation on network failure as guaranteed. |
 | App | `lib/core/push/`, `lib/features/notifications/`; a push received while the app is open refreshes the visible data |
@@ -56,14 +56,24 @@ It needs a Firebase project and a service account that this repository does not
   if push is a launch requirement.
 
 Delivery is asynchronous after the database commit and has no durable queue.
-The FCM adapter classifies transient failures, but the current dispatcher does
-not schedule a retry; in-app notifications remain the durable record.
+The FCM adapter classifies transient failures; the dispatcher retries a `retry`
+answer up to three times in the same worker (Phase 7), but nothing survives a
+process restart; in-app notifications remain the durable record. Provider
+acceptance (`ok`) is not proof that the phone showed the notification.
 Device unregistration has the same reliability limitation: if the app is offline
 or the unregister call fails, the backend can retain the previous user's token.
 Verify this failure mode and decide whether durable client/server cleanup is
 required before enabling push on shared devices.
 
+## Deep links and retries (Phase 7)
+
+Tapping a push opens the matching screen (mission details, Missions, Streak,
+Watch, Parent settings…) on cold start and while running; see
+`docs/phase-7-notifications.md`. A provider `retry` answer is now retried up
+to three times inside the worker; it is still not durable. **None of this has
+been verified with real Firebase or on a phone.**
+
 ## Not included
 
-Tapping a notification just opens the app (no deep link). iOS needs APNs setup
-and an iOS build, neither of which exists in this project.
+A banner while the app is in the foreground (needs `flutter_local_notifications`).
+iOS needs APNs setup and an iOS build, neither of which exists in this project.

@@ -4,7 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../l10n/app_localizations.dart';
 import 'shield_logo.dart';
 
-/// "🛡 BAL KAVACH AI / `title`" header used across the child app.
+/// "🛡 BALKAVACH / `title`" header used across the child app.
 class BrandTitle extends StatelessWidget {
   const BrandTitle({required this.title, super.key});
 
@@ -51,7 +51,7 @@ class BrandTitle extends StatelessWidget {
   }
 }
 
-/// Large wordmark used on the welcome screen: "Bal Kavach AI".
+/// Large wordmark used on the welcome screen: "BALKAVACH".
 class BrandWordmark extends StatelessWidget {
   const BrandWordmark({super.key});
 
@@ -66,16 +66,8 @@ class BrandWordmark extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(text: '${l10n.brandName} '),
-                    TextSpan(
-                      text: l10n.brandSuffix,
-                      style: TextStyle(color: context.colors.primaryContainer),
-                    ),
-                  ],
-                ),
+              Text(
+                l10n.brandName,
                 style: context.text.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),

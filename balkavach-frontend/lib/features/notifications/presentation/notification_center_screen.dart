@@ -12,6 +12,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../approvals/presentation/approval_providers.dart';
+import '../../authentication/presentation/session_controller.dart';
 import '../../missions/data/missions_repository.dart';
 import '../../missions/domain/mission_models.dart';
 import '../../missions/presentation/mission_providers.dart';
@@ -41,7 +42,11 @@ class NotificationBell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final unread =
-        _notificationsFor(ref, audience).value?.where((n) => !n.isRead).length ?? 0;
+        _notificationsFor(
+          ref,
+          audience,
+        ).value?.where((n) => !n.isRead).length ??
+        0;
     return IconButton(
       key: const Key('notifications.bell'),
       tooltip: l10n.notifTitle,
@@ -98,7 +103,14 @@ class _NotificationCenterScreenState
 
   void _open(AppNotification n) {
     unawaited(_markRead(n));
-    context.go(routeFor(n.type, widget.audience));
+    context.go(
+      locationFor(
+        type: n.type,
+        audience: widget.audience,
+        relatedTaskId: n.relatedTaskId,
+        childId: ref.read(sessionControllerProvider).value?.childId,
+      ),
+    );
   }
 
   String _label(AppLocalizations l10n, NotificationCategory c) => switch (c) {
@@ -126,7 +138,8 @@ class _NotificationCenterScreenState
     final present = {for (final n in items) categoryOf(n.type)};
     final shown = [
       for (final n in items)
-        if (_filter == NotificationCategory.all || categoryOf(n.type) == _filter)
+        if (_filter == NotificationCategory.all ||
+            categoryOf(n.type) == _filter)
           n,
     ];
     final anyUnread = items.any((n) => !_isRead(n));
