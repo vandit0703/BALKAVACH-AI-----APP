@@ -8,12 +8,12 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/async/refresh_quietly.dart';
-import '../../../shared/models/app_assets.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/buttons.dart';
-import '../../../shared/widgets/gamification.dart';
 import '../../../shared/widgets/lazy_list_page.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../../companion/domain/companion_director.dart';
+import '../../companion/presentation/panda_companion.dart';
 import '../data/missions_repository.dart';
 import '../domain/daily_mission_models.dart';
 import '../domain/mission_models.dart';
@@ -96,6 +96,8 @@ class _MissionsScreenState extends ConsumerState<MissionsScreen> {
           maxWidth: columns == 2 ? ContentWidth.wide : ContentWidth.list,
           header: [
             const _DailyChoices(),
+            if (missions.isNotEmpty)
+              const PandaCompanion(event: CompanionEvent.missionsReady),
             if (snapshot != null && !snapshot.reviewsAvailable)
               InlineNotice(message: l10n.reviewsUnavailable),
             if (usedCategories.isNotEmpty)
@@ -139,13 +141,7 @@ class _MissionsScreenState extends ConsumerState<MissionsScreen> {
               ],
             );
           },
-          footer: [
-            MascotBubble(
-              image: AppImages.pandaMissions,
-              title: l10n.pandaSays,
-              message: l10n.pandaEncourage,
-            ),
-          ],
+          footer: const [],
         );
       },
     );

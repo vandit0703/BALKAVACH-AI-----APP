@@ -11,6 +11,8 @@ import '../../../shared/models/app_assets.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/illustration.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../../companion/domain/companion_director.dart';
+import '../../companion/presentation/panda_companion.dart';
 import '../domain/mission_status.dart';
 import 'mission_providers.dart';
 
@@ -71,6 +73,14 @@ class MissionWaitingScreen extends ConsumerWidget {
             asset: AppImages.pandaCheering,
             aspectRatio: 16 / 9,
           ),
+          if (status == MissionStatus.approved ||
+              status == MissionStatus.pending)
+            PandaCompanion(
+              key: ValueKey(status),
+              event: status == MissionStatus.approved
+                  ? CompanionEvent.missionApproved
+                  : CompanionEvent.missionSubmitted,
+            ),
           Center(
             child: CircleAvatar(
               radius: 36,

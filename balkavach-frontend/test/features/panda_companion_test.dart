@@ -6,6 +6,7 @@ import 'dart:math';
 
 import 'package:balkavach_app/features/companion/domain/companion_director.dart';
 import 'package:balkavach_app/features/companion/presentation/panda_bubble.dart';
+import 'package:balkavach_app/features/companion/presentation/panda_companion.dart';
 import 'package:balkavach_app/features/learning/presentation/video_lock_screen.dart';
 import 'package:balkavach_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -187,5 +188,144 @@ void main() {
     await pumpScreen(tester, const VideoLockScreen(), overrides: const []);
     expect(find.byKey(const Key('panda.bubble')), findsOneWidget);
     expect(find.byKey(const Key('video.lock.toMissions')), findsOneWidget);
+  });
+
+  group('personal lines', () {
+    for (final code in ['en', 'hi', 'gu']) {
+      test('the name, mission and stars appear in $code', () async {
+        final l10n = await AppLocalizations.delegate.load(Locale(code));
+        for (final v in [0, 1]) {
+          expect(
+            pandaLine(l10n, CompanionEvent.greetingNamed, v, name: 'Aarav'),
+            contains('Aarav'),
+          );
+          expect(
+            pandaLine(
+              l10n,
+              CompanionEvent.missionIntro,
+              v,
+              missionTitle: 'Tidy toys',
+            ),
+            contains('Tidy toys'),
+          );
+          expect(
+            pandaLine(l10n, CompanionEvent.rewardExplain, v, stars: 5),
+            contains('5'),
+          );
+        }
+      });
+    }
+
+    test('the moods fit the news', () {
+      expect(
+        pandaMoodFor(CompanionEvent.missionApproved),
+        PandaMood.celebrating,
+      );
+      expect(pandaMoodFor(CompanionEvent.videoUnlocked), PandaMood.celebrating);
+      expect(pandaMoodFor(CompanionEvent.videoUp), PandaMood.sleepy);
+      expect(pandaMoodFor(CompanionEvent.greetingNamed), PandaMood.talking);
+    });
+  });
+
+  group('PandaCompanion', () {
+    Future<void> pump(
+      WidgetTester tester, {
+      CompanionEvent event = CompanionEvent.greetingNamed,
+      Locale locale = const Locale('en'),
+      Size size = const Size(393, 852),
+      double scale = 1,
+      bool settle = true,
+    }) => pumpScreen(
+      tester,
+      Scaffold(
+        body: Padding(
+          padding: const EdgeInsets.all(8),
+          child: PandaCompanion(
+            event: event,
+            name: 'Aarav',
+            missionTitle: 'Tidy toys',
+            stars: 5,
+          ),
+        ),
+      ),
+      overrides: const [],
+      locale: locale,
+      size: size,
+      textScale: scale,
+      settle: settle,
+    );
+
+    String shown(WidgetTester tester) => tester
+        .widgetList<Text>(
+          find.byWidgetPredicate((w) {
+            final k = w.key;
+            return k is ValueKey<String> && k.value.startsWith('panda.line.');
+          }),
+        )
+        .single
+        .data!;
+
+    testWidgets('greets the child by name and then settles', (tester) async {
+      await pump(tester); // pumpAndSettle: the animation must finish
+      expect(shown(tester), contains('Aarav'));
+    });
+
+    testWidgets('tapping Panda shows the other line', (tester) async {
+      await pump(tester);
+      final first = shown(tester);
+      await tester.tap(find.byKey(const Key('panda.avatar')));
+      await tester.pumpAndSettle();
+      expect(shown(tester), isNot(first));
+      await tester.tap(find.byKey(const Key('panda.avatar')));
+      await tester.pumpAndSettle();
+      expect(shown(tester), first);
+    });
+
+    testWidgets('does not move when reduced motion is requested', (
+      tester,
+    ) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await pump(tester, event: CompanionEvent.missionApproved, settle: false);
+      await tester.pump(const Duration(milliseconds: 300));
+      final transform = tester.widget<Transform>(
+        find
+            .descendant(
+              of: find.byKey(const Key('panda.avatar')),
+              matching: find.byType(Transform),
+            )
+            .first,
+      );
+      expect(transform.transform.getTranslation().y, 0);
+    });
+
+    for (final event in [
+      CompanionEvent.missionApproved,
+      CompanionEvent.videoUp,
+      CompanionEvent.rewardExplain,
+    ]) {
+      for (final (size, scale, locale) in [
+        (const Size(320, 568), 2.0, const Locale('en')),
+        (const Size(360, 640), 2.0, const Locale('hi')),
+        (const Size(390, 844), 1.3, const Locale('gu')),
+        (const Size(740, 360), 1.0, const Locale('gu')),
+      ]) {
+        testWidgets('no overflow: $event $size @ ${scale}x $locale', (
+          tester,
+        ) async {
+          await pump(
+            tester,
+            event: event,
+            size: size,
+            scale: scale,
+            locale: locale,
+          );
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
   });
 }

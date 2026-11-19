@@ -11,6 +11,9 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/models/app_assets.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../../authentication/presentation/session_controller.dart';
+import '../../companion/domain/companion_director.dart';
+import '../../companion/presentation/panda_companion.dart';
 import '../../missions/presentation/mission_providers.dart'
     show childNotificationsProvider;
 import '../data/learning_repository.dart';
@@ -464,41 +467,48 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
   );
 }
 
-class _Greeting extends StatelessWidget {
+/// Greeting plus Panda, who reports the real video-time state: a hello by
+/// name, a heads-up when the time is nearly over, a goodnight when it is.
+class _Greeting extends ConsumerWidget {
   const _Greeting({required this.l10n});
 
   final AppLocalizations l10n;
 
+  /// Panda warns when this little time (or less) is left.
+  static const _lowSeconds = 120;
+
   @override
-  Widget build(BuildContext context) {
-    final dpr = MediaQuery.devicePixelRatioOf(context);
-    return Row(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final allowance = ref.watch(videoAllowanceProvider).value;
+    final fullName = ref.watch(sessionControllerProvider).value?.user.fullName;
+    final firstName = (fullName ?? '').trim().split(RegExp(r'\s+')).first;
+
+    final event = switch (allowance) {
+      VideoAllowance(isExhausted: true) => CompanionEvent.videoUp,
+      VideoAllowance(:final remainingSeconds)
+          when remainingSeconds > 0 && remainingSeconds <= _lowSeconds =>
+        CompanionEvent.videoLow,
+      _ when firstName.isNotEmpty => CompanionEvent.greetingNamed,
+      _ => CompanionEvent.greeting,
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l10n.watchGreeting, style: context.text.headlineSmall),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                l10n.watchGreetingBody,
-                style: context.text.bodyMedium?.copyWith(
-                  color: context.colors.onSurfaceVariant,
-                ),
-              ),
-            ],
+        Text(l10n.watchGreeting, style: context.text.headlineSmall),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          l10n.watchGreetingBody,
+          style: context.text.bodyMedium?.copyWith(
+            color: context.colors.onSurfaceVariant,
           ),
         ),
-        const SizedBox(width: AppSpacing.md),
-        ClipOval(
-          child: Image.asset(
-            AppImages.pandaDrawing,
-            width: 64,
-            height: 64,
-            fit: BoxFit.cover,
-            cacheWidth: (64 * dpr).round(),
-            excludeFromSemantics: true,
-          ),
+        const SizedBox(height: AppSpacing.sm),
+        PandaCompanion(
+          key: ValueKey(event),
+          event: event,
+          name: firstName,
+          avatarSize: 52,
         ),
       ],
     );

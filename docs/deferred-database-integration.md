@@ -18,6 +18,7 @@ roadmap phase that needs them.
 | Notification centre (categories, mark read, navigation) | `GET /notifications`, `POST /notifications/{id}/read`; categories derived from `notification_type` on the device |
 | Invite / share card | no server data at all; card and message are generated on the device |
 | Panda dialogue | bundled in the app's localization files |
+| Animated Panda companion on Watch home, Missions, mission detail and the waiting screen; lines personalised with the child's first name, the mission title and the star reward | the existing session, mission and allowance data on the device; line choice and anti-repeat memory live in the app session; nothing is stored or sent |
 | Parent allowance summary | `video_access_entitlements`, `child_video_daily_usage`, `tasks` |
 
 ## 2. Required new tables
@@ -41,6 +42,8 @@ roadmap phase that needs them.
 | `youtube_trusted_channels` | `last_checked_at`, `last_successful_sync_at`, `last_error` | 4 | sync visibility and the "recheck older than 48 h" alert |
 | `videos` | `orientation`, `aspect_ratio` | 8 | classify Shorts as short **and** portrait; today duration only |
 | `child_profiles` | `companion_key` | 6 | remember the child's chosen companion on the server (Panda is the only one now, so the app needs nothing yet) |
+
+Panda items that stay deferred because they need persistence: a parent switch to turn Panda off per child, and anti-repeat memory that survives an app restart. Both are doable on-device with local storage; they are listed here only if the owner wants them stored server-side.
 | `auth_sessions` | `device_id`, `mode` | 1 | device-bound child/parent sessions (if the roadmap's design is revived) |
 | `users` | `deleted_at`, `email_verified_at` | 1 | account deletion and optional verification |
 | mission variations / templates | `skill_area`, `developmental_purpose`, `evidence_level`, `parent_tip`, `estimated_minutes` | 5 | catalogue metadata (not started) |

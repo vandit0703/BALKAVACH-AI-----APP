@@ -13,6 +13,8 @@ import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/gamification.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../../companion/domain/companion_director.dart';
+import '../../companion/presentation/panda_companion.dart';
 import '../domain/mission_models.dart';
 import '../domain/mission_status.dart';
 import 'mission_providers.dart';
@@ -67,6 +69,11 @@ class _Body extends ConsumerWidget {
     return ScrollablePage(
       children: [
         _Hero(mission: mission, category: category),
+        if (status == MissionStatus.notStarted)
+          PandaCompanion(
+            event: CompanionEvent.rewardExplain,
+            stars: mission.starReward,
+          ),
         AppCard(
           color: context.colors.surfaceContainerLow,
           elevated: false,

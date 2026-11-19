@@ -8,7 +8,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/async/refresh_quietly.dart';
-import '../../../shared/models/app_assets.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/gamification.dart';
@@ -16,6 +15,8 @@ import '../../../shared/widgets/illustration.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../authentication/presentation/session_controller.dart';
 import '../../child_profile/presentation/family_providers.dart';
+import '../../companion/domain/companion_director.dart';
+import '../../companion/presentation/panda_companion.dart';
 import '../../progress/data/progress_repository.dart';
 import '../domain/mission_models.dart';
 import '../domain/mission_status.dart';
@@ -251,11 +252,16 @@ class _TodayCard extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: AppSpacing.md,
       children: [
-        MascotBubble(
-          image: AppImages.pandaHoodie,
-          title: l10n.mascotReady,
-          message: l10n.mascotMissionsLeft(todo.length),
-        ),
+        if (todo.isNotEmpty)
+          PandaCompanion(
+            key: ValueKey(todo.first.id),
+            event: CompanionEvent.missionIntro,
+            missionTitle: todo.first.title,
+          )
+        else if (total > 0)
+          const PandaCompanion(event: CompanionEvent.missionApproved)
+        else
+          const PandaCompanion(event: CompanionEvent.greeting),
         if (statuses != null && !statuses.reviewsAvailable)
           InlineNotice(message: l10n.reviewsUnavailable),
         AppCard(

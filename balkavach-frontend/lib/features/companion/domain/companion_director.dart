@@ -58,9 +58,7 @@ String pandaLine(
           ? l10n.pandaMissionIntro1(missionTitle)
           : l10n.pandaMissionIntro2(missionTitle),
     CompanionEvent.rewardExplain =>
-      first
-          ? l10n.pandaRewardExplain1(stars)
-          : l10n.pandaRewardExplain2(stars),
+      first ? l10n.pandaRewardExplain1(stars) : l10n.pandaRewardExplain2(stars),
     CompanionEvent.missionsReady =>
       first ? l10n.pandaMissionsReady1 : l10n.pandaMissionsReady2,
     CompanionEvent.missionSubmitted =>
@@ -106,6 +104,10 @@ class CompanionDirector {
     CompanionEvent.videoUp,
     CompanionEvent.videoUnlocked,
   };
+
+  /// The variant [event] last used (0 before it has ever spoken), for screens
+  /// that keep showing Panda's line without speaking it again.
+  int current(CompanionEvent event) => _lastVariant[event] ?? 0;
 
   /// The variant to show for [event], or `null` when it spoke too recently.
   int? next(CompanionEvent event) {

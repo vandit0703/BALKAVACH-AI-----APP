@@ -138,6 +138,20 @@ final _someVideos = [
   _video(id: 'v2', title: 'Hosted lesson', source: 'hosted', seconds: 600),
 ];
 
+/// Home is a lazy list and Panda now greets at the top, so items further down
+/// are built only once scrolled into view.
+Future<void> _scrollTo(WidgetTester tester, String text) =>
+    tester.scrollUntilVisible(
+      find.text(text),
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('watch.scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+
 void main() {
   group('Watch & Learn Home', () {
     testWidgets('shows Shorts, videos and picks; keeps the shell', (
@@ -159,6 +173,7 @@ void main() {
       expect(find.text('What shall we watch today?'), findsOneWidget);
       expect(find.byKey(const Key('watch.shorts.row')), findsOneWidget);
       expect(find.text('Short 0'), findsOneWidget);
+      await _scrollTo(tester, 'Volcano facts');
       expect(find.text('Volcano facts'), findsOneWidget);
       // No player of any kind lives on Home.
       expect(rig.embeds.history, isEmpty);
@@ -286,6 +301,13 @@ void main() {
         ],
       );
 
+      await _scrollTo(tester, 'Counting song');
+      // Clear the bottom bar so the tap lands on the card.
+      await tester.drag(
+        find.byKey(const Key('watch.scroll')),
+        const Offset(0, -150),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Counting song'));
       await tester.pumpAndSettle();
       final controller = rig.players.created.single;
@@ -375,7 +397,13 @@ void main() {
       );
 
       expect(find.byKey(const Key('watch.shorts.error')), findsOneWidget);
+      await _scrollTo(tester, 'Volcano facts');
       expect(find.text('Volcano facts'), findsOneWidget);
+      await tester.drag(
+        find.byKey(const Key('watch.scroll')),
+        const Offset(0, 2000),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(
           of: find.byKey(const Key('watch.shorts.error')),
@@ -420,5 +448,4 @@ void main() {
       expect(allowanceCalls(), before + 1);
     });
   });
-
 }
