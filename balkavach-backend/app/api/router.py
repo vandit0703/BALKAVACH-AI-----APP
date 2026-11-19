@@ -4,6 +4,7 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.admin_manage import router as admin_manage_router
 from app.api.v1.app_config import router as app_config_router
+from app.api.v1.companion import router as companion_router
 from app.api.v1.families import router as families_router
 from app.api.v1.learning_gate import router as learning_gate_router
 from app.api.v1.educational_content import router as educational_content_router
@@ -39,3 +40,4 @@ api_router.include_router(admin_daily_missions_router)
 api_router.include_router(notifications_router)
 api_router.include_router(uploads_router)
 api_router.include_router(settings_router)
+api_router.include_router(companion_router)

@@ -20,6 +20,7 @@ roadmap phase that needs them.
 | Panda dialogue | bundled in the app's localization files |
 | Animated Panda companion on Watch home, Missions, mission detail and the waiting screen; lines personalised with the child's first name, the mission title and the star reward | the existing session, mission and allowance data on the device; line choice and anti-repeat memory live in the app session; nothing is stored or sent |
 | Parent allowance summary | `video_access_entitlements`, `child_video_daily_usage`, `tasks` |
+| Talk to Panda (`POST /companion/chat`, voice in/out, see `docs/panda-talking-companion.md`) | read-only: `users.preferred_language`, `child_profiles.display_name`, `daily_mission_assignments`, the allowance calculation, `child_streaks`. No conversation, transcript or audio is stored; duplicate-turn cache and rate limit are in process memory |
 
 ## 2. Required new tables
 
@@ -30,6 +31,8 @@ roadmap phase that needs them.
 | `notification_deliveries` | 7 | delivery trail and retries | `id`, `notification_id`, `device_token_id`, `status` (`queued/sent/failed/invalid`), `attempt`, `error_code`, `sent_at` |
 | `notification_templates` (optional) | 7 | localisable templates managed in admin | `type`, `locale`, `title`, `body`, `updated_at` |
 | `companion_dialogue_packs` | 6 | server-driven, versioned Panda dialogue | `id`, `version`, `locale`, `payload` (JSONB), `published_at` |
+| `companion_safety_events` (optional, needs a parent-consent decision) | 6 | lets a parent see that Panda redirected a distress / unsafe / personal-information message. Category and time only, **never the child's words** | `id`, `child_id`, `category`, `created_at`, `notified_parent_at` |
+| `companion_preferences` (optional) | 6 | parent switch to turn Panda's microphone or voice off per child. **Not required for release:** a parent opt-in/opt-out can use the existing `consent_records` (`consent_type = "panda_voice"`) with no schema change; this table is only for richer per-setting history. Today the device permission is the only switch | `child_id` (PK), `voice_input_enabled`, `voice_output_enabled`, `updated_by`, `updated_at` |
 | `youtube_channel_events` (optional) | 4 | richer channel history than the audit log | `id`, `channel_id`, `actor_id`, `action`, `reason`, `created_at` |
 | `video_play_tickets` | 3 | **only if** the roadmap's ticket model is adopted (not built) | `id`, `child_id`, `video_id`, `entitlement_id`, `device_id`, `started_at`, `last_heartbeat_at`, `ended_at`, `status`, `credited_seconds` |
 | `video_topics` / tags (optional) | 8 | topic-based recommendations | `video_id`, `topic` |
