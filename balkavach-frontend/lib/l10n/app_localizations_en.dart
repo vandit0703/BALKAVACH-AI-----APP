@@ -2596,4 +2596,108 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return 'Your reward: $_temp0 and more video time once a grown-up approves.';
   }
+
+  @override
+  String get pandaTalkOpen => 'Talk to Panda';
+
+  @override
+  String get pandaTalkClose => 'Close';
+
+  @override
+  String get pandaStateIdle => 'Tap the mic and talk to me!';
+
+  @override
+  String get pandaStateListening => 'I’m listening…';
+
+  @override
+  String get pandaStateThinking => 'Hmm, let me think…';
+
+  @override
+  String get pandaStateSpeaking => 'Panda is talking';
+
+  @override
+  String get pandaStateHappy => 'Yay!';
+
+  @override
+  String get pandaStateCurious => 'Your turn! Tap the mic to answer.';
+
+  @override
+  String get pandaStateSleepy => 'Panda is a little sleepy';
+
+  @override
+  String get pandaMicButton => 'Talk';
+
+  @override
+  String get pandaStopButton => 'Stop';
+
+  @override
+  String get pandaTypeButton => 'Type instead';
+
+  @override
+  String get pandaTypeHint => 'Type to Panda…';
+
+  @override
+  String get pandaSend => 'Send';
+
+  @override
+  String get pandaYou => 'You';
+
+  @override
+  String get pandaMicExplainTitle => 'Can Panda use the microphone?';
+
+  @override
+  String get pandaMicExplainBody =>
+      'Panda only listens after you tap the mic, and stops when you finish talking. Your phone’s speech service turns your words into text. On many phones this is a Google service that may use the internet. BalKavach does not keep any recording. You can always type instead.';
+
+  @override
+  String get pandaMicAllow => 'Yes, use the mic';
+
+  @override
+  String get pandaMicNotNow => 'Not now';
+
+  @override
+  String get pandaErrorMicDenied =>
+      'I can’t use the microphone. That’s okay, you can type to me!';
+
+  @override
+  String get pandaErrorMicUnavailable =>
+      'Listening doesn’t work on this device. You can type to me!';
+
+  @override
+  String get pandaErrorNotHeard =>
+      'I couldn’t hear you. Try again or type to me!';
+
+  @override
+  String get pandaErrorNetwork =>
+      'Oops, I can’t reach my home right now. Check the internet and try again.';
+
+  @override
+  String get pandaErrorBusy =>
+      'Let’s take a little break. Try again in a minute!';
+
+  @override
+  String get pandaListenLanguageMissing =>
+      'This device can’t hear this language yet. Please type to me!';
+
+  @override
+  String get pandaVoiceMissing =>
+      'Panda’s voice isn’t available in this language on this device. Read along!';
+
+  @override
+  String get pandaSuggestMission => 'My mission';
+
+  @override
+  String get pandaSuggestVideo => 'Video time';
+
+  @override
+  String get pandaSuggestJoke => 'Tell a joke';
+
+  @override
+  String get pandaSuggestFact => 'Fun fact';
+
+  @override
+  String get pandaSuggestDraw => 'Drawing idea';
+
+  @override
+  String get pandaSuggestStars => 'My stars';
 }

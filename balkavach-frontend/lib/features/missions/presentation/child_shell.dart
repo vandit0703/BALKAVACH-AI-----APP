@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/brand_header.dart';
 import '../../../shared/widgets/buttons.dart';
+import '../../companion/presentation/panda_talk_sheet.dart';
 import '../../notifications/domain/notification_category.dart';
 import '../../notifications/presentation/notification_center_screen.dart';
 
@@ -66,6 +67,7 @@ class ChildShell extends StatelessWidget {
       toolbarHeight: 68,
       title: BrandTitle(title: title),
       actions: const [
+        PandaTalkButton(),
         NotificationBell(audience: NotificationAudience.child),
         ParentGateButton(),
         SizedBox(width: AppSpacing.sm),

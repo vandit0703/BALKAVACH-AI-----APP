@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Talk to Panda: tap-to-talk only, asked for on first use, never in the background. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
         android:label="Bal Kavach AI"
         android:name="${applicationName}"
@@ -54,6 +56,13 @@
         <intent>
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="https"/>
+        </intent>
+        <!-- Talk to Panda: the system speech recogniser and text-to-speech engine. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE"/>
         </intent>
     </queries>
 </manifest>

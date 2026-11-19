@@ -2584,4 +2584,108 @@ class AppLocalizationsGu extends AppLocalizations {
     );
     return 'તમારું ઇનામ: $_temp0 અને મંજૂરી પછી વધુ વીડિયો સમય.';
   }
+
+  @override
+  String get pandaTalkOpen => 'પાંડા સાથે વાત કરો';
+
+  @override
+  String get pandaTalkClose => 'બંધ કરો';
+
+  @override
+  String get pandaStateIdle => 'માઇક દબાવો અને મારી સાથે વાત કરો!';
+
+  @override
+  String get pandaStateListening => 'હું સાંભળું છું…';
+
+  @override
+  String get pandaStateThinking => 'હમ્મ, વિચારવા દો…';
+
+  @override
+  String get pandaStateSpeaking => 'પાંડા બોલે છે';
+
+  @override
+  String get pandaStateHappy => 'વાહ!';
+
+  @override
+  String get pandaStateCurious => 'તમારો વારો! જવાબ આપવા માઇક દબાવો.';
+
+  @override
+  String get pandaStateSleepy => 'પાંડાને થોડી ઊંઘ આવે છે';
+
+  @override
+  String get pandaMicButton => 'બોલો';
+
+  @override
+  String get pandaStopButton => 'રોકો';
+
+  @override
+  String get pandaTypeButton => 'લખીને કહો';
+
+  @override
+  String get pandaTypeHint => 'પાંડાને લખો…';
+
+  @override
+  String get pandaSend => 'મોકલો';
+
+  @override
+  String get pandaYou => 'તમે';
+
+  @override
+  String get pandaMicExplainTitle => 'શું પાંડા માઇક વાપરી શકે?';
+
+  @override
+  String get pandaMicExplainBody =>
+      'પાંડા ફક્ત ત્યારે જ સાંભળે છે જ્યારે તમે માઇક દબાવો, અને તમે બોલી લો એટલે બંધ થઈ જાય છે. તમારા ફોનની બોલવાની સેવા તમારા શબ્દોને લખાણમાં ફેરવે છે. ઘણા ફોનમાં આ Google ની સેવા હોય છે, જે ઇન્ટરનેટ વાપરી શકે છે. બાલકવચ કોઈ રેકોર્ડિંગ રાખતું નથી. તમે હંમેશાં લખીને પણ કહી શકો છો.';
+
+  @override
+  String get pandaMicAllow => 'હા, માઇક વાપરો';
+
+  @override
+  String get pandaMicNotNow => 'હમણાં નહીં';
+
+  @override
+  String get pandaErrorMicDenied =>
+      'હું માઇક વાપરી શકતો નથી. કંઈ વાંધો નહીં, તમે મને લખીને કહી શકો!';
+
+  @override
+  String get pandaErrorMicUnavailable =>
+      'આ ડિવાઇસ પર સાંભળવાનું કામ કરતું નથી. તમે મને લખીને કહી શકો!';
+
+  @override
+  String get pandaErrorNotHeard =>
+      'હું તમને સાંભળી ન શક્યો. ફરી પ્રયત્ન કરો અથવા લખીને કહો!';
+
+  @override
+  String get pandaErrorNetwork =>
+      'અરે, હું અત્યારે મારા ઘર સુધી પહોંચી શકતો નથી. ઇન્ટરનેટ તપાસો અને ફરી પ્રયત્ન કરો.';
+
+  @override
+  String get pandaErrorBusy =>
+      'ચાલો થોડો આરામ કરીએ. એક મિનિટ પછી ફરી પ્રયત્ન કરજો!';
+
+  @override
+  String get pandaListenLanguageMissing =>
+      'આ ડિવાઇસ હજી આ ભાષા સાંભળી શકતું નથી. કૃપા કરીને લખીને કહો!';
+
+  @override
+  String get pandaVoiceMissing =>
+      'આ ડિવાઇસ પર આ ભાષામાં પાંડાનો અવાજ નથી. સાથે વાંચો!';
+
+  @override
+  String get pandaSuggestMission => 'મારું મિશન';
+
+  @override
+  String get pandaSuggestVideo => 'વિડિયો સમય';
+
+  @override
+  String get pandaSuggestJoke => 'જોક કહો';
+
+  @override
+  String get pandaSuggestFact => 'મજાની વાત';
+
+  @override
+  String get pandaSuggestDraw => 'ચિત્રનો આઇડિયા';
+
+  @override
+  String get pandaSuggestStars => 'મારા સ્ટાર';
 }

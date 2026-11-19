@@ -4348,6 +4348,198 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your reward: {stars, plural, =1{1 star} other{{stars} stars}} and more video time once a grown-up approves.'**
   String pandaRewardExplain2(int stars);
+
+  /// No description provided for @pandaTalkOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Talk to Panda'**
+  String get pandaTalkOpen;
+
+  /// No description provided for @pandaTalkClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get pandaTalkClose;
+
+  /// No description provided for @pandaStateIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the mic and talk to me!'**
+  String get pandaStateIdle;
+
+  /// No description provided for @pandaStateListening.
+  ///
+  /// In en, this message translates to:
+  /// **'I’m listening…'**
+  String get pandaStateListening;
+
+  /// No description provided for @pandaStateThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Hmm, let me think…'**
+  String get pandaStateThinking;
+
+  /// No description provided for @pandaStateSpeaking.
+  ///
+  /// In en, this message translates to:
+  /// **'Panda is talking'**
+  String get pandaStateSpeaking;
+
+  /// No description provided for @pandaStateHappy.
+  ///
+  /// In en, this message translates to:
+  /// **'Yay!'**
+  String get pandaStateHappy;
+
+  /// No description provided for @pandaStateCurious.
+  ///
+  /// In en, this message translates to:
+  /// **'Your turn! Tap the mic to answer.'**
+  String get pandaStateCurious;
+
+  /// No description provided for @pandaStateSleepy.
+  ///
+  /// In en, this message translates to:
+  /// **'Panda is a little sleepy'**
+  String get pandaStateSleepy;
+
+  /// No description provided for @pandaMicButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Talk'**
+  String get pandaMicButton;
+
+  /// No description provided for @pandaStopButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get pandaStopButton;
+
+  /// No description provided for @pandaTypeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Type instead'**
+  String get pandaTypeButton;
+
+  /// No description provided for @pandaTypeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type to Panda…'**
+  String get pandaTypeHint;
+
+  /// No description provided for @pandaSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get pandaSend;
+
+  /// No description provided for @pandaYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get pandaYou;
+
+  /// No description provided for @pandaMicExplainTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Can Panda use the microphone?'**
+  String get pandaMicExplainTitle;
+
+  /// No description provided for @pandaMicExplainBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Panda only listens after you tap the mic, and stops when you finish talking. Your phone’s speech service turns your words into text. On many phones this is a Google service that may use the internet. BalKavach does not keep any recording. You can always type instead.'**
+  String get pandaMicExplainBody;
+
+  /// No description provided for @pandaMicAllow.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, use the mic'**
+  String get pandaMicAllow;
+
+  /// No description provided for @pandaMicNotNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get pandaMicNotNow;
+
+  /// No description provided for @pandaErrorMicDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'I can’t use the microphone. That’s okay, you can type to me!'**
+  String get pandaErrorMicDenied;
+
+  /// No description provided for @pandaErrorMicUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening doesn’t work on this device. You can type to me!'**
+  String get pandaErrorMicUnavailable;
+
+  /// No description provided for @pandaErrorNotHeard.
+  ///
+  /// In en, this message translates to:
+  /// **'I couldn’t hear you. Try again or type to me!'**
+  String get pandaErrorNotHeard;
+
+  /// No description provided for @pandaErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Oops, I can’t reach my home right now. Check the internet and try again.'**
+  String get pandaErrorNetwork;
+
+  /// No description provided for @pandaErrorBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Let’s take a little break. Try again in a minute!'**
+  String get pandaErrorBusy;
+
+  /// No description provided for @pandaListenLanguageMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This device can’t hear this language yet. Please type to me!'**
+  String get pandaListenLanguageMissing;
+
+  /// No description provided for @pandaVoiceMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Panda’s voice isn’t available in this language on this device. Read along!'**
+  String get pandaVoiceMissing;
+
+  /// No description provided for @pandaSuggestMission.
+  ///
+  /// In en, this message translates to:
+  /// **'My mission'**
+  String get pandaSuggestMission;
+
+  /// No description provided for @pandaSuggestVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Video time'**
+  String get pandaSuggestVideo;
+
+  /// No description provided for @pandaSuggestJoke.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell a joke'**
+  String get pandaSuggestJoke;
+
+  /// No description provided for @pandaSuggestFact.
+  ///
+  /// In en, this message translates to:
+  /// **'Fun fact'**
+  String get pandaSuggestFact;
+
+  /// No description provided for @pandaSuggestDraw.
+  ///
+  /// In en, this message translates to:
+  /// **'Drawing idea'**
+  String get pandaSuggestDraw;
+
+  /// No description provided for @pandaSuggestStars.
+  ///
+  /// In en, this message translates to:
+  /// **'My stars'**
+  String get pandaSuggestStars;
 }
 
 class _AppLocalizationsDelegate
