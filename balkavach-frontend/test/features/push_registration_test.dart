@@ -72,7 +72,7 @@ Future<(Harness, ProviderContainer)> _signedIn(
 }
 
 Future<void> _settle() =>
-  Future<void>.delayed(const Duration(milliseconds: 100));
+    Future<void>.delayed(const Duration(milliseconds: 100));
 
 void main() {
   test(

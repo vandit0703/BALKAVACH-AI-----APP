@@ -306,7 +306,9 @@ void main() {
     expect(find.text('Sent to your parent!'), findsNothing);
   });
 
-  testWidgets('Parent Gate requires a parent PIN', (tester) async {
+  testWidgets('Parent Gate asks for a parent email and password', (
+    tester,
+  ) async {
     final h = await Harness.create(
       session: Fx.childSession(),
       prefs: onboardedPrefs,
@@ -314,21 +316,29 @@ void main() {
     h.backend.reply('GET', '/api/v1/auth/me', Fx.childSession().user.toJson());
     h.backend.reply(
       'POST',
-      '/api/v1/auth/parent-pin/verify',
+      '/api/v1/auth/parent-mode/enter',
       Fx.token(user: Fx.user(role: 'parent')),
     );
     await _pumpApp(tester, h);
 
     await _tap(tester, find.byKey(const Key('parentGate')));
-    await _tap(tester, find.text('Leave').last);
-    final fields = find.byType(TextField);
-    await tester.enterText(fields.at(0), 'parent@example.com');
-    await tester.enterText(fields.at(1), '1234');
-    await _tap(tester, find.text('Leave').last);
+    await tester.enterText(
+      find.byKey(const Key('parentGate.email')),
+      'parent@example.com',
+    );
+    await tester.enterText(
+      find.byKey(const Key('parentGate.password')),
+      'a-long-parent-password',
+    );
+    await _tap(tester, find.byKey(const Key('parentGate.submit')));
     expect((await h.storage.read())?.isParent, isTrue);
     expect(
-      h.backend.requestsTo('POST', '/api/v1/auth/parent-pin/verify'),
+      h.backend.requestsTo('POST', '/api/v1/auth/parent-mode/enter'),
       hasLength(1),
+    );
+    expect(
+      h.backend.requestsTo('POST', '/api/v1/auth/parent-pin/verify'),
+      isEmpty,
     );
   });
 

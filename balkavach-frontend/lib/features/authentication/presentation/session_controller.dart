@@ -135,7 +135,9 @@ class SessionController extends AsyncNotifier<Session?> {
   }
 
   /// Replaces the parent session with a child session for [childId]. The
-  /// parent token is discarded so the child cannot reach parent screens.
+  /// parent token is discarded so the child cannot reach parent screens, and
+  /// the parent's server-side session is ended (best effort) so the dropped
+  /// refresh token is useless.
   Future<void> startChildMode(String childId) async {
     final current = state.value;
     if (current == null || !current.isParent) {
@@ -145,16 +147,42 @@ class SessionController extends AsyncNotifier<Session?> {
         .read(authRepositoryProvider)
         .startChildSession(childId);
     await _adopt(session);
+    final parentRefresh = current.refreshToken;
+    if (parentRefresh != null) {
+      unawaited(_endQuietly(parentRefresh));
+    }
   }
 
-  Future<Session> verifyParentPin({required String email, required String pin}) {
-    return ref.read(authRepositoryProvider).verifyParentPin(
-      email: email,
-      pin: pin,
-    );
+  /// Leaves child mode. Must be called while a **child** session is active:
+  /// the server checks the child's session, that the parent belongs to the
+  /// child's family, and rate-limits / locks repeated failures. On success the
+  /// parent session replaces the child session; any failure leaves the child
+  /// session untouched and is rethrown for the screen to explain.
+  Future<void> enterParentMode({
+    required String email,
+    required String password,
+  }) async {
+    final current = state.value;
+    if (current == null || !current.isChild) {
+      throw const ForbiddenException(message: 'Child session required');
+    }
+    final session = await ref
+        .read(authRepositoryProvider)
+        .enterParentMode(email: email, password: password);
+    await _adopt(session);
+    final childRefresh = current.refreshToken;
+    if (childRefresh != null) {
+      unawaited(_endQuietly(childRefresh));
+    }
   }
 
-  Future<void> adoptVerifiedParentSession(Session session) => _adopt(session);
+  Future<void> _endQuietly(String refreshToken) async {
+    try {
+      await ref.read(authRepositoryProvider).logout(refreshToken);
+    } on Object {
+      // Best effort: the token is already gone from this device.
+    }
+  }
 
   /// Ends the session on this device and, best effort, on the server.
   Future<void> signOut() async {

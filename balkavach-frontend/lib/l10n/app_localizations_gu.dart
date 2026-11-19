@@ -61,7 +61,7 @@ class AppLocalizationsGu extends AppLocalizations {
       'સુરક્ષિત બાળપણ, સ્માર્ટ ભવિષ્ય • રમો • શીખો • સાથે વધો';
 
   @override
-  String get welcomeMascotLabel => 'કવચ પાંડા';
+  String get welcomeMascotLabel => 'પાંડા';
 
   @override
   String get welcomeBuddyLabel => 'AI મિત્ર';
@@ -572,7 +572,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get missionsFilterEmpty => 'આ શ્રેણીમાં કોઈ મિશન નથી.';
 
   @override
-  String get pandaSays => 'પાંડા કવચ કહે છે:';
+  String get pandaSays => 'પાંડા કહે છે:';
 
   @override
   String get pandaEncourage =>
@@ -653,7 +653,7 @@ class AppLocalizationsGu extends AppLocalizations {
       'આ ફક્ત તમારા માતા-પિતાને તેમના મંજૂરી ઇનબોક્સમાં દેખાશે.';
 
   @override
-  String get submitPandaName => 'કવચ પાંડા';
+  String get submitPandaName => 'પાંડા';
 
   @override
   String get submitPandaMessage => 'વાહ! મમ્મી-પપ્પાને મોકલવા નીચે ટેપ કરો!';
@@ -1266,7 +1266,7 @@ class AppLocalizationsGu extends AppLocalizations {
       'આ અઠવાડિયે મમ્મી-પપ્પા મિશન મંજૂર કરે ત્યારે બગીચો વધે છે.';
 
   @override
-  String get gardenImageLabel => 'કવચ પાંડા બગીચાને પાણી આપે છે';
+  String get gardenImageLabel => 'પાંડા બગીચાને પાણી આપે છે';
 
   @override
   String gardenWeeklyMissions(int count) {
@@ -2296,4 +2296,292 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get videoBackToHome => 'હોમ પર પાછા જાઓ';
+
+  @override
+  String get parentGateScreenTitle => 'પેરેન્ટ સાઇન-ઇન';
+
+  @override
+  String get parentGateScreenBody =>
+      'બાળકનો મોડ છોડવા માટે, આ પરિવારના કોઈ પેરેન્ટના ઇમેઇલ અને પાસવર્ડથી સાઇન ઇન કરો.';
+
+  @override
+  String get parentGateContinue => 'ચાલુ રાખો';
+
+  @override
+  String get parentGateBackToChild => 'બાળકના મોડમાં પાછા';
+
+  @override
+  String parentGateAttemptsLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count પ્રયાસો બાકી છે',
+      one: '1 પ્રયાસ બાકી છે',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String parentGateLocked(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes મિનિટ',
+      one: '1 મિનિટ',
+    );
+    return 'ઘણા ખોટા પ્રયાસો થયા. $_temp0 પછી ફરી પ્રયાસ કરો.';
+  }
+
+  @override
+  String get resetPasswordTitle => 'નવો પાસવર્ડ સેટ કરો';
+
+  @override
+  String get resetPasswordBody =>
+      'તમારા પેરેન્ટ એકાઉન્ટ માટે નવો પાસવર્ડ પસંદ કરો.';
+
+  @override
+  String get resetPasswordNew => 'નવો પાસવર્ડ';
+
+  @override
+  String get resetPasswordConfirm => 'નવો પાસવર્ડ ફરી લખો';
+
+  @override
+  String get resetPasswordMismatch => 'બંને પાસવર્ડ સરખા નથી.';
+
+  @override
+  String get resetPasswordSubmit => 'નવો પાસવર્ડ સાચવો';
+
+  @override
+  String get resetPasswordDone =>
+      'તમારો પાસવર્ડ બદલાઈ ગયો છે. નવા પાસવર્ડથી સાઇન ઇન કરો.';
+
+  @override
+  String get resetPasswordInvalid =>
+      'આ રીસેટ લિંક અમાન્ય છે અથવા સમાપ્ત થઈ ગઈ છે. નવી લિંક મંગાવો.';
+
+  @override
+  String get resetPasswordToSignIn => 'સાઇન ઇન પર જાઓ';
+
+  @override
+  String get videoOfflinePaused => 'વીડિયો અટકાવ્યો છે: ઇન્ટરનેટ મળતું નથી.';
+
+  @override
+  String get videoTimeCheckFailed =>
+      'અમે તમારો વીડિયો સમય ચકાસી શક્યા નથી. કૃપા કરીને ફરી પ્રયાસ કરો.';
+
+  @override
+  String videoLockSummary(int watched, int earned) {
+    return 'આજે તમે $earned માંથી $watched મિનિટ જોયા.';
+  }
+
+  @override
+  String get parentVideoSummaryTitle => 'આજનો વીડિયો સમય';
+
+  @override
+  String get parentVideoEarned => 'કમાયેલ';
+
+  @override
+  String get parentVideoWatched => 'જોયેલ';
+
+  @override
+  String get parentVideoLeft => 'બાકી';
+
+  @override
+  String parentVideoCap(int minutes) {
+    return 'દૈનિક મર્યાદા: $minutes મિનિટ';
+  }
+
+  @override
+  String parentVideoFree(int minutes) {
+    return 'તેમાં $minutes મફત મિનિટ સામેલ છે';
+  }
+
+  @override
+  String get parentVideoMissionsTitle => 'જે મિશનથી સમય મળ્યો';
+
+  @override
+  String get parentVideoNoMissions =>
+      'આજે કોઈ મિશનથી હજી વીડિયો સમય મળ્યો નથી.';
+
+  @override
+  String parentVideoMissionUsed(int used, int granted) {
+    return '$granted માંથી $used મિનિટ વપરાયા';
+  }
+
+  @override
+  String get parentVideoSummaryFailed => 'વીડિયો સમય લોડ થઈ શક્યો નહીં.';
+
+  @override
+  String get videoUpNextEmpty => 'હમણાં વધુ વીડિયો નથી. જલ્દી ફરી જુઓ!';
+
+  @override
+  String get videoUpNextFailed => 'અમે વધુ વીડિયો લોડ કરી શક્યા નહીં.';
+
+  @override
+  String get videoWatchNext => 'આગળ જુઓ';
+
+  @override
+  String get videoWatchAgain => 'ફરી જુઓ';
+
+  @override
+  String get notifTitle => 'સૂચનાઓ';
+
+  @override
+  String get notifCatAll => 'બધી';
+
+  @override
+  String get notifCatMissions => 'મિશન';
+
+  @override
+  String get notifCatRewards => 'ઇનામ';
+
+  @override
+  String get notifCatVideos => 'વીડિયો';
+
+  @override
+  String get notifCatStreaks => 'સ્ટ્રીક';
+
+  @override
+  String get notifCatOther => 'અન્ય';
+
+  @override
+  String get notifEmpty => 'હમણાં કંઈ નવું નથી. જલ્દી ફરી જુઓ!';
+
+  @override
+  String get notifEmptyFiltered => 'આ જૂથમાં કંઈ નથી.';
+
+  @override
+  String get notifMarkAllRead => 'બધું વાંચેલું તરીકે ચિહ્નિત કરો';
+
+  @override
+  String get notifUnread => 'વણવાંચેલું';
+
+  @override
+  String get inviteTitle => 'અન્ય વાલીઓને આમંત્રિત કરો';
+
+  @override
+  String get inviteCardPanda => 'પાંડા, બાલ કવચનો સાથી';
+
+  @override
+  String get inviteCardHeadline => 'પહેલાં મિશન, પછી વીડિયો';
+
+  @override
+  String get inviteCardBody =>
+      'રોજના મિશન, વાલીની દેખરેખ અને બાળકો કમાય તેવા સુરક્ષિત વીડિયો સમય સાથે.';
+
+  @override
+  String get inviteMessage =>
+      'તમારા બાળક સાથે બાલ કવચ અજમાવો: પહેલાં રોજના મિશન, પછી સુરક્ષિત વીડિયો સમય, અને નિયંત્રણ વાલીના હાથમાં.';
+
+  @override
+  String get inviteWhatsApp => 'વોટ્સએપ પર શેર કરો';
+
+  @override
+  String get inviteShare => 'શેર કરો…';
+
+  @override
+  String get inviteShareImage => 'કાર્ડને ચિત્ર તરીકે શેર કરો';
+
+  @override
+  String get inviteShareFailed => 'શેર ખુલી શક્યું નથી.';
+
+  @override
+  String get invitePrivacyNote => 'આ કાર્ડમાં તમારા બાળકની કોઈ માહિતી નથી.';
+
+  @override
+  String get settingsInviteSubtitle => 'બીજા પરિવાર સાથે બાલ કવચ શેર કરો';
+
+  @override
+  String get pandaName => 'પાંડા';
+
+  @override
+  String get pandaGreeting1 => 'નમસ્તે! આજના મિશન માટે તૈયાર છો?';
+
+  @override
+  String get pandaGreeting2 => 'હેલો દોસ્ત! આજે કંઈક શાનદાર કરીએ.';
+
+  @override
+  String get pandaMissionsReady1 => 'તમારા મિશન તૈયાર છે. જે ગમે તે પસંદ કરો!';
+
+  @override
+  String get pandaMissionsReady2 => 'નવા મિશન રાહ જુએ છે. કયું અજમાવશો?';
+
+  @override
+  String get pandaMissionSubmitted1 => 'શાબાશ! તમારા વડીલ તે જોશે.';
+
+  @override
+  String get pandaMissionSubmitted2 =>
+      'મોકલી દીધું! હવે વડીલ તપાસે તેની રાહ જોઈએ.';
+
+  @override
+  String get pandaMissionApproved1 => 'તમારું મિશન મંજૂર થયું. બહુ સરસ!';
+
+  @override
+  String get pandaMissionApproved2 =>
+      'મંજૂર! તમે કરી બતાવ્યું. મને તમારા પર ગર્વ છે!';
+
+  @override
+  String pandaVideoUnlocked1(int minutes) {
+    return 'તમે $minutes મિનિટનો વીડિયો સમય ખોલ્યો!';
+  }
+
+  @override
+  String pandaVideoUnlocked2(int minutes) {
+    return 'વાહ! $minutes મિનિટના વીડિયો તમારા છે.';
+  }
+
+  @override
+  String get pandaVideoLow1 => 'વીડિયો સમય થોડો જ બાકી છે. જલ્દી પૂરું કરો!';
+
+  @override
+  String get pandaVideoLow2 => 'અટકવાનો સમય લગભગ આવી ગયો. સારી જગ્યા પસંદ કરો!';
+
+  @override
+  String get pandaVideoUp1 =>
+      'હમણાં માટે વીડિયો સમય પૂરો. નવું મિશન વધુ સમય ખોલશે!';
+
+  @override
+  String get pandaVideoUp2 => 'આજનો વીડિયો સમય બસ આટલો. ચાલો એક મિશન કરીએ!';
+
+  @override
+  String pandaGreetingNamed1(String name) {
+    return 'નમસ્તે $name! આજના મિશન માટે તૈયાર?';
+  }
+
+  @override
+  String pandaGreetingNamed2(String name) {
+    return 'હેલો $name! ચાલો આજે કંઈક સરસ કરીએ.';
+  }
+
+  @override
+  String pandaMissionIntro1(String title) {
+    return 'આજનું મિશન: $title. કરી જોશો?';
+  }
+
+  @override
+  String pandaMissionIntro2(String title) {
+    return 'તમારા માટે એક મિશન: $title. તમે કરી શકો છો!';
+  }
+
+  @override
+  String pandaRewardExplain1(int stars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      stars,
+      locale: localeName,
+      other: '$stars સ્ટાર',
+      one: '1 સ્ટાર',
+    );
+    return 'મિશન કરો, મોટા લોકો મંજૂર કરે, અને $_temp0 સાથે વીડિયો સમય મેળવો!';
+  }
+
+  @override
+  String pandaRewardExplain2(int stars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      stars,
+      locale: localeName,
+      other: '$stars સ્ટાર',
+      one: '1 સ્ટાર',
+    );
+    return 'તમારું ઇનામ: $_temp0 અને મંજૂરી પછી વધુ વીડિયો સમય.';
+  }
 }

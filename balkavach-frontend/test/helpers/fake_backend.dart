@@ -40,6 +40,15 @@ class FakeBackend implements HttpClientAdapter {
   void reply(String method, String path, Object? body, {int status = 200}) =>
       on(method, path, (_) => FakeReply(status, body));
 
+  final _patterns = <(String, RegExp, FakeReply Function(RequestOptions))>[];
+
+  /// Like [on] for paths that carry an id, e.g. `/videos/watch-history/x/progress`.
+  void onPattern(
+    String method,
+    RegExp path,
+    FakeReply Function(RequestOptions) reply,
+  ) => _patterns.insert(0, (method, path, reply));
+
   bool hasRoute(String method, String path) =>
       _routes.containsKey('$method $path');
 
@@ -53,7 +62,15 @@ class FakeBackend implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     requests.add(options);
-    final handler = _routes['${options.method} ${options.uri.path}'];
+    var handler = _routes['${options.method} ${options.uri.path}'];
+    if (handler == null) {
+      for (final (method, path, reply) in _patterns) {
+        if (method == options.method && path.hasMatch(options.uri.path)) {
+          handler = reply;
+          break;
+        }
+      }
+    }
     final reply = handler == null
         ? FakeReply.error(404, 'http_error', 'Not Found')
         : handler(options);

@@ -13,10 +13,11 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/learning_repository.dart';
+import '../data/playback_guard.dart';
 import '../data/video_feed_repository.dart';
 import '../data/youtube_embed_policy.dart';
+import 'video_lock_screen.dart';
 import 'widgets/video_actions.dart' show askGrownUpThenOpen;
-import 'widgets/video_time_exhausted_dialog.dart';
 
 /// What the embed needs from the screen hosting it.
 @immutable
@@ -36,6 +37,7 @@ class YouTubeEmbedConfig {
     this.aspectRatio,
     this.overlay,
     this.startAtSeconds = 0,
+    this.autoFullScreen = false,
   });
 
   /// The approved video; nothing else may play in this embed.
@@ -84,6 +86,11 @@ class YouTubeEmbedConfig {
 
   /// Resume point supplied by the backend's Continue Watching history.
   final int startAtSeconds;
+
+  /// Rotating the phone to landscape enters the player's fullscreen (and
+  /// rotating back leaves it). Regular videos use it; Shorts never do, they
+  /// stay portrait.
+  final bool autoFullScreen;
 }
 
 typedef YouTubeEmbedBuilder = Widget Function(YouTubeEmbedConfig config);
@@ -262,6 +269,11 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_values?.cancel());
     unawaited(_positions?.cancel());
+    // Never leave the phone in fullscreen/landscape behind a removed player
+    // (allowance ran out, offline pause, navigation).
+    if (!kIsWeb && _controller.value.fullScreenOption.enabled) {
+      _controller.exitFullScreen();
+    }
     unawaited(_controller.close());
     super.dispose();
   }
@@ -275,7 +287,7 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
     if (onSwipe == null && overlay == null) {
       return YoutubePlayer(
         controller: _controller,
-        autoFullScreen: false,
+        autoFullScreen: config.autoFullScreen,
         aspectRatio: aspectRatio,
       );
     }
@@ -286,7 +298,7 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
     // still reach YouTube's controls, ads and links.
     return YoutubePlayer(
       controller: _controller,
-      autoFullScreen: false,
+      autoFullScreen: config.autoFullScreen,
       aspectRatio: aspectRatio,
       backgroundColor: Colors.black,
       enableFullScreenOnVerticalDrag: onSwipe == null,
@@ -352,9 +364,15 @@ class YouTubePlayerScreen extends ConsumerStatefulWidget {
       _YouTubePlayerScreenState();
 }
 
-class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
+class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
+    with WidgetsBindingObserver {
   bool _failed = false;
   bool _allowanceExhausted = false;
+
+  /// Progress reports kept failing: the embed is removed (so nothing plays)
+  /// until the server answers again. Unverified playback is never free.
+  bool _offline = false;
+  PlaybackGuard get _guard => ref.read(playbackGuardProvider);
   bool _leaving = false;
   DateTime _lastProgressSentAt = DateTime.fromMillisecondsSinceEpoch(0);
   Duration _lastPosition = Duration.zero;
@@ -362,10 +380,69 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
   /// Bumped on retry so the embed (and its web view) is built afresh.
   int _attempt = 0;
 
-  void _retry() => setState(() {
-    _failed = false;
-    _attempt++;
-  });
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // The embed pauses itself in the background. On return, ask the server
+    // again (a paused report is free) so a lock that happened meanwhile shows.
+    if (state == AppLifecycleState.resumed && !_allowanceExhausted) {
+      _sendProgress(_lastPosition, force: true, isPlaying: false);
+    }
+  }
+
+  void _retry() {
+    if (_offline) {
+      unawaited(_retryOnline());
+      return;
+    }
+    setState(() {
+      _failed = false;
+      _attempt++;
+    });
+  }
+
+  Future<void> _retryOnline() async {
+    final videoId = widget.reportVideoId;
+    if (videoId == null) return;
+    final report = await _guard.report(
+      () => ref
+          .read(videoFeedRepositoryProvider)
+          .recordProgress(videoId, _lastPosition.inSeconds, isPlaying: false),
+    );
+    if (!mounted) return;
+    if (report.verdict == PlaybackVerdict.ok) {
+      setState(() {
+        _offline = false;
+        _attempt++;
+      });
+    } else {
+      _apply(report);
+    }
+  }
+
+  void _apply(PlaybackReport report) {
+    if (!mounted) return;
+    switch (report.verdict) {
+      case PlaybackVerdict.ok:
+        break;
+      case PlaybackVerdict.exhausted:
+        _stopForExhaustedAllowance();
+      case PlaybackVerdict.offline:
+      case PlaybackVerdict.signedOut:
+        if (!_offline) setState(() => _offline = true);
+    }
+  }
 
   void _notify(String message) {
     ScaffoldMessenger.of(context)
@@ -408,30 +485,24 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
     }
     _lastProgressSentAt = now;
     unawaited(
-      ref
-          .read(videoFeedRepositoryProvider)
-          .recordProgress(
-            videoId,
-            position.inSeconds,
-            isPlaying: isPlaying,
+      _guard
+          .report(
+            () => ref
+                .read(videoFeedRepositoryProvider)
+                .recordProgress(
+                  videoId,
+                  position.inSeconds,
+                  isPlaying: isPlaying,
+                ),
           )
-          .then((data) {
-            if (data != null && data['is_exhausted'] == true) {
-              _stopForExhaustedAllowance();
-            }
-          })
-          .catchError((Object error) {
-            if (error is ForbiddenException) {
-              _stopForExhaustedAllowance();
-            }
-          }),
+          .then(_apply),
     );
   }
 
   void _stopForExhaustedAllowance() {
     if (!mounted || _allowanceExhausted) return;
     setState(() => _allowanceExhausted = true);
-    showVideoTimeExhaustedDialog(context);
+    unawaited(showVideoLockScreen(context));
   }
 
   Future<void> _leaveRoute() async {
@@ -442,11 +513,9 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
     final videoId = widget.reportVideoId;
     if (videoId != null) {
       try {
-        await ref.read(videoFeedRepositoryProvider).recordProgress(
-          videoId,
-          _lastPosition.inSeconds,
-          isPlaying: false,
-        );
+        await ref
+            .read(videoFeedRepositoryProvider)
+            .recordProgress(videoId, _lastPosition.inSeconds, isPlaying: false);
       } on Object {
         // The route should still close if the final heartbeat cannot be sent.
       }
@@ -477,94 +546,114 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen> {
         if (!didPop && reportVideoId != null) unawaited(_leaveRoute());
       },
       child: Scaffold(
-      appBar: AppBar(
-        title: Text(
-          reportVideoId == null ? l10n.learnTitle : l10n.videoFeedTitle,
+        appBar: AppBar(
+          title: Text(
+            reportVideoId == null ? l10n.learnTitle : l10n.videoFeedTitle,
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: _failed || videoId == null || _allowanceExhausted
-                    ? ColoredBox(
-                        color: colors.surfaceContainerHighest,
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _allowanceExhausted
-                                    ? l10n.videoAllowanceLocked
-                                    : l10n.youtubePlayerError,
-                                key: const Key('youtube.error'),
-                                textAlign: TextAlign.center,
-                              ),
-                              // Load failures (offline, embed hiccup) may
-                              // pass; a missing id never will.
-                              if (videoId != null) ...[
-                                const SizedBox(height: AppSpacing.sm),
-                                SecondaryButton(
-                                  key: const Key('youtube.retry'),
-                                  dense: true,
-                                  label: l10n.videoRetry,
-                                  icon: Icons.refresh_rounded,
-                                  onPressed: _retry,
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: ConstrainedBox(
+                  // In landscape the player may use most of the height.
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+                  ),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child:
+                        _failed ||
+                            videoId == null ||
+                            _allowanceExhausted ||
+                            _offline
+                        ? ColoredBox(
+                            color: colors.surfaceContainerHighest,
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppSpacing.md),
+                              // Scrolls rather than overflowing the 16:9 box
+                              // at large text sizes.
+                              child: Center(
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _allowanceExhausted
+                                            ? l10n.videoAllowanceLocked
+                                            : _offline
+                                            ? l10n.videoOfflinePaused
+                                            : l10n.youtubePlayerError,
+                                        key: const Key('youtube.error'),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      // Load failures (offline, embed hiccup) may
+                                      // pass; a missing id never will.
+                                      if (videoId != null &&
+                                          !_allowanceExhausted) ...[
+                                        const SizedBox(height: AppSpacing.sm),
+                                        SecondaryButton(
+                                          key: const Key('youtube.retry'),
+                                          dense: true,
+                                          label: l10n.videoRetry,
+                                          icon: Icons.refresh_rounded,
+                                          onPressed: _retry,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      )
-                    : KeyedSubtree(
-                        key: ValueKey(('youtube.embed', _attempt)),
-                        child: embed(
-                          YouTubeEmbedConfig(
-                            videoId: videoId,
-                            onLeaveRequested: _leave,
-                            onForeignVideo: _onForeignVideo,
-                            onError: _onError,
-                            startAtSeconds: widget.startAtSeconds,
-                            onProgress: _recordProgress,
-                            onPlayingChanged: (isPlaying) => _sendProgress(
-                              _lastPosition,
-                              force: true,
-                              isPlaying: isPlaying,
+                              ),
                             ),
-                            onEnded: (duration) => _sendProgress(
-                              duration,
-                              force: true,
-                              isPlaying: false,
+                          )
+                        : KeyedSubtree(
+                            key: ValueKey(('youtube.embed', _attempt)),
+                            child: embed(
+                              YouTubeEmbedConfig(
+                                videoId: videoId,
+                                onLeaveRequested: _leave,
+                                onForeignVideo: _onForeignVideo,
+                                onError: _onError,
+                                startAtSeconds: widget.startAtSeconds,
+                                autoFullScreen: true,
+                                onProgress: _recordProgress,
+                                onPlayingChanged: (isPlaying) => _sendProgress(
+                                  _lastPosition,
+                                  force: true,
+                                  isPlaying: isPlaying,
+                                ),
+                                onEnded: (duration) => _sendProgress(
+                                  duration,
+                                  force: true,
+                                  isPlaying: false,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(widget.title, style: context.text.titleLarge),
-            const SizedBox(height: AppSpacing.sm),
-            InlineNotice(
-              icon: Icons.info_outline_rounded,
-              message: l10n.videoFeedAdsNotice,
-            ),
-            if (reportVideoId != null) ...[
-              const SizedBox(height: AppSpacing.lg),
-              SecondaryButton(
-                key: const Key('youtube.report'),
-                label: l10n.videoReport,
-                icon: Icons.flag_outlined,
-                onPressed: () => _report(reportVideoId),
+              const SizedBox(height: AppSpacing.md),
+              Text(widget.title, style: context.text.titleLarge),
+              const SizedBox(height: AppSpacing.sm),
+              InlineNotice(
+                icon: Icons.info_outline_rounded,
+                message: l10n.videoFeedAdsNotice,
               ),
+              if (reportVideoId != null) ...[
+                const SizedBox(height: AppSpacing.lg),
+                SecondaryButton(
+                  key: const Key('youtube.report'),
+                  label: l10n.videoReport,
+                  icon: Icons.flag_outlined,
+                  onPressed: () => _report(reportVideoId),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
-      ),
       ),
     );
   }

@@ -25,7 +25,7 @@ from app.services.timezone_service import (
     local_today,
     parse_timezone,
 )
-from app.utils import utc_naive
+from app.utils import utc_aware, utc_naive
 
 logger = logging.getLogger(__name__)
 
@@ -283,3 +283,58 @@ def consume_video_allowance(
 
     return total_consumed
 
+
+
+def get_child_allowance_summary(
+    session: Session,
+    child_id: UUID,
+    family_id: UUID,
+    now_utc: datetime | None = None,
+) -> dict[str, Any]:
+    """Read-only parent view: today's figures plus the missions that earned the time.
+
+    Every number comes from the same calculation the child's lock uses
+    (``get_child_video_allowance_today``); this adds the per-mission breakdown and
+    never changes any balance.
+    """
+    allowance = get_child_video_allowance_today(session, child_id, family_id, now_utc)
+    today = allowance["local_date"]
+    zone = parse_timezone(allowance["timezone"])
+    start, end = local_day_bounds_utc_naive(zone, today, 1)
+
+    VideoAccessEntitlement = get_model("VideoAccessEntitlement")
+    Task = get_model("Task")
+    rows = (
+        session.query(VideoAccessEntitlement, Task.title)
+        .outerjoin(Task, Task.id == VideoAccessEntitlement.task_id)
+        .filter(
+            VideoAccessEntitlement.child_id == child_id,
+            VideoAccessEntitlement.source_type == "mission_reward",
+            VideoAccessEntitlement.granted_at >= start,
+            VideoAccessEntitlement.granted_at < end,
+        )
+        .order_by(VideoAccessEntitlement.granted_at.asc())
+        .all()
+    )
+    DailyUsage = get_model("ChildVideoDailyUsage")
+    free_consumed = int(
+        session.query(DailyUsage.free_watched_seconds)
+        .filter(DailyUsage.child_id == child_id, DailyUsage.local_date == today)
+        .scalar()
+        or 0
+    )
+    return {
+        **allowance,
+        "free_allowance_seconds": FREE_DAILY_ALLOWANCE_SECONDS,
+        "free_consumed_seconds": min(FREE_DAILY_ALLOWANCE_SECONDS, free_consumed),
+        "mission_rewards": [
+            {
+                "task_id": entitlement.task_id,
+                "task_title": title,
+                "granted_seconds": int(entitlement.granted_seconds or 0),
+                "consumed_seconds": int(entitlement.consumed_seconds or 0),
+                "granted_at": utc_aware(entitlement.granted_at),
+            }
+            for entitlement, title in rows
+        ],
+    }

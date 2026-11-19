@@ -19,7 +19,8 @@ class VideoAllowanceCard extends ConsumerWidget {
     return allowanceAsync.maybeWhen(
       data: (allowance) {
         final remainingMinutes = allowance.remainingMinutes;
-        final hasTime = allowance.remainingSeconds > 0 && !allowance.isExhausted;
+        final hasTime =
+            allowance.remainingSeconds > 0 && !allowance.isExhausted;
 
         return Container(
           key: const Key('watch.allowance.card'),
@@ -39,63 +40,63 @@ class VideoAllowanceCard extends ConsumerWidget {
                   : colors.outline.withValues(alpha: 0.2),
             ),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: hasTime
-                      ? colors.primary.withValues(alpha: 0.15)
-                      : colors.outline.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  hasTime ? Icons.hourglass_top_rounded : Icons.lock_clock_rounded,
-                  color: hasTime ? colors.primary : colors.onSurfaceVariant,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      hasTime
-                          ? l10n.videoAllowanceRemaining(remainingMinutes)
-                          : l10n.videoAllowanceLocked,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: hasTime ? colors.primary : colors.onSurface,
-                      ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: hasTime
+                          ? colors.primary.withValues(alpha: 0.15)
+                          : colors.outline.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
+                    child: Icon(
                       hasTime
-                          ? '${allowance.activeEntitlementsCount} mission reward(s) today'
-                          : l10n.videoAllowanceUnlockHint,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colors.onSurfaceVariant,
-                      ),
+                          ? Icons.hourglass_top_rounded
+                          : Icons.lock_clock_rounded,
+                      color: hasTime ? colors.primary : colors.onSurfaceVariant,
+                      size: 24,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          hasTime
+                              ? l10n.videoAllowanceRemaining(remainingMinutes)
+                              : l10n.videoAllowanceLocked,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: hasTime ? colors.primary : colors.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          hasTime
+                              ? '${allowance.activeEntitlementsCount} mission reward(s) today'
+                              : l10n.videoAllowanceUnlockHint,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               if (!hasTime) ...[
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.sm),
                 FilledButton.tonal(
                   key: const Key('watch.allowance.toMissions'),
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                  ),
                   onPressed: () => context.go(AppRoutes.childMissions),
-                  child: Text(
-                    l10n.videoGoToMissions,
-                    style: const TextStyle(fontSize: 12),
-                  ),
+                  child: Text(l10n.videoGoToMissions),
                 ),
               ],
             ],

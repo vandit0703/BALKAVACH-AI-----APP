@@ -9,6 +9,7 @@ from app.core.exceptions import APIError
 from app.db.base import get_model
 from app.integrations import get_video_playback_provider
 from app.schemas.video import PlaybackHeartbeatPublic, PlaybackSessionPublic, PlaybackStartRequest
+from app.services.video_entitlement_service import get_child_video_allowance_today
 from app.services.video_service import child_age
 from app.utils import utc_aware, utc_naive
 
@@ -30,6 +31,11 @@ def accepted_heartbeat_seconds(previous: datetime, now: datetime, remaining: int
 	if elapsed < 0:
 		raise APIError(409, "invalid_heartbeat", "Playback heartbeat timestamp is invalid")
 	return min(int(elapsed), MAX_HEARTBEAT_ELAPSED_SECONDS, max(0, remaining))
+
+
+def _mission_allowance_remaining(session: Session, child) -> int:
+	"""Authoritative remaining seconds (free + mission pool) from the single allowance calculation."""
+	return int(get_child_video_allowance_today(session, child.id, child.family_id)["remaining_seconds"])
 
 
 def _matches_entitlement(session: Session, entitlement, video_id: UUID) -> bool:
@@ -122,8 +128,10 @@ def start_playback(session: Session, child, request: PlaybackStartRequest) -> Pl
 			active_session = None
 		else:
 			remaining = entitlement.granted_seconds - entitlement.consumed_seconds
+			if entitlement.source_type == "mission_reward":
+				remaining = _mission_allowance_remaining(session, locked_child)
 			if remaining <= 0:
-				entitlement.status = "exhausted"
+				entitlement.status = "exhausted" if entitlement.source_type != "mission_reward" else entitlement.status
 				active_session.status = "completed"
 				active_session.ended_at = now
 				session.commit()
@@ -152,7 +160,12 @@ def start_playback(session: Session, child, request: PlaybackStartRequest) -> Pl
 	if entitlement is None:
 		raise HTTPException(status_code=403, detail="No valid entitlement for this video")
 	remaining = entitlement.granted_seconds - entitlement.consumed_seconds
-	if remaining <= 0:
+	if entitlement.source_type == "mission_reward":
+		# The allowance (free + mission pool, family-local day) is calculated in one place only.
+		remaining = _mission_allowance_remaining(session, locked_child)
+		if remaining <= 0:
+			raise HTTPException(status_code=403, detail="Video access time has been exhausted")
+	elif remaining <= 0:
 		entitlement.status = "exhausted"
 		session.commit()
 		raise HTTPException(status_code=403, detail="Video access time has been exhausted")
@@ -219,6 +232,25 @@ def record_heartbeat(session: Session, child, session_id: UUID) -> PlaybackHeart
 		session.commit()
 		_revoke_provider_playback(session_id)
 		raise HTTPException(status_code=403, detail="Video is no longer published")
+
+	if entitlement.source_type == "mission_reward":
+		# Mission/free allowance has exactly one deduction path: record_progress. A heartbeat here
+		# never deducts (so nothing can be charged twice); it only reports the authoritative
+		# remaining time and ends the session when that reaches zero.
+		remaining = _mission_allowance_remaining(session, child)
+		if remaining <= 0:
+			watch.status = "completed"
+			watch.ended_at = now
+		session.commit()
+		if watch.status != "active":
+			_revoke_provider_playback(session_id)
+		return PlaybackHeartbeatPublic(
+			session_id=watch.id,
+			accepted_seconds=0,
+			watched_seconds=watch.watched_seconds,
+			remaining_seconds=remaining,
+			status=watch.status,
+		)
 
 	previous_heartbeat = _naive(watch.last_heartbeat_at or watch.started_at)
 	remaining = entitlement.granted_seconds - entitlement.consumed_seconds

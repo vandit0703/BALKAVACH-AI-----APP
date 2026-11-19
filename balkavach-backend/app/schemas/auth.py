@@ -60,9 +60,25 @@ class PasswordResetConfirm(BaseModel):
 
 
 class ParentPinSetRequest(BaseModel):
-	pin: str = Field(min_length=4, max_length=8, pattern=r"^\d{4,8}$")
+	"""A new PIN. When a PIN already exists, the current PIN *or* the account password must be proven."""
+
+	pin: str = Field(min_length=6, max_length=8, pattern=r"^\d{6,8}$")
+	current_pin: str | None = Field(default=None, min_length=4, max_length=8, pattern=r"^\d{4,8}$")
+	current_password: str | None = Field(default=None, min_length=1, max_length=128)
+
+	@model_validator(mode="after")
+	def at_most_one_proof(self):
+		if self.current_pin is not None and self.current_password is not None:
+			raise ValueError("provide only one of current_pin or current_password")
+		return self
 
 
-class ParentPinVerifyRequest(BaseModel):
+class ParentPinStatus(BaseModel):
+	is_set: bool
+
+
+class ParentModeEnterRequest(BaseModel):
+	"""Same credentials as the parent login form; sent from an authenticated child session."""
+
 	email: EmailStr
-	pin: str = Field(min_length=4, max_length=8, pattern=r"^\d{4,8}$")
+	password: str = Field(min_length=1, max_length=128)

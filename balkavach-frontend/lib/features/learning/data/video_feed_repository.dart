@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/json_utils.dart';
+import '../../missions/presentation/mission_providers.dart' show childNotificationsProvider;
 
 final _youtubeIdPattern = RegExp(r'^[A-Za-z0-9_-]{11}$');
 
@@ -48,6 +49,57 @@ class VideoAllowance {
   final int activeEntitlementsCount;
 
   int get remainingMinutes => (remainingSeconds / 60).ceil();
+}
+
+/// One approved mission that earned video time today (parent view).
+@immutable
+class MissionVideoReward {
+  const MissionVideoReward({
+    required this.taskTitle,
+    required this.grantedSeconds,
+    required this.consumedSeconds,
+  });
+
+  factory MissionVideoReward.fromJson(Map<String, dynamic> json) =>
+      MissionVideoReward(
+        taskTitle: json['task_title'] as String?,
+        grantedSeconds: (json['granted_seconds'] as num?)?.toInt() ?? 0,
+        consumedSeconds: (json['consumed_seconds'] as num?)?.toInt() ?? 0,
+      );
+
+  final String? taskTitle;
+  final int grantedSeconds;
+  final int consumedSeconds;
+}
+
+/// `GET /video-access/children/{id}/summary`: the parent's read-only view of
+/// today's video time. Every figure comes from the server.
+@immutable
+class VideoAllowanceSummary {
+  const VideoAllowanceSummary({
+    required this.allowance,
+    required this.freeAllowanceSeconds,
+    required this.freeConsumedSeconds,
+    required this.rewards,
+  });
+
+  factory VideoAllowanceSummary.fromJson(Map<String, dynamic> json) =>
+      VideoAllowanceSummary(
+        allowance: VideoAllowance.fromJson(json),
+        freeAllowanceSeconds:
+            (json['free_allowance_seconds'] as num?)?.toInt() ?? 0,
+        freeConsumedSeconds:
+            (json['free_consumed_seconds'] as num?)?.toInt() ?? 0,
+        rewards: [
+          for (final item in (json['mission_rewards'] as List? ?? const []))
+            MissionVideoReward.fromJson(item as Map<String, dynamic>),
+        ],
+      );
+
+  final VideoAllowance allowance;
+  final int freeAllowanceSeconds;
+  final int freeConsumedSeconds;
+  final List<MissionVideoReward> rewards;
 }
 
 /// `VideoFeedItem`: a video the server has already decided this child may see.
@@ -187,6 +239,18 @@ class VideoFeedRepository {
     return parseJsonList(response.data, FeedVideo.fromJson);
   });
 
+  /// `GET /videos/{id}/next`: what to offer after [videoId]. The server picks
+  /// only from videos this child may already see, and returns nothing once
+  /// today's video time is used up.
+  Future<List<FeedVideo>> nextVideos(String videoId, {int limit = 6}) =>
+      guardApi(() async {
+        final response = await _dio.get<List<dynamic>>(
+          '/api/v1/videos/$videoId/next',
+          queryParameters: {'limit': limit},
+        );
+        return parseJsonList(response.data, FeedVideo.fromJson);
+      });
+
   Future<List<FeedVideo>> continueWatching({int limit = 20}) =>
       guardApi(() async {
         final response = await _dio.get<List<dynamic>>(
@@ -201,15 +265,23 @@ class VideoFeedRepository {
 
   Future<Map<String, dynamic>?> recordProgress(
     String videoId,
-    int positionSeconds,
-    {bool isPlaying = true}
-  ) => guardApi(() async {
+    int positionSeconds, {
+    bool isPlaying = true,
+  }) => guardApi(() async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/api/v1/videos/watch-history/$videoId/progress',
       data: {'position_seconds': positionSeconds, 'is_playing': isPlaying},
     );
     return response.data;
   });
+
+  Future<VideoAllowanceSummary> parentAllowanceSummary(String childId) =>
+      guardApi(() async {
+        final response = await _dio.get<Map<String, dynamic>>(
+          '/api/v1/video-access/children/$childId/summary',
+        );
+        return VideoAllowanceSummary.fromJson(response.data!);
+      });
 
   Future<VideoAllowance> getAllowance() => guardApi(() async {
     final response = await _dio.get<Map<String, dynamic>>(
@@ -264,9 +336,38 @@ final parentVideoHistoryProvider =
           ref.watch(videoFeedRepositoryProvider).parentHistory(childId),
     );
 
-final videoAllowanceProvider = FutureProvider.autoDispose<VideoAllowance>(
-  (ref) => ref.watch(videoFeedRepositoryProvider).getAllowance(),
+final parentVideoSummaryProvider = FutureProvider.autoDispose
+    .family<VideoAllowanceSummary, String>(
+      (ref, childId) => ref
+          .watch(videoFeedRepositoryProvider)
+          .parentAllowanceSummary(childId),
+    );
+
+final nextVideosProvider = FutureProvider.autoDispose
+    .family<List<FeedVideo>, String>(
+      (ref, videoId) =>
+          ref.watch(videoFeedRepositoryProvider).nextVideos(videoId),
+    );
+
+/// How many "video time unlocked" notifications the child has. Parent
+/// approval creates one per grant, so a change means new time was granted.
+/// A [Provider] only notifies when the value changes, so unrelated
+/// notification refreshes cause no extra allowance requests.
+final videoTimeGrantCountProvider = Provider<int>(
+  (ref) =>
+      (ref.watch(childNotificationsProvider).value ?? const [])
+          .where((item) => item.type == 'mission_video_time_granted')
+          .length,
 );
+
+/// Today's allowance, straight from the server. It reloads when a new grant
+/// notification appears, whenever it is first shown, and when invalidated.
+final videoAllowanceProvider = FutureProvider.autoDispose<VideoAllowance>((
+  ref,
+) {
+  ref.watch(videoTimeGrantCountProvider);
+  return ref.watch(videoFeedRepositoryProvider).getAllowance();
+});
 
 enum PagerStatus { idle, loading, error, done }
 

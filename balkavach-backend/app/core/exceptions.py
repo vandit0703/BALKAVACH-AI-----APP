@@ -11,16 +11,29 @@ logger = logging.getLogger(__name__)
 
 
 class APIError(Exception):
-	def __init__(self, status_code: int, code: str, message: str) -> None:
+	def __init__(
+		self,
+		status_code: int,
+		code: str,
+		message: str,
+		*,
+		headers: dict[str, str] | None = None,
+		details: dict[str, Any] | None = None,
+	) -> None:
 		self.status_code = status_code
 		self.code = code
 		self.message = message
+		self.headers = headers
+		self.details = details
 
 
 def register_exception_handlers(app: FastAPI) -> None:
 	@app.exception_handler(APIError)
 	async def handle_api_error(request: Request, exc: APIError) -> JSONResponse:
-		return JSONResponse(status_code=exc.status_code, content={"error": {"code": exc.code, "message": exc.message}})
+		error: dict[str, Any] = {"code": exc.code, "message": exc.message}
+		if exc.details:
+			error["details"] = exc.details
+		return JSONResponse(status_code=exc.status_code, content={"error": error}, headers=exc.headers)
 
 	@app.exception_handler(StarletteHTTPException)
 	async def handle_http_error(request: Request, exc: StarletteHTTPException) -> JSONResponse:

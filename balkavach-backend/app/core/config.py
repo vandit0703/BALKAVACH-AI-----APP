@@ -26,6 +26,16 @@ class Settings(BaseSettings):
 	password_reset_window_seconds: int = Field(default=900, ge=60, le=86400)
 	parent_pin_rate_limit: int = Field(default=5, ge=1, le=30)
 	parent_pin_window_seconds: int = Field(default=300, ge=30, le=3600)
+	# Parent-mode entry (leaving child mode): email + password step-up. Failures are tracked per
+	# target account, per family and per child device session, never per client IP.
+	parent_mode_rate_limit: int = Field(default=10, ge=1, le=100)
+	parent_mode_rate_window_seconds: int = Field(default=300, ge=10, le=3600)
+	parent_mode_max_failures: int = Field(default=5, ge=3, le=20)
+	parent_mode_failure_window_seconds: int = Field(default=900, ge=60, le=86400)
+	parent_mode_lock_seconds: int = Field(default=900, ge=30, le=86400)
+	parent_mode_lock_max_seconds: int = Field(default=3600, ge=60, le=86400)
+	parent_mode_strike_window_seconds: int = Field(default=86400, ge=60, le=604800)
+	parent_mode_refresh_hours: int = Field(default=12, ge=1, le=720)
 	password_reset_expire_minutes: int = Field(default=30, ge=5, le=1440)
 	password_reset_url: str | None = None
 	password_reset_from_email: str | None = None

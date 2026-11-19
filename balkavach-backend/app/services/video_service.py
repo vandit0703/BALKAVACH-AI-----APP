@@ -378,3 +378,42 @@ def publish_collection(session: Session, actor, collection_id: UUID, published: 
 	session.commit()
 	session.refresh(collection)
 	return collection
+
+
+def rank_next_videos(current, candidates, channels: dict, limit: int) -> list:
+	"""Order already-eligible ``candidates`` as "up next" for ``current``.
+
+	Pure scoring over existing fields only: same category (+3), same channel (+2, one
+	channel never fills the whole list), same language (+1), a video the child already
+	started (+1, so unfinished ones are offered again), then newest first. The caller
+	supplies only videos the child is allowed to see, so this can never widen eligibility.
+	"""
+	own_channel = channels.get(current.id)
+	scored = []
+	for video in candidates:
+		if video.id == current.id:
+			continue
+		score = 0
+		if video.category_id is not None and video.category_id == current.category_id:
+			score += 3
+		if own_channel is not None and channels.get(video.id) == own_channel:
+			score += 2
+		if video.language_code == current.language_code:
+			score += 1
+		created = getattr(video, "created_at", None)
+		scored.append((score, created, str(video.id), video))
+	# Highest score first; among equals the newest, then a stable id order.
+	scored.sort(key=lambda row: (row[1] is None, -(row[1].timestamp() if row[1] else 0), row[2]))
+	scored.sort(key=lambda row: -row[0])
+
+	picked, per_channel = [], {}
+	for score, _created, _id, video in scored:
+		channel = channels.get(video.id)
+		if channel is not None and per_channel.get(channel, 0) >= max(2, limit // 2):
+			continue
+		picked.append(video)
+		if channel is not None:
+			per_channel[channel] = per_channel.get(channel, 0) + 1
+		if len(picked) >= limit:
+			break
+	return picked

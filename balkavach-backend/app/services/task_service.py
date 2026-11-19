@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import case, func
@@ -11,7 +11,7 @@ from app.schemas.task import TaskReviewCreate, TaskSubmissionCreate
 from app.services.ledger_service import star_balance, xp_total
 from app.services.notification_service import create_notification, family_parent_ids
 from app.services.progress_service import badge_qualifies
-from app.services.timezone_service import local_today
+from app.services.timezone_service import local_date_of
 from app.services.upload_service import claim_upload_for_submission, proof_url
 from app.utils import utc_naive
 
@@ -90,6 +90,16 @@ def submit_completion(session: Session, task_id: UUID, child, request: TaskSubmi
 	return submission
 
 
+def submission_activity_date(session: Session, family_id: UUID, submission, fallback: datetime) -> date:
+	"""The family-local day the child *did* the mission: the day of the submission, never of the approval.
+
+	Derived from the server-stamped ``submitted_at`` (the client never supplies a date), so a late parent
+	approval cannot move the activity to another day and a child cannot backdate or forward-date it. A
+	rejected mission that is resubmitted has a new submission, hence the day of the resubmission.
+	"""
+	return local_date_of(session, family_id, submission.submitted_at or fallback)
+
+
 def review_submission(session: Session, submission_id: UUID, reviewer, request: TaskReviewCreate):
 	TaskSubmission = get_model("TaskSubmission")
 	Task = get_model("Task")
@@ -118,9 +128,10 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 	if submission.status != "pending":
 		raise APIError(409, "submission_already_reviewed", "This submission has already been reviewed")
 
-	now = utc_naive(datetime.now(timezone.utc))
+	approved_at = datetime.now(timezone.utc)  # one instant for every write this approval makes
+	now = utc_naive(approved_at)
 	submission.status = request.decision
-	submission.reviewed_at = now
+	submission.reviewed_at = now  # the real approval time; the activity day is derived from submitted_at
 	DailyMissionAssignment = get_model("DailyMissionAssignment")
 	daily_assignment = (
 		session.query(DailyMissionAssignment)
@@ -215,7 +226,7 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 				)
 				child.current_level_id = level.id
 
-		activity_date = local_today(session, task.family_id)
+		activity_date = submission_activity_date(session, task.family_id, submission, now)
 		ChildActivityDay = get_model("ChildActivityDay")
 		activity_insert = pg_insert(ChildActivityDay).values(
 			child_id=child.id,
@@ -238,21 +249,18 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 		session.flush()
 		Badge = get_model("Badge")
 		ChildBadge = get_model("ChildBadge")
-		ChildStreak = get_model("ChildStreak")
 		approved_tasks = session.query(func.count(TaskSubmission.id)).filter(
 			TaskSubmission.child_id == child.id,
 			TaskSubmission.status == "approved",
 		).scalar()
-		streak = session.query(ChildStreak).filter(ChildStreak.child_id == child.id).one_or_none()
-		yesterday = activity_date - timedelta(days=1)
-		if streak is None:
-			current_streak = 1
-		elif streak.last_activity_date == activity_date:
-			current_streak = streak.current_streak
-		elif streak.last_activity_date == yesterday:
-			current_streak = streak.current_streak + 1
-		else:
-			current_streak = 1
+		from app.services.streak_service import record_qualifying_activity
+		from app.services.notification_service import notify_streak_event
+
+		# The streak service is the only streak writer; badges read its result (no second calculation).
+		streak_result = record_qualifying_activity(
+			session, child.id, task.family_id, now_utc=approved_at, activity_date=activity_date
+		)
+		current_streak = streak_result["current_streak"]
 		criteria_values = {
 			"approved_tasks": int(approved_tasks or 0),
 			"total_stars": star_balance(session, child.id),
@@ -274,12 +282,6 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 					f"You earned {badge.name}.",
 					now=now,
 				)
-		from app.services.streak_service import record_qualifying_activity
-		from app.services.notification_service import notify_streak_event
-
-		streak_result = record_qualifying_activity(
-			session, child.id, task.family_id, now_utc=datetime.now(timezone.utc)
-		)
 		if streak_result.get("is_new_after_break"):
 			notify_streak_event(
 				session,
@@ -302,7 +304,7 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 		from app.services.notification_service import notify_video_entitlement_event
 
 		entitlement = grant_mission_video_entitlement(
-			session, child, task, submission, now_utc=datetime.now(timezone.utc)
+			session, child, task, submission, now_utc=approved_at
 		)
 		if entitlement and (entitlement.granted_seconds or 0) > 0:
 			notify_video_entitlement_event(

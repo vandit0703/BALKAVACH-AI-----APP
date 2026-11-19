@@ -6,6 +6,14 @@
 **Priority:** P0 = fix before any wider release; P1 = required for the requirements to be true; P2 = important; P3 = hygiene.
 **Status:** Missing / Partial / Broken / Risk (works but unsafe) / Decision (needs owner choice).
 
+
+> **Status update (Phase 0 + Phase 1 delivered, 2026-11-18).** See `docs/testing-and-ci.md`. Phase 1 was **re-scoped by the product owner**:
+> leaving child mode now uses the **same email + password** as parent login (`POST /auth/parent-mode/enter`, child session required,
+> parent must belong to the child's family, per-account/family/device lockout, short-lived revocable session). The PIN is **no longer
+> part of parent-mode entry**; the PIN endpoints remain as a hardened, dormant parental-control credential. The unauthenticated
+> `POST /auth/parent-pin/verify` is retired (410). The "child mode requires a PIN" item was dropped because it no longer applies.
+> **Not yet done:** the database-backed suite has never run (no baseline schema file), so Phase 1 acceptance is *partly* verified.
+
 ---
 
 ## A. Summary matrix by requirement area
@@ -31,13 +39,13 @@
 
 | ID | Pri | Status | Ev. | Owner | Gap | Required outcome |
 |---|---|---|---|---|---|---|
-| SEC-01 | **P0** | Risk | V | BE+FL | Unauthenticated `POST /auth/parent-pin/verify` (email + 4–8 digit PIN) returns a full parent session; limiter is per IP+email only, no per-account lockout/alert/audit | Parent-mode entry becomes an authenticated step-up bound to the child device session; per-account failure counter with exponential lockout and parent alert; PIN ≥ 6 digits or password re-auth option; audit log |
-| SEC-02 | P1 | Broken | V | FL+BE | Parent trapped in child mode when no PIN exists; PIN fields labelled "Password"; success toast says "Parent gate"; parent email retyped each time | Child mode cannot start without a PIN; PIN set/verify copy fixed; gate remembers the family (no email entry) |
+| SEC-01 | **P0** | **Fixed in code (DB suite pending)** | V | BE+FL | Unauthenticated `POST /auth/parent-pin/verify` (email + 4–8 digit PIN) returns a full parent session; limiter is per IP+email only, no per-account lockout/alert/audit | Parent-mode entry becomes an authenticated step-up bound to the child device session; per-account failure counter with exponential lockout and parent alert; PIN ≥ 6 digits or password re-auth option; audit log |
+| SEC-02 | P1 | **Fixed in code** (parent can always re-enter with email+password; forgot-password reachable from the gate) | V | FL+BE | Parent trapped in child mode when no PIN exists; PIN fields labelled "Password"; success toast says "Parent gate"; parent email retyped each time | Child mode cannot start without a PIN; PIN set/verify copy fixed; gate remembers the family (no email entry) |
 | SEC-03 | P1 | Risk | U | OPS+BE | Limiter keyed on `request.client.host`; no proxy-header policy; Redis mandatory | Trusted-proxy configuration documented and tested; health check that fails deploy if `REDIS_URL` missing; per-account limiter in addition to per-IP |
-| SEC-04 | P1 | Partial | V | BE+FL+OPS | Password reset has no landing screen/deep link; link target undefined | Reset screen (app + web fallback), token consumed, all sessions revoked (already done server-side) |
+| SEC-04 | P1 | **Fixed in code** (API-served landing page + in-app reset screen; DB suite pending) | V | BE+FL+OPS | Password reset has no landing screen/deep link; link target undefined | Reset screen (app + web fallback), token consumed, all sessions revoked (already done server-side) |
 | SEC-05 | P2 | Missing | V | BE+FL | No change-password, own-session list/logout-all, account deletion/data export, email verification | Endpoints + parent settings UI; deletion/export aligned to the consent flow |
 | SEC-06 | P2 | Risk | V | BE | Tokens without `sid` skip revocation; child passwords reversibly encrypted | Reject `sid`-less tokens in production; document/rotate Fernet key; consider one-time child password reveal |
-| SEC-07 | P2 | Risk | V | BE | PIN change needs only bearer | Require current PIN or password |
+| SEC-07 | P2 | **Fixed in code** | V | BE | PIN change needs only bearer | Require current PIN or password |
 | SEC-08 | P3 | Risk | V | OPS | Local `notes.txt` has a root-password SSH transcript for production | Delete; use key-based non-root access; rotate the password |
 | SEC-09 | P2 | Decision | V | PROD | Server has no concept of "device in child mode" | Introduce a device/mode claim (e.g. `mode=child` on child sessions, `device_id`) so the server can distinguish contexts |
 

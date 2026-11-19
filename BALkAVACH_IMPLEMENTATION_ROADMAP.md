@@ -3,6 +3,36 @@
 **Baseline:** commit `58b3545`, audit dated 2026-11-18. Finding IDs (SEC-, MIS-, VID-, …) refer to `BALkAVACH_GAP_ANALYSIS.md`; evidence is in `BALkAVACH_CURRENT_STATE_AUDIT.md`.
 **Nothing in this document has been implemented.** Estimates are for **one developer**, in working days, including tests and review, excluding content-authoring and design work done by others. They are planning estimates, not measurements.
 
+
+> **Status update (Phase 0 + Phase 1 delivered, 2026-11-18).** See `docs/testing-and-ci.md`. Phase 1 was **re-scoped by the product owner**:
+> leaving child mode now uses the **same email + password** as parent login (`POST /auth/parent-mode/enter`, child session required,
+> parent must belong to the child's family, per-account/family/device lockout, short-lived revocable session). The PIN is **no longer
+> part of parent-mode entry**; the PIN endpoints remain as a hardened, dormant parental-control credential. The unauthenticated
+> `POST /auth/parent-pin/verify` is retired (410). The "child mode requires a PIN" item was dropped because it no longer applies.
+> **Not yet done:** the database-backed suite has never run (no baseline schema file), so Phase 1 acceptance is *partly* verified.
+
+> **Status update (2026-11-19) — database changes are on hold.** By product-owner instruction **no migration is created or run until a
+> final integration phase**. Everything below was built on existing tables and APIs; every item that needs schema is listed in
+> `docs/deferred-database-integration.md`. Phase naming: the companion is simply **Panda** (the working name "Mitu Panda" is not used;
+> the three "Kavach Panda" labels in the app were renamed to Panda in en/hi/gu).
+>
+> | Phase | Status | What exists (code-verified by tests: mocks / fake backends / SQLite only) | Still open |
+> |---|---|---|---|
+> | 0 Foundations | **Partial** | CI workflow, `docs/testing-and-ci.md`, test-env tooling | `tests/schema/baseline.sql`; the **206 database tests have never run**; CI skip gate; secrets rotation |
+> | 1 Security/auth | **Partial** | parent-mode entry with lockout, password reset | account lifecycle endpoints; DB suite unverified |
+> | 2 Mission/streak | **Mostly done** | 42-template catalogue, rotation, skip limit, admin health (approval-date anchoring chosen by the owner) | DB suite unverified; DOB/timezone capture unconfirmed |
+> | 3 Video enforcement | **Partial** | one deduction path (`record_progress`), feed gating, lock screen, guard/offline pause, resume refresh, parent summary, allowance refresh from grant notifications | play-ticket model **not built** (decision pending); one-session-per-child; exhaustion notifications; **no real-device verification** |
+> | 4 Trusted channels | **Partial (no-schema part done)** | detail + history endpoints, counts from existing tables, admin list filter and detail dialog (en/hi/gu) | status model, suspend vs revoke, sync fields, channel recheck/alert, dedicated page — **need schema** |
+> | 5 Catalogue + editor | **Partial** | content import, admin catalogue, health | metadata columns, native-speaker sign-off |
+> | 6 Panda companion | **Groundwork only** | deterministic dialogue director (no repeats, cooldowns), 7 events x 2 lines in en/hi/gu, `PandaBubble`, shown on the lock screen | animation asset, server dialogue packs, `companion_key`, wiring into Home/Missions/approval events |
+> | 7 Notifications | **Partial** | notification centre for child and parent (categories, mark read, mark all, deep navigation, unread bell) | delivery trail, scheduler jobs, preferences, push deep links, admin deliveries — mostly **need schema/infra** |
+> | 8 Feed recs + playback | **Partial** | `GET /videos/{id}/next` (eligible-only ranking), up-next section with loading/empty/error, end-of-video overlay, description collapsed behind "more", auto-fullscreen on rotation, Shorts portrait lock | orientation metadata, YouTube-screen suggestions, player shell, **everything on a real device** |
+> | 9 Sharing/referrals | **Partial** | parent-area invite screen: promo card with Panda art, WhatsApp, share sheet, card-as-picture; no child data | referral codes, attribution, rewards — **need schema**; store link not configured |
+> | 10 UI polish | **In progress** | responsive audit for the video screens (320 to tablet, 1x/2x, en/hi/gu); real overflows found and fixed | skeleton loaders, admin string extraction, accessibility and performance passes, real-device sweep |
+>
+> **Latest code-only test results:** backend 530 passed / 206 skipped (skips need PostgreSQL); Flutter analyzer clean; admin analyzer clean,
+> 81 passed / 1 skipped; Flutter results are recorded in the session report. **No PostgreSQL integration and no real-device verification is claimed.**
+
 ---
 
 ## 0. Order, adjustments to your priority list, and decisions needed

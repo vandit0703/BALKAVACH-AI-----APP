@@ -32,6 +32,8 @@ from app.schemas.video import (
 	YouTubeApprovedPublishRequest,
 	YouTubeApprovedPublishResult,
 	YouTubeChannelDiscoveryPublic,
+	YouTubeChannelEventPublic,
+	YouTubeTrustedChannelDetailPublic,
 	YouTubeAutoReviewRequest,
 	YouTubeAutoReviewResult,
 	YouTubeDiagnosticsPublic,
@@ -54,11 +56,13 @@ from app.services.video_service import (
 	create_collection,
 	create_video,
 	eligible_feed,
+	rank_next_videos,
 	publish_collection,
 	set_video_published,
 	update_video,
 )
 from app.services import video_watch_history_service
+from app.services.video_entitlement_service import get_child_video_allowance_today
 
 router = APIRouter(prefix="/videos", tags=["videos"])
 admin_router = APIRouter(prefix="/admin/videos", tags=["admin videos"])
@@ -132,6 +136,15 @@ def _resume_positions(session: Session, child, videos) -> dict[UUID, int]:
 	)
 
 
+def _allowance_exhausted(session: Session, child) -> bool:
+	"""True when the child has no video time left today (server-side, family-local day).
+
+	Playable identifiers (YouTube ids) are withheld while this is true, so the lock cannot be
+	bypassed by calling the feed API directly instead of using the app screen.
+	"""
+	return bool(get_child_video_allowance_today(session, child.id, child.family_id)["is_exhausted"])
+
+
 @router.get("/feed", response_model=list[VideoFeedItem])
 def video_feed(
 	category_id: UUID | None = None,
@@ -140,6 +153,8 @@ def video_feed(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoFeedItem]:
+	if _allowance_exhausted(session, child):
+		return []
 	# Regular videos only: Shorts (1-60 s) have their own feed, so no video
 	# appears in both.
 	videos = eligible_feed(session, child, category_id, limit, offset, video_format="regular")
@@ -156,10 +171,42 @@ def video_shorts(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoFeedItem]:
+	if _allowance_exhausted(session, child):
+		return []
 	videos = eligible_feed(session, child, category_id, limit, offset, video_format="short")
 	channels = _channel_names(session, videos) if any(video.video_source == "youtube" for video in videos) else {}
 	positions = _resume_positions(session, child, videos)
 	return [_feed_item(video, channels.get(video.id), positions.get(video.id, 0)) for video in videos]
+
+
+@router.get("/{video_id}/next", response_model=list[VideoFeedItem])
+def next_videos(
+	video_id: UUID,
+	limit: int = Query(default=6, ge=1, le=12),
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> list[VideoFeedItem]:
+	""""Up next" for a video the child just watched.
+
+	Chosen only from what this child's feeds may already show, so eligibility, age,
+	language, moderation and the daily allowance apply exactly as they do there: at zero
+	allowance nothing playable is returned.
+	"""
+	if _allowance_exhausted(session, child):
+		return []
+	Video = get_model("Video")
+	current = session.query(Video).filter(Video.id == video_id, Video.is_published.is_(True)).one_or_none()
+	if current is None:
+		raise HTTPException(status_code=404, detail="Video not found")
+	same_format = video_format(current.video_source, current.duration_seconds)
+	other_format = "regular" if same_format == "short" else "short"
+	pool = eligible_feed(session, child, None, 60, 0, video_format=same_format)
+	if len(pool) < limit + 1:
+		pool = pool + eligible_feed(session, child, None, 30, 0, video_format=other_format)
+	channels = _channel_names(session, pool + [current]) if any(v.video_source == "youtube" for v in pool) else {}
+	ranked = rank_next_videos(current, pool, channels, limit)
+	positions = _resume_positions(session, child, ranked)
+	return [_feed_item(video, channels.get(video.id), positions.get(video.id, 0)) for video in ranked]
 
 
 @router.post("/watch-history/{video_id}/progress", response_model=VideoWatchProgressPublic)
@@ -180,9 +227,10 @@ def child_video_history(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoWatchHistoryPublic]:
-	return [VideoWatchHistoryPublic(**row) for row in video_watch_history_service.list_child_history(
-		session, child.id, eligible_child=child, limit=limit
-	)]
+	rows = video_watch_history_service.list_child_history(session, child.id, eligible_child=child, limit=limit)
+	if _allowance_exhausted(session, child):
+		rows = [{**row, "youtube_video_id": None} for row in rows]
+	return [VideoWatchHistoryPublic(**row) for row in rows]
 
 
 @router.get("/watch-history/continue-watching", response_model=list[VideoWatchHistoryPublic])
@@ -191,6 +239,8 @@ def continue_watching(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoWatchHistoryPublic]:
+	if _allowance_exhausted(session, child):
+		return []
 	return [VideoWatchHistoryPublic(**row) for row in video_watch_history_service.list_child_history(
 		session, child.id, continue_watching=True, eligible_child=child, limit=limit
 	)]
@@ -441,6 +491,30 @@ def admin_youtube_discover_channels(
 	return [
 		YouTubeChannelDiscoveryPublic(**channel, is_trusted=channel["channel_id"] in trusted_ids)
 		for channel in results
+	]
+
+
+@admin_router.get("/youtube/channels/{channel_id}", response_model=YouTubeTrustedChannelDetailPublic)
+def admin_youtube_channel_detail(
+	channel_id: str,
+	admin=Depends(require_admin_permission("video:read")),
+	session: Session = Depends(get_db),
+) -> YouTubeTrustedChannelDetailPublic:
+	"""One trusted channel with discovery counts and its derived status."""
+	return YouTubeTrustedChannelDetailPublic(**youtube_review_service.channel_detail(session, channel_id))
+
+
+@admin_router.get("/youtube/channels/{channel_id}/history", response_model=list[YouTubeChannelEventPublic])
+def admin_youtube_channel_history(
+	channel_id: str,
+	limit: int = Query(default=50, ge=1, le=200),
+	admin=Depends(require_admin_permission("video:read")),
+	session: Session = Depends(get_db),
+) -> list[YouTubeChannelEventPublic]:
+	"""Trust/untrust trail for the channel, read from the audit log."""
+	return [
+		YouTubeChannelEventPublic.model_validate(row)
+		for row in youtube_review_service.channel_history(session, channel_id, limit)
 	]
 
 

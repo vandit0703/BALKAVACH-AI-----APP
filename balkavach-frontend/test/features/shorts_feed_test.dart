@@ -11,6 +11,7 @@ import 'package:balkavach_app/features/learning/presentation/shorts_feed.dart';
 import 'package:balkavach_app/features/learning/presentation/youtube_player_screen.dart';
 import 'package:balkavach_app/shared/platform/link_opener.dart';
 import 'package:balkavach_app/shared/platform/text_sharer.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -18,6 +19,7 @@ import '../helpers/fake_backend.dart';
 import '../helpers/fake_video_players.dart';
 import '../helpers/fixtures.dart';
 import '../helpers/harness.dart';
+import '../helpers/orientation_recorder.dart';
 
 const _shortsPath = '/api/v1/videos/shorts';
 
@@ -68,6 +70,7 @@ Future<_Rig> _pumpFeed(
   ShortsLaunch launch = const ShortsLaunch(),
   Locale locale = const Locale('en'),
   Size size = const Size(393, 852),
+  FakeReply Function(RequestOptions)? progress,
 }) async {
   final h = await Harness.create(
     session: Fx.childSession(),
@@ -93,6 +96,17 @@ Future<_Rig> _pumpFeed(
     'is_exhausted': false,
     'active_entitlements_count': 0,
   });
+  // Progress reports are answered by the server; unanswered ones would (rightly)
+  // pause playback as "offline".
+  h.backend.onPattern(
+    'POST',
+    RegExp(r'/api/v1/videos/watch-history/[^/]+/progress$'),
+    progress ??
+        (_) => const FakeReply(200, {
+          'remaining_allowance_seconds': 900,
+          'is_exhausted': false,
+        }),
+  );
   final rig = _Rig(
     h,
     EmbedRecorder(),
@@ -548,7 +562,7 @@ void main() {
     }
 
     int activePlayers(EmbedRecorder e, PlaybackRegistry p) =>
-      e.activeCount + p.playing.length;
+        e.activeCount + p.playing.length;
 
     testWidgets('only the settled page plays; the next stream is prepared', (
       tester,
@@ -1072,6 +1086,129 @@ void main() {
       );
       expect(video.hashtags, ['#विज्ञान', '#ગણિત', '#science']);
       expect(video.descriptionWithoutHashtags, 'देखो और');
+    });
+  });
+
+  group('Playback guard', () {
+    testWidgets('the server saying time is used up stops the player and '
+        'shows the lock page', (tester) async {
+      final rig = await _pumpFeed(
+        tester,
+        shorts: _page(0, 3),
+        progress: (_) => FakeReply.error(
+          403,
+          'video_time_exhausted',
+          'Video access time has been exhausted.',
+        ),
+      );
+      rig.embeds.only().onPlayingChanged!(true);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('video.lock.screen')), findsOneWidget);
+      expect(find.byKey(const Key('video.lock.toMissions')), findsOneWidget);
+      expect(rig.embeds.activeCount, 0);
+    });
+
+    testWidgets('an answer with is_exhausted also locks', (tester) async {
+      final rig = await _pumpFeed(
+        tester,
+        shorts: _page(0, 3),
+        progress: (_) => const FakeReply(200, {
+          'remaining_allowance_seconds': 0,
+          'is_exhausted': true,
+        }),
+      );
+      rig.embeds.only().onPlayingChanged!(true);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('video.lock.screen')), findsOneWidget);
+      expect(rig.embeds.activeCount, 0);
+    });
+
+    testWidgets('losing the network pauses playback after two failed reports; '
+        'retry resumes only once the server answers', (tester) async {
+      var online = false;
+      final rig = await _pumpFeed(
+        tester,
+        shorts: _page(0, 3),
+        progress: (_) => online
+            ? const FakeReply(200, {
+                'remaining_allowance_seconds': 600,
+                'is_exhausted': false,
+              })
+            : const FakeReply.fail(DioExceptionType.connectionError),
+      );
+      expect(rig.embeds.activeCount, 1);
+
+      rig.embeds.only().onPlayingChanged!(true);
+      await tester.pumpAndSettle();
+      // One failed report is tolerated.
+      expect(rig.embeds.activeCount, 1);
+
+      rig.embeds.only().onPlayingChanged!(true);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('videos.shorts.offline')), findsOneWidget);
+      expect(rig.embeds.activeCount, 0);
+      expect(find.byKey(const Key('video.lock.screen')), findsNothing);
+
+      // Still offline: Try again must not bring the player back.
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('videos.shorts.offline')), findsOneWidget);
+      expect(rig.embeds.activeCount, 0);
+
+      online = true;
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('videos.shorts.offline')), findsNothing);
+      expect(rig.embeds.activeCount, 1);
+    });
+
+    testWidgets('returning to the app asks the server again', (tester) async {
+      var calls = 0;
+      final rig = await _pumpFeed(
+        tester,
+        shorts: _page(0, 3),
+        progress: (_) {
+          calls++;
+          return const FakeReply(200, {
+            'remaining_allowance_seconds': 600,
+            'is_exhausted': false,
+          });
+        },
+      );
+      expect(rig.embeds.activeCount, 1);
+      final before = calls;
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(calls, greaterThan(before));
+    });
+  });
+
+  group('Shorts orientation', () {
+    testWidgets(
+      'Shorts lock to portrait while open and never auto-fullscreen',
+      (tester) async {
+        final orientations = OrientationRecorder(tester);
+        final rig = await _pumpFeed(tester, shorts: _page(0, 3));
+        expect(orientations.calls.first, ['portraitUp', 'portraitDown']);
+        expect(rig.embeds.only().autoFullScreen, isFalse);
+      },
+    );
+
+    testWidgets('leaving Shorts gives normal rotation back', (tester) async {
+      final orientations = OrientationRecorder(tester);
+      await _pumpFeed(tester, shorts: _page(0, 3));
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+      expect(orientations.last, isEmpty);
+    });
+
+    testWidgets('a portrait Short fills the stage; the embed gets the screen '
+        'shape, YouTube letterboxes landscape ones', (tester) async {
+      final rig = await _pumpFeed(tester, shorts: _page(0, 3));
+      final aspect = rig.embeds.only().aspectRatio!;
+      expect(aspect, lessThan(1), reason: 'portrait stage on a phone');
     });
   });
 }

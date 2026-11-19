@@ -53,80 +53,88 @@ void main() {
   });
 
   group('VideoAllowanceCard Widget', () {
-    testWidgets('displays active remaining time badge when allowance is active', (
-      tester,
-    ) async {
-      const activeAllowance = VideoAllowance(
-        childId: 'child-123',
-        localDate: '2026-11-13',
-        timezone: 'UTC',
-        totalEarnedTodaySeconds: 900,
-        consumedTodaySeconds: 0,
-        remainingSeconds: 900,
-        dailyCapSeconds: 3600,
-        isExhausted: false,
-        activeEntitlementsCount: 1,
-      );
+    testWidgets(
+      'displays active remaining time badge when allowance is active',
+      (tester) async {
+        const activeAllowance = VideoAllowance(
+          childId: 'child-123',
+          localDate: '2026-11-13',
+          timezone: 'UTC',
+          totalEarnedTodaySeconds: 900,
+          consumedTodaySeconds: 0,
+          remainingSeconds: 900,
+          dailyCapSeconds: 3600,
+          isExhausted: false,
+          activeEntitlementsCount: 1,
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            videoAllowanceProvider.overrideWith(
-              (ref) => Future.value(activeAllowance),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              videoAllowanceProvider.overrideWith(
+                (ref) => Future.value(activeAllowance),
+              ),
+            ],
+            child: const MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(body: VideoAllowanceCard()),
             ),
-          ],
-          child: const MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(body: VideoAllowanceCard()),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('watch.allowance.card')), findsOneWidget);
-      expect(find.textContaining('15m video time left today'), findsOneWidget);
-      expect(find.byIcon(Icons.hourglass_top_rounded), findsOneWidget);
-    });
+        expect(find.byKey(const Key('watch.allowance.card')), findsOneWidget);
+        expect(
+          find.textContaining('15m video time left today'),
+          findsOneWidget,
+        );
+        expect(find.byIcon(Icons.hourglass_top_rounded), findsOneWidget);
+      },
+    );
 
-    testWidgets('displays locked message and mission action when allowance is exhausted', (
-      tester,
-    ) async {
-      const exhaustedAllowance = VideoAllowance(
-        childId: 'child-123',
-        localDate: '2026-11-13',
-        timezone: 'UTC',
-        totalEarnedTodaySeconds: 900,
-        consumedTodaySeconds: 900,
-        remainingSeconds: 0,
-        dailyCapSeconds: 3600,
-        isExhausted: true,
-        activeEntitlementsCount: 0,
-      );
+    testWidgets(
+      'displays locked message and mission action when allowance is exhausted',
+      (tester) async {
+        const exhaustedAllowance = VideoAllowance(
+          childId: 'child-123',
+          localDate: '2026-11-13',
+          timezone: 'UTC',
+          totalEarnedTodaySeconds: 900,
+          consumedTodaySeconds: 900,
+          remainingSeconds: 0,
+          dailyCapSeconds: 3600,
+          isExhausted: true,
+          activeEntitlementsCount: 0,
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            videoAllowanceProvider.overrideWith(
-              (ref) => Future.value(exhaustedAllowance),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              videoAllowanceProvider.overrideWith(
+                (ref) => Future.value(exhaustedAllowance),
+              ),
+            ],
+            child: const MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(body: VideoAllowanceCard()),
             ),
-          ],
-          child: const MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(body: VideoAllowanceCard()),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('watch.allowance.card')), findsOneWidget);
-      expect(find.text('Video time locked'), findsOneWidget);
-      expect(find.byKey(const Key('watch.allowance.toMissions')), findsOneWidget);
-      expect(find.byIcon(Icons.lock_clock_rounded), findsOneWidget);
-    });
+        expect(find.byKey(const Key('watch.allowance.card')), findsOneWidget);
+        expect(find.text('Video time locked'), findsOneWidget);
+        expect(
+          find.byKey(const Key('watch.allowance.toMissions')),
+          findsOneWidget,
+        );
+        expect(find.byIcon(Icons.lock_clock_rounded), findsOneWidget);
+      },
+    );
   });
 
   group('VideoTimeExhaustedDialog', () {
@@ -150,7 +158,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text("Video Time's Up!"), findsOneWidget);
-      expect(find.byKey(const Key('video.exhausted.toMissions')), findsOneWidget);
+      expect(
+        find.byKey(const Key('video.exhausted.toMissions')),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('video.exhausted.close')), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('video.exhausted.close')));

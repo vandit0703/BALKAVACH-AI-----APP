@@ -38,6 +38,13 @@ def local_today(session: Session, family_id: UUID, now: datetime | None = None) 
 	return (now or datetime.now(timezone.utc)).astimezone(zone).date()
 
 
+def local_date_of(session: Session, family_id: UUID, moment: datetime) -> date:
+	"""The family-local calendar date of ``moment``. A naive value is read as UTC (how timestamps are stored)."""
+	if moment.tzinfo is None:
+		moment = moment.replace(tzinfo=timezone.utc)
+	return local_today(session, family_id, moment)
+
+
 def local_day_bounds_utc_naive(zone: ZoneInfo, first_day: date, day_count: int) -> tuple[datetime, datetime]:
 	"""UTC-naive [start, end) covering ``day_count`` local days starting at ``first_day``."""
 	start_local = datetime.combine(first_day, time.min, tzinfo=zone)

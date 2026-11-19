@@ -171,7 +171,8 @@ class EmbedRecorder {
     return playing.single;
   }
 
-  int get activeCount => mounted.values.where((config) => config.autoplay).length;
+  int get activeCount =>
+      mounted.values.where((config) => config.autoplay).length;
 }
 
 class _FakeEmbed extends StatefulWidget {

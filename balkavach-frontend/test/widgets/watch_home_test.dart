@@ -65,6 +65,8 @@ Map<String, Object?> _curated({
   'is_active': true,
 };
 
+const _allowancePath = '/api/v1/video-access/allowance';
+
 class _Rig {
   _Rig(this.h, this.embeds, this.players, this.opener);
 
@@ -92,6 +94,9 @@ Future<_Rig> _pumpHome(
     ..reply('GET', _learnPath, curated)
     ..reply('GET', _categoriesPath, categories);
   routes?.call(h.backend);
+  if (!h.backend.hasRoute('GET', _allowancePath)) {
+    h.backend.reply('GET', _allowancePath, Fx.allowance());
+  }
   if (!h.backend.hasRoute('GET', _shortsPath)) {
     h.backend.reply('GET', _shortsPath, shorts);
   }
@@ -393,4 +398,27 @@ void main() {
       expect(rig.players.created, isEmpty);
     });
   });
+
+  group('Watch & Learn Home: allowance refresh', () {
+    testWidgets('returning to the app reloads the allowance, but not in a '
+        'burst', (tester) async {
+      final rig = await _pumpHome(tester, shorts: _someShorts);
+      int allowanceCalls() =>
+          rig.h.backend.requestsTo('GET', _allowancePath).length;
+      final before = allowanceCalls();
+      expect(before, greaterThanOrEqualTo(1));
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(allowanceCalls(), before + 1);
+
+      // A second return within seconds does not ask again.
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(allowanceCalls(), before + 1);
+    });
+  });
+
 }

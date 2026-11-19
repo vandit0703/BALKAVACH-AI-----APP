@@ -466,6 +466,12 @@ abstract class AppLocalizations {
   /// **'The youngest age cannot be above the oldest age.'**
   String get errorInvalidAgeRange;
 
+  /// No description provided for @errorTemplateIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'This mission is missing versions. Open View versions to see which age and language are missing.'**
+  String get errorTemplateIncomplete;
+
   /// No description provided for @errorTooManyRequests.
   ///
   /// In en, this message translates to:
@@ -1456,6 +1462,130 @@ abstract class AppLocalizations {
   /// **'Mission reactivated'**
   String get missionReactivated;
 
+  /// No description provided for @missionCatalogComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'All 9 age and language versions are present'**
+  String get missionCatalogComplete;
+
+  /// No description provided for @missionCatalogMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of 9 versions missing: {list}'**
+  String missionCatalogMissing(int count, String list);
+
+  /// No description provided for @missionCatalogCannotPublish.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot publish yet. Missing: {list}'**
+  String missionCatalogCannotPublish(String list);
+
+  /// No description provided for @missionCatalogViewVersions.
+  ///
+  /// In en, this message translates to:
+  /// **'View versions'**
+  String get missionCatalogViewVersions;
+
+  /// No description provided for @missionCatalogPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview (what the child and the reviewing parent see)'**
+  String get missionCatalogPreview;
+
+  /// No description provided for @missionCatalogVersionMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing'**
+  String get missionCatalogVersionMissing;
+
+  /// No description provided for @missionCatalogAges.
+  ///
+  /// In en, this message translates to:
+  /// **'Ages {range}'**
+  String missionCatalogAges(String range);
+
+  /// No description provided for @missionCatalogMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min'**
+  String missionCatalogMinutes(int count);
+
+  /// No description provided for @missionCatalogMaterials.
+  ///
+  /// In en, this message translates to:
+  /// **'Materials: {items}'**
+  String missionCatalogMaterials(String items);
+
+  /// No description provided for @missionCatalogSafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety: {text}'**
+  String missionCatalogSafety(String text);
+
+  /// No description provided for @missionHealthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotation capacity'**
+  String get missionHealthTitle;
+
+  /// No description provided for @missionHealthTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'{theme}: {eligible} eligible, {published} published, {total} in total'**
+  String missionHealthTheme(
+    String theme,
+    int eligible,
+    int published,
+    int total,
+  );
+
+  /// No description provided for @missionHealthLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewer than {min} eligible templates: missions will repeat (publish {shortfall} more)'**
+  String missionHealthLow(int min, int shortfall);
+
+  /// No description provided for @missionHealthOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Enough templates for rotation'**
+  String get missionHealthOk;
+
+  /// No description provided for @missionHealthActivities.
+  ///
+  /// In en, this message translates to:
+  /// **'{distinct} of {needed} activities verified as different'**
+  String missionHealthActivities(int distinct, int needed);
+
+  /// No description provided for @missionHealthActivitiesUnchecked.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} template(s) are not in the catalogue source, so their activity cannot be checked'**
+  String missionHealthActivitiesUnchecked(int count);
+
+  /// No description provided for @missionHealthTotals.
+  ///
+  /// In en, this message translates to:
+  /// **'{published} published, {unpublished} unpublished, {incomplete} incomplete, of {total} templates'**
+  String missionHealthTotals(
+    int published,
+    int unpublished,
+    int incomplete,
+    int total,
+  );
+
+  /// No description provided for @missionHealthFallbacks.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} cooldown fallbacks in the last {days} days'**
+  String missionHealthFallbacks(int count, int days);
+
+  /// No description provided for @missionCatalogShown.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown {count} times'**
+  String missionCatalogShown(int count);
+
   /// No description provided for @categoriesTitle.
   ///
   /// In en, this message translates to:
@@ -2216,6 +2346,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Oldest verification: {oldest} · approved videos past the {hours}-hour limit (hidden from children): {stale}'**
   String youtubeFreshness(String oldest, String hours, String stale);
+
+  /// No description provided for @youtubeChannelAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get youtubeChannelAll;
+
+  /// No description provided for @youtubeChannelDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel details'**
+  String get youtubeChannelDetails;
+
+  /// No description provided for @youtubeChannelCounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos found'**
+  String get youtubeChannelCounts;
+
+  /// No description provided for @youtubeChannelDisc.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovered'**
+  String get youtubeChannelDisc;
+
+  /// No description provided for @youtubeChannelAppr.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved'**
+  String get youtubeChannelAppr;
+
+  /// No description provided for @youtubeChannelPend.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for review'**
+  String get youtubeChannelPend;
+
+  /// No description provided for @youtubeChannelQuar.
+  ///
+  /// In en, this message translates to:
+  /// **'Quarantined'**
+  String get youtubeChannelQuar;
+
+  /// No description provided for @youtubeChannelRej.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get youtubeChannelRej;
+
+  /// No description provided for @youtubeChannelShorts.
+  ///
+  /// In en, this message translates to:
+  /// **'Live Shorts'**
+  String get youtubeChannelShorts;
+
+  /// No description provided for @youtubeChannelReg.
+  ///
+  /// In en, this message translates to:
+  /// **'Live videos'**
+  String get youtubeChannelReg;
+
+  /// No description provided for @youtubeChannelLastDisc.
+  ///
+  /// In en, this message translates to:
+  /// **'Last discovery'**
+  String get youtubeChannelLastDisc;
+
+  /// No description provided for @youtubeChannelLastVer.
+  ///
+  /// In en, this message translates to:
+  /// **'Last re-check'**
+  String get youtubeChannelLastVer;
+
+  /// No description provided for @youtubeChannelHist.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get youtubeChannelHist;
+
+  /// No description provided for @youtubeChannelNoHist.
+  ///
+  /// In en, this message translates to:
+  /// **'No changes recorded yet.'**
+  String get youtubeChannelNoHist;
+
+  /// No description provided for @youtubeChannelEvT.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel trusted'**
+  String get youtubeChannelEvT;
+
+  /// No description provided for @youtubeChannelEvU.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel trust removed'**
+  String get youtubeChannelEvU;
+
+  /// No description provided for @youtubeChannelFail.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t load channel details.'**
+  String get youtubeChannelFail;
+
+  /// No description provided for @youtubeChannelNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Pausing a channel without removing it, and sync status, are planned and need a server update.'**
+  String get youtubeChannelNote;
+
+  /// No description provided for @youtubeChannelAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Ages'**
+  String get youtubeChannelAge;
+
+  /// No description provided for @youtubeChannelLang.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get youtubeChannelLang;
+
+  /// No description provided for @youtubeChannelRights.
+  ///
+  /// In en, this message translates to:
+  /// **'Rights'**
+  String get youtubeChannelRights;
+
+  /// No description provided for @youtubeChannelNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get youtubeChannelNever;
+
+  /// No description provided for @youtubeChannelActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get youtubeChannelActive;
+
+  /// No description provided for @youtubeChannelRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed'**
+  String get youtubeChannelRemoved;
 }
 
 class _AppLocalizationsDelegate

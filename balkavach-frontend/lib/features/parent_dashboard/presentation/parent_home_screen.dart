@@ -25,6 +25,8 @@ import '../../child_profile/presentation/child_mode_launcher.dart';
 import '../../child_profile/presentation/family_providers.dart';
 import '../../missions/domain/mission_models.dart';
 import '../../missions/presentation/mission_providers.dart';
+import '../../notifications/domain/notification_category.dart';
+import '../../notifications/presentation/notification_center_screen.dart';
 import '../../rewards/data/rewards_repository.dart';
 import '../../settings/presentation/settings_providers.dart';
 
@@ -41,6 +43,7 @@ class ParentHomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: BrandTitle(title: l10n.parentHubTitle),
         actions: [
+          const NotificationBell(audience: NotificationAudience.parent),
           IconButton(
             key: const Key('parent.settings'),
             tooltip: l10n.settingsAppBar,

@@ -2,18 +2,24 @@
 // test/helpers/fake_video_players.dart). These tests prove how the regular
 // player screen drives players; they are not real playback verification.
 
+import 'dart:async';
+
 import 'package:balkavach_app/features/learning/data/playable_video.dart';
+import 'package:balkavach_app/features/learning/data/video_feed_repository.dart';
 import 'package:balkavach_app/features/learning/data/video_playback_controller.dart';
 import 'package:balkavach_app/features/learning/presentation/video_detail_player_screen.dart';
 import 'package:balkavach_app/features/learning/presentation/youtube_player_screen.dart';
 import 'package:balkavach_app/shared/platform/link_opener.dart';
 import 'package:balkavach_app/shared/platform/text_sharer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/fake_backend.dart';
 import '../helpers/fake_video_players.dart';
 import '../helpers/fixtures.dart';
 import '../helpers/harness.dart';
+import '../helpers/orientation_recorder.dart';
 
 const _mp4 = 'https://cdn.example.org/curated/planets.mp4';
 const _mp4b = 'https://cdn.example.org/curated/oceans.mp4';
@@ -53,11 +59,30 @@ Future<_Rig> _pump(
   String? failing,
   Locale locale = const Locale('en'),
   Size size = const Size(393, 852),
+  void Function(FakeBackend backend)? routes,
+  List<Override> extraOverrides = const [],
+  bool settle = true,
 }) async {
   final h = await Harness.create(
     session: Fx.childSession(),
     prefs: onboardedPrefs,
   );
+  h.backend
+    ..reply('GET', '/api/v1/video-access/allowance', Fx.allowance())
+    ..onPattern(
+      'GET',
+      RegExp(r'/api/v1/videos/[^/]+/next$'),
+      (_) => const FakeReply(200, <Object?>[]),
+    )
+    ..onPattern(
+      'POST',
+      RegExp(r'/api/v1/videos/watch-history/[^/]+/progress$'),
+      (_) => const FakeReply(200, {
+        'remaining_allowance_seconds': 600,
+        'is_exhausted': false,
+      }),
+    );
+  routes?.call(h.backend);
   final rig = _Rig(
     EmbedRecorder(),
     PlaybackRegistry()..failUrlsContaining = failing,
@@ -71,6 +96,7 @@ Future<_Rig> _pump(
     ),
     overrides: [
       ...h.overrides,
+      ...extraOverrides,
       youtubeEmbedBuilderProvider.overrideWithValue(rig.embeds.build),
       videoPlaybackControllerFactoryProvider.overrideWithValue(
         rig.players.create,
@@ -80,6 +106,7 @@ Future<_Rig> _pump(
     ],
     locale: locale,
     size: size,
+    settle: settle,
   );
   return rig;
 }
@@ -93,7 +120,11 @@ void main() {
       expect(config.videoId, _yt);
       expect(config.onVerticalSwipe, isNull, reason: 'YouTube fullscreen kept');
       expect(find.text('YouTube a'), findsOneWidget);
-      expect(find.text('Learn with a.'), findsOneWidget);
+      expect(
+        find.text('Learn with a.'),
+        findsNothing,
+        reason: 'descriptions stay hidden until the child taps more',
+      );
       expect(find.text('Space Kids'), findsOneWidget);
       expect(find.text('4:05'), findsOneWidget);
       expect(
@@ -295,5 +326,284 @@ void main() {
   testWidgets('fits a landscape phone', (tester) async {
     await _pump(tester, stream('p', _mp4), size: const Size(740, 360));
     expect(tester.takeException(), isNull);
+  });
+
+  group('Regular player: description and layout', () {
+    testWidgets('the description is collapsed behind more, like YouTube', (
+      tester,
+    ) async {
+      await _pump(tester, youtube('a', _yt));
+      expect(find.byKey(const Key('detail.description')), findsNothing);
+      expect(find.text('more'), findsOneWidget);
+
+      await tester.ensureVisible(
+        find.byKey(const Key('detail.descriptionToggle')),
+      );
+      await tester.tap(find.byKey(const Key('detail.descriptionToggle')));
+      await tester.pumpAndSettle();
+      expect(find.text('Learn with a.'), findsOneWidget);
+      expect(find.text('less'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('detail.descriptionToggle')));
+      await tester.pumpAndSettle();
+      expect(find.text('Learn with a.'), findsNothing);
+    });
+
+    testWidgets('a video without a description shows no toggle', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        const PlayableVideo(
+          key: 'n',
+          title: 'No words',
+          reportVideoId: 'row-n',
+          source: YouTubeVideoSource(_yt),
+        ),
+      );
+      expect(find.byKey(const Key('detail.descriptionToggle')), findsNothing);
+    });
+
+    for (final (size, scale, locale) in [
+      (const Size(320, 568), 2.0, const Locale('en')),
+      (const Size(360, 640), 1.0, const Locale('hi')),
+      (const Size(390, 844), 2.0, const Locale('gu')),
+      (const Size(740, 360), 1.0, const Locale('en')),
+      (const Size(820, 1180), 1.0, const Locale('en')),
+    ]) {
+      testWidgets('a very long title fits $size @ ${scale}x in $locale', (
+        tester,
+      ) async {
+        final h = await Harness.create(
+          session: Fx.childSession(),
+          prefs: onboardedPrefs,
+        );
+        final embeds = EmbedRecorder();
+        await pumpScreen(
+          tester,
+          VideoDetailPlayerScreen(
+            launch: VideoLaunch(
+              video: PlayableVideo(
+                key: 'long',
+                title:
+                    'Why do the planets travel around the Sun and what '
+                        'keeps the Moon from falling down to the Earth? ' *
+                    2,
+                description: 'x',
+                channelName: 'A channel with quite a long name indeed',
+                duration: const Duration(minutes: 12, seconds: 3),
+                reportVideoId: 'row-long',
+                source: const YouTubeVideoSource(_yt),
+              ),
+              related: const [],
+            ),
+          ),
+          overrides: [
+            ...h.overrides,
+            youtubeEmbedBuilderProvider.overrideWithValue(embeds.build),
+            videoPlaybackControllerFactoryProvider.overrideWithValue(
+              PlaybackRegistry().create,
+            ),
+            linkOpenerProvider.overrideWithValue(RecordingLinkOpener()),
+            textSharerProvider.overrideWithValue(RecordingSharer()),
+          ],
+          size: size,
+          textScale: scale,
+          locale: locale,
+        );
+        expect(tester.takeException(), isNull);
+        expect(find.byKey(const Key('detail.title')), findsOneWidget);
+      });
+    }
+  });
+
+  group('Regular player: fullscreen and rotation', () {
+    testWidgets(
+      'native fullscreen asks for landscape and gives rotation back',
+      (tester) async {
+        final orientations = OrientationRecorder(tester);
+        await _pump(tester, stream('p', _mp4));
+
+        await tester.tap(find.byKey(const Key('detail.fullscreen')));
+        await tester.pumpAndSettle();
+        expect(orientations.last, ['landscapeLeft', 'landscapeRight']);
+
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(orientations.last, isEmpty, reason: 'normal rotation restored');
+      },
+    );
+
+    testWidgets('leaving the screen while fullscreen restores rotation', (
+      tester,
+    ) async {
+      final orientations = OrientationRecorder(tester);
+      await _pump(tester, stream('p', _mp4));
+      await tester.tap(find.byKey(const Key('detail.fullscreen')));
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+      expect(orientations.last, isEmpty);
+    });
+
+    testWidgets('the app is never locked to landscape outside fullscreen', (
+      tester,
+    ) async {
+      final orientations = OrientationRecorder(tester);
+      await _pump(tester, stream('p', _mp4));
+      expect(
+        orientations.calls.where((c) => c.contains('landscapeLeft')),
+        isEmpty,
+      );
+    });
+
+    testWidgets('a YouTube video enters fullscreen when the phone is rotated', (
+      tester,
+    ) async {
+      final rig = await _pump(tester, youtube('a', _yt));
+      expect(rig.embeds.only().autoFullScreen, isTrue);
+    });
+
+    testWidgets('the player is removed (so nothing plays on) when leaving', (
+      tester,
+    ) async {
+      final rig = await _pump(tester, stream('p', _mp4));
+      final controller = rig.players.forUrl(_mp4).single;
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+      expect(controller.disposed, isTrue);
+    });
+  });
+
+  group('Regular player: up next', () {
+    Map<String, Object?> feedItem(String id, String title) => {
+      'id': id,
+      'title': title,
+      'description': null,
+      'thumbnail_url': null,
+      'duration_seconds': 300,
+      'category_id': null,
+      'language_code': 'en',
+      'content_rating': 'educational',
+      'video_source': 'youtube',
+      'youtube_video_id': 'abcdefghi07',
+    };
+
+    testWidgets('shows the server’s suggestions, not just the opening list', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        youtube('a', _yt),
+        related: [youtube('z', 'zzzzzzzzz01')],
+        routes: (b) => b.onPattern(
+          'GET',
+          RegExp(r'/api/v1/videos/[^/]+/next$'),
+          (_) => FakeReply(200, [feedItem('n1', 'Server pick')]),
+        ),
+      );
+      expect(find.text('Server pick'), findsOneWidget);
+      expect(find.text('YouTube z'), findsNothing);
+    });
+
+    testWidgets('while loading it shows a spinner, not an empty list', (
+      tester,
+    ) async {
+      final pending = Completer<List<FeedVideo>>();
+      await _pump(
+        tester,
+        youtube('a', _yt),
+        extraOverrides: [
+          nextVideosProvider.overrideWith((ref, id) => pending.future),
+        ],
+        settle: false,
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byKey(const Key('detail.upNext.loading')), findsOneWidget);
+      expect(find.byKey(const Key('detail.upNext.empty')), findsNothing);
+    });
+
+    testWidgets('an error offers retry and keeps the opening list usable', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        youtube('a', _yt),
+        routes: (b) => b.onPattern(
+          'GET',
+          RegExp(r'/api/v1/videos/[^/]+/next$'),
+          (_) => FakeReply.error(500, 'server_error', 'boom'),
+        ),
+      );
+      expect(find.byKey(const Key('detail.upNext.error')), findsOneWidget);
+      expect(find.byKey(const Key('detail.upNext.retry')), findsOneWidget);
+    });
+
+    testWidgets('an error with an opening list still shows those videos', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        youtube('a', _yt),
+        related: [youtube('z', 'zzzzzzzzz01')],
+        routes: (b) => b.onPattern(
+          'GET',
+          RegExp(r'/api/v1/videos/[^/]+/next$'),
+          (_) => FakeReply.error(500, 'server_error', 'boom'),
+        ),
+      );
+      expect(find.text('YouTube z'), findsOneWidget);
+      expect(find.byKey(const Key('detail.upNext.error')), findsNothing);
+    });
+
+    testWidgets('nothing to suggest says so', (tester) async {
+      await _pump(tester, youtube('a', _yt));
+      expect(find.byKey(const Key('detail.upNext.empty')), findsOneWidget);
+      expect(
+        find.text('No more videos right now. Check back soon!'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('when a video ends the overlay offers the next one', (
+      tester,
+    ) async {
+      final rig = await _pump(
+        tester,
+        youtube('a', _yt),
+        related: [youtube('z', 'zzzzzzzzz01'), youtube('y', 'yyyyyyyyy01')],
+      );
+      expect(find.byKey(const Key('detail.endOverlay')), findsNothing);
+      rig.embeds.only().onEnded!(const Duration(seconds: 245));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('detail.endOverlay')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('detail.end.z')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('detail.endOverlay')), findsNothing);
+      expect(rig.embeds.only().videoId, 'zzzzzzzzz01');
+    });
+
+    testWidgets('the next video does not start when the allowance is used up', (
+      tester,
+    ) async {
+      final rig = await _pump(
+        tester,
+        youtube('a', _yt),
+        related: [youtube('z', 'zzzzzzzzz01')],
+        routes: (b) => b.reply(
+          'GET',
+          '/api/v1/video-access/allowance',
+          Fx.allowance(remaining: 0),
+        ),
+      );
+      rig.embeds.only().onEnded!(const Duration(seconds: 245));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('detail.end.z')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('video.lock.screen')), findsOneWidget);
+      expect(rig.embeds.mounted.keys, isNot(contains('zzzzzzzzz01')));
+    });
   });
 }

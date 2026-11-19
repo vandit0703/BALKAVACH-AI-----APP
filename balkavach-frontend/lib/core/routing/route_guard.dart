@@ -15,6 +15,10 @@ String? resolveRedirect({
     return location == AppRoutes.splash ? null : AppRoutes.splash;
   }
 
+  // The password-reset link must survive onboarding and any session state: the
+  // token in it is single-use and cannot be re-fetched.
+  if (_isWithin(location, AppRoutes.resetPassword)) return null;
+
   // A signed-in session always goes to its own area; onboarding already
   // happened on this device or the user would not have signed in.
   if (session != null) {

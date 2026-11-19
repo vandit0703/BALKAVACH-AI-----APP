@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/errors/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
@@ -12,11 +11,12 @@ import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/playable_video.dart';
+import '../data/playback_guard.dart';
 import '../data/video_feed_repository.dart';
 import '../data/video_playback_controller.dart';
+import 'video_lock_screen.dart';
 import 'video_player_screen.dart' show formatPlaybackTime;
 import 'widgets/video_actions.dart';
-import 'widgets/video_time_exhausted_dialog.dart';
 import 'youtube_player_screen.dart';
 
 /// The regular (non-Shorts) watching experience: a player, the video's
@@ -45,7 +45,14 @@ class _VideoDetailPlayerScreenState
   bool _failed = false;
   bool _blocked = false;
   bool _allowanceExhausted = false;
+
+  /// Reports kept failing: playback is stopped until the server answers.
+  bool _offline = false;
+  PlaybackGuard get _guard => ref.read(playbackGuardProvider);
   bool _fullscreen = false;
+
+  /// The video reached its end: the overlay offers what to watch next.
+  bool _ended = false;
   bool _leaving = false;
   bool _muted = false;
   DateTime _lastProgressSentAt = DateTime.fromMillisecondsSinceEpoch(0);
@@ -55,10 +62,30 @@ class _VideoDetailPlayerScreenState
   int _attempt = 0;
   final _scroll = ScrollController();
 
-  List<PlayableVideo> get _upNext => [
+  /// The list this screen was opened with (never the server's choice).
+  List<PlayableVideo> get _relatedFallback => [
     for (final video in widget.launch.related)
       if (video.key != _video.key) video,
   ];
+
+  /// Server-ranked suggestions for this video, when it has a server row.
+  AsyncValue<List<FeedVideo>>? get _serverNext {
+    final id = _video.reportVideoId;
+    return id == null ? null : ref.watch(nextVideosProvider(id));
+  }
+
+  /// What to show under and after the video. The server's ranked list wins;
+  /// the opening list fills in when the server has nothing or cannot be reached.
+  List<PlayableVideo> get _upNext {
+    final server = _serverNext?.value;
+    if (server != null && server.isNotEmpty) {
+      return [
+        for (final item in server.map(PlayableVideo.fromFeed))
+          if (item.key != _video.key) item,
+      ];
+    }
+    return _relatedFallback;
+  }
 
   @override
   void initState() {
@@ -104,6 +131,15 @@ class _VideoDetailPlayerScreenState
     );
     final failed = _controller?.errorMessage != null;
     if (mounted && failed && !_failed) setState(() => _failed = true);
+    final total = controller.duration;
+    if (mounted &&
+        !_ended &&
+        controller.isInitialised &&
+        total > Duration.zero &&
+        !controller.isPlaying &&
+        controller.position >= total - const Duration(milliseconds: 500)) {
+      setState(() => _ended = true);
+    }
   }
 
   void _release() {
@@ -117,11 +153,14 @@ class _VideoDetailPlayerScreenState
     _release();
     _failed = false;
     _blocked = false;
+    _ended = false;
     _attempt++;
     _start();
   });
 
-  void _open(PlayableVideo next) {
+  Future<void> _open(PlayableVideo next) async {
+    // The server confirms time remains before the next video starts.
+    if (!await ensureVideoAllowance(context, ref) || !mounted) return;
     _recordWatchProgress(
       _controller?.position ?? _lastPosition,
       _controller?.duration ?? Duration.zero,
@@ -133,6 +172,7 @@ class _VideoDetailPlayerScreenState
       _video = next;
       _failed = false;
       _blocked = false;
+      _ended = false;
       _attempt++;
       _start();
     });
@@ -181,31 +221,61 @@ class _VideoDetailPlayerScreenState
     }
     _lastProgressSentAt = now;
     unawaited(
-      ref
-          .read(videoFeedRepositoryProvider)
-          .recordProgress(
-            videoId,
-            position.inSeconds,
-            isPlaying: isPlaying,
+      _guard
+          .report(
+            () => ref
+                .read(videoFeedRepositoryProvider)
+                .recordProgress(
+                  videoId,
+                  position.inSeconds,
+                  isPlaying: isPlaying,
+                ),
           )
-          .then((data) {
-            if (data != null && data['is_exhausted'] == true) {
-              _stopForExhaustedAllowance();
-            }
-          })
-          .catchError((Object error) {
-            if (error is ForbiddenException) {
-              _stopForExhaustedAllowance();
-            }
-          }),
+          .then(_apply),
     );
+  }
+
+  void _apply(PlaybackReport report) {
+    if (!mounted) return;
+    switch (report.verdict) {
+      case PlaybackVerdict.ok:
+        break;
+      case PlaybackVerdict.exhausted:
+        _stopForExhaustedAllowance();
+      case PlaybackVerdict.offline:
+      case PlaybackVerdict.signedOut:
+        if (_offline) break;
+        unawaited(_controller?.pause());
+        setState(() => _offline = true);
+    }
+  }
+
+  Future<void> _retryOnline() async {
+    final videoId = _video.reportVideoId;
+    if (videoId == null) return;
+    final report = await _guard.report(
+      () => ref
+          .read(videoFeedRepositoryProvider)
+          .recordProgress(videoId, _lastPosition.inSeconds, isPlaying: false),
+    );
+    if (!mounted) return;
+    if (report.verdict == PlaybackVerdict.ok) {
+      setState(() {
+        _offline = false;
+        _attempt++;
+      });
+    } else {
+      _apply(report);
+    }
   }
 
   void _stopForExhaustedAllowance() {
     if (!mounted || _allowanceExhausted) return;
-    _controller?.pause();
+    unawaited(_controller?.pause());
     setState(() => _allowanceExhausted = true);
-    showVideoTimeExhaustedDialog(context);
+    // Leave fullscreen/landscape first so the lock page is readable.
+    unawaited(_setFullscreen(false));
+    unawaited(showVideoLockScreen(context));
   }
 
   Future<void> _leave() async {
@@ -216,11 +286,13 @@ class _VideoDetailPlayerScreenState
     final videoId = _video.reportVideoId;
     if (videoId != null) {
       try {
-        await ref.read(videoFeedRepositoryProvider).recordProgress(
-          videoId,
-          (_controller?.position ?? _lastPosition).inSeconds,
-          isPlaying: false,
-        );
+        await ref
+            .read(videoFeedRepositoryProvider)
+            .recordProgress(
+              videoId,
+              (_controller?.position ?? _lastPosition).inSeconds,
+              isPlaying: false,
+            );
       } on Object {
         // The route should still close if the final heartbeat cannot be sent.
       }
@@ -250,7 +322,18 @@ class _VideoDetailPlayerScreenState
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Nothing plays behind another app. The YouTube embed pauses itself.
-    if (state != AppLifecycleState.resumed) unawaited(_controller?.pause());
+    if (state != AppLifecycleState.resumed) {
+      unawaited(_controller?.pause());
+    } else if (!_allowanceExhausted) {
+      // Ask the server again (a paused report is free) so a lock that
+      // happened meanwhile shows, instead of trusting what was on screen.
+      _recordWatchProgress(
+        _controller?.position ?? _lastPosition,
+        Duration.zero,
+        force: true,
+        isPlaying: false,
+      );
+    }
   }
 
   @override
@@ -265,9 +348,21 @@ class _VideoDetailPlayerScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final upNext = _upNext;
     final stage = KeyedSubtree(
       key: ValueKey(('detail.stage', _video.key, _attempt)),
-      child: _stage(context),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          _stage(context),
+          if (_ended && !_allowanceExhausted)
+            _EndOverlay(
+              suggestions: upNext.take(3).toList(),
+              onPlay: _open,
+              onReplay: _retry,
+            ),
+        ],
+      ),
     );
 
     if (_fullscreen) {
@@ -299,7 +394,6 @@ class _VideoDetailPlayerScreenState
       );
     }
 
-    final upNext = _upNext;
     final description = _video.description;
     final channel = _video.channelName;
     final reportId = _video.reportVideoId;
@@ -310,138 +404,185 @@ class _VideoDetailPlayerScreenState
         if (!didPop && _video.reportVideoId != null) unawaited(_leave());
       },
       child: Scaffold(
-      appBar: AppBar(
-        leading: BackButton(onPressed: () => Navigator.of(context).maybePop()),
-        title: Text(l10n.watchTitle),
-      ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            // In landscape the player may use most of the height, so the
-            // details never push it off screen.
-            final maxStageHeight = constraints.maxHeight * 0.8;
-            return ListView(
-              key: const Key('detail.list'),
-              controller: _scroll,
-              padding: const EdgeInsets.all(AppSpacing.md),
-              children: [
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: maxStageHeight),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                    child: ColoredBox(
-                      color: Colors.black,
-                      child: AspectRatio(
-                        aspectRatio:
-                            _controller?.isInitialised == true && !_failed
-                            ? _controller!.aspectRatio
-                            : 16 / 9,
-                        child: stage,
+        appBar: AppBar(
+          leading: BackButton(
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          title: Text(l10n.watchTitle),
+        ),
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // In landscape the player may use most of the height, so the
+              // details never push it off screen.
+              final maxStageHeight = constraints.maxHeight * 0.8;
+              return ListView(
+                key: const Key('detail.list'),
+                controller: _scroll,
+                padding: const EdgeInsets.all(AppSpacing.md),
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: maxStageHeight),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      child: ColoredBox(
+                        color: Colors.black,
+                        child: AspectRatio(
+                          aspectRatio:
+                              _controller?.isInitialised == true && !_failed
+                              ? _controller!.aspectRatio
+                              : 16 / 9,
+                          child: stage,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                if (_controller != null && !_failed) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  _StreamControls(
-                    controller: _controller!,
-                    fullscreen: false,
-                    muted: _muted,
-                    onTogglePlay: _togglePlay,
-                    onToggleMute: _toggleMute,
-                    onToggleFullscreen: () => _setFullscreen(true),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  _video.title,
-                  key: const Key('detail.title'),
-                  style: context.text.headlineSmall,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.xs,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    if (channel != null)
-                      EyebrowPill(
-                        icon: Icons.person_pin_rounded,
-                        label: channel,
-                      ),
-                    if (_video.duration != null)
-                      EyebrowPill(
-                        icon: Icons.schedule_rounded,
-                        label: formatPlaybackTime(_video.duration!),
-                      ),
-                    if (_video.isYouTube)
-                      EyebrowPill(
-                        icon: Icons.smart_display_rounded,
-                        label: l10n.videoBadgeYouTube,
-                      ),
+                  if (_controller != null && !_failed) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    _StreamControls(
+                      controller: _controller!,
+                      fullscreen: false,
+                      muted: _muted,
+                      onTogglePlay: _togglePlay,
+                      onToggleMute: _toggleMute,
+                      onToggleFullscreen: () => _setFullscreen(true),
+                    ),
                   ],
-                ),
-                if (description != null) ...[
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    description,
-                    key: const Key('detail.description'),
-                    style: context.text.bodyLarge,
+                    _video.title,
+                    key: const Key('detail.title'),
+                    style: context.text.headlineSmall,
                   ),
-                ],
-                if (_video.isYouTube) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  InlineNotice(
-                    icon: Icons.info_outline_rounded,
-                    message: l10n.videoFeedAdsNotice,
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.md),
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  children: [
-                    if (upNext.isNotEmpty)
-                      PrimaryButton(
-                        key: const Key('detail.next'),
-                        label: l10n.videoPlayNext,
-                        icon: Icons.skip_next_rounded,
-                        childSized: true,
-                        onPressed: () => _open(upNext.first),
-                      ),
-                    if (_video.shareUri != null)
-                      SecondaryButton(
-                        key: const Key('detail.share'),
-                        label: l10n.videoShare,
-                        icon: Icons.share_rounded,
-                        dense: true,
-                        onPressed: () =>
-                            confirmAndShareVideo(context, ref, _video),
-                      ),
-                    if (reportId != null)
-                      SecondaryButton(
-                        key: const Key('detail.report'),
-                        label: l10n.videoReport,
-                        icon: Icons.flag_outlined,
-                        dense: true,
-                        onPressed: () => reportVideo(context, reportId),
-                      ),
-                  ],
-                ),
-                if (upNext.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(l10n.videoUpNext, style: context.text.titleLarge),
                   const SizedBox(height: AppSpacing.sm),
-                  for (final video in upNext)
-                    _UpNextTile(video: video, onTap: () => _open(video)),
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.xs,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (channel != null)
+                        EyebrowPill(
+                          icon: Icons.person_pin_rounded,
+                          label: channel,
+                        ),
+                      if (_video.duration != null)
+                        EyebrowPill(
+                          icon: Icons.schedule_rounded,
+                          label: formatPlaybackTime(_video.duration!),
+                        ),
+                      if (_video.isYouTube)
+                        EyebrowPill(
+                          icon: Icons.smart_display_rounded,
+                          label: l10n.videoBadgeYouTube,
+                        ),
+                    ],
+                  ),
+                  if (description != null && description.trim().isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    // Hidden until the child taps "more", like YouTube.
+                    _DescriptionPanel(
+                      key: ValueKey(('detail.descriptionPanel', _video.key)),
+                      text: description,
+                    ),
+                  ],
+                  if (_video.isYouTube) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    InlineNotice(
+                      icon: Icons.info_outline_rounded,
+                      message: l10n.videoFeedAdsNotice,
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.md),
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: [
+                      if (upNext.isNotEmpty)
+                        PrimaryButton(
+                          key: const Key('detail.next'),
+                          label: l10n.videoPlayNext,
+                          icon: Icons.skip_next_rounded,
+                          childSized: true,
+                          onPressed: () => _open(upNext.first),
+                        ),
+                      if (_video.shareUri != null)
+                        SecondaryButton(
+                          key: const Key('detail.share'),
+                          label: l10n.videoShare,
+                          icon: Icons.share_rounded,
+                          dense: true,
+                          onPressed: () =>
+                              confirmAndShareVideo(context, ref, _video),
+                        ),
+                      if (reportId != null)
+                        SecondaryButton(
+                          key: const Key('detail.report'),
+                          label: l10n.videoReport,
+                          icon: Icons.flag_outlined,
+                          dense: true,
+                          onPressed: () => reportVideo(context, reportId),
+                        ),
+                    ],
+                  ),
+                  ..._upNextSection(context, upNext),
                 ],
-              ],
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
-      ),
     );
+  }
+
+  /// "Up next" under the video, with its loading, error and empty states.
+  List<Widget> _upNextSection(BuildContext context, List<PlayableVideo> upNext) {
+    final l10n = AppLocalizations.of(context);
+    final server = _serverNext;
+    final header = [
+      const SizedBox(height: AppSpacing.lg),
+      Text(l10n.videoUpNext, style: context.text.titleLarge),
+      const SizedBox(height: AppSpacing.sm),
+    ];
+    if (upNext.isNotEmpty) {
+      return [
+        ...header,
+        for (final video in upNext)
+          _UpNextTile(video: video, onTap: () => _open(video)),
+      ];
+    }
+    if (server == null) return const [];
+    if (server.isLoading) {
+      return [
+        ...header,
+        const Center(
+          key: Key('detail.upNext.loading'),
+          child: CircularProgressIndicator(),
+        ),
+      ];
+    }
+    if (server.hasError) {
+      return [
+        ...header,
+        InlineNotice(
+          key: const Key('detail.upNext.error'),
+          icon: Icons.wifi_off_rounded,
+          message: l10n.videoUpNextFailed,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        SecondaryButton(
+          key: const Key('detail.upNext.retry'),
+          label: l10n.videoRetry,
+          icon: Icons.refresh_rounded,
+          dense: true,
+          onPressed: () =>
+              ref.invalidate(nextVideosProvider(_video.reportVideoId!)),
+        ),
+      ];
+    }
+    return [
+      ...header,
+      Text(l10n.videoUpNextEmpty, key: const Key('detail.upNext.empty')),
+    ];
   }
 
   Widget _stage(BuildContext context) {
@@ -463,6 +604,15 @@ class _VideoDetailPlayerScreenState
               : l10n.learnNotReady,
         );
       case YouTubeVideoSource(:final videoId):
+        if (_offline && !_allowanceExhausted) {
+          return _StageNotice(
+            key: const Key('detail.offline'),
+            background: still,
+            icon: Icons.wifi_off_rounded,
+            message: l10n.videoOfflinePaused,
+            onRetry: _retryOnline,
+          );
+        }
         if (_allowanceExhausted) {
           return _StageNotice(
             key: const Key('detail.allowanceExhausted'),
@@ -493,6 +643,7 @@ class _VideoDetailPlayerScreenState
           YouTubeEmbedConfig(
             videoId: videoId,
             autoplay: true,
+            autoFullScreen: true,
             onLeaveRequested: (uri) => askGrownUpThenOpen(context, ref, uri),
             onForeignVideo: () {
               ScaffoldMessenger.maybeOf(context)
@@ -514,12 +665,15 @@ class _VideoDetailPlayerScreenState
               force: true,
               isPlaying: isPlaying,
             ),
-            onEnded: (duration) => _recordWatchProgress(
-              duration,
-              duration,
-              force: true,
-              isPlaying: false,
-            ),
+            onEnded: (duration) {
+              _recordWatchProgress(
+                duration,
+                duration,
+                force: true,
+                isPlaying: false,
+              );
+              if (mounted && !_ended) setState(() => _ended = true);
+            },
             startAtSeconds: video.resumePositionSeconds,
           ),
         );
@@ -651,11 +805,17 @@ class _StreamControlsState extends State<_StreamControls> {
                       : null,
                 ),
               ),
-              Text(
-                '${formatPlaybackTime(Duration(milliseconds: positionMs.round()))}'
-                ' / ${formatPlaybackTime(controller.duration)}',
-                key: const Key('detail.time'),
-                style: context.text.bodySmall?.copyWith(color: foreground),
+              // Shrinks (never wraps or overflows) at large text sizes.
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    '${formatPlaybackTime(Duration(milliseconds: positionMs.round()))}'
+                    ' / ${formatPlaybackTime(controller.duration)}',
+                    key: const Key('detail.time'),
+                    style: context.text.bodySmall?.copyWith(color: foreground),
+                  ),
+                ),
               ),
               IconButton(
                 key: const Key('detail.mute'),
@@ -805,6 +965,125 @@ class _UpNextTile extends StatelessWidget {
                         ],
                       ),
                   ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The video's description, collapsed out of sight until the child taps
+/// "more". Nothing of it shows while collapsed.
+class _DescriptionPanel extends StatefulWidget {
+  const _DescriptionPanel({required this.text, super.key});
+
+  final String text;
+
+  @override
+  State<_DescriptionPanel> createState() => _DescriptionPanelState();
+}
+
+class _DescriptionPanelState extends State<_DescriptionPanel> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextButton(
+          key: const Key('detail.descriptionToggle'),
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(48, 48),
+            alignment: AlignmentDirectional.centerStart,
+          ),
+          onPressed: () => setState(() => _open = !_open),
+          child: Text(_open ? l10n.shortsLess : l10n.shortsMore),
+        ),
+        if (_open)
+          Text(
+            widget.text,
+            key: const Key('detail.description'),
+            style: context.text.bodyLarge,
+          ),
+      ],
+    );
+  }
+}
+
+/// Shown over the video when it ends: a few things to watch next, or watch it
+/// again. Starting one goes through the same allowance check as any other.
+class _EndOverlay extends StatelessWidget {
+  const _EndOverlay({
+    required this.suggestions,
+    required this.onPlay,
+    required this.onReplay,
+  });
+
+  final List<PlayableVideo> suggestions;
+  final ValueChanged<PlayableVideo> onPlay;
+  final VoidCallback onReplay;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return ColoredBox(
+      key: const Key('detail.endOverlay'),
+      color: Colors.black.withValues(alpha: 0.85),
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.sm),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                l10n.videoWatchNext,
+                style: context.text.titleMedium?.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  for (final video in suggestions)
+                    InkWell(
+                      key: Key('detail.end.${video.key}'),
+                      onTap: () => onPlay(video),
+                      child: SizedBox(
+                        width: 112,
+                        child: Column(
+                          children: [
+                            AspectRatio(
+                              aspectRatio: 16 / 9,
+                              child: VideoThumbnail(url: video.thumbnailUrl),
+                            ),
+                            Text(
+                              video.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: context.text.bodySmall?.copyWith(
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              TextButton.icon(
+                key: const Key('detail.end.replay'),
+                onPressed: onReplay,
+                icon: const Icon(Icons.replay_rounded, color: Colors.white),
+                label: Text(
+                  l10n.videoWatchAgain,
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
             ],

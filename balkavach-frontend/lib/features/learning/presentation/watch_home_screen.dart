@@ -11,10 +11,13 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/models/app_assets.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../../missions/presentation/mission_providers.dart'
+    show childNotificationsProvider;
 import '../data/learning_repository.dart';
 import '../data/playable_video.dart';
 import '../data/video_feed_repository.dart';
 import 'learning_screen.dart' show learningCategoryName;
+import 'video_lock_screen.dart';
 import 'video_player_screen.dart' show formatPlaybackTime;
 import 'widgets/video_actions.dart';
 import 'widgets/video_allowance_card.dart';
@@ -35,7 +38,12 @@ class WatchHomeScreen extends ConsumerStatefulWidget {
   ConsumerState<WatchHomeScreen> createState() => _WatchHomeScreenState();
 }
 
-class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen> {
+class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
+    with WidgetsBindingObserver {
+  /// Returning from the background refreshes the allowance at most this often.
+  static const _resumeRefreshGap = Duration(seconds: 15);
+  DateTime? _lastResumeRefresh;
+
   late VideoFeedPager _shorts;
   late VideoFeedPager _videos;
   String? _categoryId;
@@ -43,6 +51,7 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final repository = ref.read(videoFeedRepositoryProvider);
     _shorts = VideoFeedPager(repository, VideoFeedKind.shorts, pageSize: 10)
       ..addListener(_changed);
@@ -92,7 +101,22 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    final now = DateTime.now();
+    final last = _lastResumeRefresh;
+    if (last != null && now.difference(last) < _resumeRefreshGap) return;
+    _lastResumeRefresh = now;
+    // A parent may have approved a mission while the app was away: reload
+    // the notifications (they drive the allowance) and the allowance itself.
+    ref
+      ..invalidate(childNotificationsProvider)
+      ..invalidate(videoAllowanceProvider);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     for (final pager in [_shorts, _videos]) {
       pager
         ..removeListener(_changed)
@@ -101,7 +125,9 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen> {
     super.dispose();
   }
 
-  void _openShort(int index) {
+  Future<void> _openShort(int index) async {
+    // The server confirms time remains before anything opens.
+    if (!await ensureVideoAllowance(context, ref) || !mounted) return;
     unawaited(
       context
           .push(
@@ -117,7 +143,8 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen> {
     );
   }
 
-  void _openVideo(PlayableVideo video, List<PlayableVideo> from) {
+  Future<void> _openVideo(PlayableVideo video, List<PlayableVideo> from) async {
+    if (!await ensureVideoAllowance(context, ref) || !mounted) return;
     // "Up next" prefers the same topic, then the rest of the list.
     final related = [
       ...from.where(

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../features/approvals/presentation/approvals_screen.dart';
 import '../../features/authentication/presentation/child_login_screen.dart';
 import '../../features/authentication/presentation/parent_auth_screen.dart';
+import '../../features/authentication/presentation/parent_mode_screen.dart';
+import '../../features/authentication/presentation/reset_password_screen.dart';
 import '../../features/authentication/presentation/session_controller.dart';
 import '../../features/child_profile/presentation/child_home_profile_screen.dart';
 import '../../features/child_profile/presentation/child_profile_screen.dart';
@@ -92,6 +94,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.parentAuth,
         builder: (_, _) => const ParentAuthScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.resetPassword,
+        builder: (_, state) =>
+            ResetPasswordScreen(token: state.uri.queryParameters['token']),
       ),
       GoRoute(
         path: AppRoutes.parentHome,
@@ -207,6 +214,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: 'profile',
                 pageBuilder: (_, _) =>
                     const NoTransitionPage(child: ChildHomeProfileScreen()),
+              ),
+              // Parent sign-in to leave child mode; covers the shell.
+              GoRoute(
+                path: 'parent-gate',
+                parentNavigatorKey: _rootKey,
+                builder: (_, _) => const ParentModeScreen(),
               ),
               // Players cover the shell (no bottom bar). Both need the
               // video list they were opened from; a bare deep link has

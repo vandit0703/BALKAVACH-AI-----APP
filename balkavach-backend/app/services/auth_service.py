@@ -10,6 +10,16 @@ from app.schemas.auth import LoginRequest, RegistrationRequest, TokenResponse
 from app.services.session_service import start_session
 
 
+_DUMMY_HASH: str | None = None
+
+
+def _dummy_password_hash() -> str:
+	global _DUMMY_HASH
+	if _DUMMY_HASH is None:
+		_DUMMY_HASH = hash_password("balkavach-timing-equalisation-value")
+	return _DUMMY_HASH
+
+
 def register_parent(session: Session, request: RegistrationRequest) -> TokenResponse:
 	User = get_model("User")
 	email = str(request.email).strip().lower()
@@ -59,7 +69,11 @@ def authenticate_user(session: Session, request: LoginRequest) -> TokenResponse:
 	else:
 		email = str(request.email).strip().lower()
 		user = session.query(User).filter(User.email == email, User.is_active.is_(True)).one_or_none()
-	if user is None or not user.password_hash or not verify_password(request.password, user.password_hash):
+	if user is None or not user.password_hash:
+		# Same hashing work as a real attempt, so response time does not reveal whether the account exists.
+		verify_password(request.password, _dummy_password_hash())
+		raise APIError(401, "invalid_credentials", "Username or password is incorrect")
+	if not verify_password(request.password, user.password_hash):
 		raise APIError(401, "invalid_credentials", "Username or password is incorrect")
 	if request.username is not None:
 		child_profile = session.query(ChildProfile).filter(

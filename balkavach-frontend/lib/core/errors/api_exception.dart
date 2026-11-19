@@ -39,8 +39,14 @@ class UnauthorizedException extends ApiException {
 }
 
 class ForbiddenException extends ApiException {
-  const ForbiddenException({required super.message, super.code})
-    : super(statusCode: 403);
+  const ForbiddenException({
+    required super.message,
+    super.code,
+    this.attemptsRemaining,
+  }) : super(statusCode: 403);
+
+  /// Failed parent sign-ins left before a temporary lock, when the server says.
+  final int? attemptsRemaining;
 }
 
 class NotFoundException extends ApiException {
@@ -51,6 +57,18 @@ class NotFoundException extends ApiException {
 class ConflictException extends ApiException {
   const ConflictException({required super.message, super.code})
     : super(statusCode: 409);
+}
+
+/// HTTP 423: the account/device is temporarily locked after repeated failed
+/// parent sign-ins. [retryAfter] comes from the server (`Retry-After`).
+class LockedException extends ApiException {
+  const LockedException({
+    required super.message,
+    super.code,
+    this.retryAfter = const Duration(minutes: 15),
+  }) : super(statusCode: 423);
+
+  final Duration retryAfter;
 }
 
 class ValidationException extends ApiException {
@@ -95,9 +113,23 @@ ApiException mapDioException(DioException error) {
 
   return switch (status) {
     401 => UnauthorizedException(message: message, code: code),
-    403 => ForbiddenException(message: message, code: code),
+    403 => ForbiddenException(
+      message: message,
+      code: code,
+      attemptsRemaining: envelope.attemptsRemaining,
+    ),
     404 => NotFoundException(message: message, code: code),
     409 => ConflictException(message: message, code: code),
+    423 => LockedException(
+      message: message,
+      code: code,
+      retryAfter: Duration(
+        seconds:
+            envelope.retryAfterSeconds ??
+            int.tryParse(response.headers.value('retry-after') ?? '') ??
+            900,
+      ),
+    ),
     422 => ValidationException(
       message: message,
       code: code,
@@ -126,11 +158,19 @@ Future<T> guardApi<T>(Future<T> Function() request) async {
 }
 
 class _Envelope {
-  const _Envelope({this.code, this.message, this.fieldErrors = const []});
+  const _Envelope({
+    this.code,
+    this.message,
+    this.fieldErrors = const [],
+    this.retryAfterSeconds,
+    this.attemptsRemaining,
+  });
 
   final String? code;
   final String? message;
   final List<FieldError> fieldErrors;
+  final int? retryAfterSeconds;
+  final int? attemptsRemaining;
 }
 
 _Envelope _readEnvelope(Object? data) {
@@ -161,5 +201,11 @@ _Envelope _readEnvelope(Object? data) {
     code: error['code'] as String?,
     message: error['message'] as String?,
     fieldErrors: fieldErrors,
+    retryAfterSeconds: details is Map<String, dynamic>
+        ? (details['retry_after_seconds'] as num?)?.toInt()
+        : null,
+    attemptsRemaining: details is Map<String, dynamic>
+        ? (details['attempts_remaining'] as num?)?.toInt()
+        : null,
   );
 }

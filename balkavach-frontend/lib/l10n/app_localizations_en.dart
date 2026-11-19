@@ -61,7 +61,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Safe Childhood, Smart Future • Play • Learn • Grow Together';
 
   @override
-  String get welcomeMascotLabel => 'Kavach Panda';
+  String get welcomeMascotLabel => 'Panda';
 
   @override
   String get welcomeBuddyLabel => 'AI Buddy';
@@ -574,7 +574,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get missionsFilterEmpty => 'No missions in this category.';
 
   @override
-  String get pandaSays => 'Panda Kavach says:';
+  String get pandaSays => 'Panda says:';
 
   @override
   String get pandaEncourage =>
@@ -655,7 +655,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Only visible to your parents in their approval inbox.';
 
   @override
-  String get submitPandaName => 'Kavach Panda';
+  String get submitPandaName => 'Panda';
 
   @override
   String get submitPandaMessage =>
@@ -1270,7 +1270,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Grows every time Mummy & Papa approve your missions this week.';
 
   @override
-  String get gardenImageLabel => 'Kavach Panda watering the garden';
+  String get gardenImageLabel => 'Panda watering the garden';
 
   @override
   String gardenWeeklyMissions(int count) {
@@ -2302,4 +2302,298 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get videoBackToHome => 'Back to Home';
+
+  @override
+  String get parentGateScreenTitle => 'Parent sign-in';
+
+  @override
+  String get parentGateScreenBody =>
+      'To leave child mode, sign in with the email and password of a parent in this family.';
+
+  @override
+  String get parentGateContinue => 'Continue';
+
+  @override
+  String get parentGateBackToChild => 'Back to child mode';
+
+  @override
+  String parentGateAttemptsLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count attempts left',
+      one: '1 attempt left',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String parentGateLocked(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minutes',
+      one: '1 minute',
+    );
+    return 'Too many incorrect attempts. Try again in $_temp0.';
+  }
+
+  @override
+  String get resetPasswordTitle => 'Set a new password';
+
+  @override
+  String get resetPasswordBody =>
+      'Choose a new password for your parent account.';
+
+  @override
+  String get resetPasswordNew => 'New password';
+
+  @override
+  String get resetPasswordConfirm => 'Confirm new password';
+
+  @override
+  String get resetPasswordMismatch => 'The two passwords do not match.';
+
+  @override
+  String get resetPasswordSubmit => 'Save new password';
+
+  @override
+  String get resetPasswordDone =>
+      'Your password was changed. Sign in with your new password.';
+
+  @override
+  String get resetPasswordInvalid =>
+      'This reset link is invalid or has expired. Request a new one.';
+
+  @override
+  String get resetPasswordToSignIn => 'Go to sign in';
+
+  @override
+  String get videoOfflinePaused => 'Video paused: we can’t reach the internet.';
+
+  @override
+  String get videoTimeCheckFailed =>
+      'We couldn’t check your video time. Please try again.';
+
+  @override
+  String videoLockSummary(int watched, int earned) {
+    return 'You watched $watched of $earned minutes today.';
+  }
+
+  @override
+  String get parentVideoSummaryTitle => 'Today\'s video time';
+
+  @override
+  String get parentVideoEarned => 'Earned';
+
+  @override
+  String get parentVideoWatched => 'Watched';
+
+  @override
+  String get parentVideoLeft => 'Left';
+
+  @override
+  String parentVideoCap(int minutes) {
+    return 'Daily cap: $minutes min';
+  }
+
+  @override
+  String parentVideoFree(int minutes) {
+    return 'Includes $minutes free minutes';
+  }
+
+  @override
+  String get parentVideoMissionsTitle => 'Missions that earned time';
+
+  @override
+  String get parentVideoNoMissions =>
+      'No mission has earned video time yet today.';
+
+  @override
+  String parentVideoMissionUsed(int used, int granted) {
+    return '$used of $granted min used';
+  }
+
+  @override
+  String get parentVideoSummaryFailed => 'Couldn’t load video time.';
+
+  @override
+  String get videoUpNextEmpty => 'No more videos right now. Check back soon!';
+
+  @override
+  String get videoUpNextFailed => 'We couldn’t load more videos.';
+
+  @override
+  String get videoWatchNext => 'Watch next';
+
+  @override
+  String get videoWatchAgain => 'Watch again';
+
+  @override
+  String get notifTitle => 'Notifications';
+
+  @override
+  String get notifCatAll => 'All';
+
+  @override
+  String get notifCatMissions => 'Missions';
+
+  @override
+  String get notifCatRewards => 'Rewards';
+
+  @override
+  String get notifCatVideos => 'Videos';
+
+  @override
+  String get notifCatStreaks => 'Streaks';
+
+  @override
+  String get notifCatOther => 'Other';
+
+  @override
+  String get notifEmpty => 'Nothing new yet. Check back soon!';
+
+  @override
+  String get notifEmptyFiltered => 'Nothing in this group.';
+
+  @override
+  String get notifMarkAllRead => 'Mark all as read';
+
+  @override
+  String get notifUnread => 'Unread';
+
+  @override
+  String get inviteTitle => 'Invite other parents';
+
+  @override
+  String get inviteCardPanda => 'Panda, the Bal Kavach guide';
+
+  @override
+  String get inviteCardHeadline => 'Missions first, then videos';
+
+  @override
+  String get inviteCardBody =>
+      'Daily missions, a parent in charge, and safe video time that children earn.';
+
+  @override
+  String get inviteMessage =>
+      'Try Bal Kavach with your child: daily missions first, then safe video time, with a parent in charge.';
+
+  @override
+  String get inviteWhatsApp => 'Share on WhatsApp';
+
+  @override
+  String get inviteShare => 'Share…';
+
+  @override
+  String get inviteShareImage => 'Share the card as a picture';
+
+  @override
+  String get inviteShareFailed => 'Couldn’t open sharing.';
+
+  @override
+  String get invitePrivacyNote =>
+      'This card has no information about your child.';
+
+  @override
+  String get settingsInviteSubtitle => 'Share Bal Kavach with another family';
+
+  @override
+  String get pandaName => 'Panda';
+
+  @override
+  String get pandaGreeting1 => 'Hi! Ready for today’s missions?';
+
+  @override
+  String get pandaGreeting2 => 'Hello, friend! Let’s do something great today.';
+
+  @override
+  String get pandaMissionsReady1 =>
+      'Your missions are ready. Pick the one you like!';
+
+  @override
+  String get pandaMissionsReady2 =>
+      'New missions are waiting. Which one will you try?';
+
+  @override
+  String get pandaMissionSubmitted1 =>
+      'Well done! Your grown-up will take a look.';
+
+  @override
+  String get pandaMissionSubmitted2 =>
+      'Sent! Now we wait for your grown-up to check it.';
+
+  @override
+  String get pandaMissionApproved1 => 'Your mission was approved. Great job!';
+
+  @override
+  String get pandaMissionApproved2 =>
+      'Approved! You did it. I’m so proud of you!';
+
+  @override
+  String pandaVideoUnlocked1(int minutes) {
+    return 'You unlocked $minutes minutes of video time!';
+  }
+
+  @override
+  String pandaVideoUnlocked2(int minutes) {
+    return 'Yay! $minutes minutes of videos are yours.';
+  }
+
+  @override
+  String get pandaVideoLow1 =>
+      'Only a little video time is left. Finish up soon!';
+
+  @override
+  String get pandaVideoLow2 => 'Almost time to stop. Pick a good ending spot!';
+
+  @override
+  String get pandaVideoUp1 =>
+      'Video time is up for now. A new mission unlocks more!';
+
+  @override
+  String get pandaVideoUp2 =>
+      'That’s all the video time for today. Let’s try a mission!';
+
+  @override
+  String pandaGreetingNamed1(String name) {
+    return 'Hi $name! Ready for today’s missions?';
+  }
+
+  @override
+  String pandaGreetingNamed2(String name) {
+    return 'Hello, $name! Let’s do something great today.';
+  }
+
+  @override
+  String pandaMissionIntro1(String title) {
+    return 'Today’s mission: $title. Want to try it?';
+  }
+
+  @override
+  String pandaMissionIntro2(String title) {
+    return 'Here’s one for you: $title. You can do it!';
+  }
+
+  @override
+  String pandaRewardExplain1(int stars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      stars,
+      locale: localeName,
+      other: '$stars stars',
+      one: '1 star',
+    );
+    return 'Finish it, get it approved, and you earn $_temp0 plus video time!';
+  }
+
+  @override
+  String pandaRewardExplain2(int stars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      stars,
+      locale: localeName,
+      other: '$stars stars',
+      one: '1 star',
+    );
+    return 'Your reward: $_temp0 and more video time once a grown-up approves.';
+  }
 }

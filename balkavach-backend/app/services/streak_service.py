@@ -184,11 +184,101 @@ def compute_streak_state(
     }
 
 
+def _state_for_activity_day(activity_day: date, today_local: date, tz: ZoneInfo, now: datetime):
+    """State a streak whose latest day is ``activity_day`` is in *now*: (state, grace_deadline_utc | None)."""
+    if activity_day >= today_local:
+        return "active", None
+    deadline = _grace_deadline_utc(activity_day, tz)
+    return ("broken", None) if deadline <= now else ("at_risk", deadline)
+
+
+def _record_dated_activity(
+    session: Session,
+    child_id: UUID,
+    activity_date: date,
+    today_local: date,
+    tz: ZoneInfo,
+    now: datetime,
+) -> dict:
+    """``record_qualifying_activity`` for an activity that happened on ``activity_date`` (a past local day).
+
+    The streak is judged *as of that day*, never as of the (possibly much later) approval:
+      * the streak continues when ``activity_date`` is less than 3 days after the last streak day
+        (the grace window), whatever state the scheduler has already stamped on the row;
+      * an activity that is not newer than the last streak day changes nothing (same day = duplicate,
+        older = approved out of order; the streak never moves backwards);
+      * the resulting state is how that streak looks from *now*.
+    """
+    ChildStreak = get_model("ChildStreak")
+    streak = session.query(ChildStreak).filter(ChildStreak.child_id == child_id).with_for_update().one_or_none()
+    state, deadline = _state_for_activity_day(activity_date, today_local, tz, now)
+
+    if streak is None:
+        session.add(
+            ChildStreak(
+                child_id=child_id,
+                current_streak=1,
+                longest_streak=1,
+                last_activity_date=activity_date,
+                last_activity_at=utc_naive(now),
+                streak_state=state,
+                grace_deadline=utc_naive(deadline) if deadline else None,
+                streak_notified_state=None,
+                updated_at=utc_naive(now),
+            )
+        )
+        return {
+            "child_id": child_id,
+            "current_streak": 1,
+            "longest_streak": 1,
+            "streak_state": state,
+            "grace_deadline": deadline.isoformat() if deadline else None,
+            "previous_state": None,
+            "streak_extended": False,
+            "is_new_after_break": False,
+        }
+
+    last_date: date | None = streak.last_activity_date
+    if last_date is not None and activity_date <= last_date:
+        return {
+            "child_id": child_id,
+            "current_streak": streak.current_streak,
+            "longest_streak": streak.longest_streak,
+            "streak_state": streak.streak_state or "active",
+            "grace_deadline": None,
+            "previous_state": streak.streak_state or "active",
+            "streak_extended": False,
+            "is_new_after_break": False,
+        }
+
+    expired = last_date is None or activity_date >= last_date + timedelta(days=_GRACE_DAYS)
+    previous_state = "broken" if expired else ("active" if activity_date - last_date == timedelta(days=1) else "at_risk")
+    new_streak = 1 if expired else (streak.current_streak or 0) + 1
+    streak.current_streak = new_streak
+    streak.longest_streak = max(streak.longest_streak or 0, new_streak)
+    streak.last_activity_date = activity_date
+    streak.last_activity_at = utc_naive(now)
+    streak.streak_state = state
+    streak.grace_deadline = utc_naive(deadline) if deadline else None
+    streak.updated_at = utc_naive(now)
+    return {
+        "child_id": child_id,
+        "current_streak": new_streak,
+        "longest_streak": streak.longest_streak,
+        "streak_state": state,
+        "grace_deadline": deadline.isoformat() if deadline else None,
+        "previous_state": previous_state,
+        "streak_extended": not expired,
+        "is_new_after_break": expired,
+    }
+
+
 def record_qualifying_activity(
     session: Session,
     child_id: UUID,
     family_id: UUID,
     now_utc: datetime | None = None,
+    activity_date: date | None = None,
 ) -> dict:
     """Record a qualifying activity and update the ChildStreak row.
 
@@ -201,6 +291,11 @@ def record_qualifying_activity(
       - If BROKEN or new: current_streak = 1, is_new_after_break = True.
       - If yesterday was last_activity_date: current_streak + 1, streak_extended = True.
       - Always longest_streak = max(longest_streak, current_streak).
+
+    ``activity_date`` (family-local) anchors the activity to the day it actually happened, so a late
+    parent approval cannot move it to the approval day; see :func:`_record_dated_activity`. It is
+    clamped to the family-local today (the server never trusts a future date). Omitted, the activity
+    is dated now, exactly as before.
 
     Returns:
       dict with: child_id, current_streak, longest_streak, streak_state,
@@ -215,6 +310,11 @@ def record_qualifying_activity(
     except Exception:
         tz = ZoneInfo("UTC")
         today_local = now.astimezone(tz).date()
+
+    if activity_date is not None:
+        return _record_dated_activity(
+            session, child_id, min(activity_date, today_local), today_local, tz, now
+        )
 
     ChildStreak = get_model("ChildStreak")
     streak = (

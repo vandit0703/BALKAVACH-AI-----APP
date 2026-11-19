@@ -15,7 +15,7 @@ import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/server_status.dart';
 import '../../../shared/widgets/state_views.dart';
-import '../data/auth_repository.dart';
+import 'forgot_password_dialog.dart';
 import 'session_controller.dart';
 
 enum _AuthMode { signIn, register }
@@ -91,44 +91,8 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
     }
   }
 
-  Future<void> _forgotPassword() async {
-    final l10n = AppLocalizations.of(context);
-    final email = TextEditingController(text: _email.text);
-    try {
-      final value = await showDialog<String>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(l10n.authForgotPassword),
-          content: TextField(
-            controller: email,
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(labelText: l10n.authEmail),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l10n.parentGateStay),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, email.text),
-              child: Text(l10n.authForgotPassword),
-            ),
-          ],
-        ),
-      );
-      if (value == null || !mounted) return;
-      await ref.read(authRepositoryProvider).requestPasswordReset(value);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.authResetSent)),
-        );
-      }
-    } on ApiException catch (error) {
-      if (mounted) showErrorSnackBar(context, error);
-    } finally {
-      email.dispose();
-    }
-  }
+  Future<void> _forgotPassword() =>
+      showForgotPasswordDialog(context, ref, initialEmail: _email.text);
 
   @override
   Widget build(BuildContext context) {

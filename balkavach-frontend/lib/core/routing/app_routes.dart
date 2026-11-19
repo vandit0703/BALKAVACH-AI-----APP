@@ -8,6 +8,9 @@ abstract final class AppRoutes {
   static const childLogin = '/child-login';
   static const parentAuth = '/parent-auth';
 
+  /// Password-reset landing (deep link `balkavach://app/reset-password?token=…`).
+  static const resetPassword = '/reset-password';
+
   static const parentHome = '/parent';
   static const parentNewChild = '/parent/children/new';
   static const parentNewMission = '/parent/missions/new';
@@ -36,6 +39,9 @@ abstract final class AppRoutes {
   static const childShorts = '/child/shorts';
   static const childWatch = '/child/watch';
   static const childProfile = '/child/profile';
+
+  /// Parent sign-in used to leave child mode.
+  static const childParentGate = '/child/parent-gate';
   static const streakScreen = '/streak';
   static String childLearnItem(String id) => '/child/learn/$id';
   static String childLearnPlay(String id) => '/child/learn/$id/play';

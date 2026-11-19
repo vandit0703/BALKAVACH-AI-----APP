@@ -194,6 +194,7 @@ String describeError(AppLocalizations l10n, Object error) {
     'category_conflict' => l10n.errorCategoryConflict,
     'invalid_setting' || 'unknown_setting' => l10n.errorInvalidSetting,
     'invalid_age_range' => l10n.errorInvalidAgeRange,
+    'daily_template_incomplete' => l10n.errorTemplateIncomplete,
     _ => null,
   };
   if (byCode != null) return byCode;

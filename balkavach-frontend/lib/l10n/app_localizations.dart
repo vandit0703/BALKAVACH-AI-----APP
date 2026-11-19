@@ -199,7 +199,7 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeMascotLabel.
   ///
   /// In en, this message translates to:
-  /// **'Kavach Panda'**
+  /// **'Panda'**
   String get welcomeMascotLabel;
 
   /// No description provided for @welcomeBuddyLabel.
@@ -1087,7 +1087,7 @@ abstract class AppLocalizations {
   /// No description provided for @pandaSays.
   ///
   /// In en, this message translates to:
-  /// **'Panda Kavach says:'**
+  /// **'Panda says:'**
   String get pandaSays;
 
   /// No description provided for @pandaEncourage.
@@ -1225,7 +1225,7 @@ abstract class AppLocalizations {
   /// No description provided for @submitPandaName.
   ///
   /// In en, this message translates to:
-  /// **'Kavach Panda'**
+  /// **'Panda'**
   String get submitPandaName;
 
   /// No description provided for @submitPandaMessage.
@@ -2174,7 +2174,7 @@ abstract class AppLocalizations {
   /// No description provided for @gardenImageLabel.
   ///
   /// In en, this message translates to:
-  /// **'Kavach Panda watering the garden'**
+  /// **'Panda watering the garden'**
   String get gardenImageLabel;
 
   /// No description provided for @gardenWeeklyMissions.
@@ -3898,6 +3898,456 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to Home'**
   String get videoBackToHome;
+
+  /// No description provided for @parentGateScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent sign-in'**
+  String get parentGateScreenTitle;
+
+  /// No description provided for @parentGateScreenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'To leave child mode, sign in with the email and password of a parent in this family.'**
+  String get parentGateScreenBody;
+
+  /// No description provided for @parentGateContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get parentGateContinue;
+
+  /// No description provided for @parentGateBackToChild.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to child mode'**
+  String get parentGateBackToChild;
+
+  /// No description provided for @parentGateAttemptsLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 attempt left} other{{count} attempts left}}'**
+  String parentGateAttemptsLeft(int count);
+
+  /// No description provided for @parentGateLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many incorrect attempts. Try again in {minutes, plural, =1{1 minute} other{{minutes} minutes}}.'**
+  String parentGateLocked(int minutes);
+
+  /// No description provided for @resetPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a new password'**
+  String get resetPasswordTitle;
+
+  /// No description provided for @resetPasswordBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a new password for your parent account.'**
+  String get resetPasswordBody;
+
+  /// No description provided for @resetPasswordNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get resetPasswordNew;
+
+  /// No description provided for @resetPasswordConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get resetPasswordConfirm;
+
+  /// No description provided for @resetPasswordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The two passwords do not match.'**
+  String get resetPasswordMismatch;
+
+  /// No description provided for @resetPasswordSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Save new password'**
+  String get resetPasswordSubmit;
+
+  /// No description provided for @resetPasswordDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your password was changed. Sign in with your new password.'**
+  String get resetPasswordDone;
+
+  /// No description provided for @resetPasswordInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This reset link is invalid or has expired. Request a new one.'**
+  String get resetPasswordInvalid;
+
+  /// No description provided for @resetPasswordToSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to sign in'**
+  String get resetPasswordToSignIn;
+
+  /// No description provided for @videoOfflinePaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Video paused: we can’t reach the internet.'**
+  String get videoOfflinePaused;
+
+  /// No description provided for @videoTimeCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn’t check your video time. Please try again.'**
+  String get videoTimeCheckFailed;
+
+  /// No description provided for @videoLockSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'You watched {watched} of {earned} minutes today.'**
+  String videoLockSummary(int watched, int earned);
+
+  /// No description provided for @parentVideoSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s video time'**
+  String get parentVideoSummaryTitle;
+
+  /// No description provided for @parentVideoEarned.
+  ///
+  /// In en, this message translates to:
+  /// **'Earned'**
+  String get parentVideoEarned;
+
+  /// No description provided for @parentVideoWatched.
+  ///
+  /// In en, this message translates to:
+  /// **'Watched'**
+  String get parentVideoWatched;
+
+  /// No description provided for @parentVideoLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Left'**
+  String get parentVideoLeft;
+
+  /// No description provided for @parentVideoCap.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily cap: {minutes} min'**
+  String parentVideoCap(int minutes);
+
+  /// No description provided for @parentVideoFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Includes {minutes} free minutes'**
+  String parentVideoFree(int minutes);
+
+  /// No description provided for @parentVideoMissionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Missions that earned time'**
+  String get parentVideoMissionsTitle;
+
+  /// No description provided for @parentVideoNoMissions.
+  ///
+  /// In en, this message translates to:
+  /// **'No mission has earned video time yet today.'**
+  String get parentVideoNoMissions;
+
+  /// No description provided for @parentVideoMissionUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} of {granted} min used'**
+  String parentVideoMissionUsed(int used, int granted);
+
+  /// No description provided for @parentVideoSummaryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t load video time.'**
+  String get parentVideoSummaryFailed;
+
+  /// No description provided for @videoUpNextEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No more videos right now. Check back soon!'**
+  String get videoUpNextEmpty;
+
+  /// No description provided for @videoUpNextFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn’t load more videos.'**
+  String get videoUpNextFailed;
+
+  /// No description provided for @videoWatchNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch next'**
+  String get videoWatchNext;
+
+  /// No description provided for @videoWatchAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch again'**
+  String get videoWatchAgain;
+
+  /// No description provided for @notifTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifTitle;
+
+  /// No description provided for @notifCatAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get notifCatAll;
+
+  /// No description provided for @notifCatMissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Missions'**
+  String get notifCatMissions;
+
+  /// No description provided for @notifCatRewards.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewards'**
+  String get notifCatRewards;
+
+  /// No description provided for @notifCatVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get notifCatVideos;
+
+  /// No description provided for @notifCatStreaks.
+  ///
+  /// In en, this message translates to:
+  /// **'Streaks'**
+  String get notifCatStreaks;
+
+  /// No description provided for @notifCatOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get notifCatOther;
+
+  /// No description provided for @notifEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing new yet. Check back soon!'**
+  String get notifEmpty;
+
+  /// No description provided for @notifEmptyFiltered.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing in this group.'**
+  String get notifEmptyFiltered;
+
+  /// No description provided for @notifMarkAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all as read'**
+  String get notifMarkAllRead;
+
+  /// No description provided for @notifUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread'**
+  String get notifUnread;
+
+  /// No description provided for @inviteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite other parents'**
+  String get inviteTitle;
+
+  /// No description provided for @inviteCardPanda.
+  ///
+  /// In en, this message translates to:
+  /// **'Panda, the Bal Kavach guide'**
+  String get inviteCardPanda;
+
+  /// No description provided for @inviteCardHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Missions first, then videos'**
+  String get inviteCardHeadline;
+
+  /// No description provided for @inviteCardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily missions, a parent in charge, and safe video time that children earn.'**
+  String get inviteCardBody;
+
+  /// No description provided for @inviteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Try Bal Kavach with your child: daily missions first, then safe video time, with a parent in charge.'**
+  String get inviteMessage;
+
+  /// No description provided for @inviteWhatsApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Share on WhatsApp'**
+  String get inviteWhatsApp;
+
+  /// No description provided for @inviteShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share…'**
+  String get inviteShare;
+
+  /// No description provided for @inviteShareImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Share the card as a picture'**
+  String get inviteShareImage;
+
+  /// No description provided for @inviteShareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t open sharing.'**
+  String get inviteShareFailed;
+
+  /// No description provided for @invitePrivacyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This card has no information about your child.'**
+  String get invitePrivacyNote;
+
+  /// No description provided for @settingsInviteSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Bal Kavach with another family'**
+  String get settingsInviteSubtitle;
+
+  /// No description provided for @pandaName.
+  ///
+  /// In en, this message translates to:
+  /// **'Panda'**
+  String get pandaName;
+
+  /// No description provided for @pandaGreeting1.
+  ///
+  /// In en, this message translates to:
+  /// **'Hi! Ready for today’s missions?'**
+  String get pandaGreeting1;
+
+  /// No description provided for @pandaGreeting2.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello, friend! Let’s do something great today.'**
+  String get pandaGreeting2;
+
+  /// No description provided for @pandaMissionsReady1.
+  ///
+  /// In en, this message translates to:
+  /// **'Your missions are ready. Pick the one you like!'**
+  String get pandaMissionsReady1;
+
+  /// No description provided for @pandaMissionsReady2.
+  ///
+  /// In en, this message translates to:
+  /// **'New missions are waiting. Which one will you try?'**
+  String get pandaMissionsReady2;
+
+  /// No description provided for @pandaMissionSubmitted1.
+  ///
+  /// In en, this message translates to:
+  /// **'Well done! Your grown-up will take a look.'**
+  String get pandaMissionSubmitted1;
+
+  /// No description provided for @pandaMissionSubmitted2.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent! Now we wait for your grown-up to check it.'**
+  String get pandaMissionSubmitted2;
+
+  /// No description provided for @pandaMissionApproved1.
+  ///
+  /// In en, this message translates to:
+  /// **'Your mission was approved. Great job!'**
+  String get pandaMissionApproved1;
+
+  /// No description provided for @pandaMissionApproved2.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved! You did it. I’m so proud of you!'**
+  String get pandaMissionApproved2;
+
+  /// No description provided for @pandaVideoUnlocked1.
+  ///
+  /// In en, this message translates to:
+  /// **'You unlocked {minutes} minutes of video time!'**
+  String pandaVideoUnlocked1(int minutes);
+
+  /// No description provided for @pandaVideoUnlocked2.
+  ///
+  /// In en, this message translates to:
+  /// **'Yay! {minutes} minutes of videos are yours.'**
+  String pandaVideoUnlocked2(int minutes);
+
+  /// No description provided for @pandaVideoLow1.
+  ///
+  /// In en, this message translates to:
+  /// **'Only a little video time is left. Finish up soon!'**
+  String get pandaVideoLow1;
+
+  /// No description provided for @pandaVideoLow2.
+  ///
+  /// In en, this message translates to:
+  /// **'Almost time to stop. Pick a good ending spot!'**
+  String get pandaVideoLow2;
+
+  /// No description provided for @pandaVideoUp1.
+  ///
+  /// In en, this message translates to:
+  /// **'Video time is up for now. A new mission unlocks more!'**
+  String get pandaVideoUp1;
+
+  /// No description provided for @pandaVideoUp2.
+  ///
+  /// In en, this message translates to:
+  /// **'That’s all the video time for today. Let’s try a mission!'**
+  String get pandaVideoUp2;
+
+  /// No description provided for @pandaGreetingNamed1.
+  ///
+  /// In en, this message translates to:
+  /// **'Hi {name}! Ready for today’s missions?'**
+  String pandaGreetingNamed1(String name);
+
+  /// No description provided for @pandaGreetingNamed2.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello, {name}! Let’s do something great today.'**
+  String pandaGreetingNamed2(String name);
+
+  /// No description provided for @pandaMissionIntro1.
+  ///
+  /// In en, this message translates to:
+  /// **'Today’s mission: {title}. Want to try it?'**
+  String pandaMissionIntro1(String title);
+
+  /// No description provided for @pandaMissionIntro2.
+  ///
+  /// In en, this message translates to:
+  /// **'Here’s one for you: {title}. You can do it!'**
+  String pandaMissionIntro2(String title);
+
+  /// No description provided for @pandaRewardExplain1.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish it, get it approved, and you earn {stars, plural, =1{1 star} other{{stars} stars}} plus video time!'**
+  String pandaRewardExplain1(int stars);
+
+  /// No description provided for @pandaRewardExplain2.
+  ///
+  /// In en, this message translates to:
+  /// **'Your reward: {stars, plural, =1{1 star} other{{stars} stars}} and more video time once a grown-up approves.'**
+  String pandaRewardExplain2(int stars);
 }
 
 class _AppLocalizationsDelegate

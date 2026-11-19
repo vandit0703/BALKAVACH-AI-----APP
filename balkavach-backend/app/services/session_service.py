@@ -22,6 +22,7 @@ from app.core.exceptions import APIError
 from app.core.security import create_access_token
 from app.db.base import get_model
 from app.schemas.auth import TokenResponse, UserPublic
+from app.utils import utc_aware
 
 logger = logging.getLogger(__name__)
 
@@ -46,14 +47,36 @@ def _ttl(kind: str) -> timedelta:
 	return timedelta(days=days)
 
 
+PARENT_MODE_LABEL = "parent_mode"
+
+
+def _session_ttl(row) -> timedelta:
+	"""Refresh lifetime for an existing session; parent-mode sessions stay short."""
+	if getattr(row, "device_label", None) == PARENT_MODE_LABEL:
+		return timedelta(hours=settings.parent_mode_refresh_hours)
+	return _ttl(row.kind)
+
+
 def kind_for_role(role: str) -> str:
 	if role == "child":
 		return "child"
 	return "admin" if role in {"admin", "staff"} else "parent"
 
 
-def start_session(session: Session, user, *, issued_by: UUID | None = None) -> TokenResponse:
-	"""Create a session row (when available) and return the token pair. Caller commits."""
+def start_session(
+	session: Session,
+	user,
+	*,
+	issued_by: UUID | None = None,
+	refresh_ttl: timedelta | None = None,
+	device_label: str | None = None,
+) -> TokenResponse:
+	"""Create a session row (when available) and return the token pair. Caller commits.
+
+	``refresh_ttl`` shortens the refresh lifetime (parent-mode sessions started from a child
+	device); rotation re-applies the same shortened lifetime because it is derived from
+	``device_label`` in :func:`_session_ttl`.
+	"""
 	AuthSession = _auth_session_model()
 	kind = kind_for_role(user.role)
 	if AuthSession is None:
@@ -61,7 +84,7 @@ def start_session(session: Session, user, *, issued_by: UUID | None = None) -> T
 		access, expires_at = create_access_token(str(user.id))
 		return TokenResponse(access_token=access, expires_at=expires_at, user=UserPublic.model_validate(user))
 	refresh = secrets.token_urlsafe(48)
-	refresh_expires = _now() + _ttl(kind)
+	refresh_expires = _now() + (refresh_ttl or _ttl(kind))
 	row = AuthSession(
 		user_id=user.id,
 		issued_by=issued_by,
@@ -70,6 +93,8 @@ def start_session(session: Session, user, *, issued_by: UUID | None = None) -> T
 		expires_at=refresh_expires,
 		last_used_at=_now(),
 	)
+	if device_label is not None and hasattr(AuthSession, "device_label"):
+		row.device_label = device_label
 	session.add(row)
 	session.flush()
 	access, expires_at = create_access_token(str(user.id), session_id=str(row.id))
@@ -110,7 +135,7 @@ def rotate(session: Session, refresh_token: str) -> TokenResponse:
 	row.previous_token_hash = row.refresh_token_hash
 	row.refresh_token_hash = _digest(new_refresh)
 	row.last_used_at = _now()
-	row.expires_at = _now() + _ttl(row.kind)
+	row.expires_at = _now() + _session_ttl(row)
 	access, expires_at = create_access_token(str(user.id), session_id=str(row.id))
 	response = TokenResponse(
 		access_token=access,
@@ -159,4 +184,29 @@ def is_session_revoked(session: Session, session_id: str) -> bool:
 	except (TypeError, ValueError):
 		return True
 	row = session.query(AuthSession.revoked_at, AuthSession.expires_at).filter(AuthSession.id == sid).first()
-	return row is None or row[0] is not None
+	if row is None or row[0] is not None:
+		return True
+	# A session past its refresh lifetime is over even if an access token minted before it is still valid:
+	# this is what makes the 12-hour parent-mode limit hard instead of "12 hours plus a token".
+	return utc_aware(row[1]) <= _now()
+
+
+def end_parent_mode_session(session: Session, session_id: UUID | None) -> bool:
+	"""Revoke ``session_id`` if (and only if) it is a parent-mode session. Caller commits.
+
+	Used when a parent hands the device back to a child: the parent-mode credentials die on the server
+	instead of relying on the app to log out. Ordinary parent logins are left alone."""
+	AuthSession = _auth_session_model()
+	if AuthSession is None or session_id is None:
+		return False
+	row = (
+		session.query(AuthSession)
+		.filter(AuthSession.id == session_id, AuthSession.revoked_at.is_(None))
+		.with_for_update()
+		.one_or_none()
+	)
+	if row is None or getattr(row, "device_label", None) != PARENT_MODE_LABEL:
+		return False
+	row.revoked_at = _now()
+	session.flush()
+	return True

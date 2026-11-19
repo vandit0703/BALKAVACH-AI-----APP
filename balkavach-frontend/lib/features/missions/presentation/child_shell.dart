@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/responsive/breakpoints.dart';
@@ -8,8 +7,8 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/brand_header.dart';
 import '../../../shared/widgets/buttons.dart';
-import '../../authentication/domain/session.dart';
-import '../../authentication/presentation/session_controller.dart';
+import '../../notifications/domain/notification_category.dart';
+import '../../notifications/presentation/notification_center_screen.dart';
 
 /// Child-mode frame: brand header with Parent Gate, plus bottom navigation on
 /// phones and a navigation rail on wide windows.
@@ -67,6 +66,7 @@ class ChildShell extends StatelessWidget {
       toolbarHeight: 68,
       title: BrandTitle(title: title),
       actions: const [
+        NotificationBell(audience: NotificationAudience.child),
         ParentGateButton(),
         SizedBox(width: AppSpacing.sm),
       ],
@@ -118,98 +118,20 @@ class ChildShell extends StatelessWidget {
   }
 }
 
-/// Parent mode always requires a server-verified parent PIN on a child device.
-class ParentGateButton extends ConsumerWidget {
+/// Leaves child mode through the parent sign-in screen (email + password,
+/// verified by the server against this child's family). The button itself
+/// grants nothing.
+class ParentGateButton extends StatelessWidget {
   const ParentGateButton({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     // Labelled pill (Stitch) when the app bar has room; icon-only on small
     // phones or with large text so the title is not crushed.
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final compact = MediaQuery.sizeOf(context).width / textScale < 380;
-    Future<void> open() async {
-      final leave = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          icon: const Icon(Icons.lock_rounded),
-          title: Text(l10n.parentGateTitle),
-          content: Text(l10n.parentGateBody),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l10n.parentGateStay),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(l10n.parentGateLeave),
-            ),
-          ],
-        ),
-      );
-      if (leave != true || !context.mounted) return;
-      final email = TextEditingController();
-      final pin = TextEditingController();
-      try {
-        final verified = await showDialog<Session>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(l10n.parentGateLeave),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: email,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(labelText: l10n.authEmail),
-                ),
-                TextField(
-                  controller: pin,
-                  keyboardType: TextInputType.number,
-                  obscureText: true,
-                  maxLength: 8,
-                  decoration: InputDecoration(labelText: l10n.authPassword),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(l10n.parentGateStay),
-              ),
-              FilledButton(
-                onPressed: () async {
-                  try {
-                    final session = await ref
-                        .read(sessionControllerProvider.notifier)
-                        .verifyParentPin(email: email.text, pin: pin.text);
-                    if (context.mounted) Navigator.pop(context, session);
-                  } on Object {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.authInvalidCredentials)),
-                      );
-                    }
-                  }
-                },
-                child: Text(l10n.parentGateLeave),
-              ),
-            ],
-          ),
-        );
-        if (verified != null && context.mounted) {
-          await Future<void>.delayed(const Duration(milliseconds: 300));
-          await ref
-              .read(sessionControllerProvider.notifier)
-              .adoptVerifiedParentSession(verified);
-          if (context.mounted) context.go(AppRoutes.parentHome);
-        }
-      } finally {
-        email.dispose();
-        pin.dispose();
-      }
-    }
+    void open() => context.push(AppRoutes.childParentGate);
 
     if (compact) {
       return IconButton.filledTonal(

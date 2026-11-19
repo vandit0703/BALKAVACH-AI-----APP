@@ -207,6 +207,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The youngest age cannot be above the oldest age.';
 
   @override
+  String get errorTemplateIncomplete =>
+      'This mission is missing versions. Open View versions to see which age and language are missing.';
+
+  @override
   String get errorTooManyRequests =>
       'Too many requests. Please wait a moment and try again.';
 
@@ -745,6 +749,101 @@ class AppLocalizationsEn extends AppLocalizations {
   String get missionReactivated => 'Mission reactivated';
 
   @override
+  String get missionCatalogComplete =>
+      'All 9 age and language versions are present';
+
+  @override
+  String missionCatalogMissing(int count, String list) {
+    return '$count of 9 versions missing: $list';
+  }
+
+  @override
+  String missionCatalogCannotPublish(String list) {
+    return 'Cannot publish yet. Missing: $list';
+  }
+
+  @override
+  String get missionCatalogViewVersions => 'View versions';
+
+  @override
+  String get missionCatalogPreview =>
+      'Preview (what the child and the reviewing parent see)';
+
+  @override
+  String get missionCatalogVersionMissing => 'Missing';
+
+  @override
+  String missionCatalogAges(String range) {
+    return 'Ages $range';
+  }
+
+  @override
+  String missionCatalogMinutes(int count) {
+    return '$count min';
+  }
+
+  @override
+  String missionCatalogMaterials(String items) {
+    return 'Materials: $items';
+  }
+
+  @override
+  String missionCatalogSafety(String text) {
+    return 'Safety: $text';
+  }
+
+  @override
+  String get missionHealthTitle => 'Rotation capacity';
+
+  @override
+  String missionHealthTheme(
+    String theme,
+    int eligible,
+    int published,
+    int total,
+  ) {
+    return '$theme: $eligible eligible, $published published, $total in total';
+  }
+
+  @override
+  String missionHealthLow(int min, int shortfall) {
+    return 'Fewer than $min eligible templates: missions will repeat (publish $shortfall more)';
+  }
+
+  @override
+  String get missionHealthOk => 'Enough templates for rotation';
+
+  @override
+  String missionHealthActivities(int distinct, int needed) {
+    return '$distinct of $needed activities verified as different';
+  }
+
+  @override
+  String missionHealthActivitiesUnchecked(int count) {
+    return '$count template(s) are not in the catalogue source, so their activity cannot be checked';
+  }
+
+  @override
+  String missionHealthTotals(
+    int published,
+    int unpublished,
+    int incomplete,
+    int total,
+  ) {
+    return '$published published, $unpublished unpublished, $incomplete incomplete, of $total templates';
+  }
+
+  @override
+  String missionHealthFallbacks(int count, int days) {
+    return '$count cooldown fallbacks in the last $days days';
+  }
+
+  @override
+  String missionCatalogShown(int count) {
+    return 'Shown $count times';
+  }
+
+  @override
   String get categoriesTitle => 'Mission categories';
 
   @override
@@ -1161,4 +1260,77 @@ class AppLocalizationsEn extends AppLocalizations {
   String youtubeFreshness(String oldest, String hours, String stale) {
     return 'Oldest verification: $oldest · approved videos past the $hours-hour limit (hidden from children): $stale';
   }
+
+  @override
+  String get youtubeChannelAll => 'All';
+
+  @override
+  String get youtubeChannelDetails => 'Channel details';
+
+  @override
+  String get youtubeChannelCounts => 'Videos found';
+
+  @override
+  String get youtubeChannelDisc => 'Discovered';
+
+  @override
+  String get youtubeChannelAppr => 'Approved';
+
+  @override
+  String get youtubeChannelPend => 'Waiting for review';
+
+  @override
+  String get youtubeChannelQuar => 'Quarantined';
+
+  @override
+  String get youtubeChannelRej => 'Rejected';
+
+  @override
+  String get youtubeChannelShorts => 'Live Shorts';
+
+  @override
+  String get youtubeChannelReg => 'Live videos';
+
+  @override
+  String get youtubeChannelLastDisc => 'Last discovery';
+
+  @override
+  String get youtubeChannelLastVer => 'Last re-check';
+
+  @override
+  String get youtubeChannelHist => 'History';
+
+  @override
+  String get youtubeChannelNoHist => 'No changes recorded yet.';
+
+  @override
+  String get youtubeChannelEvT => 'Channel trusted';
+
+  @override
+  String get youtubeChannelEvU => 'Channel trust removed';
+
+  @override
+  String get youtubeChannelFail => 'Couldn’t load channel details.';
+
+  @override
+  String get youtubeChannelNote =>
+      'Pausing a channel without removing it, and sync status, are planned and need a server update.';
+
+  @override
+  String get youtubeChannelAge => 'Ages';
+
+  @override
+  String get youtubeChannelLang => 'Language';
+
+  @override
+  String get youtubeChannelRights => 'Rights';
+
+  @override
+  String get youtubeChannelNever => 'Never';
+
+  @override
+  String get youtubeChannelActive => 'Active';
+
+  @override
+  String get youtubeChannelRemoved => 'Removed';
 }

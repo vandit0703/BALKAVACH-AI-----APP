@@ -89,6 +89,7 @@
   "errorCategoryConflict": "A category with that name already exists.",
   "errorInvalidSetting": "That setting value is not valid.",
   "errorInvalidAgeRange": "The youngest age cannot be above the oldest age.",
+  "errorTemplateIncomplete": "This mission is missing versions. Open View versions to see which age and language are missing.",
   "errorTooManyRequests": "Too many requests. Please wait a moment and try again.",
   "loading": "Loading",
   "loginSubtitle": "Administrators only",
@@ -382,6 +383,146 @@
   },
   "missionDeactivated": "Mission deactivated",
   "missionReactivated": "Mission reactivated",
+  "missionCatalogComplete": "All 9 age and language versions are present",
+  "missionCatalogMissing": "{count} of 9 versions missing: {list}",
+  "@missionCatalogMissing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "missionCatalogCannotPublish": "Cannot publish yet. Missing: {list}",
+  "@missionCatalogCannotPublish": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "missionCatalogViewVersions": "View versions",
+  "missionCatalogPreview": "Preview (what the child and the reviewing parent see)",
+  "missionCatalogVersionMissing": "Missing",
+  "missionCatalogAges": "Ages {range}",
+  "@missionCatalogAges": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "missionCatalogMinutes": "{count} min",
+  "@missionCatalogMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "missionCatalogMaterials": "Materials: {items}",
+  "@missionCatalogMaterials": {
+    "placeholders": {
+      "items": {
+        "type": "String"
+      }
+    }
+  },
+  "missionCatalogSafety": "Safety: {text}",
+  "@missionCatalogSafety": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "missionHealthTitle": "Rotation capacity",
+  "missionHealthTheme": "{theme}: {eligible} eligible, {published} published, {total} in total",
+  "@missionHealthTheme": {
+    "placeholders": {
+      "theme": {
+        "type": "String"
+      },
+      "eligible": {
+        "type": "int"
+      },
+      "published": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "missionHealthLow": "Fewer than {min} eligible templates: missions will repeat (publish {shortfall} more)",
+  "@missionHealthLow": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "shortfall": {
+        "type": "int"
+      }
+    }
+  },
+  "missionHealthOk": "Enough templates for rotation",
+  "missionHealthActivities": "{distinct} of {needed} activities verified as different",
+  "@missionHealthActivities": {
+    "placeholders": {
+      "distinct": {
+        "type": "int"
+      },
+      "needed": {
+        "type": "int"
+      }
+    }
+  },
+  "missionHealthActivitiesUnchecked": "{count} template(s) are not in the catalogue source, so their activity cannot be checked",
+  "@missionHealthActivitiesUnchecked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "missionHealthTotals": "{published} published, {unpublished} unpublished, {incomplete} incomplete, of {total} templates",
+  "@missionHealthTotals": {
+    "placeholders": {
+      "published": {
+        "type": "int"
+      },
+      "unpublished": {
+        "type": "int"
+      },
+      "incomplete": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "missionHealthFallbacks": "{count} cooldown fallbacks in the last {days} days",
+  "@missionHealthFallbacks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "missionCatalogShown": "Shown {count} times",
+  "@missionCatalogShown": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "categoriesTitle": "Mission categories",
   "categoriesSubtitle": "The groups parents pick from when creating a mission",
   "categoryNewTitle": "New category",
@@ -625,5 +766,29 @@
         "type": "String"
       }
     }
-  }
+  },
+  "youtubeChannelAll": "All",
+  "youtubeChannelDetails": "Channel details",
+  "youtubeChannelCounts": "Videos found",
+  "youtubeChannelDisc": "Discovered",
+  "youtubeChannelAppr": "Approved",
+  "youtubeChannelPend": "Waiting for review",
+  "youtubeChannelQuar": "Quarantined",
+  "youtubeChannelRej": "Rejected",
+  "youtubeChannelShorts": "Live Shorts",
+  "youtubeChannelReg": "Live videos",
+  "youtubeChannelLastDisc": "Last discovery",
+  "youtubeChannelLastVer": "Last re-check",
+  "youtubeChannelHist": "History",
+  "youtubeChannelNoHist": "No changes recorded yet.",
+  "youtubeChannelEvT": "Channel trusted",
+  "youtubeChannelEvU": "Channel trust removed",
+  "youtubeChannelFail": "Couldn’t load channel details.",
+  "youtubeChannelNote": "Pausing a channel without removing it, and sync status, are planned and need a server update.",
+  "youtubeChannelAge": "Ages",
+  "youtubeChannelLang": "Language",
+  "youtubeChannelRights": "Rights",
+  "youtubeChannelNever": "Never",
+  "youtubeChannelActive": "Active",
+  "youtubeChannelRemoved": "Removed"
 }

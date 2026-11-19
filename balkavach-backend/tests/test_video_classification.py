@@ -129,6 +129,8 @@ def client(monkeypatch):
 	monkeypatch.setattr(video_routes, "eligible_feed", fake_feed)
 	monkeypatch.setattr(video_routes, "_channel_names", lambda session, videos: {})
 	monkeypatch.setattr(video_routes, "_resume_positions", lambda session, child, videos: {})
+	# These tests cover classification, not the allowance gate (see test_video_feed_gating.py).
+	monkeypatch.setattr(video_routes, "_allowance_exhausted", lambda session, child: False)
 	app.dependency_overrides[require_child] = lambda: SimpleNamespace(id=uuid4())
 	app.dependency_overrides[get_db] = lambda: None
 	try:

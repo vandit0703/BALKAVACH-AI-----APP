@@ -30,45 +30,53 @@ void main() {
       expect(info.lastActivityAt, isNotNull);
     });
 
-    test('ChildProgress.fromJson parses streak fields gracefully when present', () {
-      final json = {
-        'child_id': 'child-456',
-        'star_balance': 10,
-        'total_xp': 150,
-        'current_streak': 3,
-        'longest_streak': 7,
-        'streak_state': 'recovered',
-        'grace_deadline': '2026-11-14T12:00:00Z',
-        'seconds_until_grace_expires': 7200,
-      };
+    test(
+      'ChildProgress.fromJson parses streak fields gracefully when present',
+      () {
+        final json = {
+          'child_id': 'child-456',
+          'star_balance': 10,
+          'total_xp': 150,
+          'current_streak': 3,
+          'longest_streak': 7,
+          'streak_state': 'recovered',
+          'grace_deadline': '2026-11-14T12:00:00Z',
+          'seconds_until_grace_expires': 7200,
+        };
 
-      final progress = ChildProgress.fromJson(json);
-      expect(progress.childId, 'child-456');
-      expect(progress.currentStreak, 3);
-      expect(progress.longestStreak, 7);
-      expect(progress.streakState, 'recovered');
-      expect(progress.secondsUntilExpiry, 7200);
-      expect(progress.graceDeadline, isNotNull);
-    });
+        final progress = ChildProgress.fromJson(json);
+        expect(progress.childId, 'child-456');
+        expect(progress.currentStreak, 3);
+        expect(progress.longestStreak, 7);
+        expect(progress.streakState, 'recovered');
+        expect(progress.secondsUntilExpiry, 7200);
+        expect(progress.graceDeadline, isNotNull);
+      },
+    );
 
-    test('ChildProgress.fromJson defaults streak_state to active when omitted', () {
-      final json = {
-        'child_id': 'child-789',
-        'star_balance': 0,
-        'total_xp': 0,
-        'current_streak': 0,
-        'longest_streak': 0,
-      };
+    test(
+      'ChildProgress.fromJson defaults streak_state to active when omitted',
+      () {
+        final json = {
+          'child_id': 'child-789',
+          'star_balance': 0,
+          'total_xp': 0,
+          'current_streak': 0,
+          'longest_streak': 0,
+        };
 
-      final progress = ChildProgress.fromJson(json);
-      expect(progress.streakState, 'active');
-      expect(progress.graceDeadline, isNull);
-      expect(progress.secondsUntilExpiry, isNull);
-    });
+        final progress = ChildProgress.fromJson(json);
+        expect(progress.streakState, 'active');
+        expect(progress.graceDeadline, isNull);
+        expect(progress.secondsUntilExpiry, isNull);
+      },
+    );
   });
 
   group('StreakCard widget rendering', () {
-    testWidgets('renders active streak with flame emoji and count', (tester) async {
+    testWidgets('renders active streak with flame emoji and count', (
+      tester,
+    ) async {
       const info = StreakInfo(
         childId: 'c1',
         currentStreak: 4,
@@ -78,9 +86,7 @@ void main() {
 
       await pumpScreen(
         tester,
-        const Scaffold(
-          body: StreakCard(streakInfo: info),
-        ),
+        const Scaffold(body: StreakCard(streakInfo: info)),
         overrides: const [],
       );
 
@@ -90,7 +96,9 @@ void main() {
       expect(find.text('Longest: 10 days'), findsOneWidget);
     });
 
-    testWidgets('renders at_risk state with hourglass and countdown', (tester) async {
+    testWidgets('renders at_risk state with hourglass and countdown', (
+      tester,
+    ) async {
       const info = StreakInfo(
         childId: 'c1',
         currentStreak: 2,
@@ -101,9 +109,7 @@ void main() {
 
       await pumpScreen(
         tester,
-        const Scaffold(
-          body: StreakCard(streakInfo: info),
-        ),
+        const Scaffold(body: StreakCard(streakInfo: info)),
         overrides: const [],
       );
 
@@ -113,29 +119,35 @@ void main() {
       expect(find.textContaining('remaining'), findsOneWidget);
     });
 
-    testWidgets('renders broken state with broken heart and start new message', (tester) async {
-      const info = StreakInfo(
-        childId: 'c1',
-        currentStreak: 0,
-        longestStreak: 3,
-        streakState: 'broken',
-      );
+    testWidgets(
+      'renders broken state with broken heart and start new message',
+      (tester) async {
+        const info = StreakInfo(
+          childId: 'c1',
+          currentStreak: 0,
+          longestStreak: 3,
+          streakState: 'broken',
+        );
 
-      await pumpScreen(
-        tester,
-        const Scaffold(
-          body: StreakCard(streakInfo: info),
-        ),
-        overrides: const [],
-      );
+        await pumpScreen(
+          tester,
+          const Scaffold(body: StreakCard(streakInfo: info)),
+          overrides: const [],
+        );
 
-      expect(find.text('0'), findsOneWidget);
-      expect(find.text('💔'), findsOneWidget);
-      expect(find.text('Streak Broken'), findsOneWidget);
-      expect(find.text('Complete a mission to start your streak!'), findsOneWidget);
-    });
+        expect(find.text('0'), findsOneWidget);
+        expect(find.text('💔'), findsOneWidget);
+        expect(find.text('Streak Broken'), findsOneWidget);
+        expect(
+          find.text('Complete a mission to start your streak!'),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('triggers celebration animation when streak increases', (tester) async {
+    testWidgets('triggers celebration animation when streak increases', (
+      tester,
+    ) async {
       const initial = StreakInfo(
         childId: 'c1',
         currentStreak: 3,
@@ -151,9 +163,7 @@ void main() {
 
       await pumpScreen(
         tester,
-        const Scaffold(
-          body: StreakCard(streakInfo: initial),
-        ),
+        const Scaffold(body: StreakCard(streakInfo: initial)),
         overrides: const [],
       );
 
@@ -162,9 +172,7 @@ void main() {
       // Update widget with incremented streak
       await pumpScreen(
         tester,
-        const Scaffold(
-          body: StreakCard(streakInfo: updated),
-        ),
+        const Scaffold(body: StreakCard(streakInfo: updated)),
         overrides: const [],
       );
 

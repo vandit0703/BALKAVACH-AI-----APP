@@ -36,6 +36,19 @@ def get_current_user(
 	return user
 
 
+def current_session_id(
+	credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> UUID | None:
+	"""The ``sid`` claim of the (already validated) bearer token, if it has one."""
+	if credentials is None:
+		return None
+	sid = decode_access_token(credentials.credentials).get("sid")
+	try:
+		return UUID(str(sid)) if sid else None
+	except ValueError:
+		return None
+
+
 def require_parent(user=Depends(get_current_user)):
 	if user.role != "parent":
 		raise HTTPException(status_code=403, detail="Parent access required")

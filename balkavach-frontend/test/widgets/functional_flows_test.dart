@@ -342,7 +342,7 @@ void main() {
       expect(find.text(_expired), findsNothing);
     });
 
-    testWidgets('leaving child mode requires a parent PIN', (
+    testWidgets('leaving child mode requires parent email and password', (
       tester,
     ) async {
       final h = await Harness.create(
@@ -357,20 +357,24 @@ void main() {
       await _pumpApp(tester, h);
       h.backend.reply(
         'POST',
-        '/api/v1/auth/parent-pin/verify',
+        '/api/v1/auth/parent-mode/enter',
         Fx.token(user: Fx.user(role: 'parent')),
       );
 
       await _tap(tester, find.byKey(const Key('parentGate')));
-      await _tap(tester, find.text('Leave').last);
-      final fields = find.byType(TextField);
-      await tester.enterText(fields.at(0), 'parent@example.com');
-      await tester.enterText(fields.at(1), '1234');
-      await _tap(tester, find.text('Leave').last);
+      await tester.enterText(
+        find.byKey(const Key('parentGate.email')),
+        'parent@example.com',
+      );
+      await tester.enterText(
+        find.byKey(const Key('parentGate.password')),
+        'a-long-parent-password',
+      );
+      await _tap(tester, find.byKey(const Key('parentGate.submit')));
 
       expect((await h.storage.read())?.isParent, isTrue);
       expect(
-        h.backend.requestsTo('POST', '/api/v1/auth/parent-pin/verify'),
+        h.backend.requestsTo('POST', '/api/v1/auth/parent-mode/enter'),
         hasLength(1),
       );
       expect(find.byKey(const Key('role.sessionEnded')), findsNothing);

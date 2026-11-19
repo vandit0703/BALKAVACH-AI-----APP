@@ -22,6 +22,37 @@ from app.services.youtube_review_service import youtube_visibility_clause
 from app.utils import utc_aware, utc_naive
 
 MAX_PROGRESS_INTERVAL_SECONDS = 30
+# Real playback advances the position at about wall-clock speed; a larger jump is a seek.
+POSITION_ADVANCE_TOLERANCE_SECONDS = 2
+
+
+def accepted_progress_seconds(
+	*,
+	elapsed_seconds: float,
+	was_playing: bool,
+	is_playing: bool,
+	previous_position: int,
+	position: int,
+) -> int:
+	"""Seconds to charge for one progress report. The only watch-time rule; the client never supplies it.
+
+	The interval since the previous report is measured by the server clock and capped. An honest
+	"paused" report is free, but the client cannot buy free playback by claiming it is paused while
+	the position keeps advancing at playback speed: in that case the position delta is charged
+	(never more than the elapsed time). A seek is a jump much larger than the elapsed time and is
+	not charged.
+	"""
+	elapsed = min(MAX_PROGRESS_INTERVAL_SECONDS, max(0, int(elapsed_seconds)))
+	if elapsed == 0:
+		return 0
+	if was_playing:
+		return elapsed
+	if is_playing:
+		return 0  # resumed just now; the paused interval is free
+	advanced = position - previous_position
+	if 0 < advanced <= elapsed + POSITION_ADVANCE_TOLERANCE_SECONDS:
+		return min(elapsed, advanced)
+	return 0
 
 
 def _public(history, video) -> dict:
@@ -112,8 +143,10 @@ def record_progress(
 		session.add(history)
 		session.flush()
 		accepted = 0
+		previous_position = 0
 	else:
 		accepted = 0
+		previous_position = int(history.last_position_seconds or 0)
 		history.last_watched_at = now
 		history.parent_replay_authorized = False
 
@@ -147,10 +180,13 @@ def record_progress(
 		previous = daily_usage.last_heartbeat_at or now
 		if previous.tzinfo is not None:
 			previous = utc_naive(previous)
-		accepted = min(
-			MAX_PROGRESS_INTERVAL_SECONDS,
-			max(0, int((now - previous).total_seconds())),
-		) if daily_usage.is_playing else 0
+		accepted = accepted_progress_seconds(
+			elapsed_seconds=(now - previous).total_seconds(),
+			was_playing=bool(daily_usage.is_playing),
+			is_playing=is_playing,
+			previous_position=previous_position,
+			position=position_seconds,
+		)
 		daily_usage.last_heartbeat_at = now
 		daily_usage.is_playing = is_playing
 	accepted = min(accepted, allowance["remaining_seconds"])

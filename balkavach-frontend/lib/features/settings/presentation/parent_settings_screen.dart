@@ -15,11 +15,11 @@ import '../../../shared/widgets/brand_header.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/illustration.dart';
 import '../../../shared/widgets/state_views.dart';
-import '../../authentication/data/auth_repository.dart';
 import '../../authentication/presentation/session_controller.dart';
 import '../../child_profile/domain/family_models.dart';
 import '../../child_profile/presentation/family_providers.dart';
 import '../../onboarding/presentation/onboarding_controller.dart';
+import '../../sharing/presentation/invite_screen.dart';
 import '../data/settings_repository.dart';
 import 'settings_providers.dart';
 
@@ -29,7 +29,7 @@ const languageNames = {'en': 'English', 'gu': 'ગુજરાતી', 'hi': '�
 ///
 /// Shows only controls the backend supports: account and family details,
 /// linked children, notification preferences (`/settings/me`), app language
-/// and consent records. Parent PIN, screen-time / bedtime locks, data export
+/// and consent records. Screen-time / bedtime locks, data export
 /// and family deletion have no API yet and are not shown.
 class ParentSettingsScreen extends ConsumerWidget {
   const ParentSettingsScreen({super.key});
@@ -70,13 +70,26 @@ class ParentSettingsScreen extends ConsumerWidget {
               trailing: Chip(label: Text(l10n.settingsAlwaysOn)),
             ),
           ),
-          const _ParentPinCard(),
           _SectionTitle(
             title: l10n.settingsPreferences,
             icon: Icons.tune_rounded,
           ),
           _PreferencesCard(familyId: family?.id),
           const _SafetyCard(),
+          AppCard(
+            key: const Key('settings.invite'),
+            onTap: () => Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(builder: (_) => const InviteScreen()),
+            ),
+            child: _InfoRow(
+              icon: Icons.group_add_rounded,
+              tint: context.colors.primaryContainer,
+              iconColor: context.colors.onPrimaryContainer,
+              title: l10n.inviteTitle,
+              subtitle: l10n.settingsInviteSubtitle,
+              trailing: const Icon(Icons.chevron_right_rounded),
+            ),
+          ),
           if (family != null) _PrivacyCard(familyId: family.id),
           SecondaryButton(
             key: const Key('settings.logout'),
@@ -480,72 +493,6 @@ class _PreferencesCard extends ConsumerWidget {
             _ => const LoadingView(),
           },
         ],
-      ),
-    );
-  }
-}
-
-class _ParentPinCard extends ConsumerWidget {
-  const _ParentPinCard();
-
-  Future<void> _setPin(BuildContext context, WidgetRef ref) async {
-    final l10n = AppLocalizations.of(context);
-    final controller = TextEditingController();
-    try {
-      final pin = await showDialog<String>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(l10n.parentGate),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            obscureText: true,
-            maxLength: 8,
-            decoration: InputDecoration(labelText: l10n.authPassword),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l10n.parentGateStay),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, controller.text),
-              child: Text(l10n.parentGateLeave),
-            ),
-          ],
-        ),
-      );
-      if (pin == null || !context.mounted) return;
-      await ref.read(authRepositoryProvider).setParentPin(pin);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.parentGate)),
-        );
-      }
-    } on ApiException catch (error) {
-      if (context.mounted) showErrorSnackBar(context, error);
-    } finally {
-      controller.dispose();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    return AppCard(
-      child: _InfoRow(
-        icon: Icons.pin_rounded,
-        tint: context.colors.surfaceContainerHigh,
-        iconColor: context.colors.primary,
-        title: l10n.parentGate,
-        subtitle: l10n.parentGateBody,
-        trailing: SecondaryButton(
-          key: const Key('settings.parentPin'),
-          dense: true,
-          label: l10n.parentGateLeave,
-          onPressed: () => _setPin(context, ref),
-        ),
       ),
     );
   }

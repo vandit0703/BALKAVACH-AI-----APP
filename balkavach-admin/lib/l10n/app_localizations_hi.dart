@@ -205,6 +205,10 @@ class AppLocalizationsHi extends AppLocalizations {
       'सबसे छोटी उम्र सबसे बड़ी उम्र से अधिक नहीं हो सकती।';
 
   @override
+  String get errorTemplateIncomplete =>
+      'इस मिशन के कुछ संस्करण अनुपलब्ध हैं। कौन-सी आयु और भाषा अनुपलब्ध है, यह देखने के लिए \'संस्करण देखें\' खोलें।';
+
+  @override
   String get errorTooManyRequests =>
       'बहुत ज़्यादा अनुरोध हुए। कृपया थोड़ी देर रुककर फिर कोशिश करें।';
 
@@ -743,6 +747,100 @@ class AppLocalizationsHi extends AppLocalizations {
   String get missionReactivated => 'मिशन फिर सक्रिय किया गया';
 
   @override
+  String get missionCatalogComplete => 'सभी 9 आयु और भाषा संस्करण मौजूद हैं';
+
+  @override
+  String missionCatalogMissing(int count, String list) {
+    return '9 में से $count संस्करण अनुपलब्ध: $list';
+  }
+
+  @override
+  String missionCatalogCannotPublish(String list) {
+    return 'अभी प्रकाशित नहीं किया जा सकता। अनुपलब्ध: $list';
+  }
+
+  @override
+  String get missionCatalogViewVersions => 'संस्करण देखें';
+
+  @override
+  String get missionCatalogPreview =>
+      'पूर्वावलोकन (बच्चा और समीक्षा करने वाले अभिभावक क्या देखते हैं)';
+
+  @override
+  String get missionCatalogVersionMissing => 'अनुपलब्ध';
+
+  @override
+  String missionCatalogAges(String range) {
+    return 'आयु $range';
+  }
+
+  @override
+  String missionCatalogMinutes(int count) {
+    return '$count मिनट';
+  }
+
+  @override
+  String missionCatalogMaterials(String items) {
+    return 'सामग्री: $items';
+  }
+
+  @override
+  String missionCatalogSafety(String text) {
+    return 'सुरक्षा: $text';
+  }
+
+  @override
+  String get missionHealthTitle => 'रोटेशन क्षमता';
+
+  @override
+  String missionHealthTheme(
+    String theme,
+    int eligible,
+    int published,
+    int total,
+  ) {
+    return '$theme: $eligible पात्र, $published प्रकाशित, कुल $total';
+  }
+
+  @override
+  String missionHealthLow(int min, int shortfall) {
+    return '$min से कम पात्र टेम्पलेट: मिशन दोहराए जाएँगे (और $shortfall प्रकाशित करें)';
+  }
+
+  @override
+  String get missionHealthOk => 'रोटेशन के लिए पर्याप्त टेम्पलेट हैं';
+
+  @override
+  String missionHealthActivities(int distinct, int needed) {
+    return '$needed में से $distinct गतिविधियाँ अलग होने की पुष्टि हुई';
+  }
+
+  @override
+  String missionHealthActivitiesUnchecked(int count) {
+    return '$count टेम्पलेट कैटलॉग स्रोत में नहीं हैं, इसलिए उनकी गतिविधि जाँची नहीं जा सकती';
+  }
+
+  @override
+  String missionHealthTotals(
+    int published,
+    int unpublished,
+    int incomplete,
+    int total,
+  ) {
+    return 'कुल $total टेम्पलेट में से $published प्रकाशित, $unpublished अप्रकाशित, $incomplete अधूरे';
+  }
+
+  @override
+  String missionHealthFallbacks(int count, int days) {
+    return 'पिछले $days दिनों में $count कूलडाउन फ़ॉलबैक';
+  }
+
+  @override
+  String missionCatalogShown(int count) {
+    return '$count बार दिखाया गया';
+  }
+
+  @override
   String get categoriesTitle => 'मिशन की श्रेणियाँ';
 
   @override
@@ -1161,4 +1259,77 @@ class AppLocalizationsHi extends AppLocalizations {
   String youtubeFreshness(String oldest, String hours, String stale) {
     return 'सबसे पुराना सत्यापन: $oldest · $hours घंटे की सीमा पार कर चुके स्वीकृत वीडियो (बच्चों से छिपे): $stale';
   }
+
+  @override
+  String get youtubeChannelAll => 'सभी';
+
+  @override
+  String get youtubeChannelDetails => 'चैनल का विवरण';
+
+  @override
+  String get youtubeChannelCounts => 'मिले वीडियो';
+
+  @override
+  String get youtubeChannelDisc => 'खोजे गए';
+
+  @override
+  String get youtubeChannelAppr => 'स्वीकृत';
+
+  @override
+  String get youtubeChannelPend => 'समीक्षा की प्रतीक्षा में';
+
+  @override
+  String get youtubeChannelQuar => 'क्वारंटीन';
+
+  @override
+  String get youtubeChannelRej => 'अस्वीकृत';
+
+  @override
+  String get youtubeChannelShorts => 'लाइव शॉर्ट्स';
+
+  @override
+  String get youtubeChannelReg => 'लाइव वीडियो';
+
+  @override
+  String get youtubeChannelLastDisc => 'पिछली खोज';
+
+  @override
+  String get youtubeChannelLastVer => 'पिछली दोबारा जाँच';
+
+  @override
+  String get youtubeChannelHist => 'इतिहास';
+
+  @override
+  String get youtubeChannelNoHist => 'अभी कोई बदलाव दर्ज नहीं है।';
+
+  @override
+  String get youtubeChannelEvT => 'चैनल को भरोसेमंद बनाया गया';
+
+  @override
+  String get youtubeChannelEvU => 'चैनल का भरोसा हटाया गया';
+
+  @override
+  String get youtubeChannelFail => 'चैनल का विवरण लोड नहीं हो सका।';
+
+  @override
+  String get youtubeChannelNote =>
+      'चैनल को हटाए बिना रोकना और सिंक स्थिति की सुविधा योजना में है और इसके लिए सर्वर अपडेट चाहिए।';
+
+  @override
+  String get youtubeChannelAge => 'आयु';
+
+  @override
+  String get youtubeChannelLang => 'भाषा';
+
+  @override
+  String get youtubeChannelRights => 'अधिकार';
+
+  @override
+  String get youtubeChannelNever => 'कभी नहीं';
+
+  @override
+  String get youtubeChannelActive => 'सक्रिय';
+
+  @override
+  String get youtubeChannelRemoved => 'हटाए गए';
 }

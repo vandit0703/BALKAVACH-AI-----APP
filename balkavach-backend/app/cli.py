@@ -421,6 +421,51 @@ def _youtube_discovery_actor(session: Session, actor_id):
 	return actor
 
 
+def _catalogue_missions():
+	from app.content.daily_missions import MISSIONS
+
+	return list(MISSIONS)
+
+
+def _seed_daily_missions(session_factory, *, apply: bool, publish: bool, retire: bool) -> int:
+	"""Validate the localized catalogue and, only with ``apply``, add what is missing (never edits or deletes)."""
+	from app.services.mission_catalogue_service import (
+		apply_catalogue,
+		catalogue_summary,
+		retire_placeholders,
+		validate_catalogue,
+	)
+
+	missions = _catalogue_missions()
+	problems = validate_catalogue(missions)
+	if problems:
+		print("Catalogue is invalid; nothing was written:", file=sys.stderr)
+		for problem in problems[:20]:
+			print(f"  - {problem}", file=sys.stderr)
+		return 1
+	summary = catalogue_summary(missions)
+	print(f"Catalogue valid: {summary['templates']} templates, {summary['variations']} variations (en/gu/hi x 3 age bands).")
+	if not apply:
+		print("Dry run: nothing was written. Re-run with --apply to add missing rows (unpublished unless --publish).")
+		return 0
+	try:
+		with session_factory() as session:
+			report = apply_catalogue(session, missions, publish=publish)
+			if retire:
+				retired = retire_placeholders(session)
+				report["unpublished"] = len(retired["unpublished"])
+				report["kept_edited"] = len(retired["kept_edited"])
+			session.commit()
+	except SQLAlchemyError:
+		print("Database operation failed; nothing was committed.", file=sys.stderr)
+		return 2
+	differing = report.pop("variations_differing")
+	print(", ".join(f"{key}={value}" for key, value in report.items()))
+	if differing:
+		print(f"{len(differing)} existing variations differ from the catalogue and were left unchanged: {', '.join(differing[:5])}")
+	return 0
+
+
 def main(argv: list[str] | None = None) -> int:
 	parser = argparse.ArgumentParser(prog="python -m app.cli")
 	commands = parser.add_subparsers(dest="command", required=True)
@@ -448,7 +493,32 @@ def main(argv: list[str] | None = None) -> int:
 	auto.add_argument("--limit", type=int, default=100, choices=range(1, 201), metavar="1-200")
 	commands.add_parser("youtube-report", help="Read-only report of YouTube review statuses and reasons")
 	commands.add_parser("streak-check", help="Check and update daily streak states and deliver notifications")
+	seed = commands.add_parser(
+		"seed-daily-missions",
+		help="Validate the localized daily-mission catalogue; with --apply, add missing templates/variations",
+	)
+	seed.add_argument("--apply", action="store_true", help="Write to the configured database (default: dry run)")
+	seed.add_argument("--publish", action="store_true", help="Publish the templates created by this run (needs --apply)")
+	seed.add_argument(
+		"--retire-placeholders",
+		action="store_true",
+		help="Unpublish the original placeholder templates that were never edited (needs --apply; deletes nothing)",
+	)
 	args = parser.parse_args(argv)
+
+	if args.command == "seed-daily-missions":
+		if (args.publish or args.retire_placeholders) and not args.apply:
+			parser.error("--publish and --retire-placeholders need --apply")
+		factory = None
+		if args.apply:
+			from app.db.session import SessionLocal as factory
+
+			if factory is None:
+				print("DATABASE_URL is not configured", file=sys.stderr)
+				return 2
+		return _seed_daily_missions(
+			factory, apply=args.apply, publish=args.publish, retire=args.retire_placeholders
+		)
 
 	from app.db.session import SessionLocal
 

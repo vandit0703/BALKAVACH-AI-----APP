@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
-from hashlib import sha256
 from typing import Any
 from uuid import UUID
+
+import logging
 
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import APIError
 from app.db.base import get_model
+from app.services.mission_rotation_service import POLICY, Candidate, load_child_history, rank_candidates
 from app.services.timezone_service import family_timezone_name, local_today
 from app.utils import utc_naive
+
+logger = logging.getLogger(__name__)
 
 THEMES_BY_WEEKDAY = {
     0: "monday_sound_detective",
@@ -21,6 +25,7 @@ THEMES_BY_WEEKDAY = {
     5: "saturday_rhythm_rockstar",
     6: "sunday_future_inventor",
 }
+MAX_SKIPS_PER_DAY = 2  # roadmap Phase 2: a bounded re-roll, never an endless one
 REQUIRED_AGE_BANDS = ("4_6", "7_10", "11_15")
 REQUIRED_LOCALES = ("en", "gu", "hi")
 
@@ -95,35 +100,40 @@ def _pick_variation(session: Session, template_id: UUID, age_band: str, locales:
     return min(rows, key=lambda row: locales.index(row.locale)) if rows else None
 
 
-def _candidate_templates(session: Session, child, age_band: str, local_date: date):
+def _eligible_templates(session: Session, age_band: str, locales: list[str]):
+    """Published templates that have a variation for this age band in one of the child's languages.
+
+    (A template missing the age band, or a translation, simply is not offered; the admin catalogue health view
+    reports incomplete templates.)"""
     Template = get_model("DailyMissionTemplate")
-    Assignment = get_model("DailyMissionAssignment")
-    completed_ids = {
-        template_id
-        for (template_id,) in session.query(Assignment.template_id)
-        .filter(Assignment.child_id == child.id, Assignment.status == "approved")
-        .all()
-    }
-    theme = THEMES_BY_WEEKDAY[local_date.weekday()]
-    rows = (
+    Variation = get_model("DailyMissionVariation")
+    with_variation = (
+        session.query(Variation.template_id)
+        .filter(Variation.age_band == age_band, Variation.locale.in_(locales))
+        .distinct()
+    )
+    return (
         session.query(Template)
-        .filter(Template.is_published.is_(True), ~Template.id.in_(completed_ids or {UUID(int=0)}))
+        .filter(Template.is_published.is_(True), Template.id.in_(with_variation))
         .all()
     )
-    theme_rows = [row for row in rows if row.theme == theme]
-    surprise = [row for row in rows if row.is_surprise]
-    seed = f"{child.id}:{local_date.isoformat()}".encode()
-    rows.sort(key=lambda row: sha256(seed + str(row.id).encode()).hexdigest())
-    theme_rows.sort(key=lambda row: sha256(seed + str(row.id).encode()).hexdigest())
-    choices = []
-    if surprise:
-        choices.append(surprise[0])
-    for row in theme_rows + rows:
-        if row not in choices:
-            choices.append(row)
-        if len(choices) == 3:
-            break
-    return choices[:3]
+
+
+def _choose_templates(session: Session, child, age_band: str, locales: list[str], local_date: date, current, needed: int):
+    """The templates to fill ``needed`` free slots, with how each was chosen (see ``mission_rotation_service``)."""
+    templates = {row.id: row for row in _eligible_templates(session, age_band, locales)}
+    candidates = [Candidate(id=row.id, theme=row.theme, is_surprise=bool(row.is_surprise)) for row in templates.values()]
+    history = load_child_history(session, child.id, local_date)
+    picks = rank_candidates(
+        candidates,
+        history,
+        local_date,
+        THEMES_BY_WEEKDAY[local_date.weekday()],
+        f"{child.id}:{local_date.isoformat()}",
+        used_themes={(row.snapshot or {}).get("theme") for row in current},
+        limit=needed,
+    )
+    return [(templates[pick.candidate.id], pick) for pick in picks], len(candidates)
 
 
 def ensure_daily_choices(session: Session, child, now_utc: datetime | None = None):
@@ -138,6 +148,8 @@ def ensure_daily_choices(session: Session, child, now_utc: datetime | None = Non
     ChildProfile = get_model("ChildProfile")
     locked_child = session.query(ChildProfile).filter(ChildProfile.id == child.id).with_for_update().one()
     Assignment = get_model("DailyMissionAssignment")
+    # SessionLocal has autoflush off: make pending changes (e.g. a skipped row) visible to the queries below.
+    session.flush()
     current = (
         session.query(Assignment)
         .filter(Assignment.child_id == locked_child.id, Assignment.local_date == local_date, Assignment.is_current.is_(True))
@@ -148,35 +160,30 @@ def ensure_daily_choices(session: Session, child, now_utc: datetime | None = Non
         return local_date, age_band, current
 
     locales = _child_language(session, locked_child)
-    issued_template_ids = {
-        template_id
-        for (template_id,) in session.query(Assignment.template_id).filter(
-            Assignment.child_id == locked_child.id,
-            Assignment.local_date == local_date,
-        ).all()
-    }
-    existing_template_ids = set(issued_template_ids)
-    for slot, template in enumerate(_candidate_templates(session, locked_child, age_band, local_date), start=1):
-        if slot in {row.choice_slot for row in current} or template.id in existing_template_ids:
-            continue
+    free_slots = [slot for slot in (1, 2, 3) if slot not in {row.choice_slot for row in current}]
+    chosen, eligible = _choose_templates(session, locked_child, age_band, locales, local_date, current, len(free_slots))
+    for template, pick in chosen:
         variation = _pick_variation(session, template.id, age_band, locales)
-        if variation is None:
-            continue
+        snapshot = _snapshot(template, variation)
+        snapshot["rotation"] = {
+            "policy": POLICY,
+            "tier": "cooldown_fallback" if pick.tier else "fresh",
+            "last_shown": pick.last_shown.isoformat() if pick.last_shown else None,
+        }
         session.add(
             Assignment(
                 child_id=locked_child.id,
                 family_id=locked_child.family_id,
                 local_date=local_date,
-                choice_slot=slot,
+                choice_slot=free_slots.pop(0),
                 age_band=age_band,
                 template_id=template.id,
                 variation_id=variation.id,
                 status="available",
                 is_current=True,
-                snapshot=_snapshot(template, variation),
+                snapshot=snapshot,
             )
         )
-        existing_template_ids.add(template.id)
     session.flush()
     current = (
         session.query(Assignment)
@@ -185,8 +192,29 @@ def ensure_daily_choices(session: Session, child, now_utc: datetime | None = Non
         .all()
     )
     if len(current) != 3:
-        raise APIError(503, "daily_missions_unavailable", "No complete daily mission set is published")
+        logger.error(
+            "daily missions unavailable: child=%s age_band=%s eligible_published_templates=%s (publish more missions)",
+            locked_child.id,
+            age_band,
+            eligible,
+        )
+        raise APIError(
+            503,
+            "daily_missions_unavailable",
+            "There are not enough published missions for today. An administrator needs to publish more.",
+            details={"eligible": eligible, "age_band": age_band},
+        )
     return local_date, age_band, current
+
+
+def task_description(snapshot: dict[str, Any]) -> str:
+    """The text of the Task created when a mission is chosen (what the child reads and the parent reviews).
+
+    The completion criteria, whose last line is the parent's check, are included so the approving parent
+    sees what to verify; the admin preview uses the same function."""
+    return "\n\n".join(
+        part for part in (snapshot["description"], snapshot["instructions"], snapshot.get("completion_criteria")) if part
+    )
 
 
 def select_assignment(session: Session, child, assignment_id: UUID):
@@ -221,7 +249,7 @@ def select_assignment(session: Session, child, assignment_id: UUID):
         created_by=child.user_id,
         assigned_child_id=child.id,
         title=assignment.snapshot["title"],
-        description=(assignment.snapshot["description"] + "\n\n" + assignment.snapshot["instructions"]),
+        description=task_description(assignment.snapshot),
         star_reward=assignment.snapshot["star_reward"],
         xp_reward=assignment.snapshot["xp_reward"],
         is_custom=False,
@@ -248,7 +276,7 @@ def start_assignment(session: Session, child, assignment_id: UUID):
     return row
 
 
-def skip_assignment(session: Session, child, assignment_id: UUID):
+def skip_assignment(session: Session, child, assignment_id: UUID, now_utc: datetime | None = None):
     Assignment = get_model("DailyMissionAssignment")
     row = session.query(Assignment).filter(
         Assignment.id == assignment_id,
@@ -258,6 +286,13 @@ def skip_assignment(session: Session, child, assignment_id: UUID):
     ).with_for_update().one_or_none()
     if row is None:
         raise APIError(409, "daily_mission_cannot_skip", "This mission cannot be skipped while it is awaiting review or already approved")
+    skipped_today = (
+        session.query(Assignment.id)
+        .filter(Assignment.child_id == child.id, Assignment.local_date == row.local_date, Assignment.status == "skipped")
+        .count()
+    )
+    if skipped_today >= MAX_SKIPS_PER_DAY:
+        raise APIError(409, "daily_skip_limit", "You have used all of today's skips")
     if row.task_id is not None:
         TaskSubmission = get_model("TaskSubmission")
         if session.query(TaskSubmission.id).filter(
@@ -270,9 +305,32 @@ def skip_assignment(session: Session, child, assignment_id: UUID):
         session.query(Task).filter(Task.id == row.task_id).update({"is_active": False})
     row.status = "skipped"
     row.is_current = False
-    row.skipped_at = utc_naive(_now())
-    local_date, age_band, choices = ensure_daily_choices(session, child)
+    row.skipped_at = utc_naive(now_utc or _now())
+    try:
+        local_date, age_band, choices = ensure_daily_choices(session, child, now_utc)
+    except APIError as error:
+        if error.code == "daily_missions_unavailable":
+            # The request is abandoned (nothing is committed), so the mission stays where it was.
+            raise APIError(409, "daily_mission_no_replacement", "There is no other mission to swap in today") from error
+        raise
     return row, choices
+
+
+# How a day with several rows (a skipped mission and its replacement) is shown: the furthest-along one wins.
+_DAY_STATUS_RANK = {
+    "approved": 6,
+    "pending_parent_approval": 5,
+    "rejected": 4,
+    "in_progress": 3,
+    "selected": 2,
+    "available": 1,
+    "skipped": 0,
+}
+
+
+def _day_status(day_rows) -> str:
+    current = [row for row in day_rows if row.is_current] or day_rows
+    return max(current, key=lambda row: _DAY_STATUS_RANK.get(row.status, 0)).status
 
 
 def weekly_summary(session: Session, child, now_utc: datetime | None = None):
@@ -289,11 +347,5 @@ def weekly_summary(session: Session, child, now_utc: datetime | None = None):
         "approved_xp": sum(int(row.snapshot.get("xp_reward", 0)) for row in approved),
         "approved_stars": sum(int(row.snapshot.get("star_reward", 0)) for row in approved),
         "skipped_count": sum(row.status == "skipped" for row in rows),
-        "daily_status": {
-            local_date.isoformat(): status
-            for local_date, status in (
-                (day, next(row.status for row in reversed(rows) if row.local_date == day))
-                for day in {row.local_date for row in rows}
-            )
-        },
+        "daily_status": {day.isoformat(): _day_status([row for row in rows if row.local_date == day]) for day in {row.local_date for row in rows}},
     }

@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/errors/api_exception.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -15,11 +14,12 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/models/app_assets.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/playable_video.dart';
+import '../data/playback_guard.dart';
 import '../data/video_feed_repository.dart';
 import '../data/video_playback_controller.dart';
+import 'video_lock_screen.dart';
 import 'video_player_screen.dart' show formatPlaybackTime;
 import 'widgets/video_actions.dart';
-import 'widgets/video_time_exhausted_dialog.dart';
 import 'youtube_player_screen.dart';
 
 /// Colours of the full-bleed Shorts surface: a black video stage, brand
@@ -88,6 +88,12 @@ class _ShortsFeedState extends ConsumerState<ShortsFeed> {
   @override
   void initState() {
     super.initState();
+    unawaited(
+      SystemChrome.setPreferredOrientations(const [
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]),
+    );
     final launch = widget.launch;
     _pager = VideoFeedPager(
       ref.read(videoFeedRepositoryProvider),
@@ -120,6 +126,9 @@ class _ShortsFeedState extends ConsumerState<ShortsFeed> {
 
   @override
   void dispose() {
+    // Shorts are portrait only while they are open; give the phone back its
+    // normal rotation (the rest of the app is never locked).
+    unawaited(SystemChrome.setPreferredOrientations(const []));
     _pager
       ..removeListener(_changed)
       ..dispose();
@@ -129,7 +138,10 @@ class _ShortsFeedState extends ConsumerState<ShortsFeed> {
   @override
   Widget build(BuildContext context) {
     final items = _pager.items;
-    _remainingSeconds ??= ref.watch(videoAllowanceProvider).value?.remainingSeconds;
+    _remainingSeconds ??= ref
+        .watch(videoAllowanceProvider)
+        .value
+        ?.remainingSeconds;
     final ended =
         _pager.status == PagerStatus.done || _pager.status == PagerStatus.error;
     if (items.isEmpty) {
@@ -154,8 +166,8 @@ class _ShortsFeedState extends ConsumerState<ShortsFeed> {
       onToggleMute: () => setState(() => _muted = !_muted),
       onBack: widget.onBack,
       loadingMore: _pager.status == PagerStatus.loading,
-        remainingSeconds: _remainingSeconds,
-        onAllowanceChanged: (seconds) =>
+      remainingSeconds: _remainingSeconds,
+      onAllowanceChanged: (seconds) =>
           setState(() => _remainingSeconds = seconds),
       trailing: ended ? _endPage(context) : null,
       onPageChanged: (index) {
@@ -466,6 +478,10 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
   bool _failed = false;
   bool _allowanceExhausted = false;
 
+  /// Reports kept failing: this page stops playing until the server answers.
+  bool _offline = false;
+  PlaybackGuard get _guard => ref.read(playbackGuardProvider);
+
   /// YouTube refused to embed this video: retrying will not help.
   bool _blocked = false;
 
@@ -503,6 +519,17 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
         isPlaying: false,
       );
       unawaited(controller.pause());
+    } else if (state == AppLifecycleState.resumed &&
+        widget.active &&
+        !_allowanceExhausted) {
+      // Ask the server again (a paused report is free) so a lock that
+      // happened while the app was away shows.
+      _recordWatchProgress(
+        _lastPosition,
+        force: true,
+        allowInactive: true,
+        isPlaying: false,
+      );
     }
   }
 
@@ -627,11 +654,7 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
     if (_controller?.isInitialised != true) return;
     setState(() => _userPaused = !_userPaused);
     _applyPlayback();
-    _recordWatchProgress(
-      _lastPosition,
-      force: true,
-      isPlaying: !_userPaused,
-    );
+    _recordWatchProgress(_lastPosition, force: true, isPlaying: !_userPaused);
   }
 
   @override
@@ -671,6 +694,7 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
           widget.prepare &&
           !_failed &&
           !_allowanceExhausted &&
+          !_offline &&
           !_blocked) {
         // The official player fills everything below the top bar. YouTube
         // draws its own title bar at the top of the player, so the player
@@ -769,7 +793,7 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
     final videoId = widget.video.reportVideoId;
     final now = DateTime.now();
     if ((!widget.active && !allowInactive) ||
-      (!widget.foreground && !allowInactive) ||
+        (!widget.foreground && !allowInactive) ||
         videoId == null ||
         (!force &&
             now.difference(_lastProgressSentAt) <
@@ -778,35 +802,63 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
     }
     _lastProgressSentAt = now;
     unawaited(
-      ref
-          .read(videoFeedRepositoryProvider)
-          .recordProgress(
-            videoId,
-            position.inSeconds,
-            isPlaying: isPlaying,
+      _guard
+          .report(
+            () => ref
+                .read(videoFeedRepositoryProvider)
+                .recordProgress(
+                  videoId,
+                  position.inSeconds,
+                  isPlaying: isPlaying,
+                ),
           )
-          .then((data) {
-            final remaining = data?['remaining_allowance_seconds'];
-            if (remaining is num) {
-              widget.onAllowanceChanged?.call(remaining.toInt());
-            }
-            if (data != null && data['is_exhausted'] == true) {
-              _stopForExhaustedAllowance();
-            }
-          })
-          .catchError((Object error) {
-            if (error is ForbiddenException) {
-              _stopForExhaustedAllowance();
-            }
-          }),
+          .then(_apply),
     );
+  }
+
+  void _apply(PlaybackReport report) {
+    if (!mounted) return;
+    final remaining = report.remainingSeconds;
+    if (remaining != null) widget.onAllowanceChanged?.call(remaining);
+    switch (report.verdict) {
+      case PlaybackVerdict.ok:
+        break;
+      case PlaybackVerdict.exhausted:
+        _stopForExhaustedAllowance();
+      case PlaybackVerdict.offline:
+      case PlaybackVerdict.signedOut:
+        if (_offline) break;
+        unawaited(_controller?.pause());
+        setState(() => _offline = true);
+    }
+  }
+
+  Future<void> _retryOnline() async {
+    final videoId = widget.video.reportVideoId;
+    if (videoId == null) return;
+    final report = await _guard.report(
+      () => ref
+          .read(videoFeedRepositoryProvider)
+          .recordProgress(videoId, _lastPosition.inSeconds, isPlaying: false),
+    );
+    if (!mounted) return;
+    if (report.verdict == PlaybackVerdict.ok) {
+      setState(() {
+        _offline = false;
+        _attempt++;
+      });
+    } else {
+      _apply(report);
+    }
   }
 
   void _stopForExhaustedAllowance() {
     if (!mounted || _allowanceExhausted) return;
-    _controller?.pause();
+    unawaited(_controller?.pause());
     setState(() => _allowanceExhausted = true);
-    showVideoTimeExhaustedDialog(context);
+    // Only the page the child is on opens the lock page (a page swiped away
+    // a moment ago must not stack a second one).
+    if (widget.active) unawaited(showVideoLockScreen(context));
   }
 
   /// The picture when no web view is on screen: a still, a message, or a
@@ -827,6 +879,15 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
               : l10n.learnNotReady,
         );
       case YouTubeVideoSource():
+        if (_offline && !_allowanceExhausted) {
+          return _StageMessage(
+            key: const Key('videos.shorts.offline'),
+            background: still,
+            icon: Icons.wifi_off_rounded,
+            message: l10n.videoOfflinePaused,
+            onRetry: _retryOnline,
+          );
+        }
         if (_allowanceExhausted) {
           return _StageMessage(
             key: const Key('videos.shorts.allowanceExhausted'),

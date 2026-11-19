@@ -302,6 +302,26 @@ abstract final class Fx {
     'created_at': '2026-10-12T09:00:00Z',
   };
 
+  /// `GET /api/v1/video-access/allowance`. Defaults to 15 minutes remaining.
+  static Map<String, Object?> allowance({
+    int remaining = 900,
+    int earned = 900,
+    int consumed = 0,
+    int cap = 4500,
+    int active = 1,
+  }) => {
+    'child_id': childId,
+    'family_id': 'family-1',
+    'local_date': '2026-11-19',
+    'timezone': 'UTC',
+    'total_earned_today_seconds': earned,
+    'consumed_today_seconds': consumed,
+    'remaining_seconds': remaining,
+    'daily_cap_seconds': cap,
+    'is_exhausted': remaining <= 0,
+    'active_entitlements_count': active,
+  };
+
   static Session parentSession() => Session.fromTokenResponse(token());
 
   static Session childSession() =>

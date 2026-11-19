@@ -23,6 +23,11 @@ logger = logging.getLogger(__name__)
 _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="push")
 
 GENERIC_TEXT: dict[str, dict[str, tuple[str, str]]] = {
+	"parent_mode_locked": {
+		"en": ("Parent sign-in locked", "Several incorrect parent sign-in attempts were made on a child's device."),
+		"hi": ("पैरेंट साइन-इन लॉक", "बच्चे के डिवाइस पर पैरेंट साइन-इन के कई गलत प्रयास हुए।"),
+		"gu": ("પેરેન્ટ સાઇન-ઇન લૉક", "બાળકના ડિવાઇસ પર પેરેન્ટ સાઇન-ઇનના ઘણા ખોટા પ્રયાસો થયા."),
+	},
 	"task_assigned": {
 		"en": ("New mission", "You have a new mission."),
 		"hi": ("नया मिशन", "आपके लिए एक नया मिशन है।"),

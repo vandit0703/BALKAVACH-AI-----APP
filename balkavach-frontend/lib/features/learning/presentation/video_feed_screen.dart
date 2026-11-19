@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +14,7 @@ import '../../../shared/widgets/lazy_list_page.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/video_feed_repository.dart';
 import 'shorts_feed.dart';
+import 'video_lock_screen.dart';
 import 'video_player_screen.dart' show formatPlaybackTime;
 
 export 'shorts_feed.dart' show ShortsFeed, ShortsFeedScreen;
@@ -154,13 +157,13 @@ class _FeedTabState extends ConsumerState<_FeedTab>
   }
 }
 
-class _VideoCard extends StatelessWidget {
+class _VideoCard extends ConsumerWidget {
   const _VideoCard({required this.video});
 
   final FeedVideo video;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
     final url = video.thumbnailUrl;
     final placeholder = Icon(
@@ -175,7 +178,13 @@ class _VideoCard extends StatelessWidget {
       // Only YouTube items are playable here; hosted videos still require the
       // authorised playback-session API and are not opened from this list.
       onTap: video.isYouTube
-          ? () => context.push(AppRoutes.childVideoPlay, extra: video)
+          ? () async {
+              if (!await ensureVideoAllowance(context, ref) ||
+                  !context.mounted) {
+                return;
+              }
+              unawaited(context.push(AppRoutes.childVideoPlay, extra: video));
+            }
           : null,
       child: Row(
         children: [

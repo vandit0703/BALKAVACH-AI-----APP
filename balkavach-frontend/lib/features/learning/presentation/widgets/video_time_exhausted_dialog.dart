@@ -15,9 +15,7 @@ Future<void> showVideoTimeExhaustedDialog(BuildContext context) async {
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) => AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       icon: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
@@ -35,10 +33,7 @@ Future<void> showVideoTimeExhaustedDialog(BuildContext context) async {
         textAlign: TextAlign.center,
         style: const TextStyle(fontWeight: FontWeight.bold),
       ),
-      content: Text(
-        l10n.videoTimeExhaustedBody,
-        textAlign: TextAlign.center,
-      ),
+      content: Text(l10n.videoTimeExhaustedBody, textAlign: TextAlign.center),
       actionsAlignment: MainAxisAlignment.center,
       actionsOverflowButtonSpacing: AppSpacing.sm,
       actions: [

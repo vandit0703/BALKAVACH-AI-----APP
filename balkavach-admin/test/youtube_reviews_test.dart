@@ -58,82 +58,87 @@ Map<String, Object?> _trustedChannel({bool active = true}) => {
 };
 
 void main() {
-  testWidgets('admin discovers a channel and trusts it for automatic discovery', (
-    tester,
-  ) async {
-    final server = baseServer()
-      ..reply('GET', '/api/v1/admin/videos/youtube/channels', <Object?>[])
-      ..reply('GET', '/api/v1/admin/videos/youtube/reviews', [_review()])
-      ..reply('GET', '/api/v1/admin/videos/youtube/channels/discover', [
-        {
-          'channel_id': _channelId,
-          'channel_title': 'Science channel',
-          'thumbnail_url': 'https://yt3.ggpht.com/channel.png',
-          'is_trusted': false,
-        },
-      ])
-      ..reply('POST', '/api/v1/admin/videos/youtube/channels/trust', {
-        ..._trustedChannel(),
-        'initial_discovery': {
-          'created': 2,
-          'automatically_published': 1,
-          'pending_review': 1,
-          'quarantined': 0,
-          'unavailable': 0,
-          'channels_pending_initial_scan': 1,
-        },
+  channelTests();
+  testWidgets(
+    'admin discovers a channel and trusts it for automatic discovery',
+    (tester) async {
+      final server = baseServer()
+        ..reply('GET', '/api/v1/admin/videos/youtube/channels', <Object?>[])
+        ..reply('GET', '/api/v1/admin/videos/youtube/reviews', [_review()])
+        ..reply('GET', '/api/v1/admin/videos/youtube/channels/discover', [
+          {
+            'channel_id': _channelId,
+            'channel_title': 'Science channel',
+            'thumbnail_url': 'https://yt3.ggpht.com/channel.png',
+            'is_trusted': false,
+          },
+        ])
+        ..reply('POST', '/api/v1/admin/videos/youtube/channels/trust', {
+          ..._trustedChannel(),
+          'initial_discovery': {
+            'created': 2,
+            'automatically_published': 1,
+            'pending_review': 1,
+            'quarantined': 0,
+            'unavailable': 0,
+            'channels_pending_initial_scan': 1,
+          },
+        });
+      await pumpAdmin(tester, server, size: const Size(1400, 1800));
+      await openSection(tester, 'YouTube review');
+
+      expect(find.text('Discover channels'), findsOneWidget);
+      expect(find.text('Trusted channels'), findsOneWidget);
+      expect(find.text('Videos for review'), findsOneWidget);
+      expect(find.textContaining('All video records'), findsNothing);
+
+      await tester.enterText(
+        find.byKey(const Key('youtube.channelSearch')),
+        'science',
+      );
+      await tester.tap(find.byKey(const Key('youtube.searchChannels')));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byKey(Key('youtube.searchResult.$_channelId')),
+          matching: find.text('Science channel'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(Key('youtube.searchResult.$_channelId')),
+          matching: find.text(_channelId),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(Key('youtube.trust.$_channelId')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('field.rights_cleared')));
+      await tester.tap(find.byKey(const Key('form.submit')));
+      await tester.pumpAndSettle();
+
+      final trustRequest = server
+          .to('POST', '/api/v1/admin/videos/youtube/channels/trust')
+          .single;
+      expect(trustRequest.data, {
+        'channel_id': _channelId,
+        'channel_title': 'Science channel',
+        'thumbnail_url': 'https://yt3.ggpht.com/channel.png',
+        'rights_status': 'cleared',
       });
-    await pumpAdmin(tester, server, size: const Size(1400, 1800));
-    await openSection(tester, 'YouTube review');
-
-    expect(find.text('Discover channels'), findsOneWidget);
-    expect(find.text('Trusted channels'), findsOneWidget);
-    expect(find.text('Videos for review'), findsOneWidget);
-    expect(find.textContaining('All video records'), findsNothing);
-
-    await tester.enterText(find.byKey(const Key('youtube.channelSearch')), 'science');
-    await tester.tap(find.byKey(const Key('youtube.searchChannels')));
-    await tester.pumpAndSettle();
-    expect(
-      find.descendant(
-        of: find.byKey(Key('youtube.searchResult.$_channelId')),
-        matching: find.text('Science channel'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(Key('youtube.searchResult.$_channelId')),
-        matching: find.text(_channelId),
-      ),
-      findsOneWidget,
-    );
-
-    await tester.tap(find.byKey(Key('youtube.trust.$_channelId')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('field.rights_cleared')));
-    await tester.tap(find.byKey(const Key('form.submit')));
-    await tester.pumpAndSettle();
-
-    final trustRequest = server
-        .to('POST', '/api/v1/admin/videos/youtube/channels/trust')
-        .single;
-    expect(trustRequest.data, {
-      'channel_id': _channelId,
-      'channel_title': 'Science channel',
-      'thumbnail_url': 'https://yt3.ggpht.com/channel.png',
-      'rights_status': 'cleared',
-    });
-    expect(
-      server
-          .to('GET', '/api/v1/admin/videos/youtube/channels/discover')
-          .single
-          .uri
-          .queryParameters['query'],
-      'science',
-    );
-    expect(find.textContaining('2 videos discovered'), findsOneWidget);
-  });
+      expect(
+        server
+            .to('GET', '/api/v1/admin/videos/youtube/channels/discover')
+            .single
+            .uri
+            .queryParameters['query'],
+        'science',
+      );
+      expect(find.textContaining('2 videos discovered'), findsOneWidget);
+    },
+  );
 
   testWidgets('trusted list shows channel identity and can stop trust', (
     tester,
@@ -156,7 +161,10 @@ void main() {
     expect(find.text('Trusted'), findsOneWidget);
     await tester.tap(find.byKey(Key('youtube.untrust.$_channelId')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Stop discovering and publishing'), findsOneWidget);
+    expect(
+      find.textContaining('Stop discovering and publishing'),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Remove channel trust').last);
     await tester.pumpAndSettle();
 
@@ -231,15 +239,137 @@ void main() {
     await pumpAdmin(tester, server, size: const Size(1400, 1600));
     await openSection(tester, 'YouTube review');
 
-    await tester.enterText(find.byKey(const Key('youtube.channelSearch')), 'new');
+    await tester.enterText(
+      find.byKey(const Key('youtube.channelSearch')),
+      'new',
+    );
     await tester.tap(find.byKey(const Key('youtube.searchChannels')));
     await tester.pumpAndSettle();
     expect(find.text('New channel'), findsOneWidget);
-    expect(find.byKey(const Key('youtube.trust.UC9876543210123456789012')), findsNothing);
+    expect(
+      find.byKey(const Key('youtube.trust.UC9876543210123456789012')),
+      findsNothing,
+    );
     expect(find.byKey(Key('youtube.untrust.$_channelId')), findsNothing);
     await tester.tap(find.byKey(const Key('youtube.inspect.$_reviewId')));
     await tester.pumpAndSettle();
     expect(find.text('Approve'), findsNothing);
     expect(find.text('Reject'), findsNothing);
+  });
+}
+
+Map<String, Object?> _detail({bool active = true}) => {
+  'channel': _trustedChannel(active: active),
+  'status': active ? 'approved' : 'revoked',
+  'counts': {
+    'discovered': 18,
+    'approved': 12,
+    'pending_review': 3,
+    'quarantined': 2,
+    'rejected': 1,
+    'published': 11,
+    'published_shorts': 4,
+    'published_regular': 7,
+  },
+  'last_discovered_at': '2026-11-18T08:00:00Z',
+  'last_verified_at': null,
+};
+
+const _detailPath = '/api/v1/admin/videos/youtube/channels/$_channelId';
+
+void channelTests() {
+  testWidgets('a channel row opens details with counts and history', (
+    tester,
+  ) async {
+    final server = baseServer()
+      ..reply('GET', '/api/v1/admin/videos/youtube/channels', [
+        _trustedChannel(),
+      ])
+      ..reply('GET', '/api/v1/admin/videos/youtube/reviews', <Object?>[])
+      ..reply('GET', _detailPath, _detail())
+      ..reply('GET', '$_detailPath/history', [
+        {
+          'id': '44444444-4444-4444-8444-444444444444',
+          'actor_user_id': null,
+          'action': 'youtube.channel_trusted',
+          'created_at': '2026-11-01T10:00:00Z',
+          'details': {'channel_id': _channelId},
+        },
+      ]);
+    await pumpAdmin(tester, server, size: const Size(1400, 1800));
+    await openSection(tester, 'YouTube review');
+
+    await tester.tap(find.byKey(const Key('youtube.channelRow.$_channelId')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('youtube.channelDetails')), findsOneWidget);
+    expect(find.text('Discovered: 18'), findsOneWidget);
+    expect(find.text('Waiting for review: 3'), findsOneWidget);
+    expect(find.text('Live Shorts: 4'), findsOneWidget);
+    expect(find.text('Live videos: 7'), findsOneWidget);
+    expect(find.textContaining('Channel trusted'), findsOneWidget);
+    expect(
+      find.textContaining('planned and need a server update'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a failed details request says so instead of showing nothing', (
+    tester,
+  ) async {
+    final server = baseServer()
+      ..reply('GET', '/api/v1/admin/videos/youtube/channels', [
+        _trustedChannel(),
+      ])
+      ..reply('GET', '/api/v1/admin/videos/youtube/reviews', <Object?>[])
+      ..reply('GET', _detailPath, {
+        'error': {'code': 'x', 'message': 'boom'},
+      }, status: 500)
+      ..reply('GET', '$_detailPath/history', <Object?>[]);
+    await pumpAdmin(tester, server, size: const Size(1400, 1800));
+    await openSection(tester, 'YouTube review');
+    await tester.tap(find.byKey(const Key('youtube.channelRow.$_channelId')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('youtube.channelDetailsFailed')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the status filter separates trusted from removed channels', (
+    tester,
+  ) async {
+    final other = {
+      ..._trustedChannel(active: false),
+      'channel_id': 'UC9999999999999999999999',
+    };
+    final server = baseServer()
+      ..reply('GET', '/api/v1/admin/videos/youtube/channels', [
+        _trustedChannel(),
+        other,
+      ])
+      ..reply('GET', '/api/v1/admin/videos/youtube/reviews', <Object?>[]);
+    await pumpAdmin(tester, server, size: const Size(1400, 1800));
+    await openSection(tester, 'YouTube review');
+    expect(find.byKey(Key('youtube.channelRow.$_channelId')), findsOneWidget);
+    expect(
+      find.byKey(const Key('youtube.channelRow.UC9999999999999999999999')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('youtube.channelFilter.notTrusted')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(Key('youtube.channelRow.$_channelId')), findsNothing);
+    expect(
+      find.byKey(const Key('youtube.channelRow.UC9999999999999999999999')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('youtube.channelFilter.trusted')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(Key('youtube.channelRow.$_channelId')), findsOneWidget);
+    expect(
+      find.byKey(const Key('youtube.channelRow.UC9999999999999999999999')),
+      findsNothing,
+    );
   });
 }

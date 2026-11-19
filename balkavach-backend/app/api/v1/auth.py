@@ -1,16 +1,16 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.dependencies import get_current_user, require_parent
+from app.core.dependencies import current_session_id, get_current_user, require_child, require_parent
 from app.core.rate_limit import (
 	enforce,
 	login_limiter,
 	password_reset_limiter,
-	parent_pin_limiter,
+	parent_mode_limiter,
 	registration_limiter,
 )
 from app.core.security import hash_password, verify_password
@@ -18,8 +18,9 @@ from app.db.base import get_model
 from app.db.session import get_db
 from app.schemas.auth import (
 	LoginRequest,
+	ParentModeEnterRequest,
 	ParentPinSetRequest,
-	ParentPinVerifyRequest,
+	ParentPinStatus,
 	PasswordResetConfirm,
 	PasswordResetRequest,
 	RefreshRequest,
@@ -29,7 +30,10 @@ from app.schemas.auth import (
 )
 from app.services.auth_service import authenticate_user, register_parent, set_parent_pin
 from app.services.password_reset_service import consume_reset_token, create_reset_token
-from app.services.session_service import revoke, revoke_user_sessions, rotate, start_session
+from app.core.exceptions import APIError
+from app.services.attempt_lockout import parent_mode_lockout
+from app.services.parent_mode_service import enter_parent_mode
+from app.services.session_service import end_parent_mode_session, revoke, revoke_user_sessions, rotate, start_session
 
 logger = logging.getLogger(__name__)
 
@@ -59,10 +63,20 @@ def login(request: LoginRequest, http_request: Request, session: Session = Depen
 	return authenticate_user(session, request)
 
 
+def _deliver_password_reset(email: str, token: str) -> None:
+	try:
+		from app.integrations import email as mailer
+
+		mailer.send_password_reset(email, token)
+	except Exception:
+		logger.exception("Password reset delivery failed")
+
+
 @router.post("/password/forgot", status_code=status.HTTP_202_ACCEPTED)
 def forgot_password(
 	request: PasswordResetRequest,
 	http_request: Request,
+	background: BackgroundTasks,
 	session: Session = Depends(get_db),
 ) -> Response:
 	enforce(
@@ -76,12 +90,8 @@ def forgot_password(
 	if user is not None and user.role == "parent":
 		token = create_reset_token(session, user)
 		session.commit()
-		try:
-			from app.integrations.email import send_password_reset
-
-			send_password_reset(str(user.email), token)
-		except Exception:
-			logger.exception("Password reset delivery failed")
+		# Delivery (SMTP) runs after the response so a known and an unknown address answer in the same time.
+		background.add_task(_deliver_password_reset, str(user.email), token)
 	return Response(status_code=status.HTTP_202_ACCEPTED)
 
 
@@ -92,37 +102,83 @@ def reset_password(request: PasswordResetConfirm, session: Session = Depends(get
 	return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+def _client_ip(http_request: Request) -> str:
+	return http_request.client.host if http_request.client else "unknown"
+
+
+@router.post("/parent-mode/enter", response_model=TokenResponse)
+def parent_mode_enter(
+	request: ParentModeEnterRequest,
+	http_request: Request,
+	child=Depends(require_child),
+	child_user=Depends(get_current_user),
+	session_id=Depends(current_session_id),
+	session: Session = Depends(get_db),
+) -> TokenResponse:
+	"""Leave child mode: the *child device's* session proves where the request comes from and the
+	parent proves who they are with the same email + password as the normal parent login. The
+	parent must belong to this child's family."""
+	enforce(
+		parent_mode_limiter,
+		f"{_client_ip(http_request)}:{session_id or child_user.id}",
+		limit=settings.parent_mode_rate_limit,
+		window_seconds=settings.parent_mode_rate_window_seconds,
+	)
+	return enter_parent_mode(
+		session,
+		child=child,
+		child_user=child_user,
+		session_id=session_id,
+		email=str(request.email),
+		password=request.password,
+	)
+
+
+@router.post("/parent-pin/verify", include_in_schema=False)
+def verify_parent_pin_removed() -> None:
+	"""Removed: an unauthenticated email + PIN exchange for a parent session was unsafe.
+
+	Kept as a tombstone so old app builds fail clearly (and no credential is ever evaluated).
+	Use ``POST /auth/parent-mode/enter`` from a child session instead."""
+	raise APIError(410, "endpoint_removed", "Update the app to switch to parent mode.")
+
+
+@router.get("/parent-pin", response_model=ParentPinStatus)
+def parent_pin_status(parent=Depends(require_parent)) -> ParentPinStatus:
+	return ParentPinStatus(is_set=bool(getattr(parent, "parent_pin_hash", None)))
+
+
 @router.post("/parent-pin", status_code=status.HTTP_204_NO_CONTENT)
 def update_parent_pin(
 	request: ParentPinSetRequest,
 	parent=Depends(require_parent),
 	session: Session = Depends(get_db),
 ) -> Response:
+	"""Set a parental-control PIN. It is **not** used to enter parent mode. Changing an existing
+	PIN needs the current PIN or the account password, with account-level lockout."""
+	existing = getattr(parent, "parent_pin_hash", None)
+	if existing:
+		subject = f"pin-change:{parent.id}"
+		locked = parent_mode_lockout.locked_for(subject)
+		if locked:
+			raise APIError(
+				423,
+				"pin_change_locked",
+				"Too many incorrect attempts. Please try again later.",
+				headers={"Retry-After": str(locked)},
+			)
+		if request.current_pin is not None:
+			proven = verify_password(request.current_pin, existing)
+		elif request.current_password is not None:
+			proven = bool(parent.password_hash) and verify_password(request.current_password, parent.password_hash)
+		else:
+			raise APIError(403, "current_credential_required", "Enter your current PIN or password to change the PIN.")
+		if not proven:
+			parent_mode_lockout.record_failure(subject)
+			raise APIError(403, "current_credential_invalid", "The current PIN or password is incorrect.")
+		parent_mode_lockout.record_success(subject)
 	set_parent_pin(session, parent, request.pin)
 	return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@router.post("/parent-pin/verify", response_model=TokenResponse)
-def verify_parent_pin(
-	request: ParentPinVerifyRequest,
-	http_request: Request,
-	session: Session = Depends(get_db),
-) -> TokenResponse:
-	enforce(
-		parent_pin_limiter,
-		f"{http_request.client.host if http_request.client else 'unknown'}:{request.email}",
-		limit=settings.parent_pin_rate_limit,
-		window_seconds=settings.parent_pin_window_seconds,
-	)
-	User = get_model("User")
-	parent = session.query(User).filter(
-		User.email == str(request.email).lower(),
-		User.role == "parent",
-		User.is_active.is_(True),
-	).one_or_none()
-	if parent is None or not getattr(parent, "parent_pin_hash", None) or not verify_password(request.pin, parent.parent_pin_hash):
-		raise HTTPException(status_code=401, detail="Invalid parent PIN")
-	return start_session(session, parent)
 
 
 @router.get("/me", response_model=UserPublic)
@@ -134,6 +190,7 @@ def me(user=Depends(get_current_user)) -> UserPublic:
 def issue_child_session(
 	child_id: UUID,
 	parent=Depends(require_parent),
+	session_id=Depends(current_session_id),
 	session: Session = Depends(get_db),
 ) -> TokenResponse:
 	ChildProfile = get_model("ChildProfile")
@@ -161,6 +218,9 @@ def issue_child_session(
 		raise HTTPException(status_code=404, detail="Child profile not found")
 	response = start_session(session, child_user, issued_by=parent.id)
 	response.child_id = child.id
+	# Handing the device back to the child ends a parent-mode session on the server, atomically with the
+	# new child session (the app also logs out, best effort).
+	end_parent_mode_session(session, session_id)
 	session.commit()
 	return response
 

@@ -279,6 +279,36 @@ class YouTubeTrustedChannelPublic(BaseModel):
 	initial_discovery: dict[str, int | bool] | None = None
 
 
+class YouTubeChannelCountsPublic(BaseModel):
+	discovered: int
+	approved: int
+	pending_review: int
+	quarantined: int
+	rejected: int
+	published: int
+	published_shorts: int
+	published_regular: int
+
+
+class YouTubeChannelEventPublic(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+
+	id: UUID
+	actor_user_id: UUID | None
+	action: str
+	created_at: datetime
+	details: dict | None = None
+
+
+class YouTubeTrustedChannelDetailPublic(BaseModel):
+	channel: YouTubeTrustedChannelPublic
+	# "approved" while trusted, "revoked" after untrust. Suspension needs new columns (deferred).
+	status: Literal["approved", "revoked"]
+	counts: YouTubeChannelCountsPublic
+	last_discovered_at: datetime | None
+	last_verified_at: datetime | None
+
+
 class YouTubeChannelDiscoveryPublic(BaseModel):
 	channel_id: str
 	channel_title: str | None
@@ -472,3 +502,17 @@ class VideoAllowancePublic(BaseModel):
 	daily_cap_seconds: int
 	is_exhausted: bool
 	active_entitlements_count: int
+
+
+class MissionVideoRewardPublic(BaseModel):
+	task_id: UUID | None
+	task_title: str | None
+	granted_seconds: int
+	consumed_seconds: int
+	granted_at: datetime
+
+
+class VideoAllowanceSummaryPublic(VideoAllowancePublic):
+	free_allowance_seconds: int
+	free_consumed_seconds: int
+	mission_rewards: list[MissionVideoRewardPublic]

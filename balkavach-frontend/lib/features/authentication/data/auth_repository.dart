@@ -113,18 +113,20 @@ class AuthRepository {
     );
   });
 
-  Future<void> setParentPin(String pin) => guardApi(() async {
-    await _dio.post<void>('/api/v1/auth/parent-pin', data: {'pin': pin});
-  });
-
-  Future<Session> verifyParentPin({
+  /// `POST /api/v1/auth/parent-mode/enter`: leave child mode. Sent **with the
+  /// child session's bearer token** (the server binds the attempt to that
+  /// device and to the child's family); the credentials are the same email and
+  /// password as the normal parent sign-in.
+  ///
+  /// 403 `parent_authentication_failed` is one generic answer for every kind of
+  /// failure; 423 `parent_mode_locked` carries the retry delay.
+  Future<Session> enterParentMode({
     required String email,
-    required String pin,
+    required String password,
   }) => guardApi(() async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/api/v1/auth/parent-pin/verify',
-      data: {'email': email.trim(), 'pin': pin},
-      options: Options(extra: _unauthenticated),
+      '/api/v1/auth/parent-mode/enter',
+      data: {'email': email.trim(), 'password': password},
     );
     return Session.fromTokenResponse(response.data!);
   });

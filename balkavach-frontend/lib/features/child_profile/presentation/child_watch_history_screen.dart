@@ -10,6 +10,7 @@ import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../learning/data/video_feed_repository.dart';
+import 'parent_video_summary_card.dart';
 
 class ChildWatchHistoryScreen extends ConsumerWidget {
   const ChildWatchHistoryScreen({required this.childId, super.key});
@@ -48,21 +49,33 @@ class ChildWatchHistoryScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: l10n.videoRetry,
-            onPressed: () =>
-                ref.invalidate(parentVideoHistoryProvider(childId)),
+            onPressed: () => ref
+              ..invalidate(parentVideoHistoryProvider(childId))
+              ..invalidate(parentVideoSummaryProvider(childId)),
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
       body: switch (history) {
-        AsyncData(value: final entries) when entries.isEmpty => EmptyView(
-          message: l10n.parentWatchHistoryEmpty,
+        AsyncData(value: final entries) when entries.isEmpty => ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            ParentVideoSummaryCard(childId: childId),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              l10n.parentWatchHistoryEmpty,
+              key: const Key('watchHistory.empty'),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
         AsyncData(value: final entries) => ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.md),
-          itemCount: entries.length,
+          itemCount: entries.length + 1,
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-          itemBuilder: (context, index) {
+          itemBuilder: (context, position) {
+            if (position == 0) return ParentVideoSummaryCard(childId: childId);
+            final index = position - 1;
             final entry = entries[index];
             final video = entry.video;
             final watchedAt = DateFormat.yMMMd(

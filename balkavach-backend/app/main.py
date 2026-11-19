@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.middleware.cors import CORSMiddleware
 
+from app.api.pages import router as pages_router
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
@@ -38,6 +39,7 @@ app.add_middleware(
 )
 register_exception_handlers(app)
 app.include_router(api_router, prefix="/api/v1")
+app.include_router(pages_router)
 
 
 @app.get("/health", tags=["health"])

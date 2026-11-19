@@ -81,8 +81,7 @@ class _FakeRepository implements VideoFeedRepository {
     String videoId,
     int positionSeconds, {
     bool isPlaying = true,
-  }
-  ) async => null;
+  }) async => null;
 
   @override
   Future<VideoAllowance> getAllowance() async => const VideoAllowance(
@@ -96,6 +95,14 @@ class _FakeRepository implements VideoFeedRepository {
     isExhausted: false,
     activeEntitlementsCount: 1,
   );
+
+  @override
+  Future<List<FeedVideo>> nextVideos(String videoId, {int limit = 6}) async =>
+      const [];
+
+  @override
+  Future<VideoAllowanceSummary> parentAllowanceSummary(String childId) async =>
+      throw UnimplementedError();
 
   @override
   Future<List<VideoWatchHistoryEntry>> parentHistory(String childId) async =>

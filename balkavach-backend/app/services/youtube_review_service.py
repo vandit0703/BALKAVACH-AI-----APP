@@ -44,7 +44,7 @@ from app.integrations.youtube import (
 	to_api_error,
 )
 from app.schemas.video import YOUTUBE_AGE_BANDS, YOUTUBE_AGE_RANGES, YouTubeApproveRequest, YouTubeDiscoverRequest
-from app.services.video_classification import video_format
+from app.services.video_classification import regular_clause, short_clause, video_format
 from app.services.admin_service import record_audit
 from app.utils import utc_aware, utc_naive
 
@@ -1594,3 +1594,72 @@ def resolve_report(session: Session, actor, report_id: UUID, status: str):
 	session.commit()
 	session.refresh(report)
 	return report
+
+
+def channel_status(channel) -> str:
+	"""Display status derived from existing columns.
+
+	The roadmap's four-state model (pending/approved/suspended/revoked) needs new columns
+	(deferred, see docs/deferred-database-integration.md). Today a channel is either
+	trusted (active) or revoked (``is_active`` false); "suspended" cannot be represented.
+	"""
+	return "approved" if channel.is_active else "revoked"
+
+
+def channel_detail(session: Session, channel_id: str) -> dict[str, Any]:
+	"""One trusted channel with the counts of what discovery found, from existing tables only."""
+	_require_tables("YouTubeTrustedChannel", "YouTubeContentReview")
+	Trusted = get_model("YouTubeTrustedChannel")
+	Review = get_model("YouTubeContentReview")
+	Video = get_model("Video")
+	channel = session.query(Trusted).filter(Trusted.channel_id == channel_id).one_or_none()
+	if channel is None:
+		raise APIError(404, "trusted_channel_not_found", "Trusted channel not found")
+
+	by_status = dict(
+		session.query(Review.status, func.count(Review.id))
+		.filter(Review.channel_id == channel_id)
+		.group_by(Review.status)
+		.all()
+	)
+	published = session.query(Video.id).join(Review, Review.video_id == Video.id).filter(
+		Review.channel_id == channel_id, Video.is_published.is_(True)
+	)
+	shorts = published.filter(short_clause(Video)).count()
+	regular = published.filter(regular_clause(Video)).count()
+	last_discovered, last_verified = session.query(
+		func.max(Review.discovered_at), func.max(Review.last_verified_at)
+	).filter(Review.channel_id == channel_id).one()
+	return {
+		"channel": channel,
+		"status": channel_status(channel),
+		"counts": {
+			"discovered": sum(int(v) for v in by_status.values()),
+			"approved": int(by_status.get("approved", 0)),
+			"pending_review": int(by_status.get("pending_review", 0)),
+			"quarantined": int(by_status.get("quarantined", 0)),
+			"rejected": int(by_status.get("rejected", 0)),
+			"published": shorts + regular,
+			"published_shorts": shorts,
+			"published_regular": regular,
+		},
+		"last_discovered_at": last_discovered,
+		"last_verified_at": last_verified,
+	}
+
+
+def channel_history(session: Session, channel_id: str, limit: int = 50) -> list[Any]:
+	"""Status-change trail for one channel, from the existing audit log."""
+	_require_tables("YouTubeTrustedChannel")
+	Trusted = get_model("YouTubeTrustedChannel")
+	AuditLog = get_model("AuditLog")
+	channel = session.query(Trusted).filter(Trusted.channel_id == channel_id).one_or_none()
+	if channel is None:
+		raise APIError(404, "trusted_channel_not_found", "Trusted channel not found")
+	return (
+		session.query(AuditLog)
+		.filter(AuditLog.entity_type == "youtube_trusted_channel", AuditLog.entity_id == channel.id)
+		.order_by(AuditLog.created_at.desc())
+		.limit(limit)
+		.all()
+	)
