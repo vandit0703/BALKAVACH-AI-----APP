@@ -28,6 +28,10 @@ enum PandaProblem {
   notHeard,
   network,
   busy,
+
+  /// A parent has not agreed to the microphone (or withdrew it). Typing to
+  /// Panda still works.
+  voiceNeedsParent,
 }
 
 /// Allowed moves. Anything else is ignored, so a late callback can never put
@@ -100,6 +104,7 @@ class PandaTalkState {
     this.voiceMissing = false,
     this.typing = false,
     this.spokenWords = 0,
+    this.voiceAllowed,
   });
 
   final PandaPhase phase;
@@ -124,6 +129,10 @@ class PandaTalkState {
   /// increment is a real word boundary and moves Panda's mouth once.
   final int spokenWords;
 
+  /// Whether a parent agreed to the microphone, as last checked with the
+  /// server: null while unknown. Anything but true keeps the mic closed.
+  final bool? voiceAllowed;
+
   bool get busy =>
       phase == PandaPhase.listening || phase == PandaPhase.thinking;
 
@@ -142,6 +151,7 @@ class PandaTalkState {
     bool? voiceMissing,
     bool? typing,
     int? spokenWords,
+    bool? voiceAllowed,
   }) => PandaTalkState(
     phase: phase ?? this.phase,
     mood: mood ?? this.mood,
@@ -153,6 +163,7 @@ class PandaTalkState {
     voiceMissing: voiceMissing ?? this.voiceMissing,
     typing: typing ?? this.typing,
     spokenWords: spokenWords ?? this.spokenWords,
+    voiceAllowed: voiceAllowed ?? this.voiceAllowed,
   );
 }
 
@@ -228,9 +239,41 @@ class PandaTalkController extends Notifier<PandaTalkState> {
     await _say(line, mood, epoch);
   }
 
+  /// Updates [PandaTalkState.voiceAllowed] quietly (panel opened, app
+  /// resumed): no message, never touches the microphone.
+  Future<void> refreshVoiceConsent() async {
+    try {
+      final allowed = await _chat.voiceConsent();
+      state = state.copyWith(voiceAllowed: allowed);
+    } on ApiException {
+      // Unknown stays unknown; the mic tap checks again.
+    }
+  }
+
+  /// Checks with the server, right before the microphone could open, that a
+  /// parent agreed. False (with a message, typing shown) when not, or when
+  /// the server cannot be asked: the microphone stays closed either way.
+  Future<bool> checkVoiceConsent() async {
+    if (state.busy) return false;
+    final bool allowed;
+    try {
+      allowed = await _chat.voiceConsent();
+    } on ApiException {
+      _fail(PandaProblem.network, typing: true);
+      return false;
+    }
+    state = state.copyWith(voiceAllowed: allowed);
+    if (!allowed) _fail(PandaProblem.voiceNeedsParent, typing: true);
+    return allowed;
+  }
+
   /// The child tapped the mic (or Panda). Interrupts Panda if talking.
+  /// Requires parental consent: checked with the server first unless it was
+  /// just confirmed ([checkVoiceConsent]).
   Future<void> startListening() async {
     if (state.busy) return; // a turn is already in flight
+    // No microphone without a parent's consent, whoever calls this.
+    if (state.voiceAllowed != true && !await checkVoiceConsent()) return;
     final epoch = ++_epoch;
     _rest?.cancel();
     if (state.talking) await _output.stop();
@@ -272,7 +315,7 @@ class PandaTalkController extends Notifier<PandaTalkState> {
       },
       onFinal: (words) {
         if (epoch == _epoch && state.phase == PandaPhase.listening) {
-          unawaited(_respond(words, epoch));
+          unawaited(_respond(words, epoch, voice: true));
         }
       },
       onError: (error) {
@@ -301,7 +344,7 @@ class PandaTalkController extends Notifier<PandaTalkState> {
     await _respond(text, epoch);
   }
 
-  Future<void> _respond(String raw, int epoch) async {
+  Future<void> _respond(String raw, int epoch, {bool voice = false}) async {
     final text = raw.trim();
     if (text.isEmpty) {
       _fail(PandaProblem.notHeard);
@@ -316,6 +359,7 @@ class PandaTalkController extends Notifier<PandaTalkState> {
         locale: _language,
         turnId: newTurnId(),
         contextIntent: _followUp,
+        voice: voice,
       );
       if (epoch != _epoch || state.phase != PandaPhase.thinking) return;
       _watchdog?.cancel();
@@ -329,6 +373,14 @@ class PandaTalkController extends Notifier<PandaTalkState> {
       await _say(reply.text, reply.mood, epoch);
     } on ApiException catch (error) {
       if (epoch != _epoch) return;
+      if (error.code == kPandaVoiceConsentRequired) {
+        // Consent was withdrawn: no more listening or speaking this turn.
+        state = state.copyWith(voiceAllowed: false);
+        await _input.cancel().catchError((_) {});
+        await _output.stop();
+        _fail(PandaProblem.voiceNeedsParent, typing: true);
+        return;
+      }
       _fail(error.statusCode == 429 ? PandaProblem.busy : PandaProblem.network);
     }
   }

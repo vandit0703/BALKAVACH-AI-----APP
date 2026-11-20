@@ -14,6 +14,15 @@ Set<String> _placeholders(String message) => {
 /// Strings that are legitimately the same in every language (units, brand).
 const _sameInAllLanguages = {'missionXpCount'};
 
+/// The official product name is written identically in every language. These
+/// keys are exempt from the copy check only while they hold exactly that name
+/// (test/features/brand_name_test.dart owns the spelling itself).
+const _brand = 'BALKAVACH';
+const _brandOnlyKeys = {'appTitle', 'brandName'};
+
+bool _isIntentionalBrandCopy(String key, Object? value) =>
+    _brandOnlyKeys.contains(key) && value == _brand;
+
 void main() {
   final en = _arb('en');
   final keys = [
@@ -64,7 +73,8 @@ void main() {
           for (final k in keys)
             if (data[k] == en[k] &&
                 RegExp('[A-Za-z]{3}').hasMatch(en[k] as String) &&
-                !_sameInAllLanguages.contains(k))
+                !_sameInAllLanguages.contains(k) &&
+                !_isIntentionalBrandCopy(k, data[k]))
               k,
         ];
         expect(copies, isEmpty, reason: 'untranslated: $copies');

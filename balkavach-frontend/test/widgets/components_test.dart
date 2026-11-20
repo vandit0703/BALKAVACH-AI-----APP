@@ -72,7 +72,7 @@ void main() {
       tester,
       const ShieldLogo(size: 80, semanticLabel: 'BALKAVACH'),
     );
-    expect(find.bySemanticsLabel('Bal Kavach AI'), findsOneWidget);
+    expect(find.bySemanticsLabel('BALKAVACH'), findsOneWidget);
     expect(tester.getSize(find.byType(ShieldLogo)), const Size(80, 80));
   });
 
@@ -102,7 +102,7 @@ void main() {
       ErrorView(error: const NetworkException(), onRetry: () => retried = true),
     );
     expect(
-      find.text("Can't reach Bal Kavach. Check your internet connection."),
+      find.text("Can't reach BALKAVACH. Check your internet connection."),
       findsOneWidget,
     );
     await tester.tap(find.text('Try again'));

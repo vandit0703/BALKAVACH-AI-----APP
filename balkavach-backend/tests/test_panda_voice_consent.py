@@ -1,0 +1,241 @@
+"""Talk to Panda microphone consent (existing ``consent_records``, no schema change).
+
+In-memory SQLite (tests/sqlite_world.py) plus a ``consent_records`` model; route
+functions are called directly. Not PostgreSQL. The route guards themselves
+(``require_parent`` / ``require_child``) are covered by
+tests/test_authorization_boundaries.py.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from types import SimpleNamespace
+from uuid import UUID, uuid4
+
+import pytest
+from fastapi import HTTPException
+from sqlalchemy import Boolean, DateTime, String, Uuid
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.core.exceptions import APIError
+from app.schemas.companion import CompanionChatRequest, PandaVoiceConsentUpdate
+from tests.sqlite_world import MODELS, FamilyMember, User, World, make_family, world_session  # noqa: F401
+
+
+class ConsentRecord(World):
+	__tablename__ = "consent_records"
+	id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+	family_id: Mapped[UUID] = mapped_column(Uuid)
+	child_id: Mapped[UUID | None] = mapped_column(Uuid)
+	parent_user_id: Mapped[UUID] = mapped_column(Uuid)
+	consent_type: Mapped[str] = mapped_column(String)
+	document_version: Mapped[str] = mapped_column(String)
+	accepted: Mapped[bool] = mapped_column(Boolean)
+	accepted_at: Mapped[datetime | None] = mapped_column(DateTime)
+	revoked_at: Mapped[datetime | None] = mapped_column(DateTime)
+	created_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+WORLD = {**MODELS, "ConsentRecord": ConsentRecord}
+
+
+@pytest.fixture
+def db(world_session, monkeypatch):
+	import app.services.panda_voice_consent_service as service
+
+	monkeypatch.setattr(service, "get_model", WORLD.__getitem__)
+	return world_session
+
+
+def parent_of(db, family_id):
+	parent = User(role="parent")
+	db.add(parent)
+	db.flush()
+	db.add(FamilyMember(family_id=family_id, user_id=parent.id))
+	db.commit()
+	return parent
+
+
+def version():
+	from app.services.panda_voice_consent_service import PANDA_VOICE_CONSENT_VERSION
+
+	return PANDA_VOICE_CONSENT_VERSION
+
+
+def get_consent(db, parent, child):
+	from app.api.v1.settings import get_panda_voice_consent
+
+	return get_panda_voice_consent(child.family_id, child.id, parent=parent, session=db)
+
+
+def put_consent(db, parent, child, granted, document_version="__current__"):
+	from app.api.v1.settings import set_panda_voice_consent
+
+	if document_version == "__current__":
+		document_version = version() if granted else None
+	return set_panda_voice_consent(
+		child.family_id,
+		child.id,
+		PandaVoiceConsentUpdate(granted=granted, document_version=document_version),
+		parent=parent,
+		session=db,
+	)
+
+
+def child_view(db, child):
+	from app.api.v1.companion import companion_voice_consent
+
+	return companion_voice_consent(child=child, session=db)
+
+
+def test_no_consent_until_a_parent_agrees(db):
+	child = make_family(db)
+	parent = parent_of(db, child.family_id)
+
+	assert get_consent(db, parent, child).granted is False
+	assert child_view(db, child).granted is False
+
+
+def test_a_parent_grants_for_this_child_only(db):
+	child = make_family(db)
+	sibling = make_family(db)
+	parent = parent_of(db, child.family_id)
+
+	result = put_consent(db, parent, child, True)
+
+	assert result.granted is True
+	assert result.granted_by == parent.id
+	assert child_view(db, child).granted is True
+	assert child_view(db, sibling).granted is False
+	row = db.query(ConsentRecord).one()
+	assert (row.family_id, row.child_id, row.consent_type) == (child.family_id, child.id, "panda_voice")
+	assert row.accepted is True and row.revoked_at is None
+
+
+def test_granting_twice_keeps_one_record(db):
+	child = make_family(db)
+	parent = parent_of(db, child.family_id)
+
+	put_consent(db, parent, child, True)
+	put_consent(db, parent, child, True)
+
+	assert db.query(ConsentRecord).count() == 1
+
+
+def test_a_grant_must_name_the_current_consent_text(db):
+	child = make_family(db)
+	parent = parent_of(db, child.family_id)
+
+	with pytest.raises(APIError) as outdated:
+		put_consent(db, parent, child, True, document_version="panda-voice-old")
+	assert outdated.value.status_code == 409
+	with pytest.raises(HTTPException) as missing:
+		put_consent(db, parent, child, True, document_version=None)
+	assert missing.value.status_code == 422
+	assert db.query(ConsentRecord).count() == 0
+
+
+def test_a_new_consent_text_makes_older_grants_stale(db, monkeypatch):
+	import app.services.panda_voice_consent_service as service
+
+	child = make_family(db)
+	parent = parent_of(db, child.family_id)
+	put_consent(db, parent, child, True)
+
+	monkeypatch.setattr(service, "PANDA_VOICE_CONSENT_VERSION", "panda-voice-next")
+
+	assert child_view(db, child).granted is False
+
+
+def test_another_familys_parent_cannot_read_grant_or_revoke(db):
+	child = make_family(db)
+	outsider = parent_of(db, uuid4())
+
+	for call in (
+		lambda: get_consent(db, outsider, child),
+		lambda: put_consent(db, outsider, child, True),
+		lambda: put_consent(db, outsider, child, False),
+	):
+		with pytest.raises(HTTPException) as refused:
+			call()
+		assert refused.value.status_code == 404
+	assert db.query(ConsentRecord).count() == 0
+
+
+def test_a_child_outside_the_family_is_not_found(db):
+	child = make_family(db)
+	other_child = make_family(db)
+	parent = parent_of(db, child.family_id)
+	from app.api.v1.settings import get_panda_voice_consent
+
+	with pytest.raises(HTTPException) as refused:
+		get_panda_voice_consent(child.family_id, other_child.id, parent=parent, session=db)
+	assert refused.value.status_code == 404
+
+
+def test_any_parent_in_the_family_can_withdraw(db):
+	child = make_family(db)
+	first = parent_of(db, child.family_id)
+	second = parent_of(db, child.family_id)
+	put_consent(db, first, child, True)
+
+	result = put_consent(db, second, child, False)
+
+	assert result.granted is False
+	assert child_view(db, child).granted is False
+	assert db.query(ConsentRecord).one().revoked_at is not None
+	# Withdrawing again changes nothing.
+	assert put_consent(db, second, child, False).granted is False
+
+
+def test_an_inactive_parent_cannot_change_it(db):
+	child = make_family(db)
+	parent = parent_of(db, child.family_id)
+	db.query(FamilyMember).filter_by(user_id=parent.id).update({"is_active": False})
+	db.commit()
+
+	with pytest.raises(HTTPException):
+		put_consent(db, parent, child, True)
+
+
+def _chat(db, child, monkeypatch, *, input_mode):
+	import app.api.v1.companion as companion
+
+	monkeypatch.setattr(companion, "load_child_context", lambda session, child: (None, "en"))
+	monkeypatch.setattr(
+		companion,
+		"compose_reply",
+		lambda text, locale, ctx, context_intent=None: SimpleNamespace(
+			text="Hello!", mood="happy", intent="greeting", follow_up=None, safety="ok", suggestions=[]
+		),
+	)
+	request = CompanionChatRequest(text="hello panda", turn_id=uuid4(), input=input_mode)
+	return companion.companion_chat(request, child=child, session=db)
+
+
+def test_voice_turns_need_consent_typed_turns_do_not(db, monkeypatch):
+	child = make_family(db)
+
+	with pytest.raises(APIError) as refused:
+		_chat(db, child, monkeypatch, input_mode="voice")
+	assert refused.value.status_code == 403
+	assert refused.value.code == "panda_voice_consent_required"
+
+	assert _chat(db, child, monkeypatch, input_mode="text").reply == "Hello!"
+
+
+def test_withdrawal_stops_the_next_voice_turn(db, monkeypatch):
+	child = make_family(db)
+	parent = parent_of(db, child.family_id)
+	put_consent(db, parent, child, True)
+	assert _chat(db, child, monkeypatch, input_mode="voice").reply == "Hello!"
+
+	put_consent(db, parent, child, False)
+
+	with pytest.raises(APIError):
+		_chat(db, child, monkeypatch, input_mode="voice")
+
+
+def test_older_apps_without_the_input_field_count_as_typed():
+	request = CompanionChatRequest(text="hi", turn_id=uuid4())
+	assert request.input == "text"

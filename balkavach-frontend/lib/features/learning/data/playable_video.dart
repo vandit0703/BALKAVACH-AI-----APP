@@ -115,6 +115,9 @@ class PlayableVideo {
     description: _clean(item.description),
     thumbnailUrl: _httpsOrNull(item.thumbnailUrl),
     categoryId: item.categoryId,
+    // Metered like a feed video: progress (and tickets) use the catalogue
+    // video the server matched, so Learn & Watch time is never free.
+    reportVideoId: item.meteredVideoId,
     source: item.isYouTubeEmbeddable
         ? YouTubeVideoSource(item.youtubeVideoId!)
         // `isPlayableInApp` already excludes YouTube links, hosted rows and

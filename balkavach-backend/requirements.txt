@@ -17,3 +17,8 @@ uvicorn[standard]>=0.30,<1
 cryptography
 # Test tooling
 pytest>=8,<9
+# In-memory Redis used by tests/test_attempt_lockout.py (verified with 2.40.0 + redis 6.4.0).
+# The [lua] extra (lupa) is required: the attempt limiter runs Lua scripts (EVALSHA).
+fakeredis[lua]>=2.40,<3
+# Safe JUnit XML parsing in scripts/ci_skip_gate.py.
+defusedxml>=0.7,<1

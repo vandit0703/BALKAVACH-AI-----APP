@@ -16,7 +16,16 @@ enum PlaybackVerdict {
 
   /// The session is no longer valid; the app's auth handling takes over.
   signedOut,
+
+  /// The server refused the report because it now requires play tickets
+  /// (409 `play_ticket_required`): this app build cannot meter playback.
+  /// Stop at once. It is a refusal, never a network failure, and retrying
+  /// cannot help.
+  updateRequired,
 }
+
+/// The server's code when progress reports must use play tickets instead.
+const kPlayTicketRequiredCode = 'play_ticket_required';
 
 /// The low-time warning threshold. Same value as the server's
 /// `LOW_TIME_THRESHOLD_SECONDS` (roadmap Phase 3: "≤2 min").
@@ -105,7 +114,11 @@ class PlaybackGuard {
         PlaybackVerdict.exhausted,
         remainingSeconds: 0,
       );
-    } on ApiException {
+    } on ApiException catch (error) {
+      if (error.code == kPlayTicketRequiredCode) {
+        _failures = 0;
+        return const PlaybackReport(PlaybackVerdict.updateRequired);
+      }
       // Network loss, timeout, or a server error: nothing was verified.
       _failures++;
       return PlaybackReport(

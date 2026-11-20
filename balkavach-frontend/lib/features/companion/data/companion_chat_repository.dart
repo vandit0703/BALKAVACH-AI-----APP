@@ -66,6 +66,7 @@ class CompanionChatRepository {
     required String locale,
     required String turnId,
     String? contextIntent,
+    bool voice = false,
   }) => guardApi(() async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/api/v1/companion/chat',
@@ -74,12 +75,28 @@ class CompanionChatRepository {
         'locale': locale,
         'turn_id': turnId,
         'context_intent': ?contextIntent,
+        // Voice turns need a parent's consent; the server refuses them
+        // otherwise (403 `panda_voice_consent_required`).
+        'input': voice ? 'voice' : 'text',
       },
       options: Options(sendTimeout: timeout, receiveTimeout: timeout),
     );
     return PandaChatReply.fromJson(response.data!);
   });
+
+  /// `GET /api/v1/companion/voice-consent`: whether a parent agreed to the
+  /// microphone for this child.
+  Future<bool> voiceConsent() => guardApi(() async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/v1/companion/voice-consent',
+      options: Options(sendTimeout: timeout, receiveTimeout: timeout),
+    );
+    return response.data?['granted'] == true;
+  });
 }
+
+/// The server's code when a voice turn arrives without parental consent.
+const kPandaVoiceConsentRequired = 'panda_voice_consent_required';
 
 final companionChatRepositoryProvider = Provider<CompanionChatRepository>(
   (ref) => CompanionChatRepository(ref.watch(apiDioProvider)),

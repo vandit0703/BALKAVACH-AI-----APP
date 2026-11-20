@@ -12,6 +12,7 @@ import '../../features/child_profile/presentation/child_home_profile_screen.dart
 import '../../features/child_profile/presentation/child_profile_screen.dart';
 import '../../features/child_profile/presentation/child_watch_history_screen.dart';
 import '../../features/child_profile/presentation/create_child_screen.dart';
+import '../../features/companion/presentation/panda_voice_consent_screen.dart';
 import '../../features/garden/presentation/garden_screen.dart';
 import '../../features/learning/data/learning_repository.dart';
 import '../../features/learning/data/playable_video.dart';
@@ -149,6 +150,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'notifications',
                 builder: (_, _) => const NotificationSettingsScreen(),
+              ),
+              GoRoute(
+                path: 'panda-voice',
+                builder: (_, _) => const PandaVoiceConsentScreen(),
               ),
             ],
           ),

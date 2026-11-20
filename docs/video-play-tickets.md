@@ -12,7 +12,8 @@
 | Service (`play_ticket_service.py`) | Issue (child lock, eligibility, allowance, supersede, race retry), heartbeat (token, ownership, sequence, midnight split, video revocation, exhaustion), end (idempotent) and revoke. Persistence sits behind `PlayTicketRepository`. The production `SqlPlayTicketRepository` targets the deferred table. **No in-memory production store.** |
 | API (`api/v1/play_tickets.py`) | `POST /video-access/tickets`, `/{id}/heartbeat` and `/{id}/end`: child only, rate limited, tokens never logged. They return **503 `play_tickets_unavailable`** while tickets are inactive. |
 | Tests | Service and API tests run on an in-memory **SQLite** copy of the proposed table (`tests/video_world.py`), with doubles for the PostgreSQL partial unique index and a start race. **Not PostgreSQL**; real concurrency is still unverified. |
-| Flutter (`play_ticket_client.dart`) | API client and `PlayTicketSession` lifecycle (heartbeats only while playing, rising sequences, a queued pause so it is never lost, stop on refusal or after 2 network failures, end). It sits behind `--dart-define=VIDEO_PLAY_TICKETS=true` (default off). **No player uses it yet**; they still report through `record_progress`. |
+| Flutter (`play_ticket_client.dart`, `ticketed_playback.dart`) | API client and `PlayTicketSession` lifecycle (heartbeats only while playing, rising sequences, a queued pause so it is never lost, stop on refusal or after 2 network failures, end). It sits behind `--dart-define=VIDEO_PLAY_TICKETS=true` (default off). **All three players are wired** (2026-11-20): the regular player, the detail player and **Shorts** (each page holds a ticket only while it is on screen; a prepared neighbour never supersedes it; swiping ends the ticket and starts the next). With tickets off every player keeps `record_progress`. Shorts widget tests: `test/features/shorts_tickets_test.dart` (fake backend, player mocks). |
+| Old/legacy clients after activation | A `record_progress` answer of 409 `play_ticket_required` is now a hard stop with "update the app" (`PlaybackVerdict.updateRequired`), not a network failure: the player stops on the **first** refusal instead of after about 20 s. App builds released **before** this change still treat it as two network failures (about 20 s of uncharged playback per open, then "offline"); a minimum-version check is still missing. |
 
 ## 1. Findings from the current code
 
@@ -84,7 +85,7 @@ The rules are implemented and unit-tested in `play_ticket_rules.heartbeat`:
 - **Binding:** the ticket is tied to the child (bearer token), and its row records `device_session_id`. A ticket from another child is 404.
 - **One active ticket per child:** the child row lock serialises starts. A **partial unique index** on `child_id WHERE state IN ('issued','playing','paused')` is the database guarantee. A losing concurrent insert gets a constraint error and retries as a supersede.
 - **No reuse:** terminal tickets refuse every call.
-- **Rate limits** per child: starts 6/min, heartbeats 12/min.
+- **Rate limits** per child: starts 6/min, heartbeats 20/min (`api/v1/play_tickets.py`), per process (Redis needed for several instances).
 - **Logs:** ids and states only, never tokens.
 
 ## 5. What tickets can and cannot enforce with YouTube

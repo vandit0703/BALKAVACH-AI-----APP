@@ -97,6 +97,7 @@ registration_limiter = RedisRateLimiter("registration")
 password_reset_limiter = RedisRateLimiter("password-reset")
 parent_pin_limiter = RedisRateLimiter("parent-pin")
 parent_mode_limiter = RedisRateLimiter("parent-mode-entry")
+password_change_limiter = RedisRateLimiter("password-change")
 
 
 def enforce(limiter: FixedWindowLimiter, key: str, *, limit: int, window_seconds: int) -> None:

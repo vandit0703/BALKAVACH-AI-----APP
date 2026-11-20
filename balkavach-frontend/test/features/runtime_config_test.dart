@@ -148,7 +148,7 @@ void main() {
       await pump(tester, h);
       expect(
         find.text(
-          'Bal Kavach is being updated. Some things may not work for a while.',
+          'BALKAVACH is being updated. Some things may not work for a while.',
         ),
         findsOneWidget,
       );

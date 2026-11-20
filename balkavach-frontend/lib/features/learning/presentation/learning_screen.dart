@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,6 +16,7 @@ import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/lazy_list_page.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/learning_repository.dart';
+import 'video_lock_screen.dart' show ensureVideoAllowance;
 
 /// Localised name for the categories the app ships with; any other category
 /// an administrator adds shows the name the server sent.
@@ -215,9 +218,17 @@ class _LearningDetailScreenState extends ConsumerState<LearningDetailScreen> {
     final item = widget.item;
     final uri = item.openableUri;
     final description = item.description?.trim();
+    // A curated video plays only inside the app, metered like any feed video.
+    // It never falls back to the browser or the YouTube app: that would be
+    // unmetered viewing outside BALKAVACH.
     final blocker = item.requiresEntitlement
         ? l10n.learnLocked
-        : (uri == null ? l10n.learnNotReady : null);
+        : item.isMetered && uri == null
+        // The server withholds the link when today's video time is used up.
+        ? l10n.videoTimeExhaustedBody
+        : uri == null || (item.contentType == 'video' && !item.playsInApp)
+        ? l10n.learnNotReady
+        : null;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.learnTitle)),
@@ -262,10 +273,19 @@ class _LearningDetailScreenState extends ConsumerState<LearningDetailScreen> {
                   label: l10n.videoWatchInApp,
                   icon: Icons.play_arrow_rounded,
                   childSized: true,
-                  onPressed: () => context.push(
-                    AppRoutes.childLearnPlay(item.id),
-                    extra: item,
-                  ),
+                  // Same pre-launch allowance check as the Watch page.
+                  onPressed: () async {
+                    if (!await ensureVideoAllowance(context, ref) ||
+                        !context.mounted) {
+                      return;
+                    }
+                    unawaited(
+                      context.push(
+                        AppRoutes.childLearnPlay(item.id),
+                        extra: item,
+                      ),
+                    );
+                  },
                 ),
               ] else ...[
                 PrimaryButton(

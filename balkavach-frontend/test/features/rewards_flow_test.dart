@@ -266,7 +266,7 @@ void main() {
       await _tap(tester, find.byKey(const Key('reward.ask')));
       await _tap(tester, find.byKey(const Key('reward.confirm')));
       expect(
-        find.text('Can\'t reach Bal Kavach. Check your internet connection.'),
+        find.text('Can\'t reach BALKAVACH. Check your internet connection.'),
         findsOneWidget,
       );
 

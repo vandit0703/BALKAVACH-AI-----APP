@@ -107,10 +107,15 @@ class FakeOutput implements SpeechOutput {
 class FakeChat extends CompanionChatRepository {
   FakeChat() : super(Dio());
 
-  final calls = <({String text, String locale, String? context})>[];
+  final calls = <({String text, String locale, String? context, bool voice})>[];
   Completer<PandaChatReply>? pending;
   Object? error;
   bool hold = false;
+
+  /// Parental microphone consent as the server reports it.
+  bool consent = true;
+  Object? consentError;
+  int consentChecks = 0;
   PandaChatReply reply = const PandaChatReply(
     text: 'Why are fish smart? They live in schools! Want another one?',
     locale: 'en',
@@ -126,11 +131,24 @@ class FakeChat extends CompanionChatRepository {
     required String locale,
     required String turnId,
     String? contextIntent,
+    bool voice = false,
   }) async {
-    calls.add((text: text, locale: locale, context: contextIntent));
+    calls.add((
+      text: text,
+      locale: locale,
+      context: contextIntent,
+      voice: voice,
+    ));
     if (error != null) throw error!;
     if (hold) return (pending = Completer<PandaChatReply>()).future;
     return reply;
+  }
+
+  @override
+  Future<bool> voiceConsent() async {
+    consentChecks++;
+    if (consentError != null) throw consentError!;
+    return consent;
   }
 }
 
@@ -470,6 +488,86 @@ void main() {
     });
   });
 
+  group('parental microphone consent', () {
+    pandaTest('without consent the microphone never opens; typing works', (
+      tester,
+      w,
+    ) async {
+      w.chat.consent = false;
+      await w.controller.startListening();
+      await flush(tester);
+
+      expect(w.input.prepares, 0);
+      expect(w.input.listens, 0);
+      expect(w.state.problem, PandaProblem.voiceNeedsParent);
+      expect(w.state.voiceAllowed, isFalse);
+      expect(w.state.typing, isTrue, reason: 'the text box is offered');
+
+      unawaited(w.controller.send('hello'));
+      await flush(tester);
+      expect(w.chat.calls.single.voice, isFalse);
+      expect(w.state.phase, PandaPhase.speaking);
+    });
+
+    pandaTest('when consent cannot be checked the microphone stays closed', (
+      tester,
+      w,
+    ) async {
+      w.chat.consentError = const NetworkException();
+      await w.controller.startListening();
+      await flush(tester);
+
+      expect(w.input.listens, 0);
+      expect(w.state.problem, PandaProblem.network);
+      expect(w.state.voiceAllowed, isNull);
+    });
+
+    pandaTest('consent is checked with the server before listening', (
+      tester,
+      w,
+    ) async {
+      unawaited(w.controller.startListening());
+      await flush(tester);
+      expect(w.chat.consentChecks, 1);
+      expect(w.state.phase, PandaPhase.listening);
+      w.input.done!('hello panda');
+      await flush(tester);
+      expect(w.chat.calls.single.voice, isTrue, reason: 'sent as a voice turn');
+    });
+
+    pandaTest('a withdrawal refused by the server stops listening and '
+        'speaking at once; typing still works', (tester, w) async {
+      unawaited(w.controller.startListening());
+      await flush(tester);
+      w.chat.error = const ForbiddenException(
+        message: 'no consent',
+        code: kPandaVoiceConsentRequired,
+      );
+      w.input.done!('hello panda');
+      await flush(tester);
+
+      expect(w.state.problem, PandaProblem.voiceNeedsParent);
+      expect(w.state.voiceAllowed, isFalse);
+      expect(w.input.cancels, greaterThanOrEqualTo(1));
+      expect(w.output.stops, greaterThanOrEqualTo(1));
+      expect(w.state.typing, isTrue);
+
+      // The next mic tap asks the server again and stays closed.
+      w.chat
+        ..error = null
+        ..consent = false;
+      final listensBefore = w.input.listens;
+      await w.controller.startListening();
+      await flush(tester);
+      expect(w.input.listens, listensBefore);
+
+      unawaited(w.controller.send('tell me a joke'));
+      await flush(tester);
+      expect(w.chat.calls.last.voice, isFalse);
+      expect(w.state.pandaText, contains('schools'));
+    });
+  });
+
   test('turn ids are fresh v4 UUIDs', () {
     final pattern = RegExp(
       r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
@@ -603,10 +701,12 @@ void main() {
       Size size = const Size(393, 852),
       double scale = 1,
       bool exhausted = false,
+      bool consent = true,
     }) async {
       resetPandaMicExplanation();
       w = World();
       w.output.instant = true;
+      w.chat.consent = consent;
       await pumpScreen(
         tester,
         const Scaffold(body: PandaTalkSheet()),
@@ -694,6 +794,22 @@ void main() {
       await tester.tap(find.byKey(const Key('panda.talk.mic')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('panda.talk.problem')), findsOneWidget);
+      expect(find.byKey(const Key('panda.talk.input')), findsOneWidget);
+    });
+
+    testWidgets('without parental consent the mic is shown off and never '
+        'asks for the permission', (tester) async {
+      await open(tester, consent: false);
+      expect(find.byIcon(Icons.mic_off_rounded), findsOneWidget);
+
+      w.input.permission = false;
+      await tester.tap(find.byKey(const Key('panda.talk.mic')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('panda.talk.micExplain')), findsNothing);
+      expect(w.input.prepares, 0);
+      expect(w.input.listens, 0);
+      expect(find.textContaining('grown-up’s OK'), findsOneWidget);
       expect(find.byKey(const Key('panda.talk.input')), findsOneWidget);
     });
 

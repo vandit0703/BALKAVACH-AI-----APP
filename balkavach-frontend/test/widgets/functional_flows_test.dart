@@ -175,7 +175,7 @@ void main() {
 
       await _tap(tester, find.byKey(const Key('parent.approvals')));
 
-      expect(find.text('Who is using Bal Kavach?'), findsOneWidget);
+      expect(find.text('Who is using BALKAVACH?'), findsOneWidget);
       expect(find.text(_expired), findsOneWidget);
       expect(await h.storage.read(), isNull);
     });
@@ -338,7 +338,7 @@ void main() {
       await tester.pageBack();
       await tester.pumpAndSettle();
 
-      expect(find.text('Who is using Bal Kavach?'), findsOneWidget);
+      expect(find.text('Who is using BALKAVACH?'), findsOneWidget);
       expect(find.text(_expired), findsNothing);
     });
 

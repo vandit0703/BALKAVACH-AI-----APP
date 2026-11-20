@@ -22,6 +22,7 @@ abstract final class AppRoutes {
       Uri(path: parentReports, queryParameters: {'child': childId}).toString();
   static const parentSettings = '/parent/settings';
   static const parentNotificationSettings = '/parent/settings/notifications';
+  static const parentPandaVoiceConsent = '/parent/settings/panda-voice';
   static const parentRewards = '/parent/rewards';
   static const parentNewReward = '/parent/rewards/new';
   static String parentEditReward(String rewardId) =>

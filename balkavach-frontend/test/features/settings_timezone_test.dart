@@ -221,7 +221,7 @@ void main() {
           reason: 'only push is a working switch',
         );
         expect(
-          find.text("Bal Kavach doesn't send emails yet."),
+          find.text("BALKAVACH doesn't send emails yet."),
           findsOneWidget,
         );
       },
@@ -235,7 +235,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('Saved on this phone only'), findsOneWidget);
       expect(find.textContaining('Saved to your account'), findsOneWidget);
-      expect(find.text('Bal Kavach shows no ads.'), findsOneWidget);
+      expect(find.text('BALKAVACH shows no ads.'), findsOneWidget);
     });
   });
 }

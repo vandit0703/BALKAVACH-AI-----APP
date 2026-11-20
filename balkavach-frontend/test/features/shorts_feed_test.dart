@@ -794,15 +794,20 @@ void main() {
       expect(video.isPlayable, isFalse);
     });
 
-    LearningItem item({String? url, bool locked = false, String? videoId}) =>
-        LearningItem(
-          id: 'l1',
-          title: 'L',
-          contentType: 'video',
-          contentUrl: url,
-          requiresEntitlement: locked,
-          videoId: videoId,
-        );
+    LearningItem item({
+      String? url,
+      bool locked = false,
+      String? videoId,
+      String? metered = 'cat-1',
+    }) => LearningItem(
+      id: 'l1',
+      title: 'L',
+      contentType: 'video',
+      contentUrl: url,
+      requiresEntitlement: locked,
+      videoId: videoId,
+      meteredVideoId: metered,
+    );
 
     test('a curated YouTube page is never treated as a media stream', () {
       for (final url in [

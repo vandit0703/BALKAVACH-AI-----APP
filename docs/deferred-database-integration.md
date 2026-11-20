@@ -112,7 +112,44 @@ See `docs/phase-7-notifications.md`.
 | `GET /companion/dialogue`, `GET/PUT /companion` | not present | dialogue packs, `companion_key` |
 | `GET/PATCH /notifications/preferences`, `GET /notifications/unread-count` | preferences shipped as `GET/PATCH /settings/families/{id}/notification-preferences` (family JSON, no schema); unread count still computed on the device | per-user preferences column (see Phase 7 table above); optional index for unread count |
 | `VideoFeedItem.orientation` | not present | `videos.orientation` |
-| `POST /video-access/tickets`, `/tickets/{id}/heartbeat`, `/tickets/{id}/end` (D6 contract in `docs/video-play-tickets.md`) | not built; pure rules ready in `app/services/play_ticket_rules.py` (unwired); the shipped model withholds ids at zero allowance and meters in `record_progress` | `video_play_tickets` |
+| `POST /video-access/tickets`, `/tickets/{id}/heartbeat`, `/tickets/{id}/end` (D6 contract in `docs/video-play-tickets.md`) | **built and routed, inactive**: every call returns 503 `play_tickets_unavailable` until the setting is on **and** the table exists (`charging_path.py`); all three Flutter players are wired behind `VIDEO_PLAY_TICKETS` (off); `record_progress` meters today (corrected 2026-11-20) | `video_play_tickets` |
+
+### Core product gaps cycle (2026-11-20): what needed schema
+
+| Feature | Schema needed? | Notes |
+|---|---|---|
+| Learn & Watch metering | **No** | A curated YouTube link is matched by YouTube id to an eligible catalogue `videos` row (`metered_video_id` in `GET /educational-content`) and metered by `record_progress`. Links with no eligible catalogue video (and direct MP4 links) are **no longer handed out**. **Optional later:** `educational_content.metered_video_id UUID NULL` (explicit admin link instead of id matching) if admins need to curate videos that are not in the catalogue; otherwise the admin imports the video into the catalogue first. |
+| Panda microphone consent | **No** | Existing `consent_records` (`panda_voice`). `companion_preferences` stays optional (only for per-setting history or a separate TTS switch). |
+| Change password, sign out everywhere | **No** | Existing `users.password_hash` and `auth_sessions`. A "list my devices" screen is also possible without schema (`auth_sessions.device_label`, `last_used_at`) but is not built. |
+| Shorts play tickets | **No new requirement** | Same `video_play_tickets` table as above. |
+
+### Account deletion and data export (not implemented; decision needed first)
+
+Account deletion is required by Google Play for apps that create accounts (in-app and via a web link), and the app holds
+children's data. Nothing is built; this is the model to decide on.
+
+**Deletion models**
+
+| Model | Schema | Behaviour | Trade-off |
+|---|---|---|---|
+| A. Soft delete + scheduled purge (roadmap SEC-05) | `users.deleted_at` (already listed in section 3) and a purge job (scheduler, D9) | sign-in blocked at once; data purged after a grace period (e.g. 30 days); restorable on request inside the window | needs schema and a scheduler |
+| B. Immediate erasure/anonymisation | none | in one transaction: revoke sessions, deactivate, scrub personal fields (name, email, password hash, phone if any), delete or anonymise dependent rows | irreversible; no undo window; must be exhaustive from day one |
+
+**Scope questions for the product owner and legal review**
+
+* **Family vs one parent:** deleting one parent of a two-parent family keeps the family; deleting the last parent must delete
+  the children (child accounts cannot exist without a parent).
+* **Children's data:** child profiles, child user accounts and their sessions, missions and submissions, **proof photos in
+  storage** (`proof_uploads` plus the files in S3/local storage, which a database delete does not remove), stars/XP,
+  streaks, watch history, notifications, device tokens.
+* **Records that may need to be kept:** `consent_records` (evidence that consent was given or withdrawn), `audit_logs`, and
+  any record a law requires; keep them anonymised and decide a retention period.
+* **Backups:** deleted data persists in database backups until they rotate; the privacy policy must state the period.
+* **Law:** India's DPDP Act 2023 (verifiable parental consent for children, erasure on withdrawal) and Play's user-data
+  policy apply. This needs legal review; nothing here is legal advice.
+
+**Export:** a JSON export of the parent's account and their children's data (same table list as above), generated on request,
+delivered to the signed-in parent only, never including other family members' credentials.
 
 ## 5. Data backfills (after the schema exists)
 

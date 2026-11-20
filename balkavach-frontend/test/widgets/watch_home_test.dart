@@ -63,6 +63,8 @@ Map<String, Object?> _curated({
   'collection_id': null,
   'requires_entitlement': false,
   'is_active': true,
+  // The server meters curated video through a matched catalogue video.
+  'metered_video_id': 'cat-$id',
 };
 
 const _allowancePath = '/api/v1/video-access/allowance';

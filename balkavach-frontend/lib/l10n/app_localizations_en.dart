@@ -2893,4 +2893,60 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get videoTicketRevoked => 'This video isn’t available right now.';
+
+  @override
+  String get videoUpdateRequired =>
+      'This version of BALKAVACH can’t play videos any more. Ask a grown-up to update the app.';
+
+  @override
+  String get pandaVoiceNeedsParent =>
+      'Talking out loud to Panda needs a grown-up’s OK first. You can type to Panda instead!';
+
+  @override
+  String get pandaConsentTitle => 'Talk to Panda: microphone';
+
+  @override
+  String get pandaConsentEntrySubtitle =>
+      'Choose which children may talk to Panda out loud';
+
+  @override
+  String get pandaConsentParentOnly => 'Only a parent can change this.';
+
+  @override
+  String get pandaConsentIntro =>
+      'The microphone stays off until you agree, child by child. Typing to Panda always works.';
+
+  @override
+  String get pandaConsentDisclosure =>
+      'Panda listens only after your child taps the microphone, and stops when they finish talking. Your phone’s speech service turns the words into text. On many Android phones this is a Google service that may process the audio over the internet under Google’s terms. BALKAVACH keeps no recording and does not store what your child says; Panda’s reply is chosen from lines we wrote. Panda’s voice also comes from your phone’s text-to-speech service. You can turn the microphone off again at any time.';
+
+  @override
+  String get pandaConsentOn => 'Allowed to talk out loud';
+
+  @override
+  String get pandaConsentOff => 'Microphone off (typing only)';
+
+  @override
+  String pandaConsentDialogTitle(String name) {
+    return 'Let $name talk to Panda out loud?';
+  }
+
+  @override
+  String get pandaConsentAgree => 'I agree';
+
+  @override
+  String get pandaConsentCancel => 'Not now';
+
+  @override
+  String pandaConsentWithdrawn(String name) {
+    return 'Microphone turned off for $name.';
+  }
+
+  @override
+  String get pandaConsentSaveFailed =>
+      'We couldn’t save that. Please try again.';
+
+  @override
+  String get pandaConsentOutdated =>
+      'This explanation has changed. Please update the app, then try again.';
 }

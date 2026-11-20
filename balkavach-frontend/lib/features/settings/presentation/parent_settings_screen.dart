@@ -490,6 +490,21 @@ class _PreferencesCard extends ConsumerWidget {
                     onTap: () =>
                         context.push(AppRoutes.parentNotificationSettings),
                   ),
+                if (familyId != null)
+                  ListTile(
+                    key: const Key('settings.pandaVoiceConsent'),
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(
+                      radius: 22,
+                      backgroundColor: colors.surfaceContainerHigh,
+                      child: Icon(Icons.mic_rounded, color: colors.primary),
+                    ),
+                    title: Text(l10n.pandaConsentTitle),
+                    subtitle: Text(l10n.pandaConsentEntrySubtitle),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () =>
+                        context.push(AppRoutes.parentPandaVoiceConsent),
+                  ),
                 const SizedBox(height: AppSpacing.sm),
                 _InfoRow(
                   key: const Key('settings.email'),

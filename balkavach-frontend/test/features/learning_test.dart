@@ -20,6 +20,7 @@ Map<String, Object?> _item({
   bool locked = false,
   String? videoId,
   String? description = 'Sing along with numbers.',
+  String? metered,
 }) => {
   'id': id,
   'title': title,
@@ -33,6 +34,7 @@ Map<String, Object?> _item({
   'collection_id': null,
   'requires_entitlement': locked,
   'is_active': true,
+  'metered_video_id': metered,
 };
 
 final _categories = [
@@ -273,6 +275,33 @@ void main() {
       expect(find.text("This one isn't ready to play yet."), findsOneWidget);
     });
 
+    testWidgets(
+      'an unmetered curated video neither plays nor opens outside the app',
+      (tester) async {
+        // e.g. an older server that still sends the link without metering.
+        final opener = await pump(
+          tester,
+          _item(type: 'video', url: 'https://youtu.be/dQw4w9WgXcQ'),
+        );
+        expect(find.byKey(const Key('learn.play')), findsNothing);
+        expect(find.byKey(const Key('learn.open')), findsNothing);
+        expect(find.text("This one isn't ready to play yet."), findsOneWidget);
+        expect(opener.opened, isEmpty);
+      },
+    );
+
+    testWidgets('a metered video whose link was withheld says time is up', (
+      tester,
+    ) async {
+      await pump(tester, _item(type: 'video', url: null, metered: 'cat-1'));
+      expect(find.byKey(const Key('learn.play')), findsNothing);
+      expect(find.byKey(const Key('learn.open')), findsNothing);
+      expect(
+        find.textContaining('used today’s video time'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('an insecure link is never offered', (tester) async {
       await pump(tester, _item(url: 'http://example.com/a'));
       expect(find.byKey(const Key('learn.open')), findsNothing);
@@ -283,7 +312,11 @@ void main() {
     ) async {
       final opener = await pump(
         tester,
-        _item(type: 'video', url: 'https://cdn.example.org/a.mp4'),
+        _item(
+          type: 'video',
+          url: 'https://cdn.example.org/a.mp4',
+          metered: 'cat-1',
+        ),
       );
       expect(find.byKey(const Key('learn.play')), findsOneWidget);
       // The external-browser path must not be offered for playable content.
@@ -299,6 +332,7 @@ void main() {
         _item(
           type: 'video',
           url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          metered: 'cat-1',
         ),
       );
       expect(find.byKey(const Key('learn.play')), findsOneWidget);
@@ -310,16 +344,19 @@ void main() {
       expect(opener.opened, isEmpty);
     });
 
-    testWidgets('a YouTube page that is not one video still opens outside', (
+    testWidgets('a YouTube page that is not one video is not opened', (
       tester,
     ) async {
-      // A channel has no single video to embed, so it genuinely cannot play.
+      // A channel has no single video to embed or meter. Opening it in
+      // YouTube would be unmetered viewing outside the app (the server no
+      // longer sends such links either).
       await pump(
         tester,
         _item(type: 'video', url: 'https://www.youtube.com/@SomeChannel'),
       );
       expect(find.byKey(const Key('learn.play')), findsNothing);
-      expect(find.byKey(const Key('learn.open')), findsOneWidget);
+      expect(find.byKey(const Key('learn.open')), findsNothing);
+      expect(find.text("This one isn't ready to play yet."), findsOneWidget);
     });
 
     testWidgets('a non-video link still opens outside the app', (tester) async {

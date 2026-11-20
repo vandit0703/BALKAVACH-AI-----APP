@@ -4846,6 +4846,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This video isn’t available right now.'**
   String get videoTicketRevoked;
+
+  /// No description provided for @videoUpdateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This version of BALKAVACH can’t play videos any more. Ask a grown-up to update the app.'**
+  String get videoUpdateRequired;
+
+  /// No description provided for @pandaVoiceNeedsParent.
+  ///
+  /// In en, this message translates to:
+  /// **'Talking out loud to Panda needs a grown-up’s OK first. You can type to Panda instead!'**
+  String get pandaVoiceNeedsParent;
+
+  /// No description provided for @pandaConsentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Talk to Panda: microphone'**
+  String get pandaConsentTitle;
+
+  /// No description provided for @pandaConsentEntrySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which children may talk to Panda out loud'**
+  String get pandaConsentEntrySubtitle;
+
+  /// No description provided for @pandaConsentParentOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only a parent can change this.'**
+  String get pandaConsentParentOnly;
+
+  /// No description provided for @pandaConsentIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'The microphone stays off until you agree, child by child. Typing to Panda always works.'**
+  String get pandaConsentIntro;
+
+  /// No description provided for @pandaConsentDisclosure.
+  ///
+  /// In en, this message translates to:
+  /// **'Panda listens only after your child taps the microphone, and stops when they finish talking. Your phone’s speech service turns the words into text. On many Android phones this is a Google service that may process the audio over the internet under Google’s terms. BALKAVACH keeps no recording and does not store what your child says; Panda’s reply is chosen from lines we wrote. Panda’s voice also comes from your phone’s text-to-speech service. You can turn the microphone off again at any time.'**
+  String get pandaConsentDisclosure;
+
+  /// No description provided for @pandaConsentOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed to talk out loud'**
+  String get pandaConsentOn;
+
+  /// No description provided for @pandaConsentOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone off (typing only)'**
+  String get pandaConsentOff;
+
+  /// No description provided for @pandaConsentDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Let {name} talk to Panda out loud?'**
+  String pandaConsentDialogTitle(String name);
+
+  /// No description provided for @pandaConsentAgree.
+  ///
+  /// In en, this message translates to:
+  /// **'I agree'**
+  String get pandaConsentAgree;
+
+  /// No description provided for @pandaConsentCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get pandaConsentCancel;
+
+  /// No description provided for @pandaConsentWithdrawn.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone turned off for {name}.'**
+  String pandaConsentWithdrawn(String name);
+
+  /// No description provided for @pandaConsentSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn’t save that. Please try again.'**
+  String get pandaConsentSaveFailed;
+
+  /// No description provided for @pandaConsentOutdated.
+  ///
+  /// In en, this message translates to:
+  /// **'This explanation has changed. Please update the app, then try again.'**
+  String get pandaConsentOutdated;
 }
 
 class _AppLocalizationsDelegate

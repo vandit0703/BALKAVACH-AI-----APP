@@ -42,6 +42,7 @@ class LearningItem {
     this.thumbnailUrl,
     this.videoId,
     this.collectionId,
+    this.meteredVideoId,
   });
 
   factory LearningItem.fromJson(Map<String, dynamic> json) => LearningItem(
@@ -54,6 +55,7 @@ class LearningItem {
     thumbnailUrl: json['thumbnail_url'] as String?,
     videoId: json['video_id'] as String?,
     collectionId: json['collection_id'] as String?,
+    meteredVideoId: json['metered_video_id'] as String?,
     requiresEntitlement: json['requires_entitlement'] as bool? ?? false,
   );
 
@@ -69,6 +71,14 @@ class LearningItem {
   final String? videoId;
   final String? collectionId;
   final bool requiresEntitlement;
+
+  /// The catalogue video that meters this curated item: progress is reported
+  /// on it through the one charging path (`record_progress`), so it costs
+  /// video time like any feed video. Null when the server cannot meter the
+  /// item; such a video is never played here.
+  final String? meteredVideoId;
+
+  bool get isMetered => meteredVideoId != null;
 
   /// The link the child may open: only `https`, and only when the server sent
   /// one (hosted videos and reward-gated items never carry a link here).
@@ -122,17 +132,23 @@ class LearningItem {
 
   /// Whether this item can be played by the native in-app player.
   ///
-  /// Only an admin-curated direct link qualifies. Hosted and entitlement-gated
-  /// videos deliberately arrive without a URL: they must go through the
-  /// authorised playback-session API, which needs a configured provider, so
-  /// they are never played here. A YouTube link is a web page, not a media
-  /// stream, so it never reaches the native player either.
+  /// Only an admin-curated direct link that the server meters qualifies.
+  /// Hosted and entitlement-gated videos deliberately arrive without a URL:
+  /// they must go through the authorised playback-session API, which needs a
+  /// configured provider, so they are never played here. A YouTube link is a
+  /// web page, not a media stream, so it never reaches the native player.
+  /// Today the server meters only YouTube links (through a catalogue video),
+  /// so this is false in practice: unmetered video would be free video time.
   bool get isPlayableInApp =>
-      _isFreeCuratedVideo && openableUri != null && !isYouTubeLink;
+      _isFreeCuratedVideo &&
+      isMetered &&
+      openableUri != null &&
+      !isYouTubeLink;
 
   /// Whether this item is a curated YouTube video the official embedded
-  /// player can show inside the app.
-  bool get isYouTubeEmbeddable => _isFreeCuratedVideo && youtubeVideoId != null;
+  /// player can show inside the app. Only metered items qualify.
+  bool get isYouTubeEmbeddable =>
+      _isFreeCuratedVideo && isMetered && youtubeVideoId != null;
 
   /// Whether tapping this item plays it inside the app, in either player.
   bool get playsInApp => isPlayableInApp || isYouTubeEmbeddable;

@@ -10,6 +10,12 @@ on:
 permissions:
   contents: read
 
+env:
+  # Both pubspec.lock files were resolved with Flutter 3.44.6 (Dart 3.12.2, revision ee80f08bbf).
+  # The SDK pins packages such as clock/matcher/test_api, so a floating "stable" (3.50.x since
+  # 2026-11-11) cannot satisfy --enforce-lockfile. Upgrade this and regenerate both lockfiles together.
+  FLUTTER_VERSION: "3.44.6"
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -94,7 +100,9 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
+      - run: flutter --version
       - run: flutter pub get --enforce-lockfile
       - run: flutter analyze
       - run: flutter test --no-pub
@@ -111,7 +119,9 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
+      - run: flutter --version
       - run: flutter pub get --enforce-lockfile
       - run: flutter analyze
       - run: flutter test --no-pub

@@ -223,6 +223,18 @@ def update_watch_position(history, video, format_name: str, position_seconds: in
 			history.completed_at = history.completed_at or now
 
 
+def find_eligible_video(session: Session, child, video_id: UUID):
+	"""The video if ``record_progress`` would accept it for this child, else None.
+
+	Same rules as ``_eligible_video`` (published, rating, YouTube visibility, age,
+	language, active category), without raising.
+	"""
+	try:
+		return _eligible_video(session, child, video_id)
+	except HTTPException:
+		return None
+
+
 def record_progress(
 	session: Session,
 	child,

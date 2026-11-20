@@ -13,12 +13,15 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/models/app_assets.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../data/play_ticket_client.dart' show TicketStop;
 import '../data/playable_video.dart';
 import '../data/playback_guard.dart';
+import '../data/ticketed_playback.dart';
 import '../data/video_feed_repository.dart';
 import '../data/video_playback_controller.dart';
 import 'video_lock_screen.dart';
 import 'video_player_screen.dart' show formatPlaybackTime;
+import 'widgets/ticket_notice.dart';
 import 'widgets/video_actions.dart';
 import 'youtube_player_screen.dart';
 
@@ -480,7 +483,20 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
 
   /// Reports kept failing: this page stops playing until the server answers.
   bool _offline = false;
+
+  /// The server requires play tickets and this build does not use them
+  /// (409 `play_ticket_required`). Set together with [_offline]; no retry.
+  bool _updateRequired = false;
   PlaybackGuard get _guard => ref.read(playbackGuardProvider);
+
+  /// Play tickets (D6) for this page, when the build enables them; otherwise
+  /// legacy `record_progress`. A ticket is held only while this page is the
+  /// one on screen, so a prepared neighbour never supersedes it.
+  late final TicketedPlayback _tickets = ticketedPlaybackFor(
+    ref,
+    metered: widget.video.reportVideoId != null,
+    onChanged: _onTicketChanged,
+  );
 
   /// YouTube refused to embed this video: retrying will not help.
   bool _blocked = false;
@@ -500,6 +516,38 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _syncStream();
+    scheduleMicrotask(_syncTicket);
+  }
+
+  /// Holds a ticket exactly while this page is active and in the foreground.
+  void _syncTicket() {
+    final id = widget.video.reportVideoId;
+    if (!mounted || id == null || !_tickets.handles) return;
+    if (widget.active && widget.foreground) {
+      if (_tickets.phase == TicketPhase.idle) unawaited(_tickets.begin(id));
+    } else if (_tickets.phase == TicketPhase.granted ||
+        _tickets.phase == TicketPhase.requesting) {
+      unawaited(_tickets.finish(_lastPosition));
+    }
+  }
+
+  void _onTicketChanged() {
+    if (!mounted) return;
+    if (_tickets.stopReason == TicketStop.exhausted) {
+      _stopForExhaustedAllowance();
+      return;
+    }
+    // Any refusal (another device, revoked, expired, offline) stops at once.
+    if (_tickets.phase == TicketPhase.stopped) unawaited(_controller?.pause());
+    setState(() {});
+    scheduleMicrotask(_applyPlayback);
+  }
+
+  void _retryTicket() {
+    // A fresh ticket; never a fall back to record_progress.
+    _tickets.reset();
+    setState(() => _attempt++);
+    _syncTicket();
   }
 
   @override
@@ -547,6 +595,7 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
     }
     if (!widget.active) _userPaused = false;
     _syncStream();
+    scheduleMicrotask(_syncTicket);
   }
 
   /// Creates, drives or releases the hosted-stream controller so it matches
@@ -593,7 +642,12 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
     final controller = _controller;
     if (!mounted || controller == null || !controller.isInitialised) return;
     unawaited(controller.setVolume(widget.muted ? 0 : 1));
-    final shouldPlay = widget.active && widget.foreground && !_userPaused;
+    final shouldPlay =
+        widget.active &&
+        widget.foreground &&
+        !_userPaused &&
+        !_offline &&
+        _tickets.mayPlay;
     if (shouldPlay && !controller.isPlaying) {
       unawaited(controller.play());
     } else if (!shouldPlay && controller.isPlaying) {
@@ -660,6 +714,7 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _tickets.dispose();
     _release();
     _progress.dispose();
     super.dispose();
@@ -695,7 +750,8 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
           !_failed &&
           !_allowanceExhausted &&
           !_offline &&
-          !_blocked) {
+          !_blocked &&
+          _tickets.mayPlay) {
         // The official player fills everything below the top bar. YouTube
         // draws its own title bar at the top of the player, so the player
         // starts below ours instead of under it.
@@ -791,6 +847,13 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
     bool isPlaying = true,
   }) {
     final videoId = widget.video.reportVideoId;
+    if (videoId != null && _tickets.handles) {
+      // Ticket mode: heartbeats meter this playback, record_progress never.
+      if (allowInactive || (widget.active && widget.foreground)) {
+        _tickets.report(position, isPlaying: isPlaying);
+      }
+      return;
+    }
     final now = DateTime.now();
     if ((!widget.active && !allowInactive) ||
         (!widget.foreground && !allowInactive) ||
@@ -825,6 +888,9 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
         break;
       case PlaybackVerdict.exhausted:
         _stopForExhaustedAllowance();
+      case PlaybackVerdict.updateRequired:
+        unawaited(_controller?.pause());
+        setState(() => _offline = _updateRequired = true);
       case PlaybackVerdict.offline:
       case PlaybackVerdict.signedOut:
         if (_offline) break;
@@ -861,6 +927,34 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
     if (widget.active) unawaited(showVideoLockScreen(context));
   }
 
+  /// What replaces the picture while play tickets or an app update keep
+  /// this page from playing, or null. Exhaustion keeps its own message.
+  Widget? _ticketStage(AppLocalizations l10n, Widget still) {
+    if (_allowanceExhausted) return null;
+    if (_updateRequired) {
+      return _StageMessage(
+        key: const Key('videos.shorts.updateRequired'),
+        background: still,
+        icon: Icons.system_update_rounded,
+        message: l10n.videoUpdateRequired,
+      );
+    }
+    // A neighbour page waits for its ticket until it is on screen: it shows
+    // its still, not a "starting" notice, while the child swipes.
+    if (_tickets.waiting && !widget.active) return null;
+    final message = ticketNotice(l10n, _tickets);
+    if (message == null) return null;
+    return _StageMessage(
+      key: const Key('videos.shorts.ticket'),
+      background: still,
+      icon: _tickets.waiting
+          ? Icons.hourglass_top_rounded
+          : Icons.pause_circle_outline_rounded,
+      message: message,
+      onRetry: ticketRetryable(_tickets) ? _retryTicket : null,
+    );
+  }
+
   /// The picture when no web view is on screen: a still, a message, or a
   /// direct stream fitted to the page.
   Widget _stage(BuildContext context, Size page) {
@@ -879,6 +973,8 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
               : l10n.learnNotReady,
         );
       case YouTubeVideoSource():
+        final ticketStage = _ticketStage(l10n, still);
+        if (ticketStage != null) return ticketStage;
         if (_offline && !_allowanceExhausted) {
           return _StageMessage(
             key: const Key('videos.shorts.offline'),
@@ -914,6 +1010,8 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
         }
         return still;
       case DirectStreamSource():
+        final ticketStage = _ticketStage(l10n, still);
+        if (ticketStage != null) return ticketStage;
         if (_failed) {
           return _StageMessage(
             background: still,

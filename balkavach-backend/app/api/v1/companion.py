@@ -9,10 +9,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import require_child
+from app.core.exceptions import APIError
 from app.core.rate_limit import FixedWindowLimiter, enforce
 from app.db.base import get_model
 from app.db.session import get_db
-from app.schemas.companion import CompanionChatReply, CompanionChatRequest
+from app.schemas.companion import CompanionChatReply, CompanionChatRequest, CompanionVoiceConsentPublic
+from app.services import panda_voice_consent_service as panda_voice
 from app.services.companion_chat_service import ChildContext, compose_reply, safe_first_name
 
 logger = logging.getLogger(__name__)
@@ -120,6 +122,13 @@ def companion_chat(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> CompanionChatReply:
+	if request.input == "voice" and not panda_voice.is_granted(session, child.id):
+		# Checked before the duplicate cache so a withdrawal applies at once.
+		raise APIError(
+			403,
+			"panda_voice_consent_required",
+			"A parent has not agreed to Talk to Panda using the microphone.",
+		)
 	key = (str(child.id), str(request.turn_id))
 	cached = turn_cache.get(key)
 	if cached is not None:
@@ -144,3 +153,16 @@ def companion_chat(
 	)
 	turn_cache.put(key, public)
 	return public
+
+
+@router.get("/voice-consent", response_model=CompanionVoiceConsentPublic)
+def companion_voice_consent(
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> CompanionVoiceConsentPublic:
+	"""Whether a parent agreed to the microphone for this child (child only, read-only)."""
+	return CompanionVoiceConsentPublic(
+		granted=panda_voice.is_granted(session, child.id),
+		document_version=panda_voice.PANDA_VOICE_CONSENT_VERSION,
+	)
+

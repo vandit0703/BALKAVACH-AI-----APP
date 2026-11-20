@@ -2893,4 +2893,60 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get videoTicketRevoked => 'यह वीडियो अभी उपलब्ध नहीं है।';
+
+  @override
+  String get videoUpdateRequired =>
+      'BALKAVACH का यह वर्ज़न अब वीडियो नहीं चला सकता। किसी बड़े से ऐप अपडेट करने को कहो।';
+
+  @override
+  String get pandaVoiceNeedsParent =>
+      'पांडा से बोलकर बात करने के लिए पहले किसी बड़े की हाँ चाहिए। तब तक तुम पांडा को लिखकर बात कर सकते हो!';
+
+  @override
+  String get pandaConsentTitle => 'पांडा से बात: माइक्रोफ़ोन';
+
+  @override
+  String get pandaConsentEntrySubtitle =>
+      'चुनें कि कौन-से बच्चे पांडा से बोलकर बात कर सकते हैं';
+
+  @override
+  String get pandaConsentParentOnly => 'इसे सिर्फ़ माता-पिता बदल सकते हैं।';
+
+  @override
+  String get pandaConsentIntro =>
+      'जब तक आप हर बच्चे के लिए हाँ नहीं कहते, माइक्रोफ़ोन बंद रहता है। पांडा को लिखकर बात करना हमेशा चालू रहता है।';
+
+  @override
+  String get pandaConsentDisclosure =>
+      'पांडा तभी सुनता है जब आपका बच्चा माइक्रोफ़ोन दबाता है, और बोलना ख़त्म होते ही रुक जाता है। आपके फ़ोन की स्पीच सेवा शब्दों को टेक्स्ट में बदलती है। कई Android फ़ोन पर यह Google की सेवा होती है, जो Google की शर्तों के तहत ऑडियो को इंटरनेट पर प्रोसेस कर सकती है। BALKAVACH कोई रिकॉर्डिंग नहीं रखता और आपका बच्चा जो कहता है उसे सेव नहीं करता; पांडा का जवाब हमारी लिखी पंक्तियों में से चुना जाता है। पांडा की आवाज़ भी आपके फ़ोन की टेक्स्ट-टू-स्पीच सेवा से आती है। आप कभी भी माइक्रोफ़ोन फिर से बंद कर सकते हैं।';
+
+  @override
+  String get pandaConsentOn => 'बोलकर बात करने की अनुमति है';
+
+  @override
+  String get pandaConsentOff => 'माइक्रोफ़ोन बंद (सिर्फ़ लिखकर)';
+
+  @override
+  String pandaConsentDialogTitle(String name) {
+    return 'क्या $name पांडा से बोलकर बात कर सकता/सकती है?';
+  }
+
+  @override
+  String get pandaConsentAgree => 'मैं सहमत हूँ';
+
+  @override
+  String get pandaConsentCancel => 'अभी नहीं';
+
+  @override
+  String pandaConsentWithdrawn(String name) {
+    return '$name के लिए माइक्रोफ़ोन बंद कर दिया गया।';
+  }
+
+  @override
+  String get pandaConsentSaveFailed =>
+      'हम इसे सेव नहीं कर सके। कृपया फिर कोशिश करें।';
+
+  @override
+  String get pandaConsentOutdated =>
+      'यह जानकारी बदल गई है। कृपया ऐप अपडेट करें, फिर कोशिश करें।';
 }

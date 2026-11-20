@@ -569,7 +569,7 @@ void main() {
       configs.last.onForeignVideo();
       await tester.pump();
       expect(
-        find.text("That video isn't in Bal Kavach, so it can't play here."),
+        find.text("That video isn't in BALKAVACH, so it can't play here."),
         findsOneWidget,
       );
       configs.last.onError();
@@ -646,6 +646,7 @@ void main() {
             contentType: 'video',
             contentUrl: url,
             requiresEntitlement: false,
+            meteredVideoId: 'cat-1',
           ),
         ),
         overrides: [
@@ -672,11 +673,13 @@ void main() {
       expect(find.text('KIDS CONTENT'), findsOneWidget);
     });
 
-    testWidgets('offers no report form: there is no video row to report', (
+    testWidgets('a metered item can be reported: it has a catalogue video row', (
       tester,
     ) async {
       await pump(tester, 'https://www.youtube.com/watch?v=$_ytId');
-      expect(find.byKey(const Key('youtube.report')), findsNothing);
+      expect(find.byKey(const Key('youtube.report')), findsOneWidget);
+      // Still titled as Learn & Watch, not the video feed.
+      expect(find.text('Learn & Watch'), findsWidgets);
     });
 
     testWidgets('a link without one video shows a message, not a spinner', (

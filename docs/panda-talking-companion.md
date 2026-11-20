@@ -80,7 +80,8 @@ Android: `RECORD_AUDIO` permission, plus `RecognitionService` and `TTS_SERVICE` 
 | Word-boundary talk beat | yes (Android 8.0+ via `onRangeStart`; Android 7.x gets one beat per line) | yes | **no**; engine support varies (the test phone's default engine is `sia.netttsengine.ttslexx`, not Google TTS) | | layered mouth/blink art |
 | Gujarati replies in the respectful તમે form | yes | yes (regression test) | | **native-speaker review pending** | |
 | Microphone disclosure (platform/Google recogniser) | yes (en/hi/gu explainer) | yes | | **privacy-policy and consent text pending** | |
-| Parent voice switch / parent consent gate | **no** | | | product decision | yes |
+| Parent consent gate for the microphone (2026-11-20) | yes: `consent_records` (`panda_voice`, per child, versioned); parent screen; mic closed until granted | yes: backend SQLite (`tests/test_panda_voice_consent.py`), Flutter fakes (`panda_voice_consent_test.dart`, `panda_talk_test.dart`) | **no** | **legal review of the disclosure text pending** | |
+| Parent switch for Panda's *voice output* (TTS) | **no** (consent covers the microphone only) | | | product decision | |
 
 Device run so far (by the product owner, 2026-11-19): the app was built against the **production** API (the default `API_BASE_URL`), and `POST /api/v1/companion/chat` returned **404** because the endpoint is not deployed. Nothing else on hardware has been verified.
 
@@ -91,8 +92,24 @@ Do not point a local backend's `DATABASE_URL` at the live database.
 ## Release blockers (privacy and parent control)
 
 1. **Privacy policy:** state that Talk to Panda uses the device's speech recognition and text-to-speech; that on many Android phones these are Google services that may process audio online under Google's terms; that BalKavach keeps no audio and no conversation text; and that only the intent and safety category are logged.
-2. **Parent consent before the microphone:** today the child sees an explainer and then the Android permission prompt. Before release, a parent should opt in. This needs **no schema change**: record it in the existing `consent_records` (`consent_type = "panda_voice"`, per `child_id`, versioned, revocable through the existing endpoints). It does need a new child-readable read endpoint, a parent toggle screen and the gate in the panel, which is a small follow-up feature.
-3. **Parent switch for voice output:** the same consent record (or a second type) can cover it, also without schema. A dedicated `companion_preferences` table is only needed if per-setting audit history is wanted (see `deferred-database-integration.md`).
+2. **Parent consent before the microphone: implemented 2026-11-20 (not device verified, not legally reviewed).**
+   * Storage: existing `consent_records`, `consent_type = "panda_voice"`, one row per grant, per family and child, with
+     `document_version` = `PANDA_VOICE_CONSENT_VERSION` (`app/services/panda_voice_consent_service.py`; the app sends
+     `kPandaVoiceConsentVersion`, which must match). A newer text version makes older grants stale.
+   * Parent: `GET/PUT /api/v1/settings/families/{family}/children/{child}/panda-voice-consent` (active family members only;
+     404 otherwise). Granting needs the version shown; **any** parent of the family can withdraw. Screen: Parent settings →
+     "Talk to Panda: microphone" (`PandaVoiceConsentScreen`), confirmation dialog with the full disclosure before granting.
+   * Child: `GET /api/v1/companion/voice-consent` (read-only). The panel checks it on every mic tap **before** the Android
+     permission explainer, so a child without consent is never asked for the permission and the microphone never opens.
+     Typing to Panda always works.
+   * Withdrawal: `POST /companion/chat` refuses turns sent with `input = "voice"` without consent (403
+     `panda_voice_consent_required`); the app then cancels listening, stops speaking and switches to typing. **Limits:** the
+     `input` field is declared by the client, and older app builds do not send it (treated as typed). The real control is the
+     on-device gate; a modified app could still use the platform recogniser itself.
+   * **Text needing owner/legal review:** `pandaConsentDisclosure`, `pandaConsentIntro`, `pandaVoiceNeedsParent` (en/hi/gu),
+     the existing `pandaMicExplainBody`, and the privacy policy (item 1). Hindi and Gujarati need native-speaker review.
+3. **Parent switch for voice output:** not built (product decision: the consent above covers the microphone only; Panda's
+   replies are still spoken by the device's TTS). The same consent record (or a second type) can cover it, also without schema. A dedicated `companion_preferences` table is only needed if per-setting audit history is wanted (see `deferred-database-integration.md`).
 4. **Safety events to parents:** not built. It needs a consent decision and the optional `companion_safety_events` table.
 
 ## Still required before claiming "works on devices"
@@ -101,5 +118,7 @@ Do not point a local backend's `DATABASE_URL` at the live database.
 2. Behaviour with the mic busy (calls, other apps) and over Bluetooth headsets.
 3. Battery and CPU while the panel stays open.
 4. Native-speaker review of the Hindi and Gujarati replies, and child-safety review of the keyword lists.
-5. Privacy policy and consent copy for the platform speech service.
+5. Privacy policy and legal sign-off of the consent copy for the platform speech service (the in-app consent gate exists).
+7. Device check of the consent gate: grant on the parent phone, mic opens on the child device; withdraw while the child is
+   talking, the next voice turn is refused and the panel falls back to typing.
 6. Layered art per the art brief, for real mouth and blink frames.

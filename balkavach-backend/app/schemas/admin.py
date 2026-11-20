@@ -103,6 +103,13 @@ class EducationalContentPublic(BaseModel):
     is_active: bool
 
 
+class EducationalContentChildPublic(EducationalContentPublic):
+    # The catalogue video that meters this curated item through
+    # POST /videos/watch-history/{id}/progress (the single charging path).
+    # Null when the item cannot be metered; such video links are never exposed.
+    metered_video_id: UUID | None = None
+
+
 class EducationalContentAdminPublic(EducationalContentPublic):
     model_config = ConfigDict(from_attributes=True)
 

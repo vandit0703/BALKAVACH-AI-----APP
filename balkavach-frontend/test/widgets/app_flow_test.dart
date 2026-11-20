@@ -55,7 +55,7 @@ void main() {
     await _tap(tester, find.byKey(const Key('consent.checkbox')));
     await _tap(tester, find.byKey(const Key('consent.continue')));
 
-    expect(find.text('Who is using Bal Kavach?'), findsOneWidget);
+    expect(find.text('Who is using BALKAVACH?'), findsOneWidget);
     expect(h.prefs.acknowledgedConsentVersion, '2026-10-draft');
     expect(
       h.backend.requests.where((r) => r.uri.path != '/api/v1/app-config'),
@@ -359,7 +359,7 @@ void main() {
     await _tap(tester, find.text('Missions'));
     await tester.drag(find.byType(Scrollable).first, const Offset(0, 300));
     await tester.pumpAndSettle();
-    expect(find.text('Who is using Bal Kavach?'), findsOneWidget);
+    expect(find.text('Who is using BALKAVACH?'), findsOneWidget);
   });
 }
 

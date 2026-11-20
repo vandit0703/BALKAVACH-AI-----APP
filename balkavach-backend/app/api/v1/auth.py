@@ -11,6 +11,7 @@ from app.core.rate_limit import (
 	login_limiter,
 	password_reset_limiter,
 	parent_mode_limiter,
+	password_change_limiter,
 	registration_limiter,
 )
 from app.core.security import hash_password, verify_password
@@ -21,6 +22,7 @@ from app.schemas.auth import (
 	ParentModeEnterRequest,
 	ParentPinSetRequest,
 	ParentPinStatus,
+	PasswordChangeRequest,
 	PasswordResetConfirm,
 	PasswordResetRequest,
 	RefreshRequest,
@@ -28,6 +30,7 @@ from app.schemas.auth import (
 	TokenResponse,
 	UserPublic,
 )
+from app.services import account_security_service
 from app.services.auth_service import authenticate_user, register_parent, set_parent_pin
 from app.services.password_reset_service import consume_reset_token, create_reset_token
 from app.core.exceptions import APIError
@@ -261,3 +264,45 @@ def refresh(request: RefreshRequest, session: Session = Depends(get_db)) -> Toke
 def logout(request: RefreshRequest, session: Session = Depends(get_db)) -> Response:
 	revoke(session, request.refresh_token)
 	return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# Wrong current passwords per parent account (not per IP) before a pause.
+PASSWORD_CHANGE_LIMIT = 5
+PASSWORD_CHANGE_WINDOW_SECONDS = 900
+
+
+@router.post("/password/change", response_model=TokenResponse)
+def change_password(
+	request: PasswordChangeRequest,
+	parent=Depends(require_parent),
+	session_id=Depends(current_session_id),
+	session: Session = Depends(get_db),
+) -> TokenResponse:
+	"""Parent only, from their own sign-in (not a parent-mode session on a child's
+	device). Ends every session of this parent and returns a new one for this device."""
+	enforce(
+		password_change_limiter,
+		f"user:{parent.id}",
+		limit=PASSWORD_CHANGE_LIMIT,
+		window_seconds=PASSWORD_CHANGE_WINDOW_SECONDS,
+	)
+	return account_security_service.change_password(
+		session,
+		parent,
+		session_id,
+		current_password=request.current_password,
+		new_password=request.new_password,
+	)
+
+
+@router.post("/logout-all", status_code=status.HTTP_204_NO_CONTENT)
+def logout_all(
+	parent=Depends(require_parent),
+	session_id=Depends(current_session_id),
+	session: Session = Depends(get_db),
+) -> Response:
+	"""Parent only: sign out of every device, this one included. Children's own
+	sessions are not affected (a parent ends those per child)."""
+	account_security_service.sign_out_everywhere(session, parent, session_id)
+	return Response(status_code=status.HTTP_204_NO_CONTENT)
+

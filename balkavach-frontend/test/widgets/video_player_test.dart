@@ -1,4 +1,5 @@
 import 'package:balkavach_app/features/learning/data/learning_repository.dart';
+import 'package:balkavach_app/features/learning/data/playable_video.dart';
 import 'package:balkavach_app/features/learning/data/video_playback_controller.dart';
 import 'package:balkavach_app/features/learning/presentation/video_player_screen.dart';
 import 'package:flutter/material.dart';
@@ -104,6 +105,8 @@ LearningItem _video({
   String? url = 'https://cdn.example.org/curated/alphabet.mp4',
   bool requiresEntitlement = false,
   String? videoId,
+  // Metered by default: only metered curated video plays in the app.
+  String? meteredVideoId = 'metered-video-1',
 }) => LearningItem(
   id: id,
   title: 'Alphabet Song',
@@ -112,6 +115,7 @@ LearningItem _video({
   contentUrl: url,
   requiresEntitlement: requiresEntitlement,
   videoId: videoId,
+  meteredVideoId: meteredVideoId,
 );
 
 Future<FakePlaybackController> _pumpPlayer(
@@ -294,8 +298,33 @@ void main() {
   });
 
   group('Playability rules', () {
-    test('a curated direct video link is playable in app', () {
+    test('a metered curated direct video link is playable in app', () {
       expect(_video().isPlayableInApp, isTrue);
+    });
+
+    test('an unmetered curated video never plays in the app (no free time)', () {
+      expect(_video(meteredVideoId: null).isPlayableInApp, isFalse);
+      expect(_video(meteredVideoId: null).playsInApp, isFalse);
+      final youtube = _video(
+        url: 'https://youtu.be/dQw4w9WgXcQ',
+        meteredVideoId: null,
+      );
+      expect(youtube.youtubeVideoId, 'dQw4w9WgXcQ');
+      expect(youtube.isYouTubeEmbeddable, isFalse);
+      expect(youtube.playsInApp, isFalse);
+    });
+
+    test('a curated video reports progress on its metered catalogue video', () {
+      final video = PlayableVideo.fromLearning(
+        _video(url: 'https://youtu.be/dQw4w9WgXcQ', meteredVideoId: 'cat-7'),
+      );
+      expect(video.reportVideoId, 'cat-7');
+      expect(video.source, const YouTubeVideoSource('dQw4w9WgXcQ'));
+      final unmetered = PlayableVideo.fromLearning(
+        _video(url: 'https://youtu.be/dQw4w9WgXcQ', meteredVideoId: null),
+      );
+      expect(unmetered.reportVideoId, isNull);
+      expect(unmetered.source, isA<UnavailableSource>());
     });
 
     test('an entitlement-gated video is never played by this screen', () {

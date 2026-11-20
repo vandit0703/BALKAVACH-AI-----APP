@@ -126,7 +126,10 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
     if (!_greeted) {
       _greeted = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) unawaited(_greet());
+        if (!mounted) return;
+        unawaited(_greet());
+        // Greys the mic when no parent has agreed; typing always works.
+        unawaited(_controller.refreshVoiceConsent());
       });
     }
   }
@@ -164,7 +167,12 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Never listen or talk in the background.
-    if (state != AppLifecycleState.resumed) unawaited(_controller.stop());
+    if (state != AppLifecycleState.resumed) {
+      unawaited(_controller.stop());
+    } else {
+      // A parent may have changed the microphone consent meanwhile.
+      unawaited(_controller.refreshVoiceConsent());
+    }
   }
 
   @override
@@ -180,6 +188,9 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
       await _controller.finishListening();
       return;
     }
+    // A parent's consent comes first: without it the child is never asked
+    // for the microphone permission, and the microphone never opens.
+    if (!await _controller.checkVoiceConsent() || !mounted) return;
     if (!_micExplainedThisRun) {
       final granted = await ref.read(speechInputProvider).hasPermission();
       if (!mounted) return;
@@ -258,6 +269,7 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
       PandaProblem.notHeard => l10n.pandaErrorNotHeard,
       PandaProblem.network => l10n.pandaErrorNetwork,
       PandaProblem.busy => l10n.pandaErrorBusy,
+      PandaProblem.voiceNeedsParent => l10n.pandaVoiceNeedsParent,
     };
     final childSaid = state.phase == PandaPhase.listening
         ? state.heard
@@ -447,6 +459,8 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
                     icon: Icon(
                       state.phase == PandaPhase.listening
                           ? Icons.check_rounded
+                          : state.voiceAllowed == false
+                          ? Icons.mic_off_rounded
                           : Icons.mic_rounded,
                     ),
                     label: Text(

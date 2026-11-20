@@ -90,7 +90,7 @@ void main() {
     expect(opener.opened, hasLength(1));
     final uri = opener.opened.single;
     expect(uri.host, 'wa.me');
-    expect(uri.queryParameters['text'], contains('Bal Kavach'));
+    expect(uri.queryParameters['text'], contains('BALKAVACH'));
     expect(text.shared, isEmpty);
   });
 

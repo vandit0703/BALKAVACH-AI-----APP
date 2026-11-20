@@ -1631,5 +1631,22 @@
   "videoTicketStarting": "Getting your video ready…",
   "videoTicketSuperseded": "This video started playing on another device, so it stopped here. Tap Try again to watch here instead.",
   "videoTicketStopped": "The video stopped. Tap Try again to keep watching.",
-  "videoTicketRevoked": "This video isn’t available right now."
+  "videoTicketRevoked": "This video isn’t available right now.",
+  "videoUpdateRequired": "This version of BALKAVACH can’t play videos any more. Ask a grown-up to update the app.",
+  "pandaVoiceNeedsParent": "Talking out loud to Panda needs a grown-up’s OK first. You can type to Panda instead!",
+  "pandaConsentTitle": "Talk to Panda: microphone",
+  "pandaConsentEntrySubtitle": "Choose which children may talk to Panda out loud",
+  "pandaConsentParentOnly": "Only a parent can change this.",
+  "pandaConsentIntro": "The microphone stays off until you agree, child by child. Typing to Panda always works.",
+  "pandaConsentDisclosure": "Panda listens only after your child taps the microphone, and stops when they finish talking. Your phone’s speech service turns the words into text. On many Android phones this is a Google service that may process the audio over the internet under Google’s terms. BALKAVACH keeps no recording and does not store what your child says; Panda’s reply is chosen from lines we wrote. Panda’s voice also comes from your phone’s text-to-speech service. You can turn the microphone off again at any time.",
+  "pandaConsentOn": "Allowed to talk out loud",
+  "pandaConsentOff": "Microphone off (typing only)",
+  "pandaConsentDialogTitle": "Let {name} talk to Panda out loud?",
+  "@pandaConsentDialogTitle": {"placeholders": {"name": {"type": "String"}}},
+  "pandaConsentAgree": "I agree",
+  "pandaConsentCancel": "Not now",
+  "pandaConsentWithdrawn": "Microphone turned off for {name}.",
+  "@pandaConsentWithdrawn": {"placeholders": {"name": {"type": "String"}}},
+  "pandaConsentSaveFailed": "We couldn’t save that. Please try again.",
+  "pandaConsentOutdated": "This explanation has changed. Please update the app, then try again."
 }

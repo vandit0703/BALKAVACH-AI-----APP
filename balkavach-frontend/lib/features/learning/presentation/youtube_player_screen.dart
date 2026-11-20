@@ -343,17 +343,24 @@ class YouTubePlayerScreen extends ConsumerStatefulWidget {
     : title = video.title,
       youtubeVideoId = video.isYouTube ? video.youtubeVideoId : null,
       reportVideoId = video.id,
-      startAtSeconds = video.resumePositionSeconds;
+      startAtSeconds = video.resumePositionSeconds,
+      isCurated = false;
 
-  /// A curated Learn & Watch link. It has no video row behind it, so the
-  /// report form (which needs one) is not offered.
+  /// A curated Learn & Watch link. It is metered through the catalogue video
+  /// the server matched (`metered_video_id`), exactly like a feed video:
+  /// progress reports (or play tickets) charge video time and keep history.
+  /// The server sends no playable link for an item it cannot meter.
   YouTubePlayerScreen.curated({required LearningItem item, super.key})
     : title = item.title,
       youtubeVideoId = item.isYouTubeEmbeddable ? item.youtubeVideoId : null,
-      reportVideoId = null,
-      startAtSeconds = 0;
+      reportVideoId = item.meteredVideoId,
+      startAtSeconds = 0,
+      isCurated = true;
 
   final String title;
+
+  /// Opened from Learn & Watch (titles the page accordingly).
+  final bool isCurated;
 
   /// Null when there is nothing the embed may play; the screen says so.
   final String? youtubeVideoId;
@@ -375,6 +382,10 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
   /// Progress reports kept failing: the embed is removed (so nothing plays)
   /// until the server answers again. Unverified playback is never free.
   bool _offline = false;
+  /// The server requires play tickets and this build does not use them
+  /// (409 `play_ticket_required`). Set together with [_offline] so every
+  /// "stop playback" check applies; there is no retry, only an app update.
+  bool _updateRequired = false;
   PlaybackGuard get _guard => ref.read(playbackGuardProvider);
   bool _leaving = false;
   DateTime _lastProgressSentAt = DateTime.fromMillisecondsSinceEpoch(0);
@@ -481,6 +492,8 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
         break;
       case PlaybackVerdict.exhausted:
         _stopForExhaustedAllowance();
+      case PlaybackVerdict.updateRequired:
+        setState(() => _offline = _updateRequired = true);
       case PlaybackVerdict.offline:
       case PlaybackVerdict.signedOut:
         if (!_offline) setState(() => _offline = true);
@@ -599,7 +612,9 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            reportVideoId == null ? l10n.learnTitle : l10n.videoFeedTitle,
+            widget.isCurated || reportVideoId == null
+                ? l10n.learnTitle
+                : l10n.videoFeedTitle,
           ),
         ),
         body: SafeArea(
@@ -635,6 +650,8 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
                                       Text(
                                         _allowanceExhausted
                                             ? l10n.videoAllowanceLocked
+                                            : _updateRequired
+                                            ? l10n.videoUpdateRequired
                                             : _offline
                                             ? l10n.videoOfflinePaused
                                             : ticketMessage ??
@@ -646,6 +663,7 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
                                       // pass; a missing id never will.
                                       if (videoId != null &&
                                           !_allowanceExhausted &&
+                                          !_updateRequired &&
                                           !_tickets.waiting &&
                                           (_tickets.phase !=
                                                   TicketPhase.stopped ||

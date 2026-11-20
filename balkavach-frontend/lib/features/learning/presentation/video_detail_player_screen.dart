@@ -51,6 +51,10 @@ class _VideoDetailPlayerScreenState
 
   /// Reports kept failing: playback is stopped until the server answers.
   bool _offline = false;
+  /// The server requires play tickets and this build does not use them
+  /// (409 `play_ticket_required`). Set together with [_offline] so every
+  /// "stop playback" check applies; there is no retry, only an app update.
+  bool _updateRequired = false;
   PlaybackGuard get _guard => ref.read(playbackGuardProvider);
   bool _fullscreen = false;
 
@@ -296,6 +300,9 @@ class _VideoDetailPlayerScreenState
         break;
       case PlaybackVerdict.exhausted:
         _stopForExhaustedAllowance();
+      case PlaybackVerdict.updateRequired:
+        unawaited(_controller?.pause());
+        setState(() => _offline = _updateRequired = true);
       case PlaybackVerdict.offline:
       case PlaybackVerdict.signedOut:
         if (_offline) break;
@@ -687,6 +694,14 @@ class _VideoDetailPlayerScreenState
               : l10n.learnNotReady,
         );
       case YouTubeVideoSource(:final videoId):
+        if (_updateRequired) {
+          return _StageNotice(
+            key: const Key('detail.updateRequired'),
+            background: still,
+            icon: Icons.system_update_rounded,
+            message: l10n.videoUpdateRequired,
+          );
+        }
         if (_offline && !_allowanceExhausted) {
           return _StageNotice(
             key: const Key('detail.offline'),

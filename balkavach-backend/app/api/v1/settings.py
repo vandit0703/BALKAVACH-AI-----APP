@@ -8,7 +8,9 @@ from app.core.dependencies import get_current_user, require_parent
 from app.db.base import get_model
 from app.db.session import get_db
 from app.schemas.notification import NotificationPreferencesPublic, NotificationPreferencesUpdate
+from app.schemas.companion import PandaVoiceConsentPublic, PandaVoiceConsentUpdate
 from app.services import notification_preferences_service as notification_preferences
+from app.services import panda_voice_consent_service as panda_voice
 from app.schemas.settings import (
 	ConsentCreate,
 	ConsentPublic,
@@ -245,3 +247,44 @@ def revoke_consent(
 		session.commit()
 		session.refresh(consent)
 	return ConsentPublic.model_validate(consent)
+
+
+@router.get(
+	"/families/{family_id}/children/{child_id}/panda-voice-consent",
+	response_model=PandaVoiceConsentPublic,
+)
+def get_panda_voice_consent(
+	family_id: UUID,
+	child_id: UUID,
+	parent=Depends(require_parent),
+	session: Session = Depends(get_db),
+) -> PandaVoiceConsentPublic:
+	"""Whether this child may use Talk to Panda's microphone (parent only)."""
+	child = panda_voice.require_family_child(session, family_id, child_id, parent.id)
+	return PandaVoiceConsentPublic.model_validate(panda_voice.describe(session, child.id))
+
+
+@router.put(
+	"/families/{family_id}/children/{child_id}/panda-voice-consent",
+	response_model=PandaVoiceConsentPublic,
+)
+def set_panda_voice_consent(
+	family_id: UUID,
+	child_id: UUID,
+	request: PandaVoiceConsentUpdate,
+	parent=Depends(require_parent),
+	session: Session = Depends(get_db),
+) -> PandaVoiceConsentPublic:
+	"""Grant (with the consent-text version shown) or withdraw microphone consent.
+
+	Any parent in the family may withdraw it. Withdrawal takes effect on the
+	child's next voice turn even if the app has not refreshed yet."""
+	child = panda_voice.require_family_child(session, family_id, child_id, parent.id)
+	if request.granted:
+		if request.document_version is None:
+			raise HTTPException(status_code=422, detail="document_version is required to grant consent")
+		result = panda_voice.grant(session, child, parent.id, request.document_version)
+	else:
+		result = panda_voice.revoke(session, child)
+	return PandaVoiceConsentPublic.model_validate(result)
+
