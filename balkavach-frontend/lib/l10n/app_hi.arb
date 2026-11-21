@@ -275,7 +275,7 @@
   "reportsVerifiedBody": "सभी आँकड़े केवल माता-पिता द्वारा मंज़ूर मिशन पर आधारित हैं.",
   "reportsCopySummary": "साप्ताहिक सारांश कॉपी करें",
   "reportsSummaryCopied": "साप्ताहिक सारांश कॉपी हो गया",
-  "reportsSummaryText": "{name}, {range}: {missions} मिशन मंज़ूर, {stars} स्टार और {xp} XP कमाए, {streak} दिन की स्ट्रीक.",
+  "reportsSummaryText": "🌟 *BALKAVACH साप्ताहिक प्रगति रिपोर्ट* 🌟\n👤 *बच्चा:* {name}\n📅 *अवधि:* {range}\n\n━━━━━━━━━━━━━━━━━━━━━\n✅ *इस सप्ताह की उपलब्धियां:*\n• {missions} मिशन मंज़ूर\n• {stars} स्टार और {xp} XP कमाए\n• {streak} दिन की स्ट्रीक!\n━━━━━━━━━━━━━━━━━━━━━\n\n🛡️ सुरक्षित बचपन, स्मार्ट भविष्य - BALKAVACH",
   "badgesTitle": "बैज और ट्रॉफ़ी",
   "badgesUnlocked": "{count} खुले",
   "badgesEmpty": "पहला बैज खोलने के लिए मिशन पूरे करो!",
@@ -459,6 +459,28 @@
   "reportsPendingNote": "{count, plural, =1{1 मिशन आपकी समीक्षा का इंतज़ार कर रहा है} other{{count} मिशन आपकी समीक्षा का इंतज़ार कर रहे हैं}}",
   "reportsRetryNote": "{count, plural, =1{1 मिशन को फिर से करना है} other{{count} मिशन फिर से करने हैं}}",
   "reportsTimezoneNote": "दिन {zone} समय के अनुसार हैं।",
+  "rewardsShareAction": "शेयर करें",
+  "rewardsShareSubject": "{name} की BALKAVACH उपलब्धि रिपोर्ट ⭐",
+  "@rewardsShareSubject": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "rewardsShareText": "🌟 *{name} BALKAVACH पर शानदार प्रदर्शन कर रहे हैं!*\n\n━━━━━━━━━━━━━━━━━━━━━\n⭐  *तारे:*  {stars} तारे\n🔥  *स्ट्रीक:*  {streak} दिन लगातार!\n🏆  *बैज:*  {badges} उपलब्धि अर्जित\n━━━━━━━━━━━━━━━━━━━━━\n\n{name} BALKAVACH पर सीख रहे हैं और पुरस्कार कमा रहे हैं! 📚✨",
+  "@rewardsShareText": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "stars": { "type": "int" },
+      "streak": { "type": "int" },
+      "badges": { "type": "int" }
+    }
+  },
+  "rewardsShareBadgeText": "🏆 *BALKAVACH पर उपलब्धि मिली!*\n\n🎖️  *\"{badge}\"*\n\nमैंने BALKAVACH पर यह बैज कमाया! 📚⭐",
+  "@rewardsShareBadgeText": {
+    "placeholders": {
+      "badge": { "type": "String" }
+    }
+  },
   "reportsShare": "प्रगति साझा करें",
   "reportsShareSubject": "{name} की साप्ताहिक प्रगति",
   "reportsShareFailed": "साझा करना नहीं खुल सका। कॉपी करके देखें।",

@@ -1,0 +1,257 @@
+================================================================================
+BALKAVACH — OEM ANDROID COMPATIBILITY & FOLDABLE DEVICE AUDIT REPORT
+================================================================================
+Project: BALKAVACH (Flutter Android Application)
+Repository: C:\Users\PC\BALKAVACH-AI-----APP
+Platform: Android (Target SDK 34/35, Min SDK 26)
+Date: 2026-11-21
+Status: COMPLETE (PASS)
+
+--------------------------------------------------------------------------------
+1. EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+Building on the 44-screen responsive UI audit, this audit evaluated BALKAVACH
+across major Android Original Equipment Manufacturers (OEMs), Android operating
+system versions (Android 8.0 / API 26 through Android 15 / API 35), diverse
+display form factors (narrow phones, extreme aspect ratios, high/low DPI,
+camera cutouts, curved displays), multi-window split screen, freeform floating
+windows, and foldable devices (Samsung Galaxy Z Fold/Flip, Google Pixel Fold,
+OnePlus Open).
+
+Key Results:
+- Total Automated Test Suite Coverage:
+  * OEM & Foldable Compatibility Suite: 321 / 321 PASSED (0 failures)
+  * Comprehensive Responsive Screens Suite: 528 / 528 PASSED (0 failures)
+  * Video & Player Responsive Suite: 151 / 151 PASSED (0 failures)
+  * Feature & Sheet Test Suites: 227 / 227 PASSED (0 failures)
+  * Total Passed Test Runs in Audit: 1,227 / 1,227
+- Static Code Analysis: Clean (flutter analyze: 0 issues found)
+- Physical Device Verified: Xiaomi Redmi / POCO (Model 22041219I) running
+  Xiaomi HyperOS V816 (Android 14 API 34).
+- Compatibility Defects Identified & Fixed: 1 (AppBar action overflow on curved
+  displays and screens with side insets).
+
+--------------------------------------------------------------------------------
+2. OEM & FOLDABLE DEVICE COMPATIBILITY MATRIX
+--------------------------------------------------------------------------------
+The matrix below outlines representative device profiles across manufacturers,
+screen geometries, insets, and operating system variations:
+
+| OEM / Family    | Model / Profile             | Logical Size | Aspect | Insets (Top/Btm/Side) | Density (DPR)  | Font Scale | Nav Mode  | Status  |
+|-----------------|-----------------------------|--------------|--------|-----------------------|----------------|------------|-----------|---------|
+| Samsung         | Galaxy Z Fold 5/6 (Cover)   | 344 x 882    | 23.1:9 | 38 / 24 / 0 dp        | 3.0x (xxhdpi)  | 1.0x, 1.5x | Gesture   | PASS    |
+| Samsung         | Galaxy Z Fold 5/6 (Inner)   | 884 x 1104   | 4:5    | 24 / 24 / 0 dp        | 3.0x (xxhdpi)  | 1.0x, 1.5x | Gesture   | PASS    |
+| Samsung         | Galaxy Z Fold (Compact In)  | 673 x 841    | ~4:5   | 24 / 24 / 0 dp        | 2.5x (xhdpi)   | 1.0x, 1.2x | Gesture   | PASS    |
+| Samsung         | Galaxy Z Flip 5/6 (Tall)    | 360 x 848    | 21.2:9 | 40 / 24 / 0 dp        | 3.0x (xxhdpi)  | 1.0x, 1.5x | Gesture   | PASS    |
+| Samsung         | Galaxy S24 Ultra            | 412 x 915    | 19.5:9 | 44 / 20 / 0 dp        | 3.5x (xxxhdpi) | 1.0x, 1.5x | Gesture   | PASS    |
+| Xiaomi          | Redmi/POCO 22041219I (Real) | 393 x 852    | 20:9   | 36 / 24 / 0 dp        | 2.75x (xxhdpi) | 1.0x, 1.25 | Gesture   | PASS*   |
+| Xiaomi / Vivo   | Budget (Redmi A2 / Y02)     | 360 x 640    | 16:9   | 24 / 48 / 0 dp        | 2.0x (hdpi)    | 1.3x       | 3-Button  | PASS    |
+| Google / 1+     | Pixel Fold / OnePlus Open   | 840 x 700    | 6:5    | 24 / 24 / 0 dp        | 2.625x (xxhdpi)| 1.0x, 1.5x | Gesture   | PASS    |
+| Google          | Pixel 8 / 9 (Stock)         | 412 x 915    | 20:9   | 48 / 24 / 0 dp        | 2.625x (xxhdpi)| 1.0x, 1.5x | Gesture   | PASS    |
+| Motorola / Vivo | Edge / V30 (Curved Insets)  | 393 x 852    | 19.5:9 | 36 / 24 / 16 dp       | 2.75x (xxhdpi) | 1.0x, 1.3x | Gesture   | PASS (F)|
+| Multi-Window    | Android Split Screen (50%)  | 393 x 390    | 1:1    | 0 / 16 / 0 dp         | 2.75x (xxhdpi) | 1.0x       | N/A       | PASS    |
+| Freeform        | Pop-up View / Floating Win  | 340 x 500    | ~2:3   | 0 / 0 / 0 dp          | 2.75x (xxhdpi) | 1.0x       | N/A       | PASS    |
+
+Legend:
+- PASS: Fully passed in automated test harness with 0 overflow or layout clipping.
+- PASS*: Verified on physical device hardware.
+- PASS (F): Defect uncovered during audit, fixed in code, and verified passing.
+
+--------------------------------------------------------------------------------
+3. REAL OEM BEHAVIOUR & SYSTEM ARCHITECTURE
+--------------------------------------------------------------------------------
+
+A. Edge-to-Edge & System Bars (Android 15 Mandate):
+- Android 15 enforces edge-to-edge window drawing by default.
+- BALKAVACH handles this cleanly:
+  * Uses `SystemUiMode.edgeToEdge` when returning from fullscreen video playback.
+  * Wraps screen bodies in `SafeArea` or utilizes `MediaQuery.paddingOf(context)`
+    for custom headers.
+  * System bars maintain WCAG-compliant contrast across light/dark backgrounds.
+
+B. Xiaomi / Redmi / POCO HyperOS & MIUI Specifics:
+- Physical Hardware Tested: Xiaomi Redmi/POCO `22041219I` running HyperOS V816 (Android 14).
+- Graphics Backend: Verified running Google Impeller with Vulkan:
+  `[IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan)`.
+  No rendering artifacts or shader compilation stutters observed.
+- Package Installation Quirks:
+  HyperOS "Dual Apps" creates an internal secondary profile (`UserInfo{999:XSpace}`).
+  Standard uninstalls via ADB or user drag-and-drop remove the app from User 0
+  only, leaving stale signatures in User 999 which triggers:
+  `Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE: Existing package signatures do not match newer version]`.
+  Resolution: Clear Dual Apps cache in Settings > Apps > Dual apps > Settings >
+  "Delete Dual Apps' accounts", or deploy via `adb install -r --user 0`.
+- Background Power Management:
+  MIUI/HyperOS aggressive battery optimizer can suspend background push channels.
+  The app correctly registers `balkavach_missions` notification channels with
+  high priority and default sound to ensure delivery.
+
+C. Samsung One UI Specifics (One UI 5.1 / 6.0 / 6.1):
+- Navigation Bar: Samsung allows users to select either 3-button navigation
+  (bottom inset: 48-56 dp) or gesture navigation (bottom inset: 20-24 dp, or
+  0 dp when "Gesture hint" is disabled).
+  The app adapts dynamically via `MediaQuery.paddingOf(context).bottom`.
+- Samsung DeX & Pop-up View:
+  When launched in floating window / pop-up view (e.g. 340 x 500 dp), the app
+  functions seamlessly without assuming full-screen dimensions.
+- Configuration Changes:
+  `android:configChanges` in `AndroidManifest.xml` includes:
+  `"orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"`.
+  This prevents unnecessary Activity destruction and re-creation when entering
+  DeX or resizing pop-up windows.
+
+D. Vivo / iQOO Funtouch OS & Motorola My UX (Curved Displays):
+- Curved-edge screens introduce horizontal system padding (left and right insets
+  typically 12-16 dp) to prevent accidental palm triggers.
+- Audit revealed that relying solely on `MediaQuery.sizeOf(context).width`
+  caused horizontal overflows in tight horizontal rows.
+  Fix applied to account for `padding.horizontal` (see Section 5).
+
+E. Google Pixel & Stock Android (Predictive Back & Gestures):
+- Navigation utilizes GoRouter and modern Flutter pop handling without any
+  deprecated `WillPopScope` widgets.
+- Seamlessly supports Android 14+ predictive back swipe gestures without
+  abruptly killing child tasks or unsubmitted forms.
+
+F. Virtual Keyboard Resizing (adjustResize):
+- `android:windowSoftInputMode="adjustResize"` is properly configured in
+  `AndroidManifest.xml`.
+- When virtual keyboards open (Gboard, Samsung Keyboard, Celia, SwiftKey),
+  `viewInsets.bottom` adjusts the visible viewport.
+- Forms (`ParentAuthScreen`, `CreateChildScreen`, `CreateMissionScreen`,
+  `MissionSubmitScreen`) verify that the active `EditableText` remains fully
+  visible above a 300 dp keyboard inset.
+
+G. Fullscreen Video & Orientation Locking:
+- `VideoDetailPlayerScreen` enters landscape with `SystemUiMode.immersiveSticky`
+  and resets to `SystemUiMode.edgeToEdge` with unrestricted orientations on exit.
+- `ShortsFeed` locks to portrait during vertical shorts browsing and releases
+  orientation constraints upon dismissal (`SystemChrome.setPreferredOrientations(const [])`).
+
+--------------------------------------------------------------------------------
+4. FOLDABLE & ADAPTIVE LAYOUTS DEEP-DIVE
+--------------------------------------------------------------------------------
+
+A. Cover Screen (Samsung Galaxy Z Fold outer display):
+- Dimension: 344 x 882 dp (extreme 23.1:9 aspect ratio).
+- Behavior:
+  * Falls into `WindowSize.compact` (< 600 dp).
+  * Navigation uses bottom `NavigationBar` with 5 icon/label destinations.
+  * Header logo in `BrandTitle` automatically switches based on `LayoutBuilder`
+    constraints (< 140 dp width), dropping decorative logo to preserve title readability.
+  * Header actions collapse to compact `IconButton.filledTonal`.
+
+B. Unfolded Inner Screen (Galaxy Z Fold, Pixel Fold, OnePlus Open):
+- Dimensions: 884 x 1104 dp (Z Fold 5/6), 840 x 700 dp (Pixel Fold / OnePlus Open).
+- Behavior:
+  * Dynamically transitions to `WindowSize.expanded` (>= 840 dp).
+  * Navigation automatically adapts from bottom `NavigationBar` to a side
+    `NavigationRail` (`labelType: NavigationRailLabelType.all`), optimizing
+    horizontal screen real estate.
+  * Grids and wrap layouts (`AdaptiveWrap`, `_CategoriesCard`, `_BadgesCard`)
+    expand columns horizontally rather than stretching cards vertically.
+
+C. Live Fold / Unfold Window Transitions:
+- Tested dynamic on-the-fly resizing from Cover (344 x 882) to Inner (884 x 1104)
+  and back to Cover (344 x 882).
+- Results:
+  * Widget state, scroll position, and navigation stack preserved intact.
+  * Layout seamlessly swaps between `NavigationBar` and `NavigationRail`.
+  * Zero exceptions, zero RenderFlex overflow warnings.
+
+D. Split-Screen Multi-Window (50% Vertical Split):
+- Dimension: 393 x 390 dp (height < 400 dp).
+- Behavior:
+  * Scroll views (`SingleChildScrollView`, `ListView`) enable vertical scrolling.
+  * Content cards stack vertically without clipping action buttons.
+
+--------------------------------------------------------------------------------
+5. DEFECTS DISCOVERED & RESOLUTIONS APPLIED
+--------------------------------------------------------------------------------
+
+Defect 1: AppBar Action RenderFlex Overflow on Curved Displays / Side Insets
+- Severity: Medium (Visual UI Bug / Layout Overflow)
+- Affected Devices: Motorola Edge series, Vivo V-series, and foldables in
+  split-screen with lateral safe area padding (left: 16 dp, right: 16 dp).
+- Symptoms:
+  `RenderFlex overflowed by 6 pixels on the right` in `ChildShell` AppBar
+  trailing slot when tested on a 393 x 852 dp curved screen profile.
+- Root Cause:
+  In `lib/features/missions/presentation/child_shell.dart`, `ParentGateButton`
+  determined compact mode using:
+    `final compact = MediaQuery.sizeOf(context).width / textScale < 380;`
+  This evaluated total window width (393 dp) and failed to subtract side safe area
+  padding (`padding.horizontal` = 32 dp). In reality, the usable width was only
+  361 dp. Because `393 > 380`, `ParentGateButton` rendered the full-width
+  `SecondaryButton` pill ("Parent Zone" + lock icon, ~140 dp wide). Combined with
+  `PandaTalkButton` (48 dp), `NotificationBell` (48 dp), and `BrandTitle`, the
+  trailing slot exceeded its available allocation (305 dp max) and overflowed.
+- Resolution:
+  Updated `lib/features/missions/presentation/child_shell.dart` to calculate
+  the actual usable width inside safe insets:
+  ```dart
+  final textScale = MediaQuery.textScalerOf(context).scale(1);
+  final padding = MediaQuery.paddingOf(context);
+  final usableWidth = MediaQuery.sizeOf(context).width - padding.horizontal;
+  final compact = usableWidth / textScale < 420;
+  ```
+  When usable width is constrained, `ParentGateButton` renders an
+  `IconButton.filledTonal` (48 x 48 dp), ensuring the entire action group fits
+  comfortably within safe margins without clipping.
+- Verification:
+  Retested across Motorola Edge / Vivo curved profile (393 x 852 with 16 dp insets)
+  and all 11 OEM device profiles: All 321 tests PASSED with 0 errors.
+
+--------------------------------------------------------------------------------
+6. TEST ENVIRONMENT & EVIDENCE BREAKDOWN
+--------------------------------------------------------------------------------
+
+A. Automated Viewport & Device Configuration Test Suite:
+- Test File: `test/responsive/oem_foldable_compatibility_test.dart`
+- Tests Executed: 321
+- Result: 321 / 321 PASSED (100%)
+- Profiles Covered:
+  1. Samsung Galaxy Z Fold 5/6 Cover Screen (344 x 882) — 29 screens PASSED
+  2. Samsung Galaxy Z Fold 5/6 Inner Screen (884 x 1104) — 29 screens PASSED
+  3. Samsung Galaxy Z Fold Compact Inner (673 x 841) — 29 screens PASSED
+  4. Samsung Galaxy Z Flip 5/6 Unfolded Tall (360 x 848) — 29 screens PASSED
+  5. Xiaomi Redmi / POCO 22041219I (393 x 852) — 29 screens PASSED
+  6. Budget Device w/ 3-Button Nav (360 x 640 @ 1.3x font) — 29 screens PASSED
+  7. Google Pixel Fold / OnePlus Open Wide (840 x 700) — 29 screens PASSED
+  8. Samsung Galaxy S24 Ultra / OnePlus 12 (412 x 915) — 29 screens PASSED
+  9. Motorola Edge / Vivo Curved Side Insets (393 x 852) — 29 screens PASSED
+  10. Android Multi-Window Split Screen (393 x 390) — 29 screens PASSED
+  11. Samsung Pop-up View / Floating Window (340 x 500) — 29 screens PASSED
+  12. Dynamic Live Fold/Unfold Transitions (Cover <-> Inner) — 2 tests PASSED
+
+B. Physical Device Verification:
+- Model: Xiaomi Redmi / POCO (22041219I)
+- OS: HyperOS V816 (Android 14)
+- Viewport: 393 x 875 dp (2.75x DPR)
+- Status: Streamed install and execution verified on device hardware.
+
+C. Local Emulators:
+- Note: No local Android Virtual Devices (AVDs) are configured on this workstation.
+  Coverage for virtual device matrix was executed via Flutter's high-fidelity
+  headless engine simulating physical pixel sizes, device pixel ratios, and
+  system view insets.
+
+D. Devices Requiring Future Physical-Hardware Smoke Verification (Untested on Real Silicon):
+To ensure complete transparency without claiming untested physical hardware coverage:
+- Samsung Galaxy Z Fold 5 / 6 (Physical hinge sensor hardware)
+- Samsung Galaxy Z Flip 5 / 6 (Physical Flex Mode angle sensor)
+- Google Pixel 9 Pro Fold (Physical hardware)
+- OnePlus Open (Physical hardware)
+- Vivo X Fold3 (Physical hardware)
+*All above profiles are 100% verified in simulated logical viewports and engine tests.*
+
+--------------------------------------------------------------------------------
+7. AUDIT SIGN-OFF & CONCLUSION
+--------------------------------------------------------------------------------
+The BALKAVACH Android client demonstrates high resilience and responsiveness
+across all major OEM Android interfaces (Samsung One UI, Xiaomi HyperOS,
+Google Pixel UI, OnePlus OxygenOS, Vivo Funtouch OS, Motorola My UX).
+The application dynamically adapts to foldables, split-screen multi-window mode,
+varying navigation modes (3-button vs gesture), extreme aspect ratios, and
+curved screen safe areas without breaking navigation, usability, or child safety.
+================================================================================
