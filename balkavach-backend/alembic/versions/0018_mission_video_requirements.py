@@ -5,7 +5,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "0018_mission_video_requirements"
-down_revision = "0017_child_video_daily_allowance"
+down_revision = "0016_child_video_daily_allowance"
 branch_labels = None
 depends_on = None
 

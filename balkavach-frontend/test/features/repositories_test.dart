@@ -332,7 +332,14 @@ void main() {
           title: ' Tidy up ',
           description: '  ',
         ).toJson(),
-        {'family_id': Fx.familyId, 'title': 'Tidy up'},
+        {
+          'family_id': Fx.familyId,
+          'title': 'Tidy up',
+          // Rewards are always sent: parents configure them per mission and
+          // the backend defaults match kMissionStarReward / kMissionXpReward.
+          'star_reward': kMissionStarReward,
+          'xp_reward': kMissionXpReward,
+        },
       );
     });
   });
