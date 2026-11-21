@@ -5,7 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/json_utils.dart';
-import '../../missions/presentation/mission_providers.dart' show childNotificationsProvider;
+import '../../missions/presentation/mission_providers.dart'
+    show childNotificationsProvider;
 
 final _youtubeIdPattern = RegExp(r'^[A-Za-z0-9_-]{11}$');
 
@@ -242,6 +243,12 @@ class VideoFeedRepository {
         'category_id': ?categoryId,
       },
     );
+    if (kDebugMode) {
+      debugPrint(
+        '[video-feed] GET ${kind.path} status=${response.statusCode} '
+        'response_count=${response.data?.length ?? 0}',
+      );
+    }
     return parseJsonList(response.data, FeedVideo.fromJson);
   });
 
@@ -360,10 +367,9 @@ final nextVideosProvider = FutureProvider.autoDispose
 /// A [Provider] only notifies when the value changes, so unrelated
 /// notification refreshes cause no extra allowance requests.
 final videoTimeGrantCountProvider = Provider<int>(
-  (ref) =>
-      (ref.watch(childNotificationsProvider).value ?? const [])
-          .where((item) => item.type == 'mission_video_time_granted')
-          .length,
+  (ref) => (ref.watch(childNotificationsProvider).value ?? const [])
+      .where((item) => item.type == 'mission_video_time_granted')
+      .length,
 );
 
 /// Today's allowance, straight from the server. It reloads when a new grant
@@ -411,8 +417,10 @@ class VideoFeedPager extends ChangeNotifier {
   final List<FeedVideo> _items = [];
   final Set<String> _seen = {};
   int _offset = 0;
+  int _generation = 0;
   PagerStatus _status = PagerStatus.idle;
   Object? _error;
+  bool _retryRefresh = false;
   bool _disposed = false;
 
   List<FeedVideo> get items => List.unmodifiable(_items);
@@ -426,27 +434,72 @@ class VideoFeedPager extends ChangeNotifier {
   /// True before the first page has arrived.
   bool get isInitial => _items.isEmpty && _offset == 0;
 
-  Future<void> loadMore() async {
-    if (_status == PagerStatus.loading || _status == PagerStatus.done) return;
+  Future<void> loadMore() {
+    if (_disposed ||
+        _status == PagerStatus.loading ||
+        _status == PagerStatus.done) {
+      return Future.value();
+    }
+    return _requestPage(generation: _generation, replace: false);
+  }
+
+  Future<void> _requestPage({
+    required int generation,
+    required bool replace,
+  }) async {
+    final requestOffset = replace ? 0 : _offset;
+    _trace(
+      'request generation=$generation offset=$requestOffset '
+      'replace=$replace visible_ids=${_ids(_items)}',
+    );
     _set(PagerStatus.loading);
     try {
       final page = await _repository.page(
         kind,
         limit: pageSize,
-        offset: _offset,
+        offset: requestOffset,
         categoryId: categoryId,
       );
-      if (_disposed) return;
-      _offset += page.length;
+      if (_disposed || generation != _generation) {
+        _trace('discard stale response generation=$generation');
+        return;
+      }
+      final previousIds = _ids(_items);
+      final incomingIds = _ids(page);
+      if (replace) {
+        _items.clear();
+        _seen.clear();
+      }
       for (final video in page) {
         final deduplicationKey = video.youtubeVideoId ?? video.id;
         if (_seen.add(deduplicationKey)) _items.add(video);
       }
+      _offset = requestOffset + page.length;
       _error = null;
+      _retryRefresh = false;
+      _trace(
+        'response generation=$generation received_ids=$incomingIds '
+        'visible_ids_before=$previousIds visible_ids_after=${_ids(_items)}',
+      );
       _set(page.length < pageSize ? PagerStatus.done : PagerStatus.idle);
     } on Object catch (error) {
-      if (_disposed) return;
+      if (_disposed || generation != _generation) {
+        _trace('discard stale error generation=$generation');
+        return;
+      }
+      if (replace &&
+          error is ApiException &&
+          (error.statusCode == 401 || error.statusCode == 403)) {
+        _items.clear();
+        _seen.clear();
+        _offset = 0;
+      }
       _error = error;
+      _retryRefresh = replace;
+      _trace(
+        'request_failed generation=$generation error=${error.runtimeType} '
+        'visible_ids=${_ids(_items)}',
+      );
       _set(PagerStatus.error);
     }
   }
@@ -454,23 +507,38 @@ class VideoFeedPager extends ChangeNotifier {
   /// After an error, tries the same page again.
   Future<void> retry() {
     if (_status != PagerStatus.error) return Future.value();
+    if (_retryRefresh) {
+      return _requestPage(generation: _generation, replace: true);
+    }
     _status = PagerStatus.idle;
     return loadMore();
   }
 
   Future<void> refresh() {
-    _items.clear();
-    _seen.clear();
-    _offset = 0;
+    if (_disposed) return Future.value();
+    final generation = ++_generation;
     _error = null;
-    _status = PagerStatus.idle;
-    return loadMore();
+    _retryRefresh = true;
+    _trace('refresh generation=$generation visible_ids=${_ids(_items)}');
+    return _requestPage(generation: generation, replace: true);
   }
 
   void _set(PagerStatus status) {
+    final previous = _status;
     _status = status;
+    _trace(
+      'state=$previous->$status item_count=${_items.length} offset=$_offset',
+    );
     if (!_disposed) notifyListeners();
   }
+
+  void _trace(String message) {
+    if (kDebugMode) debugPrint('[video-feed ${kind.name}] $message');
+  }
+
+  List<String> _ids(Iterable<FeedVideo> videos) => [
+    for (final video in videos) video.id,
+  ];
 
   @override
   void dispose() {

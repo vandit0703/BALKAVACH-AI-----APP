@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:balkavach_app/core/errors/api_exception.dart';
 import 'package:balkavach_app/features/learning/data/learning_repository.dart';
 import 'package:balkavach_app/features/learning/data/video_feed_repository.dart';
@@ -59,6 +61,7 @@ class _FakeRepository implements VideoFeedRepository {
 
   /// Replies by offset; a missing offset throws a network error.
   final Map<int, List<FeedVideo>> pages;
+  final errors = <int, Object>{};
   final offsets = <int>[];
 
   @override
@@ -69,6 +72,7 @@ class _FakeRepository implements VideoFeedRepository {
     String? categoryId,
   }) async {
     offsets.add(offset);
+    if (errors.containsKey(offset)) throw errors[offset]!;
     final page = pages[offset];
     if (page == null) throw const NetworkException();
     return page;
@@ -118,6 +122,25 @@ class _FakeRepository implements VideoFeedRepository {
     VideoReportReason reason, {
     String? details,
   }) async {}
+}
+
+class _ControlledRepository extends _FakeRepository {
+  _ControlledRepository() : super({});
+
+  final requests = <({int offset, Completer<List<FeedVideo>> response})>[];
+
+  @override
+  Future<List<FeedVideo>> page(
+    VideoFeedKind kind, {
+    required int limit,
+    required int offset,
+    String? categoryId,
+  }) {
+    offsets.add(offset);
+    final response = Completer<List<FeedVideo>>();
+    requests.add((offset: offset, response: response));
+    return response.future;
+  }
 }
 
 List<FeedVideo> _feed(int start, int count) => [
@@ -329,6 +352,94 @@ void main() {
       final pager = VideoFeedPager(repo, VideoFeedKind.learn, pageSize: 2);
       await Future.wait([pager.loadMore(), pager.loadMore()]);
       expect(repo.offsets, [0]);
+    });
+
+    test(
+      'refresh keeps visible videos until the replacement succeeds',
+      () async {
+        final repo = _FakeRepository({0: _feed(0, 2)});
+        final pager = VideoFeedPager(repo, VideoFeedKind.learn, pageSize: 2);
+        await pager.loadMore();
+        repo.pages[0] = _feed(8, 1);
+
+        final refreshing = pager.refresh();
+
+        expect(pager.status, PagerStatus.loading);
+        expect(pager.items.map((video) => video.id), ['v0', 'v1']);
+        await refreshing;
+
+        expect(pager.items.map((video) => video.id), ['v8']);
+        expect(pager.status, PagerStatus.done);
+      },
+    );
+
+    test('a successful empty refresh clears the old feed', () async {
+      final repo = _FakeRepository({0: _feed(0, 2)});
+      final pager = VideoFeedPager(repo, VideoFeedKind.learn, pageSize: 2);
+      await pager.loadMore();
+      repo.pages[0] = const [];
+
+      await pager.refresh();
+
+      expect(pager.items, isEmpty);
+      expect(pager.status, PagerStatus.done);
+    });
+
+    test(
+      'a failed refresh preserves the old feed and retries from page zero',
+      () async {
+        final repo = _FakeRepository({0: _feed(0, 2)});
+        final pager = VideoFeedPager(repo, VideoFeedKind.learn, pageSize: 2);
+        await pager.loadMore();
+        repo.errors[0] = const NetworkException();
+
+        await pager.refresh();
+
+        expect(pager.items.map((video) => video.id), ['v0', 'v1']);
+        expect(pager.status, PagerStatus.error);
+        repo.errors.remove(0);
+        repo.pages[0] = _feed(8, 1);
+        await pager.retry();
+
+        expect(repo.offsets, [0, 0, 0]);
+        expect(pager.items.map((video) => video.id), ['v8']);
+        expect(pager.status, PagerStatus.done);
+      },
+    );
+
+    test(
+      'an unauthorized refresh does not retain stale playable videos',
+      () async {
+        final repo = _FakeRepository({0: _feed(0, 2)});
+        final pager = VideoFeedPager(repo, VideoFeedKind.learn, pageSize: 2);
+        await pager.loadMore();
+        repo.errors[0] = const UnauthorizedException(message: 'Sign in again');
+
+        await pager.refresh();
+
+        expect(pager.items, isEmpty);
+        expect(pager.status, PagerStatus.error);
+      },
+    );
+
+    test('a stale page response cannot overwrite a newer refresh', () async {
+      final repo = _ControlledRepository();
+      final pager = VideoFeedPager(repo, VideoFeedKind.learn, pageSize: 2);
+      final initial = pager.loadMore();
+      repo.requests[0].response.complete(_feed(0, 2));
+      await initial;
+
+      final olderPage = pager.loadMore();
+      final refresh = pager.refresh();
+      expect(repo.offsets, [0, 2, 0]);
+      repo.requests[2].response.complete(_feed(8, 1));
+      await refresh;
+      repo.requests[1].response.complete(_feed(2, 1));
+      await olderPage;
+
+      expect(pager.items.map((video) => video.id), ['v8']);
+      expect(pager.nextOffset, 1);
+      expect(pager.status, PagerStatus.done);
     });
 
     test(
@@ -673,14 +784,15 @@ void main() {
       expect(find.text('KIDS CONTENT'), findsOneWidget);
     });
 
-    testWidgets('a metered item can be reported: it has a catalogue video row', (
-      tester,
-    ) async {
-      await pump(tester, 'https://www.youtube.com/watch?v=$_ytId');
-      expect(find.byKey(const Key('youtube.report')), findsOneWidget);
-      // Still titled as Learn & Watch, not the video feed.
-      expect(find.text('Learn & Watch'), findsWidgets);
-    });
+    testWidgets(
+      'a metered item can be reported: it has a catalogue video row',
+      (tester) async {
+        await pump(tester, 'https://www.youtube.com/watch?v=$_ytId');
+        expect(find.byKey(const Key('youtube.report')), findsOneWidget);
+        // Still titled as Learn & Watch, not the video feed.
+        expect(find.text('Learn & Watch'), findsWidgets);
+      },
+    );
 
     testWidgets('a link without one video shows a message, not a spinner', (
       tester,
