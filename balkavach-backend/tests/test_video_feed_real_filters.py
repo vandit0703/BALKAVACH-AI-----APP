@@ -512,6 +512,10 @@ def test_feed_responses_match_the_fixture_the_flutter_tests_use(api):
 		"feed": http.get("/api/v1/videos/feed").json(),
 		"shorts": http.get("/api/v1/videos/shorts").json(),
 	}
+	# The same catalogue as the real routes return it once today's allowance is used up.
+	_use_up_allowance(session, child)
+	payload["feed_locked"] = http.get("/api/v1/videos/feed").json()
+	payload["shorts_locked"] = http.get("/api/v1/videos/shorts").json()
 	if os.environ.get("UPDATE_FEED_FIXTURE"):
 		CONTRACT.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 	assert json.loads(CONTRACT.read_text(encoding="utf-8")) == payload

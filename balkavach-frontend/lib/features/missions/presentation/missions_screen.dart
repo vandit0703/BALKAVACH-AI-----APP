@@ -225,9 +225,10 @@ class _MissionsScreenState extends ConsumerState<MissionsScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               spacing: AppSpacing.md,
               children: [
-                _MissionsHeader(open: open),
-                if (allMissions.isNotEmpty || unfinished.isNotEmpty)
-                  const PandaCompanion(event: CompanionEvent.missionsReady),
+                _MissionsHeader(
+                  open: open,
+                  showPanda: allMissions.isNotEmpty || unfinished.isNotEmpty,
+                ),
                 if (snapshot != null && !snapshot.reviewsAvailable)
                   InlineNotice(message: l10n.reviewsUnavailable),
                 // Missions the child already chose come first: they are
@@ -274,10 +275,13 @@ class _MissionsScreenState extends ConsumerState<MissionsScreen> {
 /// today and the stars and XP they earned (the server's day row for the
 /// family-local date), and a bar of done against still-to-do.
 class _MissionsHeader extends ConsumerWidget {
-  const _MissionsHeader({required this.open});
+  const _MissionsHeader({required this.open, required this.showPanda});
 
   /// Missions still to do (not approved yet).
   final int open;
+
+  /// Panda's "missions are ready" line (only when there are missions).
+  final bool showPanda;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -310,6 +314,77 @@ class _MissionsHeader extends ConsumerWidget {
         ? l10n.missionsProgressAllDone
         : l10n.missionsProgressKeepGoing;
 
+    final progressBlock = message == null
+        ? null
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  Text(
+                    message,
+                    style: context.text.titleSmall?.copyWith(
+                      color: colors.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    l10n.missionsDone(done, total),
+                    style: context.text.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              AnimatedPillProgress(
+                value: done / total,
+                color: colors.secondary,
+                background: colors.surfaceContainerHighest,
+                semanticsLabel: l10n.missionsDone(done, total),
+              ),
+            ],
+          );
+    final stats = progress == null
+        ? null
+        : Row(
+            spacing: AppSpacing.sm,
+            children: [
+              Expanded(
+                child: StatTile(
+                  key: const Key('missions.today.done'),
+                  icon: Icons.task_alt_rounded,
+                  iconColor: colors.secondary,
+                  value: '$done',
+                  label: l10n.missionsStatDone,
+                ),
+              ),
+              Expanded(
+                child: StatTile(
+                  key: const Key('missions.today.stars'),
+                  icon: Icons.stars_rounded,
+                  iconColor: colors.tertiary,
+                  value: '${day?.starsEarned ?? 0}',
+                  label: l10n.missionsStatStars,
+                ),
+              ),
+              Expanded(
+                child: StatTile(
+                  key: const Key('missions.today.xp'),
+                  icon: Icons.bolt_rounded,
+                  iconColor: colors.primary,
+                  value: '${day?.xpEarned ?? 0}',
+                  label: l10n.missionsStatXp,
+                ),
+              ),
+            ],
+          );
+
     return Semantics(
       container: true,
       child: DecoratedBox(
@@ -324,93 +399,60 @@ class _MissionsHeader extends ConsumerWidget {
           boxShadow: AppShadows.tier1,
         ),
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Semantics(
-                header: true,
-                child: Text(
-                  l10n.missionsHeroTitle,
-                  style: context.text.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                l10n.missionsHeroSubtitle,
-                style: context.text.bodyMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
-              if (message != null) ...[
-                const SizedBox(height: AppSpacing.md),
-                Wrap(
-                  alignment: WrapAlignment.spaceBetween,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    Text(
-                      message,
-                      style: context.text.titleSmall?.copyWith(
-                        color: colors.primary,
+          padding: const EdgeInsets.all(AppSpacing.lg - 4),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final textScale = MediaQuery.textScalerOf(context).scale(1);
+              // Side by side when there is room, so the missions themselves
+              // start above the fold on short windows.
+              final wide = constraints.maxWidth / textScale >= 560;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      l10n.missionsHeroTitle,
+                      style: context.text.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                     ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  // Panda greets the child here when there is something to
+                  // do; otherwise a plain encouraging line.
+                  if (showPanda)
+                    const PandaCompanion(
+                      event: CompanionEvent.missionsReady,
+                      avatarSize: 60,
+                    )
+                  else
                     Text(
-                      l10n.missionsDone(done, total),
-                      style: context.text.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
+                      l10n.missionsHeroSubtitle,
+                      style: context.text.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
                       ),
                     ),
+                  if (progressBlock != null || stats != null)
+                    const SizedBox(height: AppSpacing.md),
+                  if (wide && progressBlock != null && stats != null)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      spacing: AppSpacing.lg,
+                      children: [
+                        Expanded(child: progressBlock),
+                        Expanded(child: stats),
+                      ],
+                    )
+                  else ...[
+                    ?progressBlock,
+                    if (progressBlock != null && stats != null)
+                      const SizedBox(height: AppSpacing.md),
+                    ?stats,
                   ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                AnimatedPillProgress(
-                  value: done / total,
-                  color: colors.secondary,
-                  background: colors.surfaceContainerHighest,
-                  semanticsLabel: l10n.missionsDone(done, total),
-                ),
-              ],
-              if (progress != null) ...[
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  spacing: AppSpacing.sm,
-                  children: [
-                    Expanded(
-                      child: StatTile(
-                        key: const Key('missions.today.done'),
-                        icon: Icons.task_alt_rounded,
-                        iconColor: colors.secondary,
-                        value: '$done',
-                        label: l10n.missionsStatDone,
-                      ),
-                    ),
-                    Expanded(
-                      child: StatTile(
-                        key: const Key('missions.today.stars'),
-                        icon: Icons.stars_rounded,
-                        iconColor: colors.tertiary,
-                        value: '${day?.starsEarned ?? 0}',
-                        label: l10n.missionsStatStars,
-                      ),
-                    ),
-                    Expanded(
-                      child: StatTile(
-                        key: const Key('missions.today.xp'),
-                        icon: Icons.bolt_rounded,
-                        iconColor: colors.primary,
-                        value: '${day?.xpEarned ?? 0}',
-                        label: l10n.missionsStatXp,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
+                ],
+              );
+            },
           ),
         ),
       ),

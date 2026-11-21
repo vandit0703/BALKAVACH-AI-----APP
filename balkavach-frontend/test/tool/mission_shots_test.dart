@@ -1,4 +1,4 @@
-// TEMPORARY screenshot tool (not part of the suite): renders the Missions and
+// Screenshot tool (skipped unless SHOTS_DIR is given): renders the Missions and
 // Mission detail screens with realistic fake data and writes PNGs.
 //
 //   flutter test test/tool/mission_shots_test.dart --dart-define=SHOTS_DIR=<dir> --dart-define=SHOTS_TAG=old
@@ -162,7 +162,14 @@ Future<Harness> _scenario({required bool withData}) async {
       Fx.task(
         id: _t(1),
         title: 'Read a Storybook',
-        description: 'Read one story and tell us your favourite part.',
+        description:
+            'Read one story and tell us your favourite part.\n\n'
+            '1. Pick a storybook you like.\n'
+            '2. Read it out loud, or with a grown-up.\n'
+            '3. Draw your favourite part.\n'
+            'Another way: listen to the story and say your favourite part.\n\n'
+            'A drawing of the favourite part.\n'
+            'Parent check: ask why that part was the best.',
         categoryId: _catLearn,
         stars: 10,
       ),
@@ -271,6 +278,15 @@ Future<Harness> _scenario({required bool withData}) async {
 }
 
 void main() {
+  // A tool, not a test: it only runs when asked for (and given a folder).
+  if (_dir.isEmpty) {
+    test(
+      'mission screenshots',
+      () {},
+      skip: 'Screenshot tool: pass --dart-define=SHOTS_DIR=<folder> to run',
+    );
+    return;
+  }
   setUpAll(_loadFonts);
 
   Future<void> missions(

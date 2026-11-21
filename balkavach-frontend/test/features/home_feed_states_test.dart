@@ -26,15 +26,9 @@ final _contract =
 List<dynamic> get _feed => _contract['feed'] as List<dynamic>;
 List<dynamic> get _shorts => _contract['shorts'] as List<dynamic>;
 
-/// What the server sends at zero allowance: same videos, ids withheld.
-List<dynamic> _locked(List<dynamic> items) => [
-  for (final item in items)
-    {
-      ...item as Map<String, dynamic>,
-      'playback_locked': true,
-      'youtube_video_id': null,
-    },
-];
+/// What the REAL routes send once today's allowance is used up (same videos, ids withheld).
+List<dynamic> get _feedLocked => _contract['feed_locked'] as List<dynamic>;
+List<dynamic> get _shortsLocked => _contract['shorts_locked'] as List<dynamic>;
 
 Map<String, Object?> _allowance({bool exhausted = false}) => {
   'child_id': Fx.childId,
@@ -151,8 +145,8 @@ void main() {
   testWidgets('zero allowance keeps the catalogue on Home: cards are listed '
       'with a lock, never "no videos"', (tester) async {
     final h = await _child(
-      feed: _locked(_feed),
-      shorts: _locked(_shorts),
+      feed: _feedLocked,
+      shorts: _shortsLocked,
       exhausted: true,
     );
     await _pump(tester, h);
@@ -176,7 +170,7 @@ void main() {
 
   testWidgets('a locked card reloads the feed once time is earned, instead of '
       'opening a video it cannot play', (tester) async {
-    final h = await _child(feed: _locked(_feed), exhausted: true);
+    final h = await _child(feed: _feedLocked, exhausted: true);
     await _pump(tester, h);
     final before = h.backend.requestsTo('GET', '/api/v1/videos/feed').length;
 
@@ -214,7 +208,7 @@ void main() {
 
   test('a locked item from the server parses as listed but not playable', () {
     final video = FeedVideo.fromJson(
-      _locked(_feed).single as Map<String, dynamic>,
+      _feedLocked.single as Map<String, dynamic>,
     );
     expect(video.playbackLocked, isTrue);
     expect(video.youtubeVideoId, isNull);

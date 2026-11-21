@@ -121,22 +121,28 @@ Future<void> _missions(
   Locale locale = const Locale('en'),
   double textScale = 1,
   bool reduceMotion = false,
-}) => pumpScreen(
-  tester,
-  Builder(
-    builder: (context) => MediaQuery(
-      data: MediaQuery.of(context).copyWith(disableAnimations: reduceMotion),
-      child: const ChildShell(
-        location: '/child/missions',
-        child: MissionsScreen(),
+}) async {
+  await pumpScreen(
+    tester,
+    Builder(
+      builder: (context) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(disableAnimations: reduceMotion),
+        child: const ChildShell(
+          location: '/child/missions',
+          child: MissionsScreen(),
+        ),
       ),
     ),
-  ),
-  overrides: h.overrides,
-  size: size,
-  locale: locale,
-  textScale: textScale,
-);
+    overrides: h.overrides,
+    size: size,
+    locale: locale,
+    textScale: textScale,
+  );
+  // A screen with nothing animating settles before the last fake request's
+  // zero-length timer fires: let it run, then settle again.
+  await tester.pump(const Duration(milliseconds: 50));
+  await tester.pumpAndSettle();
+}
 
 Future<void> _app(WidgetTester tester, Harness h) async {
   setWindow(tester, const Size(393, 3000));
@@ -250,9 +256,7 @@ void main() {
       },
     );
 
-    testWidgets('sent: waiting for a parent', (
-      tester,
-    ) async {
+    testWidgets('sent: waiting for a parent', (tester) async {
       final h = await _child(
         selected: _a1,
         choices: [
@@ -520,9 +524,7 @@ void main() {
       expect(find.byKey(const Key('mission.back')), findsOneWidget);
     });
 
-    testWidgets('pending: waits for a parent', (
-      tester,
-    ) async {
+    testWidgets('pending: waits for a parent', (tester) async {
       final pending = await _child(
         tasks: [_task(Fx.taskId, 'Read a Storybook')],
         submissions: [Fx.submission()],
