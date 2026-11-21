@@ -1,3 +1,4 @@
+import logging
 from uuid import UUID
 
 from fastapi import Depends, HTTPException
@@ -10,6 +11,7 @@ from app.core.permissions import expand_permissions
 from app.core.security import decode_access_token
 from app.services.session_service import is_session_revoked
 
+logger = logging.getLogger(__name__)
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
@@ -18,20 +20,28 @@ def get_current_user(
 	session: Session = Depends(get_db),
 ):
 	if credentials is None:
+		logger.warning("auth.request_rejected reason=missing_bearer authorization_attached=false")
 		raise HTTPException(status_code=401, detail="Authentication required", headers={"WWW-Authenticate": "Bearer"})
-	payload = decode_access_token(credentials.credentials)
+	try:
+		payload = decode_access_token(credentials.credentials)
+	except HTTPException:
+		logger.warning("auth.request_rejected reason=invalid_or_expired_access_token authorization_attached=true")
+		raise
 	try:
 		user_id = UUID(payload["sub"])
 	except (KeyError, TypeError, ValueError) as error:
+		logger.warning("auth.request_rejected reason=invalid_subject authorization_attached=true")
 		raise HTTPException(status_code=401, detail="Invalid access token") from error
 
 	sid = payload.get("sid")
 	if sid is not None and is_session_revoked(session, sid):
+		logger.warning("auth.request_rejected reason=session_revoked authorization_attached=true")
 		raise HTTPException(status_code=401, detail="Session has ended", headers={"WWW-Authenticate": "Bearer"})
 
 	User = get_model("User")
 	user = session.query(User).filter(User.id == user_id, User.is_active.is_(True)).one_or_none()
 	if user is None:
+		logger.warning("auth.request_rejected reason=inactive_or_unknown_user authorization_attached=true")
 		raise HTTPException(status_code=401, detail="Invalid or inactive account")
 	return user
 
@@ -57,6 +67,7 @@ def require_parent(user=Depends(get_current_user)):
 
 def require_child(user=Depends(get_current_user), session: Session = Depends(get_db)):
 	if user.role != "child":
+		logger.warning("auth.child_rejected reason=wrong_role")
 		raise HTTPException(status_code=403, detail="Child access required")
 	ChildProfile = get_model("ChildProfile")
 	child = (
@@ -65,6 +76,7 @@ def require_child(user=Depends(get_current_user), session: Session = Depends(get
 		.one_or_none()
 	)
 	if child is None:
+		logger.warning("auth.child_rejected reason=active_profile_missing")
 		raise HTTPException(status_code=403, detail="Active child profile required")
 	return child
 

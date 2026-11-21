@@ -6,6 +6,8 @@
 * no route can mint a parent session from email + PIN (the retired verify route is a tombstone).
 """
 
+import logging
+
 import pytest
 from fastapi import APIRouter, HTTPException
 from fastapi.routing import APIRoute
@@ -108,6 +110,15 @@ def test_child_guard_rejects_parent_tokens_before_touching_the_database():
 	with pytest.raises(HTTPException) as error:
 		deps.require_child(User(), session=None)
 	assert error.value.status_code == 403
+
+
+def test_missing_bearer_is_logged_without_credentials(caplog):
+	with caplog.at_level(logging.WARNING, logger="app.core.dependencies"):
+		with pytest.raises(HTTPException) as error:
+			deps.get_current_user(credentials=None, session=None)
+
+	assert error.value.status_code == 401
+	assert "reason=missing_bearer authorization_attached=false" in caplog.text
 
 
 def test_parent_mode_entry_requires_a_child_session():
