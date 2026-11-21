@@ -76,6 +76,7 @@ class _MissionsPageState extends ConsumerState<MissionsPage> {
             l10n.colCategory,
             l10n.colChild,
             l10n.colStarsXp,
+            l10n.colVideoRequirement,
             l10n.colStatus,
             '',
           ],
@@ -87,6 +88,14 @@ class _MissionsPageState extends ConsumerState<MissionsPage> {
               Text('${row['category_name'] ?? '—'}'),
               Text('${row['assigned_child_name'] ?? l10n.missionAnyChild}'),
               Text('${row['star_reward']} / ${row['xp_reward']}'),
+              Text(
+                row['required_video_seconds'] == null
+                    ? '—'
+                    : l10n.missionCatalogMinutes(
+                        ((row['required_video_seconds'] as num).toInt() + 59) ~/
+                            60,
+                      ),
+              ),
               StatusPill(
                 label: active ? l10n.statusActive : l10n.statusDeactivated,
                 good: active,

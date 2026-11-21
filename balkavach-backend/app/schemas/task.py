@@ -4,7 +4,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_serializer, field_validator, model_validator
 
-from app.services.mission_rewards import effective_star_reward, effective_xp_reward
 from app.utils import utc_aware
 
 
@@ -30,8 +29,9 @@ class TaskCreate(BaseModel):
 	assigned_child_id: UUID | None = None
 	title: str = Field(min_length=2, max_length=180)
 	description: str | None = Field(default=None, max_length=5000)
-	star_reward: int = Field(default=0, ge=0, le=10000)
-	xp_reward: int = Field(default=0, ge=0, le=100000)
+	star_reward: int = Field(default=10, ge=0, le=10000)
+	xp_reward: int = Field(default=15, ge=0, le=100000)
+	required_video_seconds: int | None = Field(default=None, ge=1, le=86400)
 	due_at: datetime | None = None
 	repeat_rule: dict[str, Any] | None = Field(default=None, max_length=30)
 
@@ -50,6 +50,7 @@ class TaskUpdate(BaseModel):
 	description: str | None = Field(default=None, max_length=5000)
 	star_reward: int | None = Field(default=None, ge=0, le=10000)
 	xp_reward: int | None = Field(default=None, ge=0, le=100000)
+	required_video_seconds: int | None = Field(default=None, ge=1, le=86400)
 	due_at: datetime | None = None
 	repeat_rule: dict[str, Any] | None = Field(default=None, max_length=30)
 
@@ -73,6 +74,7 @@ class TaskPublic(BaseModel):
 	description: str | None
 	star_reward: int
 	xp_reward: int
+	required_video_seconds: int | None = None
 	due_at: datetime | None
 	is_active: bool
 	created_at: datetime
@@ -80,17 +82,6 @@ class TaskPublic(BaseModel):
 	@field_serializer("due_at", "created_at")
 	def serialize_timestamp(self, value: datetime | None) -> datetime | None:
 		return utc_aware(value) if value else None
-
-	@field_validator("star_reward", mode="after")
-	@classmethod
-	def standard_star_reward(cls, value: int) -> int:
-		# What an approval of this mission pays now (one rule for every mission, see mission_rewards).
-		return effective_star_reward(value)
-
-	@field_validator("xp_reward", mode="after")
-	@classmethod
-	def standard_xp_reward(cls, value: int) -> int:
-		return effective_xp_reward(value)
 
 
 class TaskSubmissionCreate(BaseModel):
@@ -143,6 +134,33 @@ class PendingSubmissionPublic(TaskSubmissionPublic):
 	xp_reward: int
 	# Minutes of video time an approval unlocks (the backend's rule; the app only displays it).
 	video_minutes_reward: int = 0
+	required_video_seconds: int | None = None
+	verified_video_seconds: int = 0
+
+
+class MissionVideoWatchStartRequest(BaseModel):
+	video_id: UUID
+	client_session_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+
+
+class MissionVideoWatchHeartbeatRequest(BaseModel):
+	sequence: int = Field(ge=0, le=2_147_483_647)
+	position_seconds: int = Field(ge=0, le=86400)
+	is_playing: bool = True
+
+
+class MissionVideoProgressPublic(BaseModel):
+	task_id: UUID
+	required_video_seconds: int
+	verified_video_seconds: int
+	remaining_video_seconds: int
+	is_complete: bool
+
+
+class MissionVideoWatchPublic(MissionVideoProgressPublic):
+	session_id: UUID
+	accepted_seconds: int = 0
+	status: str
 
 
 class MySubmissionPublic(TaskSubmissionPublic):

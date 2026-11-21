@@ -90,6 +90,10 @@ void main() {
           find.textContaining('15m video time left today'),
           findsOneWidget,
         );
+        expect(
+          find.text('Daily free video: 15 of 15 minutes left'),
+          findsOneWidget,
+        );
         expect(find.byIcon(Icons.hourglass_top_rounded), findsOneWidget);
       },
     );
@@ -128,6 +132,10 @@ void main() {
 
         expect(find.byKey(const Key('watch.allowance.card')), findsOneWidget);
         expect(find.text('Video time locked'), findsOneWidget);
+        expect(
+          find.text('Daily free video: 0 of 15 minutes left'),
+          findsOneWidget,
+        );
         expect(
           find.byKey(const Key('watch.allowance.toMissions')),
           findsOneWidget,

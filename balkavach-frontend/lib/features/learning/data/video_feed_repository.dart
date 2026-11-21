@@ -22,7 +22,11 @@ class VideoAllowance {
     required this.dailyCapSeconds,
     required this.isExhausted,
     required this.activeEntitlementsCount,
-  });
+    int? freeRemainingSeconds,
+    this.missionRemainingSeconds = 0,
+  }) : freeRemainingSeconds =
+           freeRemainingSeconds ??
+           (remainingSeconds < 900 ? remainingSeconds : 900);
 
   factory VideoAllowance.fromJson(Map<String, dynamic> json) => VideoAllowance(
     childId: json['child_id'] as String,
@@ -37,6 +41,10 @@ class VideoAllowance {
     isExhausted: json['is_exhausted'] as bool? ?? false,
     activeEntitlementsCount:
         (json['active_entitlements_count'] as num?)?.toInt() ?? 0,
+    freeRemainingSeconds:
+        (json['free_remaining_seconds'] as num?)?.toInt() ?? 900,
+    missionRemainingSeconds:
+        (json['mission_remaining_seconds'] as num?)?.toInt() ?? 0,
   );
 
   final String childId;
@@ -48,6 +56,8 @@ class VideoAllowance {
   final int dailyCapSeconds;
   final bool isExhausted;
   final int activeEntitlementsCount;
+  final int freeRemainingSeconds;
+  final int missionRemainingSeconds;
 
   int get remainingMinutes => (remainingSeconds / 60).ceil();
 }
@@ -101,6 +111,55 @@ class VideoAllowanceSummary {
   final int freeAllowanceSeconds;
   final int freeConsumedSeconds;
   final List<MissionVideoReward> rewards;
+}
+
+@immutable
+class MissionVideoProgress {
+  const MissionVideoProgress({
+    required this.taskId,
+    required this.requiredSeconds,
+    required this.verifiedSeconds,
+    required this.remainingSeconds,
+    required this.isComplete,
+  });
+
+  factory MissionVideoProgress.fromJson(Map<String, dynamic> json) =>
+      MissionVideoProgress(
+        taskId: json['task_id'] as String,
+        requiredSeconds: (json['required_video_seconds'] as num).toInt(),
+        verifiedSeconds: (json['verified_video_seconds'] as num).toInt(),
+        remainingSeconds: (json['remaining_video_seconds'] as num).toInt(),
+        isComplete: json['is_complete'] as bool,
+      );
+
+  final String taskId;
+  final int requiredSeconds;
+  final int verifiedSeconds;
+  final int remainingSeconds;
+  final bool isComplete;
+}
+
+@immutable
+class MissionVideoWatch {
+  const MissionVideoWatch({
+    required this.progress,
+    required this.sessionId,
+    required this.acceptedSeconds,
+    required this.status,
+  });
+
+  factory MissionVideoWatch.fromJson(Map<String, dynamic> json) =>
+      MissionVideoWatch(
+        progress: MissionVideoProgress.fromJson(json),
+        sessionId: json['session_id'] as String,
+        acceptedSeconds: (json['accepted_seconds'] as num?)?.toInt() ?? 0,
+        status: json['status'] as String,
+      );
+
+  final MissionVideoProgress progress;
+  final String sessionId;
+  final int acceptedSeconds;
+  final String status;
 }
 
 /// `VideoFeedItem`: a video the server has already decided this child may see.
@@ -302,6 +361,59 @@ class VideoFeedRepository {
     );
     return VideoAllowance.fromJson(response.data!);
   });
+
+  Future<MissionVideoProgress> missionVideoProgress(String taskId) =>
+      guardApi(() async {
+        final response = await _dio.get<Map<String, dynamic>>(
+          '/api/v1/tasks/$taskId/video-watch',
+        );
+        return MissionVideoProgress.fromJson(response.data!);
+      });
+
+  Future<List<FeedVideo>> missionVideoCatalogue(String taskId) =>
+      guardApi(() async {
+        final response = await _dio.get<List<dynamic>>(
+          '/api/v1/tasks/$taskId/video-catalogue',
+        );
+        return parseJsonList(response.data, FeedVideo.fromJson);
+      });
+
+  Future<MissionVideoWatch> startMissionVideoWatch(
+    String taskId,
+    String videoId,
+    String clientSessionId,
+  ) => guardApi(() async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/tasks/$taskId/video-watch/sessions',
+      data: {'video_id': videoId, 'client_session_id': clientSessionId},
+    );
+    return MissionVideoWatch.fromJson(response.data!);
+  });
+
+  Future<MissionVideoWatch> reportMissionVideoWatch({
+    required String sessionId,
+    required int sequence,
+    required int positionSeconds,
+    required bool isPlaying,
+  }) => guardApi(() async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/tasks/video-watch/sessions/$sessionId/heartbeats',
+      data: {
+        'sequence': sequence,
+        'position_seconds': positionSeconds,
+        'is_playing': isPlaying,
+      },
+    );
+    return MissionVideoWatch.fromJson(response.data!);
+  });
+
+  Future<MissionVideoWatch> interruptMissionVideoWatch(String sessionId) =>
+      guardApi(() async {
+        final response = await _dio.post<Map<String, dynamic>>(
+          '/api/v1/tasks/video-watch/sessions/$sessionId/interrupt',
+        );
+        return MissionVideoWatch.fromJson(response.data!);
+      });
 
   Future<List<VideoWatchHistoryEntry>> parentHistory(String childId) =>
       guardApi(() async {

@@ -46,10 +46,10 @@ def _task_row(stars: int, xp: int):
 	)
 
 
-def test_a_task_shows_the_standard_reward_whatever_it_stored():
+def test_a_task_shows_its_configured_reward():
 	for stored in [(0, 0), (1, 10), (5, 20), (500, 9000)]:
 		public = TaskPublic.model_validate(_task_row(*stored))
-		assert (public.star_reward, public.xp_reward) == (10, 15), stored
+		assert (public.star_reward, public.xp_reward) == stored
 
 
 def _assignment_row(status: str, stars: int = 1, xp: int = 10):

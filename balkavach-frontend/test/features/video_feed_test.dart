@@ -102,6 +102,33 @@ class _FakeRepository implements VideoFeedRepository {
   );
 
   @override
+  Future<MissionVideoProgress> missionVideoProgress(String taskId) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<FeedVideo>> missionVideoCatalogue(String taskId) async => [];
+
+  @override
+  Future<MissionVideoWatch> startMissionVideoWatch(
+    String taskId,
+    String videoId,
+    String clientSessionId,
+  ) async => throw UnimplementedError();
+
+  @override
+  Future<MissionVideoWatch> reportMissionVideoWatch({
+    required String sessionId,
+    required int sequence,
+    required int positionSeconds,
+    required bool isPlaying,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<MissionVideoWatch> interruptMissionVideoWatch(
+    String sessionId,
+  ) async => throw UnimplementedError();
+
+  @override
   Future<List<FeedVideo>> nextVideos(String videoId, {int limit = 6}) async =>
       const [];
 

@@ -57,8 +57,9 @@ class Task(Base):
 	category_id: Mapped[UUID | None] = mapped_column(Uuid)
 	title: Mapped[str] = mapped_column(String, default="Saturday Rhythm Rockstar")
 	description: Mapped[str | None] = mapped_column(String)
-	star_reward: Mapped[int] = mapped_column(Integer, default=5)
-	xp_reward: Mapped[int] = mapped_column(Integer, default=10)
+	star_reward: Mapped[int] = mapped_column(Integer, default=10)
+	xp_reward: Mapped[int] = mapped_column(Integer, default=15)
+	required_video_seconds: Mapped[int | None] = mapped_column(Integer)
 	repeat_rule: Mapped[str | None] = mapped_column(String)
 	is_custom: Mapped[bool] = mapped_column(Boolean, default=False)
 	is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -120,6 +121,23 @@ class ChildProgress(Base):
 	updated_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
+class MissionVideoWatchSession(Base):
+	__tablename__ = "mission_video_watch_sessions"
+	id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+	client_session_id: Mapped[str] = mapped_column(String(32), unique=True)
+	task_id: Mapped[UUID] = mapped_column(Uuid)
+	child_id: Mapped[UUID] = mapped_column(Uuid)
+	video_id: Mapped[UUID] = mapped_column(Uuid)
+	started_at: Mapped[datetime] = mapped_column(DateTime)
+	last_heartbeat_at: Mapped[datetime] = mapped_column(DateTime)
+	ended_at: Mapped[datetime | None] = mapped_column(DateTime)
+	last_position_seconds: Mapped[int] = mapped_column(Integer, default=0)
+	watched_seconds: Mapped[int] = mapped_column(Integer, default=0)
+	last_sequence: Mapped[int] = mapped_column(Integer, default=-1)
+	is_playing: Mapped[bool] = mapped_column(Boolean, default=False)
+	status: Mapped[str] = mapped_column(String, default="active")
+
+
 class Level(Base):
 	__tablename__ = "levels"
 	id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -160,7 +178,7 @@ OWN = {
 	cls.__name__: cls
 	for cls in (
 		ChildProfile, TaskCategory, Task, TaskSubmission, TaskReview, StarTransaction, XPTransaction, ChildProgress,
-		Level, ChildActivityDay, Badge, ChildBadge,
+		Level, ChildActivityDay, Badge, ChildBadge, MissionVideoWatchSession,
 	)
 }
 MODELS = {

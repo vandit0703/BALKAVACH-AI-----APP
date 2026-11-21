@@ -127,13 +127,13 @@ def test_playback_charges_once_through_record_progress_and_keeps_history(learn):
 	metered = listing(learn, child)["Stars"].metered_video_id
 
 	tick(learn, child, 20)
-	result = record_progress(learn, child, metered, 40, is_playing=True)
+	result = record_progress(learn, child, metered, 90, is_playing=True)
 
 	usage = learn.query(ChildVideoDailyUsage).filter_by(child_id=child.id).one()
 	assert result["accepted_seconds"] == 20
 	assert usage.free_watched_seconds == 300 + 20  # make_child had used 300 of 900
 	history = learn.query(ChildVideoWatchHistory).filter_by(child_id=child.id, video_id=video.id).one()
-	assert history.last_position_seconds == 40
+	assert history.last_position_seconds == 90
 
 
 def test_articles_and_other_links_are_unchanged(learn):

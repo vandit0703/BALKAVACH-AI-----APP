@@ -542,6 +542,29 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                 ),
             ],
           ),
+          if (submission.requiredVideoSeconds != null)
+            Row(
+              key: const Key('review.video.progress'),
+              children: [
+                Icon(
+                  submission.verifiedVideoSeconds >=
+                          submission.requiredVideoSeconds!
+                      ? Icons.verified_rounded
+                      : Icons.timelapse_rounded,
+                  size: 18,
+                  color: colors.primary,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    l10n.approvalVideoProgress(
+                      (submission.requiredVideoSeconds! + 59) ~/ 60,
+                      (submission.verifiedVideoSeconds + 59) ~/ 60,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           if (proofUrl != null && submission.proofType == 'image')
             _ProofImage(url: proofUrl),
           if (note != null && note.isNotEmpty)

@@ -13,15 +13,25 @@ from app.schemas.task import (
 	TaskCategoryCreate,
 	TaskCategoryPublic,
 	MySubmissionPublic,
+	MissionVideoProgressPublic,
+	MissionVideoWatchHeartbeatRequest,
+	MissionVideoWatchPublic,
+	MissionVideoWatchStartRequest,
 	TaskCreate,
 	TaskPublic,
 	TaskSubmissionCreate,
 	TaskSubmissionPublic,
 	TaskUpdate,
 )
+from app.schemas.video import VideoFeedItem
 from app.services.child_age import child_age_band_or_none, ineligible_daily_task_ids
 from app.services.ledger_service import awarded_by_submission
-from app.services.mission_rewards import MISSION_STAR_REWARD, MISSION_XP_REWARD
+from app.services.mission_video_service import (
+	get_mission_video_progress,
+	interrupt_mission_video_watch,
+	record_mission_video_heartbeat,
+	start_mission_video_watch,
+)
 from app.services.notification_service import notify_task_assigned
 from app.services.task_service import submit_completion
 from app.utils import utc_naive
@@ -135,9 +145,9 @@ def create_task(
 		assigned_child_id=request.assigned_child_id,
 		title=request.title.strip(),
 		description=request.description,
-		# Every mission earns the standard reward (mission_rewards); a submitted value is not stored.
-		star_reward=MISSION_STAR_REWARD,
-		xp_reward=MISSION_XP_REWARD,
+		xp_reward=request.xp_reward,
+		star_reward=request.star_reward,
+		required_video_seconds=request.required_video_seconds,
 		due_at=utc_naive(request.due_at) if request.due_at else None,
 		repeat_rule=request.repeat_rule,
 		is_custom=True,
@@ -204,9 +214,6 @@ def update_task(
 		raise HTTPException(status_code=404, detail="Task not found")
 	_require_family(session, task.family_id, parent.id)
 	updates = request.model_dump(exclude_unset=True)
-	# The reward is the same for every mission (mission_rewards): an edit cannot change it.
-	updates.pop("star_reward", None)
-	updates.pop("xp_reward", None)
 	if updates.get("due_at") is not None:
 		updates["due_at"] = utc_naive(updates["due_at"])
 	if "assigned_child_id" in updates and updates["assigned_child_id"] is not None:
@@ -225,6 +232,71 @@ def update_task(
 	session.commit()
 	session.refresh(task)
 	return TaskPublic.model_validate(task)
+
+
+@router.get("/{task_id}/video-watch", response_model=MissionVideoProgressPublic)
+def get_task_video_progress(
+	task_id: UUID,
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> MissionVideoProgressPublic:
+	return MissionVideoProgressPublic(**get_mission_video_progress(session, task_id, child))
+
+
+@router.get("/{task_id}/video-catalogue", response_model=list[VideoFeedItem])
+def get_task_video_catalogue(
+	task_id: UUID,
+	limit: int = Query(default=30, ge=1, le=50),
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> list[VideoFeedItem]:
+	from app.api.v1.videos import _channel_names, _feed_item
+	from app.services.video_service import eligible_feed
+
+	task = get_model("Task")
+	row = session.query(task).filter(task.id == task_id, task.is_active.is_(True)).one_or_none()
+	if row is None or row.family_id != child.family_id or (
+		row.assigned_child_id is not None and row.assigned_child_id != child.id
+	):
+		raise HTTPException(status_code=404, detail="Mission not found")
+	if not row.required_video_seconds:
+		raise HTTPException(status_code=409, detail="This mission has no video requirement")
+	videos = eligible_feed(session, child, None, limit, 0, video_format="regular")
+	channels = _channel_names(session, videos) if any(v.video_source == "youtube" for v in videos) else {}
+	return [_feed_item(video, channels.get(video.id), playback_locked=False) for video in videos]
+
+
+@router.post("/{task_id}/video-watch/sessions", response_model=MissionVideoWatchPublic, status_code=201)
+def begin_task_video_watch(
+	task_id: UUID,
+	request: MissionVideoWatchStartRequest,
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> MissionVideoWatchPublic:
+	return MissionVideoWatchPublic(**start_mission_video_watch(
+		session, task_id, child, request.video_id, request.client_session_id
+	))
+
+
+@router.post("/video-watch/sessions/{session_id}/heartbeats", response_model=MissionVideoWatchPublic)
+def task_video_watch_heartbeat(
+	session_id: UUID,
+	request: MissionVideoWatchHeartbeatRequest,
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> MissionVideoWatchPublic:
+	return MissionVideoWatchPublic(**record_mission_video_heartbeat(
+		session, session_id, child, request.sequence, request.position_seconds, request.is_playing
+	))
+
+
+@router.post("/video-watch/sessions/{session_id}/interrupt", response_model=MissionVideoWatchPublic)
+def task_video_watch_interrupt(
+	session_id: UUID,
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> MissionVideoWatchPublic:
+	return MissionVideoWatchPublic(**interrupt_mission_video_watch(session, session_id, child))
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)

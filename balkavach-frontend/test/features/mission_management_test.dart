@@ -91,7 +91,12 @@ void main() {
         title: ' Read ',
         description: '   ',
       );
-      expect(mission.toJson(), {'family_id': Fx.familyId, 'title': 'Read'});
+      expect(mission.toJson(), {
+        'family_id': Fx.familyId,
+        'title': 'Read',
+        'star_reward': 10,
+        'xp_reward': 15,
+      });
     });
 
     test('create sends the due date as UTC with an offset', () {
@@ -102,6 +107,22 @@ void main() {
       );
       expect(mission.toJson()['due_at'], '2026-11-03T18:29:00.000Z');
     });
+
+    test(
+      'configured duration and rewards are sent as server contract values',
+      () {
+        const mission = NewMission(
+          familyId: Fx.familyId,
+          title: 'Watch',
+          starReward: 10,
+          xpReward: 15,
+          requiredVideoSeconds: 900,
+        );
+        expect(mission.toJson(), containsPair('required_video_seconds', 900));
+        expect(mission.toJson(), containsPair('star_reward', 10));
+        expect(mission.toJson(), containsPair('xp_reward', 15));
+      },
+    );
 
     test('a local due date is converted to UTC, never sent naive', () {
       final due =
@@ -119,6 +140,9 @@ void main() {
       const mission = NewMission(familyId: Fx.familyId, title: 'Read');
       expect(mission.toPatchJson(), {
         'title': 'Read',
+        'star_reward': 10,
+        'xp_reward': 15,
+        'required_video_seconds': null,
         'description': null,
         'category_id': null,
         'assigned_child_id': null,

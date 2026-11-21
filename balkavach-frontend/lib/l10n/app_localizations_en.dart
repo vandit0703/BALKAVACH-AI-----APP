@@ -1362,6 +1362,58 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createMissionDueClear => 'Clear due date';
 
   @override
+  String get missionStars => 'Star reward';
+
+  @override
+  String get missionXp => 'XP reward';
+
+  @override
+  String get missionRequireVideo => 'Require verified video watching';
+
+  @override
+  String get missionRequiredVideoMinutes => 'Required watched minutes';
+
+  @override
+  String missionAmountValidation(int minimum, int maximum) {
+    return 'Enter a value from $minimum to $maximum.';
+  }
+
+  @override
+  String get missionVideoHeader => 'Mission video';
+
+  @override
+  String missionVideoProgress(int watched, int required) {
+    return 'Verified $watched of $required minutes';
+  }
+
+  @override
+  String get missionVideoComplete => 'Video requirement complete';
+
+  @override
+  String get missionVideoIncomplete =>
+      'Watch the required time before submitting.';
+
+  @override
+  String get missionVideoInterrupted =>
+      'Playback stopped. Your verified progress was saved.';
+
+  @override
+  String get missionVideoChoose => 'Choose a video';
+
+  @override
+  String get missionVideoNoVideos =>
+      'No eligible videos are available right now.';
+
+  @override
+  String get missionVideoLoadError =>
+      'Mission video progress could not be loaded.';
+
+  @override
+  String approvalVideoProgress(int required, int watched) {
+    return 'Video requirement: $required min required, $watched min verified';
+  }
+
+  @override
   String get missionSaved => 'Mission saved';
 
   @override
@@ -2309,7 +2361,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get videoAllowanceUnlockHint =>
-      'Complete daily missions to unlock 15 minutes of video time!';
+      'Your free time is used. Ask a grown-up about more.';
+
+  @override
+  String videoFreeRemaining(int remaining, int total) {
+    return 'Daily free video: $remaining of $total minutes left';
+  }
+
+  @override
+  String videoMissionRemaining(int minutes) {
+    return 'Mission video: $minutes extra minutes';
+  }
 
   @override
   String get videoTimeExhaustedTitle => 'Video time is done for today';

@@ -18,6 +18,7 @@ from app.services.video_time_alerts import EXHAUSTED, NEARLY_EXHAUSTED, alert_te
 from app.utils import utc_naive
 from tests.video_world import (  # noqa: F401 - db is a fixture
 	ChildVideoDailyUsage,
+	ChildVideoWatchHistory,
 	Notification,
 	Video,
 	VideoAccessEntitlement,
@@ -132,14 +133,14 @@ def test_a_new_parent_approval_rearms_the_warnings(db):
 
 	grant(db, child, 140)  # a parent approved a mission (partial grant near the cap)
 	tick(db, child)
-	result = report(db, child, video)
+	result = report(db, child, video, position=130)
 	assert result["remaining_allowance_seconds"] == 110
 	assert len(alerts_of(db, child, NEARLY_EXHAUSTED)) == 1
 
-	for _ in range(4):
+	for position in (160, 190, 220, 250):
 		tick(db, child)
 		try:
-			report(db, child, video)
+			report(db, child, video, position=position)
 		except APIError:
 			break
 	assert len(alerts_of(db, child, EXHAUSTED)) == 2  # one per grant window, never repeated within it

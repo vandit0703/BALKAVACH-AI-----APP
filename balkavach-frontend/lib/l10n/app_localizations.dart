@@ -2308,6 +2308,90 @@ abstract class AppLocalizations {
   /// **'Clear due date'**
   String get createMissionDueClear;
 
+  /// No description provided for @missionStars.
+  ///
+  /// In en, this message translates to:
+  /// **'Star reward'**
+  String get missionStars;
+
+  /// No description provided for @missionXp.
+  ///
+  /// In en, this message translates to:
+  /// **'XP reward'**
+  String get missionXp;
+
+  /// No description provided for @missionRequireVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Require verified video watching'**
+  String get missionRequireVideo;
+
+  /// No description provided for @missionRequiredVideoMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Required watched minutes'**
+  String get missionRequiredVideoMinutes;
+
+  /// No description provided for @missionAmountValidation.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value from {minimum} to {maximum}.'**
+  String missionAmountValidation(int minimum, int maximum);
+
+  /// No description provided for @missionVideoHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Mission video'**
+  String get missionVideoHeader;
+
+  /// No description provided for @missionVideoProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified {watched} of {required} minutes'**
+  String missionVideoProgress(int watched, int required);
+
+  /// No description provided for @missionVideoComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Video requirement complete'**
+  String get missionVideoComplete;
+
+  /// No description provided for @missionVideoIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch the required time before submitting.'**
+  String get missionVideoIncomplete;
+
+  /// No description provided for @missionVideoInterrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback stopped. Your verified progress was saved.'**
+  String get missionVideoInterrupted;
+
+  /// No description provided for @missionVideoChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a video'**
+  String get missionVideoChoose;
+
+  /// No description provided for @missionVideoNoVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'No eligible videos are available right now.'**
+  String get missionVideoNoVideos;
+
+  /// No description provided for @missionVideoLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Mission video progress could not be loaded.'**
+  String get missionVideoLoadError;
+
+  /// No description provided for @approvalVideoProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Video requirement: {required} min required, {watched} min verified'**
+  String approvalVideoProgress(int required, int watched);
+
   /// No description provided for @missionSaved.
   ///
   /// In en, this message translates to:
@@ -3895,8 +3979,20 @@ abstract class AppLocalizations {
   /// No description provided for @videoAllowanceUnlockHint.
   ///
   /// In en, this message translates to:
-  /// **'Complete daily missions to unlock 15 minutes of video time!'**
+  /// **'Your free time is used. Ask a grown-up about more.'**
   String get videoAllowanceUnlockHint;
+
+  /// No description provided for @videoFreeRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily free video: {remaining} of {total} minutes left'**
+  String videoFreeRemaining(int remaining, int total);
+
+  /// No description provided for @videoMissionRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Mission video: {minutes} extra minutes'**
+  String videoMissionRemaining(int minutes);
 
   /// No description provided for @videoTimeExhaustedTitle.
   ///

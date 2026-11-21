@@ -36,6 +36,35 @@ class User(Base):
 	preferred_language: Mapped[str] = mapped_column(String, default="en")
 
 
+class Task(Base):
+	__tablename__ = "tasks"
+	id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+	family_id: Mapped[UUID] = mapped_column(Uuid)
+	assigned_child_id: Mapped[UUID | None] = mapped_column(Uuid)
+	title: Mapped[str] = mapped_column(String, default="Watch and learn")
+	required_video_seconds: Mapped[int | None] = mapped_column(Integer)
+	star_reward: Mapped[int] = mapped_column(Integer, default=10)
+	xp_reward: Mapped[int] = mapped_column(Integer, default=15)
+	is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class MissionVideoWatchSession(Base):
+	__tablename__ = "mission_video_watch_sessions"
+	id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+	client_session_id: Mapped[str] = mapped_column(String(32), unique=True)
+	task_id: Mapped[UUID] = mapped_column(Uuid)
+	child_id: Mapped[UUID] = mapped_column(Uuid)
+	video_id: Mapped[UUID] = mapped_column(Uuid)
+	started_at: Mapped[datetime] = mapped_column(DateTime)
+	last_heartbeat_at: Mapped[datetime] = mapped_column(DateTime)
+	ended_at: Mapped[datetime | None] = mapped_column(DateTime)
+	last_position_seconds: Mapped[int] = mapped_column(Integer, default=0)
+	watched_seconds: Mapped[int] = mapped_column(Integer, default=0)
+	last_sequence: Mapped[int] = mapped_column(Integer, default=-1)
+	is_playing: Mapped[bool] = mapped_column(Boolean, default=False)
+	status: Mapped[str] = mapped_column(String, default="active")
+
+
 class ChildProfile(Base):
 	__tablename__ = "child_profiles"
 	id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -133,6 +162,7 @@ def feed_db(monkeypatch) -> Session:
 	"""A session shaped like production (``autoflush=False``) over a shared in-memory SQLite connection."""
 	import app.api.v1.video_access as video_access_api
 	import app.api.v1.videos as videos_api
+	import app.api.v1.tasks as tasks_api
 	import app.services.admin_service as admin
 	import app.services.charging_path as charging
 	import app.services.notification_service as notifications
@@ -142,10 +172,12 @@ def feed_db(monkeypatch) -> Session:
 	import app.services.video_service as videos
 	import app.services.video_time_alerts as alerts
 	import app.services.video_watch_history_service as history
+	import app.services.mission_video_service as mission_video
 	import app.services.youtube_review_service as reviews
 
 	for module in (
-		videos_api, video_access_api, admin, notifications, zones, entitlements, diagnostics, videos, alerts, history,
+		videos_api, video_access_api, tasks_api, admin, notifications, zones, entitlements, diagnostics, videos,
+		alerts, history, mission_video,
 		reviews,
 	):
 		if hasattr(module, "get_model"):

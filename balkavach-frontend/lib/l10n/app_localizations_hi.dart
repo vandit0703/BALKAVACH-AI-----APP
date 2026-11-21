@@ -1363,6 +1363,55 @@ class AppLocalizationsHi extends AppLocalizations {
   String get createMissionDueClear => 'तिथि हटाएँ';
 
   @override
+  String get missionStars => 'स्टार इनाम';
+
+  @override
+  String get missionXp => 'XP इनाम';
+
+  @override
+  String get missionRequireVideo => 'सत्यापित वीडियो देखना ज़रूरी है';
+
+  @override
+  String get missionRequiredVideoMinutes => 'देखने के आवश्यक मिनट';
+
+  @override
+  String missionAmountValidation(int minimum, int maximum) {
+    return '$minimum से $maximum के बीच मान दर्ज करें।';
+  }
+
+  @override
+  String get missionVideoHeader => 'मिशन वीडियो';
+
+  @override
+  String missionVideoProgress(int watched, int required) {
+    return '$required में से $watched मिनट सत्यापित';
+  }
+
+  @override
+  String get missionVideoComplete => 'वीडियो की शर्त पूरी हुई';
+
+  @override
+  String get missionVideoIncomplete => 'जमा करने से पहले आवश्यक समय तक देखें।';
+
+  @override
+  String get missionVideoInterrupted =>
+      'वीडियो रुक गया। सत्यापित प्रगति सुरक्षित है।';
+
+  @override
+  String get missionVideoChoose => 'वीडियो चुनें';
+
+  @override
+  String get missionVideoNoVideos => 'अभी कोई उपयुक्त वीडियो उपलब्ध नहीं है।';
+
+  @override
+  String get missionVideoLoadError => 'मिशन वीडियो प्रगति लोड नहीं हो सकी।';
+
+  @override
+  String approvalVideoProgress(int required, int watched) {
+    return 'वीडियो: $required मिनट आवश्यक, $watched मिनट सत्यापित';
+  }
+
+  @override
   String get missionSaved => 'मिशन सहेजा गया';
 
   @override
@@ -2311,7 +2360,17 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get videoAllowanceUnlockHint =>
-      '15 मिनट वीडियो समय अनलॉक करने के लिए दैनिक मिशन पूरा करें!';
+      'आपका मुफ्त समय समाप्त हो गया है। अधिक समय के लिए अभिभावक से बात करें।';
+
+  @override
+  String videoFreeRemaining(int remaining, int total) {
+    return 'दैनिक मुफ्त वीडियो: $total में से $remaining मिनट बाकी';
+  }
+
+  @override
+  String videoMissionRemaining(int minutes) {
+    return 'मिशन वीडियो: अतिरिक्त $minutes मिनट';
+  }
 
   @override
   String get videoTimeExhaustedTitle => 'आज का वीडियो समय पूरा हुआ';

@@ -156,8 +156,8 @@ def test_paused_time_and_long_gaps_are_not_counted(api):
 	resumed = report(http, session, child, video, 10, playing=True, seconds_since_last=5)
 	assert resumed.json()["accepted_seconds"] == 0
 	gap = report(http, session, child, video, 40, playing=True, seconds_since_last=3600)
-	assert gap.json()["accepted_seconds"] == 30, "one report can never charge more than 30 s"
-	assert remaining(session, child) == 900 - 10 - 30
+	assert gap.json()["accepted_seconds"] == 0, "a disconnected interval is not verified playback"
+	assert remaining(session, child) == 900 - 10
 
 
 def test_the_client_cannot_inflate_or_deflate_the_count_by_its_position(api):
@@ -168,7 +168,38 @@ def test_the_client_cannot_inflate_or_deflate_the_count_by_its_position(api):
 
 	report(http, session, child, video, 0, playing=True, seconds_since_last=0)
 	seek = report(http, session, child, video, 1500, playing=True, seconds_since_last=30)
-	assert seek.json()["accepted_seconds"] == 30, "a seek forward costs the real 30 s, not 1500 s"
+	assert seek.json()["accepted_seconds"] == 0, "a seek is not verified playback"
 	sneaky = report(http, session, child, video, 1525, playing=False, seconds_since_last=25)
-	assert sneaky.json()["accepted_seconds"] == 25, "claiming 'paused' while playing still costs real time"
-	assert remaining(session, child) == 900 - 55
+	assert sneaky.json()["accepted_seconds"] == 25, "the interval before pause remains verified"
+	paused_position = report(http, session, child, video, 1550, playing=False, seconds_since_last=25)
+	assert paused_position.json()["accepted_seconds"] == 0, "paused playback is not verified"
+	assert remaining(session, child) == 900 - 25
+
+
+def test_two_devices_share_one_daily_cap(api):
+	http, child, session = api
+	first_video = add_youtube(session, title="Device one", duration_seconds=3600).video
+	second_video = add_youtube(session, title="Device two", duration_seconds=3600).video
+	from tests.feed_world import ChildVideoDailyUsage
+	from app.services.timezone_service import local_today
+
+	session.add(
+		ChildVideoDailyUsage(
+			child_id=child.id,
+			local_date=local_today(session, child.family_id),
+			free_watched_seconds=880,
+			last_heartbeat_at=utc_naive(datetime.now(timezone.utc)),
+			is_playing=False,
+		)
+	)
+	session.commit()
+
+	assert report(http, session, child, first_video, 0, seconds_since_last=0).status_code == 200
+	charged = report(http, session, child, first_video, 20, seconds_since_last=20)
+	assert charged.json()["accepted_seconds"] == 20
+	assert remaining(session, child) == 0
+	refused = http.post(
+		f"/api/v1/videos/watch-history/{second_video.id}/progress",
+		json={"position_seconds": 20, "is_playing": True},
+	)
+	assert refused.status_code == 403

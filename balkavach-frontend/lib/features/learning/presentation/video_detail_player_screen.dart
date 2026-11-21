@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -48,9 +49,15 @@ class _VideoDetailPlayerScreenState
   bool _failed = false;
   bool _blocked = false;
   bool _allowanceExhausted = false;
+  MissionVideoWatch? _missionWatch;
+  int _missionSequence = 0;
+  bool _missionHeartbeatInFlight = false;
+  bool _missionWatchStarting = false;
+  String _missionClientSessionId = _newMissionClientSessionId();
 
   /// Reports kept failing: playback is stopped until the server answers.
   bool _offline = false;
+
   /// The server requires play tickets and this build does not use them
   /// (409 `play_ticket_required`). Set together with [_offline] so every
   /// "stop playback" check applies; there is no retry, only an app update.
@@ -99,14 +106,50 @@ class _VideoDetailPlayerScreenState
 
   TicketedPlayback _newTickets() => ticketedPlaybackFor(
     ref,
-    metered: _video.reportVideoId != null,
+    metered:
+        widget.launch.missionTaskId == null && _video.reportVideoId != null,
     onChanged: _onTicketChanged,
   );
 
   void _startTicket() {
     final id = _video.reportVideoId;
-    if (mounted && id != null && _tickets.handles) {
+    if (mounted &&
+        widget.launch.missionTaskId == null &&
+        id != null &&
+        _tickets.handles) {
       unawaited(_tickets.begin(id));
+    }
+  }
+
+  static String _newMissionClientSessionId() => List.generate(
+    32,
+    (_) => Random.secure().nextInt(16).toRadixString(16),
+  ).join();
+
+  Future<void> _startMissionWatch() async {
+    final taskId = widget.launch.missionTaskId;
+    final videoId = _video.reportVideoId;
+    if (taskId == null || videoId == null || _missionWatchStarting) return;
+    _missionWatchStarting = true;
+    try {
+      final watch = await ref
+          .read(videoFeedRepositoryProvider)
+          .startMissionVideoWatch(taskId, videoId, _missionClientSessionId);
+      if (!mounted) return;
+      setState(() {
+        _missionWatch = watch;
+        _missionSequence = 0;
+        _offline = false;
+        _lastProgressSentAt = DateTime.now();
+      });
+      final controller = _controller;
+      if (controller != null && controller.isInitialised) {
+        await controller.play();
+      }
+    } on Object {
+      if (mounted) setState(() => _offline = true);
+    } finally {
+      _missionWatchStarting = false;
     }
   }
 
@@ -132,7 +175,13 @@ class _VideoDetailPlayerScreenState
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _start();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startTicket());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.launch.missionTaskId == null) {
+        _startTicket();
+      } else {
+        unawaited(_startMissionWatch());
+      }
+    });
   }
 
   void _start() {
@@ -158,8 +207,12 @@ class _VideoDetailPlayerScreenState
       await controller.seekTo(Duration(seconds: resumeAt));
     }
     await controller.setVolume(_muted ? 0 : 1);
-    // In ticket mode the stream waits for its ticket (_onTicketChanged plays it).
-    if (_tickets.mayPlay) await controller.play();
+    // Ticketed and mission playback wait for server authorization.
+    if (_tickets.mayPlay ||
+        (widget.launch.missionTaskId != null &&
+            _missionWatch?.status == 'active')) {
+      await controller.play();
+    }
   }
 
   void _onPlayer() {
@@ -181,6 +234,7 @@ class _VideoDetailPlayerScreenState
         !controller.isPlaying &&
         controller.position >= total - const Duration(milliseconds: 500)) {
       setState(() => _ended = true);
+      if (widget.launch.missionTaskId != null) unawaited(_finishMissionWatch());
     }
   }
 
@@ -191,16 +245,29 @@ class _VideoDetailPlayerScreenState
     unawaited(controller?.dispose());
   }
 
-  void _retry() => setState(() {
-    _release();
-    _failed = false;
-    _blocked = false;
-    _ended = false;
-    _attempt++;
-    _start();
-  });
+  void _retry() {
+    unawaited(_retryPlayer());
+  }
+
+  Future<void> _retryPlayer() async {
+    if (widget.launch.missionTaskId != null) {
+      await _finishMissionWatch();
+      _missionClientSessionId = _newMissionClientSessionId();
+    }
+    setState(() {
+      _release();
+      _failed = false;
+      _blocked = false;
+      _ended = false;
+      _attempt++;
+      _start();
+      if (widget.launch.missionTaskId != null) _missionWatch = null;
+    });
+    if (widget.launch.missionTaskId != null) await _startMissionWatch();
+  }
 
   Future<void> _open(PlayableVideo next) async {
+    if (widget.launch.missionTaskId != null) return;
     // The server confirms time remains before the next video starts.
     if (!await ensureVideoAllowance(context, ref) || !mounted) return;
     if (_tickets.handles) {
@@ -264,6 +331,10 @@ class _VideoDetailPlayerScreenState
     bool isPlaying = true,
   }) {
     _lastPosition = position;
+    if (widget.launch.missionTaskId != null) {
+      _reportMissionWatch(position, force: force, isPlaying: isPlaying);
+      return;
+    }
     final videoId = _video.reportVideoId;
     if (videoId != null && _tickets.handles) {
       // Ticket mode: heartbeats meter this playback, record_progress never.
@@ -293,6 +364,73 @@ class _VideoDetailPlayerScreenState
     );
   }
 
+  void _reportMissionWatch(
+    Duration position, {
+    required bool force,
+    required bool isPlaying,
+  }) {
+    final watch = _missionWatch;
+    if (watch == null ||
+        watch.status != 'active' ||
+        _missionHeartbeatInFlight) {
+      return;
+    }
+    final now = DateTime.now();
+    if (!force &&
+        now.difference(_lastProgressSentAt) < const Duration(seconds: 10)) {
+      return;
+    }
+    _lastProgressSentAt = now;
+    _missionHeartbeatInFlight = true;
+    unawaited(() async {
+      try {
+        final updated = await ref
+            .read(videoFeedRepositoryProvider)
+            .reportMissionVideoWatch(
+              sessionId: watch.sessionId,
+              sequence: _missionSequence++,
+              positionSeconds: position.inSeconds,
+              isPlaying: isPlaying,
+            );
+        if (!mounted) return;
+        setState(() => _missionWatch = updated);
+        if (updated.progress.isComplete) {
+          unawaited(_controller?.pause());
+        }
+      } on Object {
+        if (mounted) {
+          unawaited(_controller?.pause());
+          setState(() => _offline = true);
+        }
+      } finally {
+        _missionHeartbeatInFlight = false;
+      }
+    }());
+  }
+
+  Future<void> _finishMissionWatch() async {
+    final watch = _missionWatch;
+    if (watch == null || watch.status != 'active') return;
+    try {
+      final finalReport = await ref
+          .read(videoFeedRepositoryProvider)
+          .reportMissionVideoWatch(
+            sessionId: watch.sessionId,
+            sequence: _missionSequence++,
+            positionSeconds: (_controller?.position ?? _lastPosition).inSeconds,
+            isPlaying: false,
+          );
+      final closed = finalReport.status == 'active'
+          ? await ref
+                .read(videoFeedRepositoryProvider)
+                .interruptMissionVideoWatch(watch.sessionId)
+          : finalReport;
+      if (mounted) setState(() => _missionWatch = closed);
+    } on Object {
+      // An interrupted session preserves only previously accepted progress.
+    }
+  }
+
   void _apply(PlaybackReport report) {
     if (!mounted) return;
     switch (report.verdict) {
@@ -319,6 +457,41 @@ class _VideoDetailPlayerScreenState
 
   Future<void> _retryOnline() async {
     if (_tickets.handles) return _retryTicket();
+    if (widget.launch.missionTaskId != null) {
+      final current = _missionWatch;
+      if (current == null || current.status != 'active') {
+        _missionClientSessionId = _newMissionClientSessionId();
+        if (current != null) setState(() => _missionWatch = null);
+        await _startMissionWatch();
+        return;
+      }
+      try {
+        final updated = await ref
+            .read(videoFeedRepositoryProvider)
+            .reportMissionVideoWatch(
+              sessionId: current.sessionId,
+              sequence: _missionSequence++,
+              positionSeconds: _lastPosition.inSeconds,
+              isPlaying: false,
+            );
+        if (!mounted) return;
+        if (updated.status == 'active' || updated.status == 'completed') {
+          setState(() {
+            _missionWatch = updated;
+            _offline = false;
+          });
+        } else {
+          await ref
+              .read(videoFeedRepositoryProvider)
+              .interruptMissionVideoWatch(current.sessionId);
+          setState(() => _missionWatch = null);
+          await _startMissionWatch();
+        }
+      } on Object {
+        if (mounted) setState(() => _offline = true);
+      }
+      return;
+    }
     final videoId = _video.reportVideoId;
     if (videoId == null) return;
     final report = await _guard.report(
@@ -351,6 +524,12 @@ class _VideoDetailPlayerScreenState
     final navigator = Navigator.of(context);
     if (!navigator.canPop()) return;
     setState(() => _leaving = true);
+    final missionWatch = _missionWatch;
+    if (widget.launch.missionTaskId != null && missionWatch != null) {
+      await _finishMissionWatch();
+      if (mounted) navigator.pop();
+      return;
+    }
     final videoId = _video.reportVideoId;
     if (videoId != null && _tickets.handles) {
       await _tickets.finish(_controller?.position ?? _lastPosition);
@@ -394,8 +573,20 @@ class _VideoDetailPlayerScreenState
     // Nothing plays behind another app. The YouTube embed pauses itself.
     if (state != AppLifecycleState.resumed) {
       unawaited(_controller?.pause());
+      if (widget.launch.missionTaskId != null) {
+        _recordWatchProgress(
+          _controller?.position ?? _lastPosition,
+          _controller?.duration ?? Duration.zero,
+          force: true,
+          isPlaying: false,
+        );
+        return;
+      }
       if (_tickets.handles) {
-        _tickets.report(_controller?.position ?? _lastPosition, isPlaying: false);
+        _tickets.report(
+          _controller?.position ?? _lastPosition,
+          isPlaying: false,
+        );
       }
     } else if (_tickets.handles) {
       // Ticket mode: playing again resumes the heartbeats.
@@ -433,7 +624,9 @@ class _VideoDetailPlayerScreenState
           _stage(context),
           if (_ended && !_allowanceExhausted)
             _EndOverlay(
-              suggestions: upNext.take(3).toList(),
+              suggestions: widget.launch.missionTaskId == null
+                  ? upNext.take(3).toList()
+                  : const [],
               onPlay: _open,
               onReplay: _retry,
             ),
@@ -561,6 +754,23 @@ class _VideoDetailPlayerScreenState
                       text: description,
                     ),
                   ],
+                  if (_missionWatch != null) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      l10n.missionVideoProgress(
+                        (_missionWatch!.progress.verifiedSeconds + 59) ~/ 60,
+                        (_missionWatch!.progress.requiredSeconds + 59) ~/ 60,
+                      ),
+                      key: const Key('detail.mission.progress'),
+                    ),
+                    LinearProgressIndicator(
+                      value:
+                          (_missionWatch!.progress.verifiedSeconds /
+                                  _missionWatch!.progress.requiredSeconds)
+                              .clamp(0.0, 1.0)
+                              .toDouble(),
+                    ),
+                  ],
                   if (_video.isYouTube) ...[
                     const SizedBox(height: AppSpacing.md),
                     InlineNotice(
@@ -573,7 +783,8 @@ class _VideoDetailPlayerScreenState
                     spacing: AppSpacing.sm,
                     runSpacing: AppSpacing.sm,
                     children: [
-                      if (upNext.isNotEmpty)
+                      if (upNext.isNotEmpty &&
+                          widget.launch.missionTaskId == null)
                         PrimaryButton(
                           key: const Key('detail.next'),
                           label: l10n.videoPlayNext,
@@ -600,7 +811,8 @@ class _VideoDetailPlayerScreenState
                         ),
                     ],
                   ),
-                  ..._upNextSection(context, upNext),
+                  if (widget.launch.missionTaskId == null)
+                    ..._upNextSection(context, upNext),
                 ],
               );
             },
@@ -611,7 +823,10 @@ class _VideoDetailPlayerScreenState
   }
 
   /// "Up next" under the video, with its loading, error and empty states.
-  List<Widget> _upNextSection(BuildContext context, List<PlayableVideo> upNext) {
+  List<Widget> _upNextSection(
+    BuildContext context,
+    List<PlayableVideo> upNext,
+  ) {
     final l10n = AppLocalizations.of(context);
     final server = _serverNext;
     final header = [
@@ -669,6 +884,29 @@ class _VideoDetailPlayerScreenState
       placeholderColor: Colors.black,
       iconColor: AppPalette.onPrimary,
     );
+    final missionWatch = _missionWatch;
+    if (widget.launch.missionTaskId != null && missionWatch == null) {
+      return _StageNotice(
+        key: const Key('detail.mission.initialising'),
+        background: still,
+        icon: _offline ? Icons.wifi_off_rounded : Icons.hourglass_top_rounded,
+        message: _offline ? l10n.videoOfflinePaused : l10n.videoLoading,
+        onRetry: _offline ? _startMissionWatch : null,
+      );
+    }
+    if (widget.launch.missionTaskId != null &&
+        missionWatch!.status != 'active') {
+      final completed = missionWatch.status == 'completed';
+      return _StageNotice(
+        key: const Key('detail.mission.ended'),
+        background: still,
+        icon: completed ? Icons.verified_rounded : Icons.pause_circle_rounded,
+        message: completed
+            ? l10n.missionVideoComplete
+            : l10n.missionVideoInterrupted,
+        onRetry: completed ? null : _retry,
+      );
+    }
     final ticketMessage = ticketNotice(l10n, _tickets);
     if (ticketMessage != null &&
         !_allowanceExhausted &&
@@ -766,7 +1004,10 @@ class _VideoDetailPlayerScreenState
               isPlaying: isPlaying,
             ),
             onEnded: (duration) {
-              if (_tickets.handles) {
+              if (widget.launch.missionTaskId != null) {
+                _lastPosition = duration;
+                unawaited(_finishMissionWatch());
+              } else if (_tickets.handles) {
                 _lastPosition = duration;
                 unawaited(_tickets.finish(duration));
               } else {

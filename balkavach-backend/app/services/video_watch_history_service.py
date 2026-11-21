@@ -27,6 +27,7 @@ from app.utils import utc_aware, utc_naive
 logger = logging.getLogger(__name__)
 
 MAX_PROGRESS_INTERVAL_SECONDS = 30
+MAX_VERIFIED_PROGRESS_GAP_SECONDS = MAX_PROGRESS_INTERVAL_SECONDS + 2
 # Real playback advances the position at about wall-clock speed; a larger jump is a seek.
 POSITION_ADVANCE_TOLERANCE_SECONDS = 2
 
@@ -47,13 +48,13 @@ def accepted_progress_seconds(
 	(never more than the elapsed time). A seek is a jump much larger than the elapsed time and is
 	not charged.
 	"""
+	if elapsed_seconds > MAX_VERIFIED_PROGRESS_GAP_SECONDS:
+		return 0
 	elapsed = min(MAX_PROGRESS_INTERVAL_SECONDS, max(0, int(elapsed_seconds)))
 	if elapsed == 0:
 		return 0
-	if was_playing:
-		return elapsed
-	if is_playing:
-		return 0  # resumed just now; the paused interval is free
+	if not was_playing:
+		return 0
 	advanced = position - previous_position
 	if 0 < advanced <= elapsed + POSITION_ADVANCE_TOLERANCE_SECONDS:
 		return min(elapsed, advanced)

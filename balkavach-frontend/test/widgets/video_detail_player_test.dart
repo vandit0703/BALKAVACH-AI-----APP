@@ -44,12 +44,13 @@ PlayableVideo youtube(String key, String id, {String? channel}) =>
     );
 
 class _Rig {
-  _Rig(this.embeds, this.players, this.opener, this.sharer);
+  _Rig(this.embeds, this.players, this.opener, this.sharer, this.backend);
 
   final EmbedRecorder embeds;
   final PlaybackRegistry players;
   final RecordingLinkOpener opener;
   final RecordingSharer sharer;
+  final FakeBackend backend;
 }
 
 Future<_Rig> _pump(
@@ -57,6 +58,7 @@ Future<_Rig> _pump(
   PlayableVideo video, {
   List<PlayableVideo> related = const [],
   String? failing,
+  String? missionTaskId,
   Locale locale = const Locale('en'),
   Size size = const Size(393, 852),
   void Function(FakeBackend backend)? routes,
@@ -88,11 +90,16 @@ Future<_Rig> _pump(
     PlaybackRegistry()..failUrlsContaining = failing,
     RecordingLinkOpener(),
     RecordingSharer(),
+    h.backend,
   );
   await pumpScreen(
     tester,
     VideoDetailPlayerScreen(
-      launch: VideoLaunch(video: video, related: related),
+      launch: VideoLaunch(
+        video: video,
+        related: related,
+        missionTaskId: missionTaskId,
+      ),
     ),
     overrides: [
       ...h.overrides,
@@ -112,6 +119,79 @@ Future<_Rig> _pump(
 }
 
 void main() {
+  group('Mission-scoped playback', () {
+    testWidgets('starts a server session and meters only mission heartbeats', (
+      tester,
+    ) async {
+      const taskId = '55555555-5555-4555-8555-555555555555';
+      const sessionId = '88888888-8888-4888-8888-888888888888';
+      final rig = await _pump(
+        tester,
+        youtube('mission', _yt),
+        missionTaskId: taskId,
+        routes: (backend) {
+          backend.reply('POST', '/api/v1/tasks/$taskId/video-watch/sessions', {
+            'task_id': taskId,
+            'session_id': sessionId,
+            'required_video_seconds': 900,
+            'verified_video_seconds': 0,
+            'remaining_video_seconds': 900,
+            'is_complete': false,
+            'accepted_seconds': 0,
+            'status': 'active',
+          }, status: 201);
+          backend.onPattern(
+            'POST',
+            RegExp(r'/api/v1/tasks/video-watch/sessions/.+/heartbeats$'),
+            (_) => const FakeReply(200, {
+              'task_id': taskId,
+              'session_id': sessionId,
+              'required_video_seconds': 900,
+              'verified_video_seconds': 0,
+              'remaining_video_seconds': 900,
+              'is_complete': false,
+              'accepted_seconds': 0,
+              'status': 'active',
+            }),
+          );
+        },
+      );
+      await tester.pumpAndSettle();
+
+      expect(rig.embeds.only().videoId, _yt);
+      final startRequest = rig.backend
+          .requestsTo('POST', '/api/v1/tasks/$taskId/video-watch/sessions')
+          .single;
+      final startBody = startRequest.data as Map<String, dynamic>;
+      expect(startBody['video_id'], 'row-mission');
+      expect(
+        startBody['client_session_id'],
+        matches(RegExp(r'^[a-f0-9]{32}$')),
+      );
+
+      rig.embeds.only().onPlayingChanged?.call(true);
+      await tester.pumpAndSettle();
+      final heartbeats = rig.backend.requests
+          .where((request) => request.uri.path.endsWith('/heartbeats'))
+          .toList();
+      expect(heartbeats, hasLength(1));
+      final heartbeatBody = heartbeats.single.data as Map<String, dynamic>;
+      expect(heartbeatBody, {
+        'sequence': 0,
+        'position_seconds': 0,
+        'is_playing': true,
+      });
+      expect(
+        rig.backend.requests.where(
+          (request) =>
+              request.uri.path.contains('/watch-history/') &&
+              request.uri.path.endsWith('/progress'),
+        ),
+        isEmpty,
+      );
+    });
+  });
+
   group('Regular player: YouTube', () {
     testWidgets('plays inside the app in the official embed', (tester) async {
       final rig = await _pump(tester, youtube('a', _yt, channel: 'Space Kids'));

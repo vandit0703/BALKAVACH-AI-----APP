@@ -2,10 +2,11 @@ from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import require_parent
-from app.db.base import get_model
+from app.db.base import get_model, has_model
 from app.db.session import get_db
 from app.schemas.task import PendingSubmissionPublic, TaskReviewCreate, TaskSubmissionPublic
 from app.services.mission_rewards import effective_star_reward, effective_xp_reward
@@ -48,6 +49,18 @@ def _review_queue(
 		query = query.filter(TaskSubmission.status.in_(statuses))
 	order = TaskSubmission.submitted_at.asc() if oldest_first else TaskSubmission.submitted_at.desc()
 	rows = query.order_by(order, TaskSubmission.id).offset(offset).limit(limit).all()
+	verified_seconds: dict[tuple[UUID, UUID], int] = {}
+	if rows and has_model("MissionVideoWatchSession"):
+		Watch = get_model("MissionVideoWatchSession")
+		for task_id, child_id, seconds in session.query(
+			Watch.task_id,
+			Watch.child_id,
+			func.coalesce(func.sum(Watch.watched_seconds), 0),
+		).filter(
+			Watch.task_id.in_({task.id for _, task, _, _ in rows}),
+			Watch.child_id.in_({submission.child_id for submission, _, _, _ in rows}),
+		).group_by(Watch.task_id, Watch.child_id).all():
+			verified_seconds[(task_id, child_id)] = int(seconds or 0)
 	return [
 		PendingSubmissionPublic(
 			**TaskSubmissionPublic.model_validate(submission).model_dump(),
@@ -58,6 +71,8 @@ def _review_queue(
 			star_reward=effective_star_reward(task.star_reward),
 			xp_reward=effective_xp_reward(task.xp_reward),
 			video_minutes_reward=MISSION_REWARD_ALLOWANCE_SECONDS // 60,
+			required_video_seconds=getattr(task, "required_video_seconds", None),
+			verified_video_seconds=verified_seconds.get((task.id, submission.child_id), 0),
 		)
 		for submission, task, child, category_name in rows
 	]

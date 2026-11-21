@@ -1510,6 +1510,12 @@ abstract class AppLocalizations {
   /// **'{count} min'**
   String missionCatalogMinutes(int count);
 
+  /// No description provided for @colVideoRequirement.
+  ///
+  /// In en, this message translates to:
+  /// **'Required video'**
+  String get colVideoRequirement;
+
   /// No description provided for @missionCatalogMaterials.
   ///
   /// In en, this message translates to:

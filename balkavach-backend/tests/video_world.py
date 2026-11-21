@@ -199,6 +199,23 @@ def make_child(db, *, language="en", free_left=900, timezone_name="Asia/Kolkata"
 	)
 	video = Video()
 	db.add(video)
+	db.flush()
+	now = utc_naive(datetime.now(timezone.utc))
+	db.add(
+		ChildVideoWatchHistory(
+			child_id=child.id,
+			video_id=video.id,
+			youtube_video_id=video.external_video_id,
+			video_format="regular",
+			started_at=now - timedelta(seconds=70),
+			last_watched_at=now - timedelta(seconds=30),
+			last_position_seconds=70,
+			watch_duration_seconds=70,
+			completion_percentage=0,
+			is_completed=False,
+			parent_replay_authorized=False,
+		)
+	)
 	db.commit()
 	return child, video
 

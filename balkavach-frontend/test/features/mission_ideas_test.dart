@@ -84,7 +84,7 @@ void main() {
       await pump(tester);
       await _tap(tester, find.byKey(const Key('mission.ideas')));
       expect(find.text('Mission ideas'), findsOneWidget);
-      // The idea's own reward suggestion is no longer shown: every mission earns the same.
+      // The idea's suggested reward is ignored; the configured amount stays explicit.
       expect(find.text('Learn'), findsWidgets);
       expect(find.text('Learn · 2 ★ · 15 XP'), findsNothing);
 
@@ -93,9 +93,8 @@ void main() {
         find.widgetWithText(TextFormField, 'Brush your teeth'),
         findsOneWidget,
       );
-      // No editable reward fields: just the read-only standard reward.
-      expect(find.byKey(const Key('mission.stars')), findsNothing);
-      expect(find.byKey(const Key('mission.xp')), findsNothing);
+      expect(find.byKey(const Key('mission.stars')), findsOneWidget);
+      expect(find.byKey(const Key('mission.xp')), findsOneWidget);
     });
 
     testWidgets(
@@ -121,9 +120,9 @@ void main() {
   });
 }
 
-// The parent form shows the reward read-only; the server decides it.
+// The parent form submits configured rewards; the server validates and pays them.
 void rewardFormTests() {
-  group('reward note on the parent form', () {
+  group('rewards on the parent form', () {
     Future<Harness> pump(
       WidgetTester tester, {
       Locale locale = const Locale('en'),
@@ -146,18 +145,15 @@ void rewardFormTests() {
       return h;
     }
 
-    testWidgets('shows 10 Stars and 15 XP, with no editable reward fields', (
-      tester,
-    ) async {
+    testWidgets('shows editable star and XP rewards', (tester) async {
       await pump(tester);
-      await tester.ensureVisible(find.byKey(const Key('mission.reward.note')));
-      expect(find.text('Approval reward: 10 Stars'), findsOneWidget);
-      expect(find.text('Approval reward: 15 XP'), findsOneWidget);
-      expect(find.byKey(const Key('mission.stars')), findsNothing);
-      expect(find.byKey(const Key('mission.xp')), findsNothing);
+      expect(find.byKey(const Key('mission.stars')), findsOneWidget);
+      expect(find.byKey(const Key('mission.xp')), findsOneWidget);
     });
 
-    testWidgets('a created mission sends no reward at all', (tester) async {
+    testWidgets('a created mission sends its configured rewards', (
+      tester,
+    ) async {
       final h = await pump(tester);
       h.backend.reply('POST', '/api/v1/tasks', {
         ...Fx.task(),
@@ -169,9 +165,37 @@ void rewardFormTests() {
       final body =
           h.backend.requestsTo('POST', '/api/v1/tasks').single.data
               as Map<String, dynamic>;
-      expect(body.containsKey('star_reward'), isFalse);
-      expect(body.containsKey('xp_reward'), isFalse);
+      expect(body['star_reward'], 10);
+      expect(body['xp_reward'], 15);
+      expect(body.containsKey('required_video_seconds'), isFalse);
       expect(body['title'], 'Tidy up');
+    });
+
+    testWidgets('a video-required mission sends seconds, not client progress', (
+      tester,
+    ) async {
+      final h = await pump(tester);
+      h.backend.reply('POST', '/api/v1/tasks', Fx.task(), status: 201);
+      await tester.enterText(find.byKey(const Key('mission.title')), 'Watch');
+      await tester.ensureVisible(
+        find.byKey(const Key('mission.video.required')),
+      );
+      await tester.tap(find.byKey(const Key('mission.video.required')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('mission.video.minutes')),
+        '15',
+      );
+      await tester.ensureVisible(find.byKey(const Key('mission.submit')));
+      await _tap(tester, find.byKey(const Key('mission.submit')));
+
+      final body =
+          h.backend.requestsTo('POST', '/api/v1/tasks').single.data
+              as Map<String, dynamic>;
+      expect(body['required_video_seconds'], 900);
+      expect(body.containsKey('verified_video_seconds'), isFalse);
+      expect(body['star_reward'], 10);
+      expect(body['xp_reward'], 15);
     });
 
     for (final locale in const ['en', 'gu', 'hi']) {
@@ -190,8 +214,8 @@ void rewardFormTests() {
             textScale: scale,
           );
           expect(tester.takeException(), isNull);
-          expect(find.byKey(const Key('mission.reward.note')), findsOneWidget);
-          expect(find.byKey(const Key('mission.reward.stars')), findsOneWidget);
+          expect(find.byKey(const Key('mission.stars')), findsOneWidget);
+          expect(find.byKey(const Key('mission.xp')), findsOneWidget);
         });
       }
     }

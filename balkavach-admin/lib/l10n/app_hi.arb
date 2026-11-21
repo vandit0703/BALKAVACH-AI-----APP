@@ -235,6 +235,7 @@
   "missionCatalogVersionMissing": "अनुपलब्ध",
   "missionCatalogAges": "आयु {range}",
   "missionCatalogMinutes": "{count} मिनट",
+  "colVideoRequirement": "ज़रूरी वीडियो",
   "missionCatalogMaterials": "सामग्री: {items}",
   "missionCatalogSafety": "सुरक्षा: {text}",
   "missionHealthTitle": "रोटेशन क्षमता",

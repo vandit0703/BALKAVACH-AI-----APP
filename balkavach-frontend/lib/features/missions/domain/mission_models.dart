@@ -54,6 +54,7 @@ class Mission {
     this.assignedChildId,
     this.description,
     this.dueAt,
+    this.requiredVideoSeconds,
   });
 
   factory Mission.fromJson(Map<String, dynamic> json) => Mission(
@@ -67,6 +68,7 @@ class Mission {
     starReward: json['star_reward'] as int? ?? 0,
     xpReward: json['xp_reward'] as int? ?? 0,
     dueAt: _parseDate(json['due_at']),
+    requiredVideoSeconds: (json['required_video_seconds'] as num?)?.toInt(),
     isActive: json['is_active'] as bool? ?? true,
     createdAt: DateTime.parse(json['created_at'] as String),
   );
@@ -84,6 +86,7 @@ class Mission {
   final int starReward;
   final int xpReward;
   final DateTime? dueAt;
+  final int? requiredVideoSeconds;
   final bool isActive;
   final DateTime createdAt;
 
@@ -97,7 +100,8 @@ class Mission {
       other.xpReward == xpReward &&
       other.categoryId == categoryId &&
       other.assignedChildId == assignedChildId &&
-      other.dueAt == dueAt;
+      other.dueAt == dueAt &&
+      other.requiredVideoSeconds == requiredVideoSeconds;
 
   @override
   int get hashCode => Object.hash(
@@ -109,29 +113,34 @@ class Mission {
     categoryId,
     assignedChildId,
     dueAt,
+    requiredVideoSeconds,
   );
 }
 
-/// What approving any mission earns. The backend sets and pays these
-/// (`app/services/mission_rewards.py`) and ignores any amount the app sends,
-/// so they are only shown to parents as an explanation, never submitted.
+/// Default mission rewards; parents may configure per-mission values.
 const kMissionStarReward = 10;
 const kMissionXpReward = 15;
 
-/// Input for `POST /api/v1/tasks`. It carries no reward: the server decides.
+/// Input for `POST /api/v1/tasks` and `PATCH /api/v1/tasks/{id}`.
 @immutable
 class NewMission {
   const NewMission({
     required this.familyId,
     required this.title,
+    this.starReward = kMissionStarReward,
+    this.xpReward = kMissionXpReward,
     this.description,
     this.categoryId,
     this.assignedChildId,
     this.dueAt,
+    this.requiredVideoSeconds,
   });
 
   final String familyId;
   final String title;
+  final int starReward;
+  final int xpReward;
+  final int? requiredVideoSeconds;
   final String? description;
   final String? categoryId;
   final String? assignedChildId;
@@ -148,6 +157,9 @@ class NewMission {
   Map<String, dynamic> toJson() => {
     'family_id': familyId,
     'title': title.trim(),
+    'star_reward': starReward,
+    'xp_reward': xpReward,
+    'required_video_seconds': ?requiredVideoSeconds,
     'description': ?_trimmedDescription,
     'category_id': ?categoryId,
     'assigned_child_id': ?assignedChildId,
@@ -159,6 +171,9 @@ class NewMission {
   /// clear a description, category, assignee or due date.
   Map<String, dynamic> toPatchJson() => {
     'title': title.trim(),
+    'star_reward': starReward,
+    'xp_reward': xpReward,
+    'required_video_seconds': requiredVideoSeconds,
     'description': _trimmedDescription,
     'category_id': categoryId,
     'assigned_child_id': assignedChildId,
@@ -190,6 +205,8 @@ class TaskSubmission {
     this.starsAwarded,
     this.xpAwarded,
     this.videoMinutesReward,
+    this.requiredVideoSeconds,
+    this.verifiedVideoSeconds = 0,
   });
 
   factory TaskSubmission.fromJson(Map<String, dynamic> json) => TaskSubmission(
@@ -213,6 +230,9 @@ class TaskSubmission {
     starsAwarded: json['stars_awarded'] as int?,
     xpAwarded: json['xp_awarded'] as int?,
     videoMinutesReward: json['video_minutes_reward'] as int?,
+    requiredVideoSeconds: (json['required_video_seconds'] as num?)?.toInt(),
+    verifiedVideoSeconds:
+        (json['verified_video_seconds'] as num?)?.toInt() ?? 0,
   );
 
   final String id;
@@ -241,6 +261,8 @@ class TaskSubmission {
   /// Review queue only: minutes of video time an approval unlocks, as the
   /// server states it. `null` from a server that predates it (nothing shown).
   final int? videoMinutesReward;
+  final int? requiredVideoSeconds;
+  final int verifiedVideoSeconds;
   final int submissionNumber;
   final String proofType;
   final String? proofUrl;

@@ -78,14 +78,25 @@ class VideoAllowanceCard extends ConsumerWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          hasTime
-                              ? '${allowance.activeEntitlementsCount} mission reward(s) today'
-                              : l10n.videoAllowanceUnlockHint,
+                          l10n.videoFreeRemaining(
+                            (allowance.freeRemainingSeconds + 59) ~/ 60,
+                            15,
+                          ),
                           style: TextStyle(
                             fontSize: 12,
                             color: colors.onSurfaceVariant,
                           ),
                         ),
+                        if (allowance.missionRemainingSeconds > 0)
+                          Text(
+                            l10n.videoMissionRemaining(
+                              (allowance.missionRemainingSeconds + 59) ~/ 60,
+                            ),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
                       ],
                     ),
                   ),

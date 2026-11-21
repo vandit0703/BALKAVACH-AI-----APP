@@ -235,6 +235,7 @@
   "missionCatalogVersionMissing": "ખૂટે છે",
   "missionCatalogAges": "ઉંમર {range}",
   "missionCatalogMinutes": "{count} મિનિટ",
+  "colVideoRequirement": "જરૂરી વિડિયો",
   "missionCatalogMaterials": "સામગ્રી: {items}",
   "missionCatalogSafety": "સલામતી: {text}",
   "missionHealthTitle": "ફેરબદલીની ક્ષમતા",

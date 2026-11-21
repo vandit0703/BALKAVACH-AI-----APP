@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/errors/api_exception.dart';
 import '../../../core/responsive/breakpoints.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
@@ -14,6 +15,10 @@ import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../companion/domain/companion_director.dart';
 import '../../companion/presentation/panda_companion.dart';
+import '../../learning/data/playable_video.dart';
+import '../../learning/data/video_feed_repository.dart';
+import '../../learning/presentation/video_player_screen.dart'
+    show formatPlaybackTime;
 import '../data/missions_repository.dart';
 import '../domain/daily_mission_models.dart';
 import '../domain/mission_models.dart';
@@ -91,6 +96,7 @@ class _Body extends ConsumerStatefulWidget {
 
 class _BodyState extends ConsumerState<_Body> {
   bool _starting = false;
+  MissionVideoProgress? _videoProgress;
 
   /// Opens the submission form. A chosen daily mission is first marked as
   /// started on the server (`selected` -> `in_progress`, no reward). That
@@ -145,6 +151,9 @@ class _BodyState extends ConsumerState<_Body> {
     final locale = Localizations.localeOf(context).toLanguageTag();
     final visual = CategoryVisual.of(context, category);
     final started = assignment?.status == 'in_progress';
+    final videoIncomplete =
+        mission.requiredVideoSeconds != null &&
+        !(_videoProgress?.isComplete ?? false);
 
     return ScrollablePage(
       children: [
@@ -234,6 +243,15 @@ class _BodyState extends ConsumerState<_Body> {
         ),
         if (status != MissionStatus.approved)
           ?missionStatusChip(context, status),
+        if (mission.requiredVideoSeconds != null)
+          _MissionVideoRequirement(
+            mission: mission,
+            onProgress: (progress) {
+              if (mounted && _videoProgress != progress) {
+                setState(() => _videoProgress = progress);
+              }
+            },
+          ),
         _AttemptHistory(taskId: mission.id),
         switch (status) {
           // Done: no second submission (the server refuses one for a
@@ -252,6 +270,8 @@ class _BodyState extends ConsumerState<_Body> {
             onPressed: () =>
                 context.push(AppRoutes.childMissionWaiting(mission.id)),
           ),
+          MissionStatus.notStarted when videoIncomplete =>
+            const SizedBox.shrink(),
           MissionStatus.notStarted => PrimaryButton(
             key: const Key('mission.start'),
             label: started ? l10n.missionContinue : l10n.missionStartMission,
@@ -260,6 +280,9 @@ class _BodyState extends ConsumerState<_Body> {
             loading: _starting,
             onPressed: () => _start(assignment),
           ),
+          MissionStatus.rejected || MissionStatus.resubmissionRequested
+              when videoIncomplete =>
+            const SizedBox.shrink(),
           MissionStatus.rejected ||
           MissionStatus.resubmissionRequested => PrimaryButton(
             key: const Key('mission.start'),
@@ -271,6 +294,172 @@ class _BodyState extends ConsumerState<_Body> {
           ),
         },
       ],
+    );
+  }
+}
+
+class _MissionVideoRequirement extends ConsumerStatefulWidget {
+  const _MissionVideoRequirement({
+    required this.mission,
+    required this.onProgress,
+  });
+
+  final Mission mission;
+  final ValueChanged<MissionVideoProgress> onProgress;
+
+  @override
+  ConsumerState<_MissionVideoRequirement> createState() =>
+      _MissionVideoRequirementState();
+}
+
+class _MissionVideoRequirementState
+    extends ConsumerState<_MissionVideoRequirement> {
+  late Future<MissionVideoProgress> _progress;
+  bool _opening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _progress = _load();
+  }
+
+  Future<MissionVideoProgress> _load() async {
+    final progress = await ref
+        .read(videoFeedRepositoryProvider)
+        .missionVideoProgress(widget.mission.id);
+    widget.onProgress(progress);
+    return progress;
+  }
+
+  Future<void> _refresh() async {
+    setState(() => _progress = _load());
+  }
+
+  Future<void> _chooseVideo() async {
+    if (_opening) return;
+    setState(() => _opening = true);
+    final l10n = AppLocalizations.of(context);
+    try {
+      final videos =
+          (await ref
+                  .read(videoFeedRepositoryProvider)
+                  .missionVideoCatalogue(widget.mission.id))
+              .where((video) => video.isYouTube)
+              .toList();
+      if (!mounted) return;
+      if (videos.isEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.missionVideoNoVideos)));
+        return;
+      }
+      final selected = await showModalBottomSheet<FeedVideo>(
+        context: context,
+        showDragHandle: true,
+        useSafeArea: true,
+        builder: (context) => ListView(
+          shrinkWrap: true,
+          children: [
+            for (final video in videos)
+              ListTile(
+                leading: const Icon(Icons.play_circle_outline_rounded),
+                title: Text(video.title),
+                subtitle: video.durationSeconds > 0
+                    ? Text(
+                        formatPlaybackTime(
+                          Duration(seconds: video.durationSeconds),
+                        ),
+                      )
+                    : null,
+                onTap: () => Navigator.pop(context, video),
+              ),
+          ],
+        ),
+      );
+      if (selected == null || !mounted) return;
+      await context.push<void>(
+        AppRoutes.childWatch,
+        extra: VideoLaunch(
+          video: PlayableVideo.fromFeed(selected),
+          missionTaskId: widget.mission.id,
+        ),
+      );
+      if (mounted) await _refresh();
+    } on ApiException catch (error) {
+      if (mounted) showErrorSnackBar(context, error);
+    } finally {
+      if (mounted) setState(() => _opening = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final required = widget.mission.requiredVideoSeconds!;
+    return AppCard(
+      key: const Key('mission.video.requirement'),
+      child: FutureBuilder<MissionVideoProgress>(
+        future: _progress,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: AppSpacing.sm,
+              children: [
+                Text(l10n.missionVideoHeader, style: context.text.titleMedium),
+                InlineNotice(
+                  icon: Icons.error_outline_rounded,
+                  message: l10n.missionVideoLoadError,
+                ),
+                SecondaryButton(
+                  label: l10n.retry,
+                  icon: Icons.refresh_rounded,
+                  onPressed: _refresh,
+                ),
+              ],
+            );
+          }
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final progress = snapshot.data!;
+          final requiredMinutes = (required + 59) ~/ 60;
+          final watchedMinutes = (progress.verifiedSeconds + 59) ~/ 60;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: AppSpacing.sm,
+            children: [
+              Text(l10n.missionVideoHeader, style: context.text.titleMedium),
+              Text(
+                l10n.missionVideoProgress(watchedMinutes, requiredMinutes),
+                key: const Key('mission.video.progress'),
+              ),
+              LinearProgressIndicator(
+                value: required == 0
+                    ? 1
+                    : (progress.verifiedSeconds / required)
+                          .clamp(0.0, 1.0)
+                          .toDouble(),
+              ),
+              if (progress.isComplete)
+                Text(
+                  l10n.missionVideoComplete,
+                  key: const Key('mission.video.complete'),
+                )
+              else ...[
+                Text(l10n.missionVideoIncomplete),
+                PrimaryButton(
+                  key: const Key('mission.video.choose'),
+                  label: l10n.missionVideoChoose,
+                  icon: Icons.play_arrow_rounded,
+                  loading: _opening,
+                  onPressed: _opening ? null : _chooseVideo,
+                ),
+              ],
+            ],
+          );
+        },
+      ),
     );
   }
 }

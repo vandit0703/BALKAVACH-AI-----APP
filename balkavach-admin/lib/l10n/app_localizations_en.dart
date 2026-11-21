@@ -783,6 +783,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get colVideoRequirement => 'Required video';
+
+  @override
   String missionCatalogMaterials(String items) {
     return 'Materials: $items';
   }

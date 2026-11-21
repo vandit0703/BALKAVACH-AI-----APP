@@ -38,6 +38,18 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
   late final _description = TextEditingController(
     text: widget.mission?.description,
   );
+  late final _stars = TextEditingController(
+    text: '${widget.mission?.starReward ?? kMissionStarReward}',
+  );
+  late final _xp = TextEditingController(
+    text: '${widget.mission?.xpReward ?? kMissionXpReward}',
+  );
+  late final _videoMinutes = TextEditingController(
+    text: widget.mission?.requiredVideoSeconds == null
+        ? '15'
+        : '${(widget.mission!.requiredVideoSeconds! / 60).ceil()}',
+  );
+  late bool _requiresVideo = widget.mission?.requiredVideoSeconds != null;
   late String? _categoryId = widget.mission?.categoryId;
   late String? _childId = widget.mission?.assignedChildId;
   late DateTime? _dueAt = widget.mission?.dueAt?.toLocal();
@@ -50,6 +62,9 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
   void dispose() {
     _title.dispose();
     _description.dispose();
+    _stars.dispose();
+    _xp.dispose();
+    _videoMinutes.dispose();
     super.dispose();
   }
 
@@ -137,6 +152,11 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
       final input = NewMission(
         familyId: family.id,
         title: _title.text,
+        starReward: int.parse(_stars.text),
+        xpReward: int.parse(_xp.text),
+        requiredVideoSeconds: _requiresVideo
+            ? int.parse(_videoMinutes.text) * 60
+            : null,
         description: _description.text,
         categoryId: _categoryId,
         assignedChildId: _childId,
@@ -330,9 +350,50 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
                 ),
               ],
             ),
-            // Read-only: the server sets the reward (it ignores any amount the app
-            // might send), so a parent cannot change it here.
-            const _RewardNote(),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    key: const Key('mission.stars'),
+                    controller: _stars,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: l10n.missionStars),
+                    validator: (value) => _validateAmount(value, 10000, l10n),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: TextFormField(
+                    key: const Key('mission.xp'),
+                    controller: _xp,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: l10n.missionXp),
+                    validator: (value) => _validateAmount(value, 100000, l10n),
+                  ),
+                ),
+              ],
+            ),
+            SwitchListTile.adaptive(
+              key: const Key('mission.video.required'),
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.missionRequireVideo),
+              value: _requiresVideo,
+              onChanged: busy
+                  ? null
+                  : (value) => setState(() => _requiresVideo = value),
+            ),
+            if (_requiresVideo)
+              TextFormField(
+                key: const Key('mission.video.minutes'),
+                controller: _videoMinutes,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: l10n.missionRequiredVideoMinutes,
+                ),
+                validator: (value) => _requiresVideo
+                    ? _validateAmount(value, 1440, l10n, minimum: 1)
+                    : null,
+              ),
             PrimaryButton(
               key: const Key('mission.submit'),
               label: _editing ? l10n.saveChanges : l10n.createMissionSubmit,
@@ -361,6 +422,19 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
       ),
     );
   }
+}
+
+String? _validateAmount(
+  String? value,
+  int maximum,
+  AppLocalizations l10n, {
+  int minimum = 0,
+}) {
+  final parsed = int.tryParse(value ?? '');
+  if (parsed == null || parsed < minimum || parsed > maximum) {
+    return l10n.missionAmountValidation(minimum, maximum);
+  }
+  return null;
 }
 
 /// Route target for `/parent/missions/:taskId/edit`: finds the mission among
@@ -450,65 +524,6 @@ class _Dropdown<T> extends StatelessWidget {
           onChanged: onChanged,
         ),
       ],
-    );
-  }
-}
-
-/// What approving any mission earns. Informational only: the backend is the
-/// authority on the amounts and never reads them from the app.
-class _RewardNote extends StatelessWidget {
-  const _RewardNote();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final colors = context.colors;
-    return MergeSemantics(
-      child: DecoratedBox(
-        key: const Key('mission.reward.note'),
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.card_giftcard_rounded, color: colors.primary),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: AppSpacing.xs,
-                  children: [
-                    Text(
-                      l10n.createMissionRewardTitle,
-                      style: context.text.titleSmall,
-                    ),
-                    Text(
-                      l10n.createMissionRewardStars(kMissionStarReward),
-                      key: const Key('mission.reward.stars'),
-                      style: context.text.bodyMedium,
-                    ),
-                    Text(
-                      l10n.createMissionRewardXp(kMissionXpReward),
-                      key: const Key('mission.reward.xp'),
-                      style: context.text.bodyMedium,
-                    ),
-                    Text(
-                      l10n.createMissionRewardFixed,
-                      style: context.text.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

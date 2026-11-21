@@ -1358,6 +1358,55 @@ class AppLocalizationsGu extends AppLocalizations {
   String get createMissionDueClear => 'તારીખ કાઢી નાખો';
 
   @override
+  String get missionStars => 'સ્ટાર ઇનામ';
+
+  @override
+  String get missionXp => 'XP ઇનામ';
+
+  @override
+  String get missionRequireVideo => 'ચકાસાયેલ વિડિયો જોવો જરૂરી';
+
+  @override
+  String get missionRequiredVideoMinutes => 'જોવાના જરૂરી મિનિટ';
+
+  @override
+  String missionAmountValidation(int minimum, int maximum) {
+    return '$minimum થી $maximum વચ્ચેનું મૂલ્ય દાખલ કરો.';
+  }
+
+  @override
+  String get missionVideoHeader => 'મિશન વિડિયો';
+
+  @override
+  String missionVideoProgress(int watched, int required) {
+    return '$required મિનિટમાંથી $watched ચકાસાયેલ';
+  }
+
+  @override
+  String get missionVideoComplete => 'વિડિયો જરૂરીયાત પૂર્ણ';
+
+  @override
+  String get missionVideoIncomplete => 'મોકલતા પહેલાં જરૂરી સમય સુધી જુઓ.';
+
+  @override
+  String get missionVideoInterrupted =>
+      'વિડિયો અટક્યો. ચકાસાયેલ પ્રગતિ સાચવાઈ છે.';
+
+  @override
+  String get missionVideoChoose => 'વિડિયો પસંદ કરો';
+
+  @override
+  String get missionVideoNoVideos => 'હાલમાં યોગ્ય વિડિયો ઉપલબ્ધ નથી.';
+
+  @override
+  String get missionVideoLoadError => 'મિશન વિડિયો પ્રગતિ લોડ થઈ શકી નથી.';
+
+  @override
+  String approvalVideoProgress(int required, int watched) {
+    return 'વિડિયો: $required મિનિટ જરૂરી, $watched મિનિટ ચકાસાયેલ';
+  }
+
+  @override
   String get missionSaved => 'મિશન સાચવ્યું';
 
   @override
@@ -2303,7 +2352,17 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get videoAllowanceUnlockHint =>
-      '15 મિનિટ વીડિયો સમય અનલૉક કરવા માટે દૈનિક મિશન પૂર્ણ કરો!';
+      'તમારો મફત સમય વપરાઈ ગયો છે. વધુ સમય માટે વાલી સાથે વાત કરો.';
+
+  @override
+  String videoFreeRemaining(int remaining, int total) {
+    return 'દૈનિક મફત વિડિયો: $total માંથી $remaining મિનિટ બાકી';
+  }
+
+  @override
+  String videoMissionRemaining(int minutes) {
+    return 'મિશન વિડિયો: વધારાની $minutes મિનિટ';
+  }
 
   @override
   String get videoTimeExhaustedTitle => 'આજનો વીડિયો સમય પૂરો થયો';

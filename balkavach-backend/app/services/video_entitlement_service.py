@@ -102,9 +102,12 @@ def get_child_video_allowance_today(
     free_consumed = min(FREE_DAILY_ALLOWANCE_SECONDS, free_consumed)
     total_earned += FREE_DAILY_ALLOWANCE_SECONDS
     total_consumed += free_consumed
-    remaining = max(0, FREE_DAILY_ALLOWANCE_SECONDS - free_consumed) + max(
-        0, sum(int(e.granted_seconds or 0) - int(e.consumed_seconds or 0) for e in entitlements)
+    mission_remaining = max(
+        0,
+        sum(int(e.granted_seconds or 0) - int(e.consumed_seconds or 0) for e in entitlements),
     )
+    free_remaining = max(0, FREE_DAILY_ALLOWANCE_SECONDS - free_consumed)
+    remaining = free_remaining + mission_remaining
     daily_cap = get_daily_cap_seconds(session, family_id)
 
     # If the local day has passed beyond `end`, any remaining allowance for today expires
@@ -119,6 +122,10 @@ def get_child_video_allowance_today(
         "total_earned_today_seconds": total_earned,
         "consumed_today_seconds": total_consumed,
         "remaining_seconds": remaining,
+        "free_allowance_seconds": FREE_DAILY_ALLOWANCE_SECONDS,
+        "free_consumed_seconds": free_consumed,
+        "free_remaining_seconds": free_remaining,
+        "mission_remaining_seconds": mission_remaining,
         "daily_cap_seconds": FREE_DAILY_ALLOWANCE_SECONDS + daily_cap,
         "is_exhausted": remaining <= 0,
         "active_entitlements_count": len(

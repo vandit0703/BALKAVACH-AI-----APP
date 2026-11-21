@@ -89,6 +89,7 @@ class AdminTaskPublic(_Timestamped):
 	assigned_child_name: str | None
 	star_reward: int
 	xp_reward: int
+	required_video_seconds: int | None = None
 	due_at: datetime | None
 	is_active: bool
 	created_at: datetime

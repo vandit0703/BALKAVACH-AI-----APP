@@ -235,10 +235,18 @@ class ShortsLaunch {
 /// Arguments for the regular video player route.
 @immutable
 class VideoLaunch {
-  const VideoLaunch({required this.video, this.related = const []});
+  const VideoLaunch({
+    required this.video,
+    this.related = const [],
+    this.missionTaskId,
+  });
 
   final PlayableVideo video;
 
   /// What "Up next" offers, from lists the child could already see.
   final List<PlayableVideo> related;
+
+  /// When set, watch progress is recorded only against the mission requirement,
+  /// separately from the daily free allowance.
+  final String? missionTaskId;
 }

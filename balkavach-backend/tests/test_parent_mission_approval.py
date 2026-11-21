@@ -101,6 +101,21 @@ def test_the_queue_shows_what_an_approval_pays_from_the_backend(client):
 	assert (item["star_reward"], item["xp_reward"], item["video_minutes_reward"]) == (10, 15, 15)
 
 
+def test_approval_pays_and_displays_configured_task_rewards(client):
+	http, family, session = client
+	item = make_submission(session, family)
+	item.task.star_reward = 25
+	item.task.xp_reward = 40
+	session.commit()
+	queued = http.get(f"/api/v1/reviews/submissions?family_id={family.family_id}&status=pending").json()[0]
+	assert (queued["star_reward"], queued["xp_reward"]) == (25, 40)
+
+	response = review(http, item.submission)
+	assert response.status_code == 200, response.text
+	assert paid(session) == ([25], [40], [900], 1)
+	assert session.query(ChildProgress).one().total_xp == 40
+
+
 def test_the_three_rewards_are_independent_a_full_daily_cap_still_pays_stars_and_xp(client):
 	http, family, session = client
 	row = session.query(shared.FamilySetting).one()
@@ -191,6 +206,20 @@ def test_another_familys_submission_cannot_be_approved(client):
 	assert response.json()["error"]["code"] == "submission_not_found"
 	assert paid(session) == NOTHING
 	assert status_of(session, foreign.submission) == "pending"
+
+
+def test_submission_child_must_belong_to_the_task_family(client):
+	http, family, session = client
+	item = make_submission(session, family)
+	other_family = make_family(session)
+	item.submission.child_id = other_family.child.id
+	session.commit()
+
+	response = review(http, item.submission)
+	assert response.status_code == 404
+	assert response.json()["error"]["code"] == "submission_not_found"
+	assert paid(session) == NOTHING
+	assert status_of(session, item.submission) == "pending"
 
 
 def test_only_a_pending_submission_can_be_reviewed(client):

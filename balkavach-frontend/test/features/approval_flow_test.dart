@@ -26,6 +26,8 @@ Map<String, Object?> _row({String status = 'pending'}) => {
   'star_reward': 10,
   'xp_reward': 15,
   'video_minutes_reward': 15,
+  'required_video_seconds': 900,
+  'verified_video_seconds': 900,
 };
 
 /// The server's queue, which moves the row between statuses as reviews succeed.
@@ -57,15 +59,26 @@ Future<({Harness h, _Server server})> _screen(WidgetTester tester) async {
 }
 
 Future<void> _tap(WidgetTester tester, Key key) async {
-  await tester.tap(find.byKey(key));
+  if (key == const Key('review.approve') &&
+      find.byType(SnackBar).evaluate().isNotEmpty) {
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+  }
+  final finder = find.byKey(key);
+  await tester.ensureVisible(finder);
+  await tester.tap(finder);
   await tester.pumpAndSettle();
 }
 
-String _tabCount(WidgetTester tester, String tab) {
-  final finder = find.descendant(
-    of: find.byKey(Key('approvals.tab.$tab')),
-    matching: find.byType(Text),
-  );
+Future<String> _tabCount(WidgetTester tester, String tab) async {
+  if (find.byType(SnackBar).evaluate().isNotEmpty) {
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+  }
+  await tester.drag(find.byType(Scrollable).first, const Offset(0, 1000));
+  await tester.pumpAndSettle();
+  final tabButton = find.byKey(Key('approvals.tab.$tab'));
+  final finder = find.descendant(of: tabButton, matching: find.byType(Text));
   final texts = tester.widgetList<Text>(finder).map((t) => t.data).toList();
   return texts.last ?? '';
 }
@@ -93,6 +106,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text(l10n.approvalsApprove(10)), findsOneWidget);
+      expect(find.text(l10n.approvalVideoProgress(15, 15)), findsOneWidget);
     },
   );
 
@@ -133,8 +147,8 @@ void main() {
     'approving: nothing is shown as earned until the server confirms, then counts refresh',
     (tester) async {
       final s = await _screen(tester);
-      expect(_tabCount(tester, 'pending'), '1');
-      expect(_tabCount(tester, 'approved'), '0');
+      expect(await _tabCount(tester, 'pending'), '1');
+      expect(await _tabCount(tester, 'approved'), '0');
 
       s.h.backend.on('POST', _review, (options) {
         expect(options.data, {'decision': 'approved'});
@@ -147,9 +161,9 @@ void main() {
         find.text(l10n.approvalsApprovedToastFull('Aarav', 10, 15, 15)),
         findsOneWidget,
       );
-      expect(_tabCount(tester, 'pending'), '0');
-      expect(_tabCount(tester, 'approved'), '1');
-      expect(_tabCount(tester, 'retry'), '0');
+      expect(await _tabCount(tester, 'pending'), '0');
+      expect(await _tabCount(tester, 'approved'), '1');
+      expect(await _tabCount(tester, 'retry'), '0');
       expect(s.h.backend.requestsTo('POST', _review), hasLength(1));
     },
   );
@@ -184,8 +198,8 @@ void main() {
         find.text(l10n.approvalsApprovedToastFull('Aarav', 10, 15, 15)),
         findsNothing,
       );
-      expect(_tabCount(tester, 'pending'), '1');
-      expect(_tabCount(tester, 'approved'), '0');
+      expect(await _tabCount(tester, 'pending'), '1');
+      expect(await _tabCount(tester, 'approved'), '0');
 
       // The button works again; the retry succeeds.
       await _tap(tester, const Key('review.approve'));
@@ -194,7 +208,7 @@ void main() {
         find.text(l10n.approvalsApprovedToastFull('Aarav', 10, 15, 15)),
         findsOneWidget,
       );
-      expect(_tabCount(tester, 'approved'), '1');
+      expect(await _tabCount(tester, 'approved'), '1');
     },
   );
 
@@ -214,7 +228,7 @@ void main() {
       await _tap(tester, const Key('review.approve'));
       expect(find.text(l10n.errorVideoAllowanceUnavailable), findsOneWidget);
       expect(find.text(l10n.errorServer), findsNothing);
-      expect(_tabCount(tester, 'pending'), '1');
+      expect(await _tabCount(tester, 'pending'), '1');
     },
   );
 
@@ -272,8 +286,8 @@ void main() {
       });
       await _tap(tester, const Key('review.approve'));
       expect(find.text(l10n.approvalsAlreadyReviewed), findsOneWidget);
-      expect(_tabCount(tester, 'pending'), '0');
-      expect(_tabCount(tester, 'retry'), '1');
+      expect(await _tabCount(tester, 'pending'), '0');
+      expect(await _tabCount(tester, 'retry'), '1');
     },
   );
 
@@ -308,9 +322,9 @@ void main() {
       expect(s.h.backend.requestsTo('POST', _review).single.data, {
         'decision': 'resubmission_requested',
       });
-      expect(_tabCount(tester, 'pending'), '0');
-      expect(_tabCount(tester, 'retry'), '1');
-      expect(_tabCount(tester, 'approved'), '0');
+      expect(await _tabCount(tester, 'pending'), '0');
+      expect(await _tabCount(tester, 'retry'), '1');
+      expect(await _tabCount(tester, 'approved'), '0');
       expect(
         find.text(l10n.approvalsApprovedToastFull('Aarav', 10, 15, 15)),
         findsNothing,

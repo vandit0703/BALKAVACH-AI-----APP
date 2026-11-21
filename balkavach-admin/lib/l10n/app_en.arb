@@ -422,6 +422,7 @@
       }
     }
   },
+  "colVideoRequirement": "Required video",
   "missionCatalogMaterials": "Materials: {items}",
   "@missionCatalogMaterials": {
     "placeholders": {

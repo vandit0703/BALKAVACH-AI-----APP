@@ -349,7 +349,7 @@ def test_default_settings_keep_tickets_off_and_record_progress_charging(db, monk
 		svc.require_play_tickets(db)
 	assert off.value.code == "play_tickets_unavailable"
 	child, video = make_child(db)
-	assert record_progress(db, child, video.id, 10)["accepted_seconds"] == 30
+	assert record_progress(db, child, video.id, 100)["accepted_seconds"] == 30
 
 
 def test_setting_on_without_the_table_changes_nothing(db, monkeypatch):
@@ -361,7 +361,7 @@ def test_setting_on_without_the_table_changes_nothing(db, monkeypatch):
 	with pytest.raises(APIError):
 		svc.require_play_tickets(db)
 	child, video = make_child(db)
-	assert record_progress(db, child, video.id, 10)["accepted_seconds"] == 30
+	assert record_progress(db, child, video.id, 100)["accepted_seconds"] == 30
 
 
 def test_with_tickets_active_record_progress_refuses_to_charge(db, tickets_on):

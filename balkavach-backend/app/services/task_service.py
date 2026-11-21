@@ -1,18 +1,19 @@
 import functools
 import logging
+import traceback
 from datetime import date, datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import case, func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import APIError
+from app.core.exceptions import APIError, database_error_details
 from app.db.base import get_model
 from app.schemas.task import TaskReviewCreate, TaskSubmissionCreate
 from app.services.child_age import ensure_task_age_eligible
 from app.services.ledger_service import star_balance, xp_total
-from app.services.mission_rewards import MISSION_STAR_REWARD, MISSION_XP_REWARD
 from app.services.notification_service import create_notification, family_parent_ids
 from app.services.progress_service import badge_qualifies
 from app.services.timezone_service import local_date_of
@@ -33,6 +34,9 @@ def submit_completion(session: Session, task_id: UUID, child, request: TaskSubmi
 		raise APIError(403, "task_not_assigned", "Task is assigned to another child")
 	# A daily mission made for another age group (see child_age) cannot be completed as a current mission.
 	ensure_task_age_eligible(session, child, task.id)
+	from app.services.mission_video_service import require_video_requirement_complete
+
+	require_video_requirement_complete(session, task, child)
 
 	existing_statuses = {
 		row[0]
@@ -125,11 +129,18 @@ def _all_or_nothing(review):
 			raise
 		except Exception as error:  # noqa: BLE001 - nothing may be half written, whatever failed
 			session.rollback()
-			logger.exception(
-				"Mission approval failed and was rolled back (submission %s, decision %s): %s",
+			frames = " <- ".join(
+				f"{frame.name}:{frame.lineno}"
+				for frame in traceback.extract_tb(error.__traceback__)[-5:]
+			)
+			logger.error(
+				"Mission approval failed and was rolled back "
+				"(submission %s, decision %s, error_type=%s%s, frames=%s)",
 				submission_id,
 				request.decision,
 				type(error).__name__,
+				database_error_details(error) if isinstance(error, SQLAlchemyError) else "",
+				frames,
 			)
 			raise APIError(
 				500,
@@ -170,6 +181,14 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 		.first()
 	)
 	if authorized is None:
+		raise APIError(404, "submission_not_found", "Task submission not found")
+	ChildProfile = get_model("ChildProfile")
+	child = session.query(ChildProfile).filter(
+		ChildProfile.id == submission.child_id,
+		ChildProfile.family_id == task.family_id,
+		ChildProfile.is_active.is_(True),
+	).with_for_update().one_or_none()
+	if child is None or (task.assigned_child_id is not None and task.assigned_child_id != child.id):
 		raise APIError(404, "submission_not_found", "Task submission not found")
 	if submission.status != "pending":
 		if submission.status == request.decision:
@@ -219,14 +238,10 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 		)
 	)
 	if request.decision == "approved":
-		ChildProfile = get_model("ChildProfile")
-		child = session.query(ChildProfile).filter(ChildProfile.id == submission.child_id).with_for_update().one()
-		# One standard reward for every approved mission (see mission_rewards). The stored task values and any
-		# template "mystery bonus" are not paid any more: a mission earns exactly these amounts, once per
-		# approved submission (the submission was locked and is no longer pending after this transaction, and
-		# the ledger idempotency keys are per submission).
-		stars_awarded = MISSION_STAR_REWARD
-		xp_awarded = MISSION_XP_REWARD
+		# The task's configured amounts are locked with the task and paid once per submission. Ledger keys
+		# remain submission-scoped, so a retry cannot add a second reward.
+		stars_awarded = int(task.star_reward or 0)
+		xp_awarded = int(task.xp_reward or 0)
 		StarTransaction = get_model("StarTransaction")
 		session.add(
 			StarTransaction(
