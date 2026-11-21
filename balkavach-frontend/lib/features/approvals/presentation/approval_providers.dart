@@ -8,6 +8,7 @@ import '../../child_profile/presentation/family_providers.dart';
 import '../../missions/data/missions_repository.dart';
 import '../../missions/domain/mission_models.dart';
 import '../../missions/presentation/mission_providers.dart';
+import '../../learning/data/video_feed_repository.dart';
 import '../../progress/data/progress_repository.dart';
 import '../data/approvals_repository.dart';
 import '../domain/review_models.dart';
@@ -161,7 +162,8 @@ Future<void> reviewSubmission(
   await _markSubmittedNotificationsRead(ref, item.submission.id);
   ref
     ..invalidate(approvalInboxProvider(familyId))
-    ..invalidate(childProgressProvider(item.submission.childId));
+    ..invalidate(childProgressProvider(item.submission.childId))
+    ..invalidate(videoAllowanceProvider);
 }
 
 /// Marks the `task_submitted` notification(s) for [submissionId] as read so

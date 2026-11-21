@@ -7,6 +7,7 @@ import '../../../core/push/push_token_source.dart';
 import '../../approvals/presentation/approval_providers.dart';
 import '../../authentication/presentation/session_controller.dart';
 import '../../learning/data/learning_repository.dart';
+import '../../learning/data/video_feed_repository.dart';
 import '../../missions/presentation/mission_providers.dart';
 import '../../rewards/data/rewards_repository.dart';
 import '../../settings/presentation/settings_providers.dart';
@@ -140,6 +141,8 @@ class PushRegistration extends Notifier<PushStatus> {
       ..invalidate(childMissionsProvider)
       ..invalidate(mySubmissionsProvider)
       ..invalidate(childNotificationsProvider)
+      ..invalidate(missionStatusesProvider)
+      ..invalidate(videoAllowanceProvider)
       ..invalidate(myRedemptionsProvider)
       ..invalidate(childCatalogProvider)
       ..invalidate(learningItemsProvider)
