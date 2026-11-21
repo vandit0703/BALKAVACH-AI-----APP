@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 /// translated, never suffixed.
 const brandLogoLabel = 'BALKAVACH';
 
-/// Approved transparent BALKAVACH logo for light backgrounds.
-const brandLogoAsset = 'assets/images/balkavach_logo_light.png';
+/// The BALKAVACH logo (panda, children and wordmark). It is a square image on
+/// a white background, so it is shown as a rounded white card on any theme.
+const brandLogoAsset = 'assets/images/logo.jpeg';
 
-/// The approved BALKAVACH logo (panda, children and wordmark), square.
+/// The BALKAVACH logo, square.
 class BrandLogo extends StatelessWidget {
   const BrandLogo({required this.size, super.key});
 
@@ -16,13 +17,16 @@ class BrandLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dpr = MediaQuery.devicePixelRatioOf(context);
-    return Image.asset(
-      brandLogoAsset,
-      width: size,
-      height: size,
-      cacheWidth: (size * dpr).round(),
-      fit: BoxFit.contain,
-      semanticLabel: brandLogoLabel,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(size * 0.16),
+      child: Image.asset(
+        brandLogoAsset,
+        width: size,
+        height: size,
+        cacheWidth: (size * dpr).round(),
+        fit: BoxFit.cover,
+        semanticLabel: brandLogoLabel,
+      ),
     );
   }
 }
