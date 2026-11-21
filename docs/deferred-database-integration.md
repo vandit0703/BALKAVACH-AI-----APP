@@ -22,6 +22,7 @@ roadmap phase that needs them.
 | Animated Panda companion on Watch home, Missions, mission detail and the waiting screen; lines personalised with the child's first name, the mission title and the star reward | the existing session, mission and allowance data on the device; line choice and anti-repeat memory live in the app session; nothing is stored or sent |
 | Parent allowance summary | `video_access_entitlements`, `child_video_daily_usage`, `tasks` |
 | Talk to Panda (`POST /companion/chat`, voice in/out, see `docs/panda-talking-companion.md`) | read-only: `users.preferred_language`, `child_profiles.display_name`, `daily_mission_assignments`, the allowance calculation, `child_streaks`. No conversation, transcript or audio is stored; duplicate-turn cache and rate limit are in process memory |
+| Panda lip-sync, older unfinished missions (`GET /daily-missions/unfinished`), age-free mission titles (2026-11-21, `docs/panda-lip-sync-missions-feed-2026-11-21.md`) | lip-sync is on-device only; the unfinished list reads `daily_mission_assignments` joined to `tasks` (existing columns and the existing `ix_daily_assignment_history`); titles are only changed when served. **No schema change was required.** Data steps that need a database but no schema: `seed-daily-missions --apply --publish --retire-placeholders`, and a scheduled `youtube-recheck` so approved videos stay visible |
 
 ## 2. Required new tables
 

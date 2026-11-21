@@ -8,7 +8,7 @@ Status 2026-11-19: implemented and covered by automated tests; **not yet verifie
 |---|---|
 | Replies | Server-side **rule-based intent engine** with authored en/hi/gu lines. No LLM, no third-party AI. |
 | Speech | `speech_to_text` (platform recogniser) + `flutter_tts` (platform voice). Tap-to-talk only, with a text-box fallback. This replaces roadmap decision D7 (text + SFX first). |
-| Animation | A state-driven controller with **art slots**. The existing Panda artwork is used unchanged, with nothing painted over it. New frames are specified in `panda-animation-art-brief.md`. |
+| Animation | **Superseded 2026-11-21:** a layered vector rig with a viseme lip-sync driven by the TTS word callbacks (see `panda-lip-sync-missions-feed-2026-11-21.md`). The old plan (art slots over the flat JPGs) could not give a moving mouth. The original JPG Panda remains on the video lock screen. |
 | Database | No schema change. Nothing is persisted (see `deferred-database-integration.md`). |
 
 ## Flow
@@ -77,7 +77,7 @@ Android: `RECORD_AUDIO` permission, plus `RecognitionService` and `TTS_SERVICE` 
 | `POST /companion/chat` | yes (local code) | yes | **no: not deployed**; production returned 404 | child-safety review of keyword lists | |
 | Speech recognition en/hi/gu | yes | fakes only | **no** | | |
 | Text-to-speech en/hi/gu | yes | fakes only | **no** | | |
-| Word-boundary talk beat | yes (Android 8.0+ via `onRangeStart`; Android 7.x gets one beat per line) | yes | **no**; engine support varies (the test phone's default engine is `sia.netttsengine.ttslexx`, not Google TTS) | | layered mouth/blink art |
+| Lip-sync (viseme approximation from word boundaries; estimated fallback anchored to audio start) | yes | yes (fake clock and fake engine) | **no**; engine support varies (the test phone's default engine is `sia.netttsengine.ttslexx`, not Google TTS) | | production-quality layered art |
 | Gujarati replies in the respectful તમે form | yes | yes (regression test) | | **native-speaker review pending** | |
 | Microphone disclosure (platform/Google recogniser) | yes (en/hi/gu explainer) | yes | | **privacy-policy and consent text pending** | |
 | Parent consent gate for the microphone (2026-11-20) | yes: `consent_records` (`panda_voice`, per child, versioned); parent screen; mic closed until granted | yes: backend SQLite (`tests/test_panda_voice_consent.py`), Flutter fakes (`panda_voice_consent_test.dart`, `panda_talk_test.dart`) | **no** | **legal review of the disclosure text pending** | |
@@ -121,4 +121,4 @@ Do not point a local backend's `DATABASE_URL` at the live database.
 5. Privacy policy and legal sign-off of the consent copy for the platform speech service (the in-app consent gate exists).
 7. Device check of the consent gate: grant on the parent phone, mic opens on the child device; withdraw while the child is
    talking, the next voice turn is refused and the panel falls back to typing.
-6. Layered art per the art brief, for real mouth and blink frames.
+6. Production-quality layered art (the current rig is a flat vector stand-in), and a device check that the engine sends word callbacks (otherwise the mouth runs in `estimated` mode).

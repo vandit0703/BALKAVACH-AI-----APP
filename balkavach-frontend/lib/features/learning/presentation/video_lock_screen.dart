@@ -12,7 +12,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../companion/domain/companion_director.dart';
 import '../../companion/domain/panda_interaction.dart';
 import '../../companion/presentation/panda_bubble.dart';
-import '../../companion/presentation/panda_character.dart';
+import '../../companion/presentation/panda_still.dart';
 import '../../missions/presentation/mission_providers.dart'
     show childNotificationsProvider;
 import '../data/video_feed_repository.dart';
@@ -119,7 +119,7 @@ class _VideoLockScreenState extends ConsumerState<VideoLockScreen>
                     child: SizedBox(
                       width: stageWidth,
                       child: ExcludeSemantics(
-                        child: PandaCharacter(
+                        child: PandaStill(
                           key: const Key('video.lock.panda'),
                           phase: timeBack
                               ? PandaPhase.happy

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/api_exception.dart';
 import '../data/companion_chat_repository.dart';
 import '../data/speech_services.dart';
+import 'lip_sync.dart';
 
 /// What Panda is doing. Exactly one at a time.
 enum PandaPhase {
@@ -183,6 +184,11 @@ class PandaTalkController extends Notifier<PandaTalkState> {
   late SpeechOutput _output;
   late CompanionChatRepository _chat;
 
+  /// Panda's mouth. It follows the voice engine's own callbacks and is put at
+  /// rest the moment speech stops, for any reason, so audio and animation end
+  /// together.
+  late final LipSyncController lipSync;
+
   int _epoch = 0;
   Timer? _watchdog;
   Timer? _rest;
@@ -195,10 +201,12 @@ class PandaTalkController extends Notifier<PandaTalkState> {
     _input = ref.watch(speechInputProvider);
     _output = ref.watch(speechOutputProvider);
     _chat = ref.watch(companionChatRepositoryProvider);
+    lipSync = LipSyncController();
     ref.onDispose(() {
       _epoch++;
       _watchdog?.cancel();
       _rest?.cancel();
+      lipSync.dispose();
       unawaited(_input.cancel().catchError((_) {}));
       unawaited(_output.stop());
     });
@@ -276,6 +284,7 @@ class PandaTalkController extends Notifier<PandaTalkState> {
     if (state.voiceAllowed != true && !await checkVoiceConsent()) return;
     final epoch = ++_epoch;
     _rest?.cancel();
+    lipSync.cancel(); // the mouth stops with the voice, before anything awaits
     if (state.talking) await _output.stop();
     if (epoch != _epoch) return;
 
@@ -339,6 +348,7 @@ class PandaTalkController extends Notifier<PandaTalkState> {
     if (state.busy) return; // no duplicate turns
     final epoch = ++_epoch;
     _rest?.cancel();
+    lipSync.cancel();
     if (state.talking) await _output.stop();
     if (epoch != _epoch) return;
     await _respond(text, epoch);
@@ -376,6 +386,7 @@ class PandaTalkController extends Notifier<PandaTalkState> {
       if (error.code == kPandaVoiceConsentRequired) {
         // Consent was withdrawn: no more listening or speaking this turn.
         state = state.copyWith(voiceAllowed: false);
+        lipSync.cancel();
         await _input.cancel().catchError((_) {});
         await _output.stop();
         _fail(PandaProblem.voiceNeedsParent, typing: true);
@@ -391,17 +402,28 @@ class PandaTalkController extends Notifier<PandaTalkState> {
     final limit = Duration(
       milliseconds: (4000 + text.length * 120).clamp(4000, 30000),
     );
-    _arm(limit, epoch, () => unawaited(_output.stop()));
+    _arm(limit, epoch, () {
+      lipSync.cancel();
+      unawaited(_output.stop());
+    });
+    lipSync.begin(text);
     final outcome = await _output.speak(
       text,
       languageCode: _language,
-      onWord: () {
+      onStart: () {
+        if (epoch == _epoch && state.talking) lipSync.audioStarted();
+      },
+      onWord: (word) {
         if (epoch == _epoch && state.talking) {
+          lipSync.wordStarted(word);
           state = state.copyWith(spokenWords: state.spokenWords + 1);
         }
       },
     );
-    if (epoch != _epoch) return;
+    if (epoch != _epoch) return; // stop() already ended the mouth
+    // Only a line that really played to the end closes the mouth gently; a
+    // failed, unsupported or interrupted line never moved it (or stops it now).
+    outcome == SpeakOutcome.completed ? lipSync.finish() : lipSync.cancel();
     _watchdog?.cancel();
     state = state.copyWith(voiceMissing: outcome == SpeakOutcome.unsupported);
     _restAfter(mood, epoch);
@@ -427,6 +449,7 @@ class PandaTalkController extends Notifier<PandaTalkState> {
 
   void _fail(PandaProblem problem, {bool typing = false}) {
     _watchdog?.cancel();
+    lipSync.cancel();
     if (state.phase == PandaPhase.speaking) _go(PandaPhase.idle);
     _go(PandaPhase.error);
     state = state.copyWith(
@@ -442,6 +465,8 @@ class PandaTalkController extends Notifier<PandaTalkState> {
   /// Stops everything at once (Stop button, closing the panel, app paused).
   Future<void> stop() async {
     _epoch++;
+    lipSync
+        .cancel(); // synchronous: the mouth stops before the voice call returns
     _watchdog?.cancel();
     _rest?.cancel();
     await _input.cancel().catchError((_) {});

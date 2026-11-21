@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'mission_titles.dart';
+
 @immutable
 class DailyMissionContent {
   const DailyMissionContent({
@@ -38,6 +40,9 @@ class DailyMissionContent {
       );
 
   final String title;
+
+  /// The title as a child reads it (no age range). [title] stays as stored.
+  String get childTitle => childFacingMissionTitle(title);
   final String description;
   final String instructions;
   final List<String> requiredMaterials;
@@ -106,9 +111,8 @@ class DailyMissionChoices {
         selectedAssignmentId: json['selected_assignment_id'] as String?,
         choices: (json['choices'] as List<dynamic>)
             .map(
-              (item) => DailyMissionAssignment.fromJson(
-                item as Map<String, dynamic>,
-              ),
+              (item) =>
+                  DailyMissionAssignment.fromJson(item as Map<String, dynamic>),
             )
             .toList(),
       );

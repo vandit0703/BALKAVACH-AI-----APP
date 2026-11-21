@@ -29,6 +29,75 @@ def child_age(child) -> int | None:
 	)
 
 
+def feed_languages(preferred_language: str) -> list[str]:
+	"""Languages a child may see: their own, plus English."""
+	return [preferred_language] if preferred_language == "en" else [preferred_language, "en"]
+
+
+def feed_conditions(
+	Video,
+	VideoCategory,
+	DuplicateYouTubeVideo,
+	*,
+	age: int,
+	languages: list[str],
+	child_id: UUID | None = None,
+	category_id: UUID | None = None,
+	video_format: Literal["short", "regular"] | None = None,
+) -> list[tuple[str, object]]:
+	"""Every rule that decides whether a video may be shown, in order, each with a stable name.
+
+	This is the only definition of feed eligibility: ``eligible_feed`` applies all of it and
+	``video_feed_diagnostics`` counts the videos that survive each step, so the two cannot disagree.
+	The query must outer-join ``VideoCategory`` on ``Video.category_id``.
+	"""
+	conditions: list[tuple[str, object]] = [
+		("published", Video.is_published.is_(True)),
+		("age_band", (Video.age_min <= age) & (Video.age_max >= age)),
+		("content_rating", Video.content_rating.in_(["general", "educational"])),
+		("language", Video.language_code.in_(languages)),
+		("active_category", or_(Video.category_id.is_(None), VideoCategory.is_active.is_(True))),
+		# YouTube rows must be approved, rights-cleared, made for kids and re-verified recently.
+		("youtube_approved_and_fresh", youtube_visibility_clause(Video)),
+		(
+			"not_a_duplicate",
+			or_(
+				Video.video_source != "youtube",
+				~exists().where(
+					DuplicateYouTubeVideo.video_source == "youtube",
+					DuplicateYouTubeVideo.external_video_id == Video.external_video_id,
+					DuplicateYouTubeVideo.id < Video.id,
+				),
+			),
+		),
+	]
+	if video_format == "short":
+		conditions.append(("format_short", short_clause(Video)))
+	elif video_format == "regular":
+		conditions.append(("format_regular", regular_clause(Video)))
+	if category_id:
+		conditions.append(("requested_category", Video.category_id == category_id))
+	if child_id is not None and has_model("ChildVideoWatchHistory"):
+		WatchHistory = get_model("ChildVideoWatchHistory")
+		# Finished videos leave the feed unless a parent authorised a replay.
+		conditions.append((
+			"not_already_completed",
+			or_(
+				~exists().where(
+					WatchHistory.child_id == child_id,
+					WatchHistory.video_id == Video.id,
+					WatchHistory.is_completed.is_(True),
+				),
+				exists().where(
+					WatchHistory.child_id == child_id,
+					WatchHistory.video_id == Video.id,
+					WatchHistory.parent_replay_authorized.is_(True),
+				),
+			),
+		))
+	return conditions
+
+
 def eligible_feed(
 	session: Session,
 	child,
@@ -47,33 +116,28 @@ def eligible_feed(
 	DuplicateYouTubeVideo = aliased(Video)
 	age = child_age(child)
 	if age is None or not 3 <= age <= 15:
+		if offset == 0:
+			logger.info(
+				"videos.feed.empty",
+				extra={"event": "videos.feed.empty", "stage": "child_age", "age": age, "video_format": video_format},
+			)
 		return []
-	languages = [user.preferred_language]
-	if user.preferred_language != "en":
-		languages.append("en")
-	query = session.query(Video).outerjoin(VideoCategory, VideoCategory.id == Video.category_id).filter(
-		Video.is_published.is_(True),
-		Video.age_min <= age,
-		Video.age_max >= age,
-		Video.content_rating.in_(["general", "educational"]),
-		Video.language_code.in_(languages),
-		or_(Video.category_id.is_(None), VideoCategory.is_active.is_(True)),
-		youtube_visibility_clause(Video),
-		or_(
-			Video.video_source != "youtube",
-			~exists().where(
-				DuplicateYouTubeVideo.video_source == "youtube",
-				DuplicateYouTubeVideo.external_video_id == Video.external_video_id,
-				DuplicateYouTubeVideo.id < Video.id,
-			),
-		),
+	languages = feed_languages(user.preferred_language)
+	conditions = feed_conditions(
+		Video,
+		VideoCategory,
+		DuplicateYouTubeVideo,
+		age=age,
+		languages=languages,
+		child_id=child.id,
+		category_id=category_id,
+		video_format=video_format,
 	)
-	if video_format == "short":
-		query = query.filter(short_clause(Video))
-	elif video_format == "regular":
-		query = query.filter(regular_clause(Video))
-	if category_id:
-		query = query.filter(Video.category_id == category_id)
+	query = session.query(Video).outerjoin(VideoCategory, VideoCategory.id == Video.category_id).filter(
+		*[clause for _, clause in conditions]
+	)
+	partially_watched = None
+	parent_replay = None
 	if has_model("ChildVideoWatchHistory"):
 		WatchHistory = get_model("ChildVideoWatchHistory")
 		partially_watched = exists().where(
@@ -88,81 +152,36 @@ def eligible_feed(
 			WatchHistory.is_completed.is_(True),
 			WatchHistory.parent_replay_authorized.is_(True),
 		)
-		query = query.filter(or_(
-			~exists().where(
-				WatchHistory.child_id == child.id,
-				WatchHistory.video_id == Video.id,
-				WatchHistory.is_completed.is_(True),
-			),
-			exists().where(
-				WatchHistory.child_id == child.id,
-				WatchHistory.video_id == Video.id,
-				WatchHistory.parent_replay_authorized.is_(True),
-			),
-		))
-	result = (
-		query.order_by(
-			case((parent_replay, 2), (partially_watched, 1), else_=0),
-			case((Video.language_code == user.preferred_language, 0), else_=1),
-			Video.display_order,
-			Video.published_at.desc().nullslast(),
-			Video.id,
+	order = [
+		case((Video.language_code == user.preferred_language, 0), else_=1),
+		Video.display_order,
+		Video.published_at.desc().nullslast(),
+		Video.id,
+	]
+	if partially_watched is not None:
+		order.insert(0, case((parent_replay, 2), (partially_watched, 1), else_=0))
+	result = query.order_by(*order).offset(offset).limit(limit).all()
+	if not result and offset == 0:
+		# The first page of a feed is empty: say which rule removed the last candidates.
+		from app.services.video_feed_diagnostics import funnel
+
+		stages = funnel(
+			session,
+			age=age,
+			languages=languages,
+			child_id=child.id,
+			category_id=category_id,
+			video_format=video_format,
 		)
-		.offset(offset)
-		.limit(limit)
-		.all()
-	)
-	if not result:
-		published_count = session.query(Video.id).filter(Video.is_published.is_(True)).count()
-		age_count = session.query(Video.id).filter(
-			Video.is_published.is_(True),
-			Video.age_min <= age,
-			Video.age_max >= age,
-		).count()
-		visibility_count = session.query(Video.id).filter(
-			Video.is_published.is_(True),
-			Video.age_min <= age,
-			Video.age_max >= age,
-			youtube_visibility_clause(Video),
-		).count()
-		shorts_count = session.query(Video.id).filter(
-			Video.is_published.is_(True),
-			Video.age_min <= age,
-			Video.age_max >= age,
-			short_clause(Video) if video_format == "short"
-			else regular_clause(Video) if video_format == "regular"
-			else True,
-		).count()
-		language_count = session.query(Video.id).filter(
-			Video.is_published.is_(True),
-			Video.age_min <= age,
-			Video.age_max >= age,
-			Video.language_code.in_(languages),
-		).count()
-		category_count = session.query(Video.id).outerjoin(
-			VideoCategory, VideoCategory.id == Video.category_id
-		).filter(
-			Video.is_published.is_(True),
-			Video.age_min <= age,
-			Video.age_max >= age,
-			or_(Video.category_id.is_(None), VideoCategory.is_active.is_(True)),
-		).count()
 		logger.info(
 			"videos.feed.empty",
 			extra={
 				"event": "videos.feed.empty",
 				"age": age,
-				"limit": limit,
-				"offset": offset,
 				"video_format": video_format,
-				"published_count": published_count,
-				"age_eligible_count": age_count,
-				"youtube_visibility_count": visibility_count,
-				"shorts_duration_count": shorts_count,
-				"language_count": language_count,
-				"category_count": category_count,
 				"requested_category": str(category_id) if category_id else None,
-				"pagination_exhausted": offset >= age_count,
+				"limiting_stage": stages["limiting_stage"],
+				**{f"stage_{row['stage']}": row["remaining"] for row in stages["stages"]},
 			},
 		)
 	return result

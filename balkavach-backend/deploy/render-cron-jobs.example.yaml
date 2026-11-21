@@ -1,0 +1,44 @@
+# EXAMPLE ONLY. Nothing in the repository applies this file; the owner creates the jobs in Render.
+# See docs/video-feed-restoration.md. Check the keys against Render's current Blueprint reference before use.
+#
+# Create one shared Environment Group named "balkavach-backend" holding the SAME values as the web service:
+#   DATABASE_URL, YOUTUBE_DATA_API_KEY, YOUTUBE_REGION_CODE, YOUTUBE_REVERIFY_HOURS
+# and, for discovery only: YOUTUBE_DISCOVERY_ACTOR_ID (an active administrator with video:write).
+# No JWT, S3 or notification variables are needed by these jobs. Do NOT set VIDEO_PLAY_TICKETS_ENABLED.
+# Also copy the web service's PYTHON_VERSION so the jobs run the same interpreter.
+
+services:
+  # The job that keeps approved videos in the child feed. Hourly = about 71 retries inside the 72 h window.
+  - type: cron
+    name: balkavach-youtube-recheck
+    runtime: python
+    rootDir: balkavach-backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.cli youtube-recheck --limit 200
+    schedule: "0 * * * *"          # hourly, UTC
+    envVars:
+      - fromGroup: balkavach-backend
+
+  # Finds and auto-reviews new candidates under the existing approval rules. Never publishes anything that
+  # has not passed screening and the configured trusted-channel / non-trusted policy.
+  - type: cron
+    name: balkavach-youtube-discover
+    runtime: python
+    rootDir: balkavach-backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.cli youtube-discover --max-results 50
+    schedule: "30 */3 * * *"       # every 3 hours; hourly while a large backfill is pending
+    envVars:
+      - fromGroup: balkavach-backend
+
+  # Monitor: exits 3 (job shown as failed, owner notified) when approved videos are stale or no recheck has
+  # completed in 3 hours. It reads only; it changes nothing.
+  - type: cron
+    name: balkavach-youtube-recheck-health
+    runtime: python
+    rootDir: balkavach-backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.cli youtube-recheck-health --max-age-hours 3
+    schedule: "15 * * * *"
+    envVars:
+      - fromGroup: balkavach-backend

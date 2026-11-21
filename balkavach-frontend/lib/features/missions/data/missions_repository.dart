@@ -31,6 +31,16 @@ class MissionsRepository {
     return DailyMissionChoices.fromJson(response.data!);
   });
 
+  /// `GET /api/v1/daily-missions/unfinished`: missions the child chose on an
+  /// earlier day and has not finished. Read-only.
+  Future<List<DailyMissionAssignment>> getUnfinishedDailyMissions() =>
+      guardApi(() async {
+        final response = await _dio.get<List<dynamic>>(
+          '/api/v1/daily-missions/unfinished',
+        );
+        return parseJsonList(response.data, DailyMissionAssignment.fromJson);
+      });
+
   Future<DailyMissionAssignment> selectDailyMission(String assignmentId) =>
       guardApi(() async {
         final response = await _dio.post<Map<String, dynamic>>(

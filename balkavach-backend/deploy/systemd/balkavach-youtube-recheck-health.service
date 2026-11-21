@@ -1,0 +1,13 @@
+# EXAMPLE ONLY. Read-only monitor: exits 3 when approved videos are stale or recheck has gone quiet.
+# A non-zero exit marks the unit failed; alert on that (journalctl, OnFailure=, or your monitoring agent).
+[Unit]
+Description=BalKavach YouTube recheck health check
+# OnFailure=notify-owner@%n.service   # optional: your own notification unit
+
+[Service]
+Type=oneshot
+User=balkavach
+WorkingDirectory=/opt/balkavach/balkavach-backend
+EnvironmentFile=/etc/balkavach/backend.env
+ExecStart=/opt/balkavach/venv/bin/python -m app.cli youtube-recheck-health --max-age-hours 3
+TimeoutStartSec=120

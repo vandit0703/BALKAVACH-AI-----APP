@@ -10,8 +10,11 @@ import argparse
 import getpass
 import json
 import sys
+import uuid
+from contextlib import contextmanager
 
 from pydantic import ValidationError
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -160,7 +163,46 @@ def create_admin(session: Session, email: str, name: str, password: str, role_na
 		raise
 
 
+def _record_recheck_failure(session_factory, code: str) -> None:
+	"""Leave a durable trace that a scheduled recheck ran and failed (best effort: never masks the failure)."""
+	from app.services.admin_service import record_audit
+
+	try:
+		with session_factory() as session:
+			record_audit(session, None, "youtube.recheck.failed", "youtube_pipeline", None, {"code": code})
+			session.commit()
+	except Exception:  # noqa: BLE001 - the original error is what the operator needs to see
+		print("Could not record the recheck failure in the audit log.", file=sys.stderr)
+
+
+@contextmanager
+def _read_only(session: Session):
+	"""Make this session unable to write, enforced by the database, for the read-only commands.
+
+	PostgreSQL: ``SET TRANSACTION READ ONLY`` (any INSERT/UPDATE/DELETE then fails). SQLite (tests):
+	``PRAGMA query_only``. The transaction is rolled back on exit, which also ends the read-only mode.
+	"""
+	dialect = session.get_bind().dialect.name
+	if dialect == "postgresql":
+		session.execute(text("SET TRANSACTION READ ONLY"))
+	elif dialect == "sqlite":
+		session.execute(text("PRAGMA query_only = ON"))
+	try:
+		yield session
+	finally:
+		session.rollback()
+		if dialect == "sqlite":
+			session.execute(text("PRAGMA query_only = OFF"))
+
+
 def _youtube_recheck(session_factory, limit: int) -> int:
+	"""Re-verify approved videos. Idempotent and safe to repeat or to overlap (``FOR UPDATE SKIP LOCKED``).
+
+	Prints one summary line on success (``checked=N, verified=N, ...``). On failure the error goes to
+	stderr, a ``youtube.recheck.failed`` audit row is written, and the exit code is non-zero so the
+	scheduler marks the run failed; work already committed (videos re-verified before the failure) is kept
+	and the next run continues with the oldest remaining.
+	"""
 	from app.core.exceptions import APIError
 	from app.integrations.youtube import get_youtube_client
 	from app.services.youtube_review_service import recheck
@@ -169,13 +211,77 @@ def _youtube_recheck(session_factory, limit: int) -> int:
 		with session_factory() as session:
 			counts = recheck(session, get_youtube_client(), limit)
 	except APIError as error:
-		print(f"Error: {error.message}", file=sys.stderr)
+		print(f"Error: {error.message} ({error.code})", file=sys.stderr)
+		_record_recheck_failure(session_factory, error.code)
 		return 1
 	except SQLAlchemyError:
 		print("Database operation failed during YouTube recheck.", file=sys.stderr)
 		return 2
 	print(", ".join(f"{key}={value}" for key, value in counts.items()))
 	return 0
+
+
+def _recheck_health(session_factory, max_age_hours: float) -> int:
+	"""Read-only monitor for the recheck job: exit 0 healthy, 3 unhealthy, 2 database error.
+
+	Unhealthy means approved videos are past the re-verification window (the child feed hides them) or no
+	recheck has completed within ``max_age_hours``. Point a scheduler or uptime monitor at it so a job that
+	stopped running is noticed *before* the feed empties.
+	"""
+	from datetime import datetime, timezone
+
+	from app.services.youtube_review_service import diagnostics
+
+	try:
+		with session_factory() as session, _read_only(session):
+			info = diagnostics(session)
+			session.rollback()
+	except SQLAlchemyError:
+		print("Database read failed.", file=sys.stderr)
+		return 2
+	problems: list[str] = []
+	last_run = info.get("last_recheck_run")
+	age_hours = None if last_run is None else (datetime.now(timezone.utc) - last_run).total_seconds() / 3600
+	if info["approved_stale"]:
+		problems.append(f"{info['approved_stale']} approved video(s) are past the {info['reverify_hours']} h window")
+	if info["approved"] and (age_hours is None or age_hours > max_age_hours):
+		problems.append(
+			"no completed recheck on record"
+			if age_hours is None
+			else f"last completed recheck was {age_hours:.1f} h ago (limit {max_age_hours:g} h)"
+		)
+	if info.get("last_recheck_failure") and (last_run is None or info["last_recheck_failure"] > last_run):
+		problems.append(f"the last recheck failed ({info.get('last_recheck_failure_code')})")
+	print(
+		json.dumps(
+			{
+				"healthy": not problems,
+				"problems": problems,
+				"approved": info["approved"],
+				"approved_stale": info["approved_stale"],
+				"last_recheck_run": last_run,
+				"oldest_approved_verification": info["oldest_approved_verification"],
+			},
+			sort_keys=True,
+			default=str,
+		)
+	)
+	return 0 if not problems else 3
+
+
+def _video_feed_diagnose(session_factory, *, child_id, age, language: str) -> int:
+	"""Read-only: which feed rule removes the videos, for one child or for an age and language."""
+	from app.services.video_feed_diagnostics import diagnose
+
+	try:
+		with session_factory() as session, _read_only(session):
+			report = diagnose(session, child_id=child_id, age=age, language=language)
+			session.rollback()  # nothing was written; make that explicit
+	except SQLAlchemyError:
+		print("Database read failed.", file=sys.stderr)
+		return 2
+	print(json.dumps(report, indent=2, sort_keys=True, default=str))
+	return 1 if report.get("error") else 0
 
 
 def _youtube_discover(session_factory, max_results: int) -> int:
@@ -365,7 +471,7 @@ def _youtube_report(session_factory) -> int:
 	from app.services.youtube_review_service import diagnostics
 
 	try:
-		with session_factory() as session:
+		with session_factory() as session, _read_only(session):
 			summary = diagnostics(session)
 			Review, Video = model("YouTubeContentReview"), model("Video")
 			rows = (
@@ -492,6 +598,18 @@ def main(argv: list[str] | None = None) -> int:
 	)
 	auto.add_argument("--limit", type=int, default=100, choices=range(1, 201), metavar="1-200")
 	commands.add_parser("youtube-report", help="Read-only report of YouTube review statuses and reasons")
+	health = commands.add_parser(
+		"youtube-recheck-health",
+		help="Read-only monitor: exit 3 if approved videos are stale or recheck has not completed recently",
+	)
+	health.add_argument("--max-age-hours", type=float, default=3.0, help="Longest acceptable gap between rechecks")
+	diagnose = commands.add_parser(
+		"video-feed-diagnose",
+		help="Read-only: explain why a child's Home and Shorts feeds are empty (which rule removes the videos)",
+	)
+	diagnose.add_argument("--child-id", type=uuid.UUID, help="Use this child's real age, language and allowance")
+	diagnose.add_argument("--age", type=int, choices=range(0, 19), metavar="0-18", help="Without --child-id")
+	diagnose.add_argument("--language", default="en", choices=["en", "hi", "gu"], help="Without --child-id")
 	commands.add_parser("streak-check", help="Check and update daily streak states and deliver notifications")
 	seed = commands.add_parser(
 		"seed-daily-missions",
@@ -534,6 +652,12 @@ def main(argv: list[str] | None = None) -> int:
 		return _youtube_auto_review(SessionLocal, args.limit)
 	if args.command == "youtube-report":
 		return _youtube_report(SessionLocal)
+	if args.command == "youtube-recheck-health":
+		return _recheck_health(SessionLocal, args.max_age_hours)
+	if args.command == "video-feed-diagnose":
+		if args.child_id is None and args.age is None:
+			parser.error("give --child-id, or --age (and optionally --language)")
+		return _video_feed_diagnose(SessionLocal, child_id=args.child_id, age=args.age, language=args.language)
 	if args.command == "youtube-discover":
 		from app.core.config import settings
 

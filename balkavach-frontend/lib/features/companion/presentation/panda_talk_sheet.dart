@@ -314,7 +314,7 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
                   label: '${l10n.pandaName}. ${l10n.pandaMicButton}',
                   child: PandaCharacter(
                     phase: state.phase,
-                    spokenWords: state.spokenWords,
+                    lipSync: _controller.lipSync,
                     onTap: state.busy ? null : _mic,
                   ),
                 ),

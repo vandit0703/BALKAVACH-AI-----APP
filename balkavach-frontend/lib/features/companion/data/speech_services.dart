@@ -7,6 +7,8 @@ import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
+import '../domain/lip_sync.dart' show SpokenWord;
+
 /// Whether the device can listen right now.
 enum SpeechAvailability { ready, denied, unavailable }
 
@@ -48,12 +50,18 @@ enum SpeakOutcome { completed, interrupted, unsupported, failed }
 
 /// Panda's voice (platform text-to-speech).
 abstract class SpeechOutput {
-  /// Speaks [text]. [onWord] fires as the engine starts each word, which is
-  /// what drives Panda's mouth. Completes when speech ends for any reason.
+  /// Speaks [text]. Completes when speech ends for any reason.
+  ///
+  /// [onStart] fires when the engine reports the audio has started, and
+  /// [onWord] each time it reports starting a word (with the word's text).
+  /// Together they drive Panda's mouth. The platform engines give word
+  /// boundaries only: no phonemes and no audio levels. Some engines send no
+  /// word callbacks at all; then only [onStart] and completion are real.
   Future<SpeakOutcome> speak(
     String text, {
     required String languageCode,
-    void Function()? onWord,
+    void Function()? onStart,
+    void Function(SpokenWord word)? onWord,
   });
 
   Future<void> stop();
@@ -190,15 +198,21 @@ class PlatformSpeechOutput implements SpeechOutput {
       ..setCompletionHandler(() => _end(SpeakOutcome.completed))
       ..setCancelHandler(() => _end(SpeakOutcome.interrupted))
       ..setErrorHandler((_) => _end(SpeakOutcome.failed))
-      ..setProgressHandler((text, start, end, word) => _onWord?.call());
+      ..setStartHandler(() => _onStart?.call())
+      ..setProgressHandler(
+        (text, start, end, word) =>
+            _onWord?.call(SpokenWord(word: word, start: start, end: end)),
+      );
   }
 
   final FlutterTts _tts;
   final _languageReady = <String, String?>{};
   Completer<SpeakOutcome>? _current;
-  void Function()? _onWord;
+  void Function()? _onStart;
+  void Function(SpokenWord word)? _onWord;
 
   void _end(SpeakOutcome outcome) {
+    _onStart = null;
     _onWord = null;
     final c = _current;
     _current = null;
@@ -223,12 +237,14 @@ class PlatformSpeechOutput implements SpeechOutput {
   Future<SpeakOutcome> speak(
     String text, {
     required String languageCode,
-    void Function()? onWord,
+    void Function()? onStart,
+    void Function(SpokenWord word)? onWord,
   }) async {
     await stop();
     final locale = await _language(languageCode);
     if (locale == null) return SpeakOutcome.unsupported;
     final completer = _current = Completer<SpeakOutcome>();
+    _onStart = onStart;
     _onWord = onWord;
     try {
       await _tts.setLanguage(locale);

@@ -26,7 +26,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, exists, func, or_
+from sqlalchemy import and_, case, exists, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -917,6 +917,16 @@ def diagnostics(session: Session) -> dict[str, Any]:
 	).scalar() or 0
 	latest = None
 	last_result: dict[str, int] = {}
+	last_recheck = None
+	last_recheck_failure = None
+	if has_model("AuditLog"):
+		_Audit = get_model("AuditLog")
+		last_recheck = session.query(_Audit.created_at, _Audit.details).filter(
+			_Audit.action == "youtube.recheck.completed"
+		).order_by(_Audit.created_at.desc()).first()
+		last_recheck_failure = session.query(_Audit.created_at, _Audit.details).filter(
+			_Audit.action == "youtube.recheck.failed"
+		).order_by(_Audit.created_at.desc()).first()
 	if has_model("AuditLog"):
 		AuditLog = get_model("AuditLog")
 		latest = session.query(AuditLog.created_at, AuditLog.details).filter(
@@ -1037,6 +1047,12 @@ def diagnostics(session: Session) -> dict[str, Any]:
 			**{f"approved_unpublished:{key}": value for key, value in publication_failure_reasons.items()},
 		},
 		"oldest_approved_verification": utc_aware(oldest_verified) if oldest_verified else None,
+		"last_recheck_run": utc_aware(last_recheck[0]) if last_recheck else None,
+		"last_recheck_result": {
+			str(key): int(value) for key, value in (last_recheck[1] or {}).items() if isinstance(value, int)
+		} if last_recheck else {},
+		"last_recheck_failure": utc_aware(last_recheck_failure[0]) if last_recheck_failure else None,
+		"last_recheck_failure_code": (last_recheck_failure[1] or {}).get("code") if last_recheck_failure else None,
 		"approved_stale": approved_stale,
 		"reverify_hours": settings.youtube_reverify_hours,
 		"approved": status_counts.get("approved", 0),
@@ -1481,7 +1497,9 @@ def recheck(session: Session, client: YouTubeClient, limit: int, actor_id: UUID 
 	reviews = (
 		session.query(Review)
 		.filter(Review.status.in_(["approved", "unavailable"]))
-		.order_by(Review.last_verified_at.asc().nullsfirst(), Review.id)
+		# Approved videos first: an unavailable video that is still unavailable keeps its old timestamp, so by
+		# age alone it would stay at the front and could starve approved ones of their re-verification.
+		.order_by(case((Review.status == "approved", 0), else_=1), Review.last_verified_at.asc().nullsfirst(), Review.id)
 		.limit(limit)
 		.with_for_update(skip_locked=True)
 		.all()

@@ -60,6 +60,8 @@ Consequences to understand before setting the global age band:
 Set it in the Render **web service** environment (it applies when an admin presses
 Discover/Process) and in the **cron job** that runs `youtube-discover` / `youtube-auto-review`.
 
+> Added 2026-11-21: `youtube-recheck-health` and `video-feed-diagnose` (read-only), a `youtube.recheck.failed` audit row, and `last_recheck_*` fields in `youtube-report`. Runbook: `docs/video-feed-restoration.md`; example job files: `balkavach-backend/deploy/`.
+
 ## 2. Scheduling `youtube-recheck` on Render
 
 **Status: not verified.** The repository contains no scheduler or Render configuration

@@ -11,9 +11,6 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/models/app_assets.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/state_views.dart';
-import '../../authentication/presentation/session_controller.dart';
-import '../../companion/domain/companion_director.dart';
-import '../../companion/presentation/panda_companion.dart';
 import '../../missions/presentation/mission_providers.dart'
     show childNotificationsProvider;
 import '../data/learning_repository.dart';
@@ -190,6 +187,9 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
         _categoryId == null;
     final nothingAtAll =
         shortsSettledEmpty && videosSettledEmpty && picked.isEmpty;
+    // At zero allowance the server empties both feeds on purpose. That is a
+    // time-up state (the allowance card above explains it), not "no videos".
+    final timeUp = ref.watch(videoAllowanceProvider).value?.isExhausted == true;
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -199,11 +199,11 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.md,
+              AppSpacing.lg,
               AppSpacing.md,
               AppSpacing.md,
-              AppSpacing.sm,
             ),
-            sliver: SliverToBoxAdapter(child: _Greeting(l10n: l10n)),
+            sliver: SliverToBoxAdapter(child: _Heading(l10n: l10n)),
           ),
           const SliverToBoxAdapter(child: VideoAllowanceCard()),
           if (continueVideos.isNotEmpty)
@@ -243,7 +243,15 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
                 ),
               ),
             ),
-          if (nothingAtAll)
+          if (nothingAtAll && timeUp)
+            SliverToBoxAdapter(
+              child: EmptyView(
+                key: const Key('watch.timeUp'),
+                message: l10n.videoTimeExhaustedBody,
+                image: AppImages.pandaDrawing,
+              ),
+            )
+          else if (nothingAtAll)
             SliverToBoxAdapter(
               child: EmptyView(
                 key: const Key('watch.empty'),
@@ -467,52 +475,28 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
   );
 }
 
-/// Greeting plus Panda, who reports the real video-time state: a hello by
-/// name, a heads-up when the time is nearly over, a goodnight when it is.
-class _Greeting extends ConsumerWidget {
-  const _Greeting({required this.l10n});
+/// The page heading. No Panda or greeting bubble here: Panda has its own
+/// entry point in the app bar, and the allowance card below says how much
+/// video time is left.
+class _Heading extends StatelessWidget {
+  const _Heading({required this.l10n});
 
   final AppLocalizations l10n;
 
-  /// Panda warns when this little time (or less) is left.
-  static const _lowSeconds = 120;
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final allowance = ref.watch(videoAllowanceProvider).value;
-    final fullName = ref.watch(sessionControllerProvider).value?.user.fullName;
-    final firstName = (fullName ?? '').trim().split(RegExp(r'\s+')).first;
-
-    final event = switch (allowance) {
-      VideoAllowance(isExhausted: true) => CompanionEvent.videoUp,
-      VideoAllowance(:final remainingSeconds)
-          when remainingSeconds > 0 && remainingSeconds <= _lowSeconds =>
-        CompanionEvent.videoLow,
-      _ when firstName.isNotEmpty => CompanionEvent.greetingNamed,
-      _ => CompanionEvent.greeting,
-    };
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(l10n.watchGreeting, style: context.text.headlineSmall),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          l10n.watchGreetingBody,
-          style: context.text.bodyMedium?.copyWith(
-            color: context.colors.onSurfaceVariant,
-          ),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(l10n.watchGreeting, style: context.text.headlineSmall),
+      const SizedBox(height: AppSpacing.xs),
+      Text(
+        l10n.watchGreetingBody,
+        style: context.text.bodyMedium?.copyWith(
+          color: context.colors.onSurfaceVariant,
         ),
-        const SizedBox(height: AppSpacing.sm),
-        PandaCompanion(
-          key: ValueKey(event),
-          event: event,
-          name: firstName,
-          avatarSize: 52,
-        ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
 }
 
 class _SectionHeader extends StatelessWidget {

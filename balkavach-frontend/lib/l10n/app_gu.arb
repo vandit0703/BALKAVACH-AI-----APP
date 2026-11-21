@@ -608,7 +608,7 @@
   "watchTopicsSection": "વિષયો શોધો",
   "watchVideosSection": "શીખવા માટેના વિડિઓ",
   "watchPickedSection": "મોટાઓએ પસંદ કરેલા",
-  "watchNothingYet": "હજી અહીં કોઈ વિડિઓ નથી. દરેક વિડિઓ દેખાય તે પહેલાં કોઈ મોટો તેને તપાસે છે.",
+  "watchNothingYet": "હજી અહીં કોઈ વિડિઓ નથી. જલ્દી ફરી જુઓ, અથવા કોઈ મિશન કરો!",
   "shortsMore": "વધુ જુઓ",
   "shortsLess": "ઓછું જુઓ",
   "shortsActionSound": "અવાજ",
@@ -835,5 +835,8 @@
   "pandaConsentCancel": "હમણાં નહીં",
   "pandaConsentWithdrawn": "{name} માટે માઇક્રોફોન બંધ કર્યો.",
   "pandaConsentSaveFailed": "અમે તે સાચવી શક્યા નહીં. કૃપા કરીને ફરી પ્રયાસ કરો.",
-  "pandaConsentOutdated": "આ માહિતી બદલાઈ ગઈ છે. કૃપા કરીને ઍપ અપડેટ કરો, પછી ફરી પ્રયાસ કરો."
+  "pandaConsentOutdated": "આ માહિતી બદલાઈ ગઈ છે. કૃપા કરીને ઍપ અપડેટ કરો, પછી ફરી પ્રયાસ કરો.",
+  "missionsUnfinishedTitle": "હજી પૂરા કરવાના છે",
+  "missionContinue": "આગળ વધો",
+  "missionFromDay": "{date} થી"
 }

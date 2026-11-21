@@ -1369,7 +1369,7 @@
   "@watchPickedSection": {
     "description": "Curated Learn & Watch videos heading on Home."
   },
-  "watchNothingYet": "No videos here yet. A grown-up checks every video before it appears.",
+  "watchNothingYet": "No videos here right now. Check back soon, or try a mission!",
   "@watchNothingYet": {
     "description": "Home empty state when no section has content."
   },
@@ -1648,5 +1648,9 @@
   "pandaConsentWithdrawn": "Microphone turned off for {name}.",
   "@pandaConsentWithdrawn": {"placeholders": {"name": {"type": "String"}}},
   "pandaConsentSaveFailed": "We couldn’t save that. Please try again.",
-  "pandaConsentOutdated": "This explanation has changed. Please update the app, then try again."
+  "pandaConsentOutdated": "This explanation has changed. Please update the app, then try again.",
+  "missionsUnfinishedTitle": "Still to finish",
+  "missionContinue": "Continue",
+  "missionFromDay": "From {date}",
+  "@missionFromDay": {"placeholders": {"date": {"type": "String"}}}
 }

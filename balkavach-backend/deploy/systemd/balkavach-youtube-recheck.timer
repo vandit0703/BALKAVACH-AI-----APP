@@ -1,0 +1,12 @@
+# EXAMPLE ONLY. Enable with: systemctl enable --now balkavach-youtube-recheck.timer
+[Unit]
+Description=Hourly BalKavach YouTube recheck
+
+[Timer]
+OnCalendar=hourly
+# Catch up after downtime instead of waiting for the next hour.
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

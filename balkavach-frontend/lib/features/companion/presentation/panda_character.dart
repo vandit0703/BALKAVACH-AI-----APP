@@ -1,146 +1,115 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../shared/models/app_assets.dart';
+import '../domain/lip_sync.dart';
 import '../domain/panda_interaction.dart';
+import '../domain/panda_performer.dart';
+import '../domain/viseme.dart';
+import 'panda_rig_painter.dart';
 
-/// Which artwork Panda uses for each state, plus slots for the frames named in
-/// `docs/panda-animation-art-brief.md`.
+/// Panda on a stage: a layered 2D character whose face and body follow the
+/// conversation.
 ///
-/// Today only [poses] are filled, with the existing Panda scenes. When the
-/// artist delivers layered frames, fill [mouthOpen] and [blink]: the
-/// renderer already swaps to them on real voice word boundaries and on blink
-/// beats, with no other code change.
-class PandaArtSet {
-  const PandaArtSet({
-    required this.poses,
-    this.alignment = const {},
-    this.mouthOpen = const {},
-    this.blink = const {},
-  });
-
-  final Map<PandaPhase, String> poses;
-
-  /// Where Panda sits in each wide scene, so a narrow crop keeps the face.
-  final Map<String, Alignment> alignment;
-
-  /// Same framing as the pose, mouth open. Shown while a word is spoken.
-  final Map<PandaPhase, String> mouthOpen;
-
-  /// Same framing as the pose, eyes closed. Shown for a blink.
-  final Map<PandaPhase, String> blink;
-
-  String poseFor(PandaPhase phase) => poses[phase] ?? AppImages.pandaHoodie;
-}
-
-/// The existing artwork, unchanged. No overlays are painted on Panda.
-const kPandaArt = PandaArtSet(
-  poses: {
-    PandaPhase.idle: AppImages.pandaHoodie,
-    PandaPhase.greeting: AppImages.pandaWelcome,
-    PandaPhase.listening: AppImages.pandaMissions,
-    PandaPhase.thinking: AppImages.pandaDrawing,
-    PandaPhase.speaking: AppImages.pandaHoodie,
-    PandaPhase.happy: AppImages.pandaCheering,
-    PandaPhase.curious: AppImages.pandaMissions,
-    PandaPhase.sleepy: AppImages.pandaHoodie,
-    PandaPhase.error: AppImages.pandaHoodie,
-  },
-  alignment: {AppImages.pandaDrawing: Alignment(0.45, 0)},
-);
-
-/// Panda on a stage, reacting to the conversation.
-///
-/// Motion is tied to real events only: each word the voice engine starts
-/// gives one talk beat (a mouth frame once art exists), a happy reply gives a
-/// hop, idle Panda breathes slowly. With reduced motion nothing moves; the
-/// state label beside Panda still says what is happening.
+/// * [phase] picks the face and posture (idle, greeting, listening, thinking,
+///   speaking, happy, curious, sleepy, error); changes ease in.
+/// * While Panda speaks, the mouth shape comes from [lipSync], which follows the
+///   voice engine's own start and word callbacks, so the mouth moves with the
+///   audio and stops with it. It is a word-boundary viseme approximation, not
+///   phoneme recognition (see [LipSyncController]).
+/// * Blinking, eye movement and breathing are scheduled here. With reduced
+///   motion everything holds still except the mouth, whose shapes are what
+///   shows the voice.
+/// * One ticker runs only while something moves; it stops after a short idle
+///   window, so a resting Panda costs no battery.
 class PandaCharacter extends StatefulWidget {
   const PandaCharacter({
     required this.phase,
-    required this.spokenWords,
-    this.art = kPandaArt,
+    this.lipSync,
     this.onTap,
     super.key,
   });
 
   final PandaPhase phase;
-  final int spokenWords;
-  final PandaArtSet art;
+
+  /// The mouth source. Null: the mouth stays closed.
+  final LipSyncController? lipSync;
   final VoidCallback? onTap;
 
   @override
-  State<PandaCharacter> createState() => _PandaCharacterState();
+  State<PandaCharacter> createState() => PandaCharacterState();
 }
 
-class _PandaCharacterState extends State<PandaCharacter>
-    with TickerProviderStateMixin {
-  /// Slow breathing while Panda waits, for a limited number of breaths.
-  late final AnimationController _breath = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 3200),
+class PandaCharacterState extends State<PandaCharacter>
+    with SingleTickerProviderStateMixin {
+  final _performer = PandaPerformer();
+  final _frame = ValueNotifier<int>(0);
+  late final Ticker _ticker = createTicker(_tick);
+  late final PandaRigPainter _painter = PandaRigPainter(
+    performer: _performer,
+    repaint: _frame,
   );
+  Duration _last = Duration.zero;
 
-  /// One beat per spoken word.
-  late final AnimationController _beat = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 180),
-  );
+  /// The animation state, for tests.
+  @visibleForTesting
+  PandaPerformer get performer => _performer;
 
-  /// A hop for happy news.
-  late final AnimationController _hop = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 700),
-  );
+  @visibleForTesting
+  bool get isTicking => _ticker.isActive;
 
-  static const _maxBreaths = 8;
-  bool _reduceMotion = false;
+  @override
+  void initState() {
+    super.initState();
+    _performer.setPhase(widget.phase);
+    widget.lipSync?.viseme.addListener(_wake);
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _reduceMotion = MediaQuery.disableAnimationsOf(context);
-    _sync(null);
+    _performer.reduceMotion = MediaQuery.disableAnimationsOf(context);
+    _wake();
   }
 
   @override
-  void didUpdateWidget(PandaCharacter old) {
-    super.didUpdateWidget(old);
-    if (_reduceMotion) return;
-    if (widget.spokenWords > old.spokenWords) _beat.forward(from: 0);
-    if (widget.phase != old.phase) _sync(old.phase);
+  void didUpdateWidget(PandaCharacter oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.lipSync != widget.lipSync) {
+      oldWidget.lipSync?.viseme.removeListener(_wake);
+      widget.lipSync?.viseme.addListener(_wake);
+    }
+    if (oldWidget.phase != widget.phase) _performer.setPhase(widget.phase);
+    _wake();
   }
 
-  void _sync(PandaPhase? from) {
-    if (_reduceMotion) {
-      _breath.stop();
-      _beat.stop();
-      _hop.stop();
-      _breath.value = _beat.value = _hop.value = 0;
-      return;
-    }
-    final resting = const {
-      PandaPhase.idle,
-      PandaPhase.curious,
-      PandaPhase.sleepy,
-      PandaPhase.listening,
-    }.contains(widget.phase);
-    if (resting && !_breath.isAnimating) {
-      _breath.repeat(reverse: true, count: _maxBreaths);
-    } else if (!resting) {
-      _breath.stop();
-    }
-    if (widget.phase == PandaPhase.happy && from != PandaPhase.happy) {
-      _hop.forward(from: 0);
+  /// Starts the ticker if something needs animating. The mouth source and the
+  /// phase both call this, so a stopped ticker restarts on the first event.
+  void _wake() {
+    if (!mounted || _ticker.isActive) return;
+    _last = Duration.zero;
+    _ticker.start();
+    _frame.value++; // draws the first frame without waiting for a tick
+  }
+
+  void _tick(Duration elapsed) {
+    final dt = elapsed - _last;
+    _last = elapsed;
+    final sync = widget.lipSync;
+    sync?.update();
+    _performer.tick(dt, sync?.viseme.value ?? Viseme.rest);
+    _frame.value++;
+    if (!_performer.needsFrames && !(sync?.isSpeaking ?? false)) {
+      _ticker.stop();
     }
   }
 
   @override
   void dispose() {
-    _breath.dispose();
-    _beat.dispose();
-    _hop.dispose();
+    widget.lipSync?.viseme.removeListener(_wake);
+    _ticker.dispose();
+    _frame.dispose();
     super.dispose();
   }
 
@@ -148,15 +117,15 @@ class _PandaCharacterState extends State<PandaCharacter>
   Widget build(BuildContext context) {
     final colors = context.colors;
     final phase = widget.phase;
-    final art = widget.art;
     final listening = phase == PandaPhase.listening;
+    final sync = widget.lipSync;
 
     return GestureDetector(
       key: const Key('panda.talk.character'),
       behavior: HitTestBehavior.opaque,
       onTap: widget.onTap,
       child: AnimatedContainer(
-        duration: _reduceMotion
+        duration: _performer.reduceMotion
             ? Duration.zero
             : const Duration(milliseconds: 250),
         decoration: BoxDecoration(
@@ -169,67 +138,33 @@ class _PandaCharacterState extends State<PandaCharacter>
         child: ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.lg - 3),
           child: AspectRatio(
-            aspectRatio: 512 / 279,
-            child: AnimatedBuilder(
-              animation: Listenable.merge([_breath, _beat, _hop]),
-              builder: (context, _) {
-                final beat = Curves.easeOut.transform(
-                  1 - (2 * _beat.value - 1).abs(),
-                );
-                final hop = Curves.easeOut.transform(
-                  1 - (2 * _hop.value - 1).abs(),
-                );
-                final breath = Curves.easeInOut.transform(_breath.value);
-                final talking = _beat.isAnimating && beat > 0.35;
-                final asset = talking && art.mouthOpen[phase] != null
-                    ? art.mouthOpen[phase]!
-                    : art.poseFor(phase);
-                final scale =
-                    1 +
-                    0.012 * breath +
-                    (art.mouthOpen[phase] == null ? 0.02 * beat : 0) +
-                    0.04 * hop;
-                return Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Transform.translate(
-                      offset: Offset(0, -10 * hop),
-                      child: Transform.scale(
-                        scale: scale,
-                        alignment: Alignment.bottomCenter,
-                        child: ColorFiltered(
-                          colorFilter: ColorFilter.mode(
-                            phase == PandaPhase.sleepy
-                                ? Colors.black.withValues(alpha: 0.22)
-                                : Colors.transparent,
-                            BlendMode.srcATop,
-                          ),
-                          child: Image.asset(
-                            asset,
-                            key: ValueKey('panda.pose.$asset'),
-                            fit: BoxFit.cover,
-                            alignment: art.alignment[asset] ?? Alignment.center,
-                            gaplessPlayback: true,
-                            excludeFromSemantics: true,
-                          ),
-                        ),
+            aspectRatio: kPandaStageSize.width / kPandaStageSize.height,
+            child: ExcludeSemantics(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  RepaintBoundary(
+                    child: CustomPaint(
+                      key: const Key('panda.rig'),
+                      painter: _painter,
+                      isComplex: true,
+                      willChange: true,
+                    ),
+                  ),
+                  // Zero-size markers so tests (and tooling) can read which
+                  // phase and mouth shape are showing.
+                  SizedBox.shrink(
+                    key: ValueKey('panda.rig.phase.${phase.name}'),
+                  ),
+                  if (sync != null)
+                    ValueListenableBuilder<Viseme>(
+                      valueListenable: sync.viseme,
+                      builder: (context, viseme, _) => SizedBox.shrink(
+                        key: ValueKey('panda.rig.viseme.${viseme.name}'),
                       ),
                     ),
-                    if (phase == PandaPhase.sleepy)
-                      Positioned(
-                        right: AppSpacing.md,
-                        top: AppSpacing.sm,
-                        child: Text(
-                          'z z z',
-                          style: context.text.titleLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
+                ],
+              ),
             ),
           ),
         ),

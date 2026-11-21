@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/responsive/breakpoints.dart';
 import '../../../core/routing/app_routes.dart';
@@ -20,6 +21,7 @@ import '../domain/mission_models.dart';
 import '../domain/mission_status.dart';
 import 'mission_providers.dart';
 import 'widgets/mission_card.dart';
+import 'widgets/mission_visuals.dart' show missionStatusChip;
 
 /// Child Missions (Stitch `today_s_missions`).
 class MissionsScreen extends ConsumerStatefulWidget {
@@ -41,6 +43,7 @@ class _MissionsScreenState extends ConsumerState<MissionsScreen> {
       ref
         ..invalidate(childMissionsProvider)
         ..invalidate(childNotificationsProvider)
+        ..invalidate(unfinishedMissionsProvider)
         ..invalidate(taskCategoriesProvider);
       await refreshQuietly(ref.read(childMissionsProvider.future));
     }
@@ -66,8 +69,19 @@ class _MissionsScreenState extends ConsumerState<MissionsScreen> {
   Widget _list(
     BuildContext context,
     AppLocalizations l10n,
-    List<Mission> missions,
+    List<Mission> allMissions,
   ) {
+    // Missions shown under "Still to finish" are not repeated in the list.
+    final unfinishedTaskIds = {
+      for (final a
+          in ref.watch(unfinishedMissionsProvider).value ??
+              const <DailyMissionAssignment>[])
+        if (a.taskId != null) a.taskId!,
+    };
+    final missions = [
+      for (final m in allMissions)
+        if (!unfinishedTaskIds.contains(m.id)) m,
+    ];
     final categories =
         ref.watch(taskCategoriesProvider).value ?? const <TaskCategory>[];
     final snapshot = ref.watch(missionStatusesProvider).value;
@@ -95,8 +109,11 @@ class _MissionsScreenState extends ConsumerState<MissionsScreen> {
         return LazyListPage(
           maxWidth: columns == 2 ? ContentWidth.wide : ContentWidth.list,
           header: [
+            // Missions the child already chose come first: they are commitments, and
+            // today's menu below is always there.
+            const _UnfinishedMissions(),
             const _DailyChoices(),
-            if (missions.isNotEmpty)
+            if (allMissions.isNotEmpty)
               const PandaCompanion(event: CompanionEvent.missionsReady),
             if (snapshot != null && !snapshot.reviewsAvailable)
               InlineNotice(message: l10n.reviewsUnavailable),
@@ -119,9 +136,9 @@ class _MissionsScreenState extends ConsumerState<MissionsScreen> {
                     ),
                 ],
               ),
-            if (missions.isEmpty)
+            if (allMissions.isEmpty)
               EmptyView(message: l10n.missionsEmpty)
-            else if (visible.isEmpty)
+            else if (visible.isEmpty && missions.isNotEmpty)
               EmptyView(message: l10n.missionsFilterEmpty),
           ],
           itemCount: rows,
@@ -162,13 +179,20 @@ class _DailyChoicesState extends ConsumerState<_DailyChoices> {
     if (_selecting != null) return;
     setState(() => _selecting = assignmentId);
     final selected = await AsyncValue.guard<DailyMissionAssignment>(
-      () => ref.read(missionsRepositoryProvider).selectDailyMission(assignmentId),
+      () =>
+          ref.read(missionsRepositoryProvider).selectDailyMission(assignmentId),
     );
     if (!mounted) return;
     setState(() => _selecting = null);
     final taskId = selected.value?.taskId;
     if (taskId != null) {
-      ref.invalidate(dailyMissionChoicesProvider);
+      // Choosing created a new task on the server: the cached lists predate it.
+      ref
+        ..invalidate(dailyMissionChoicesProvider)
+        ..invalidate(childMissionsProvider)
+        ..invalidate(missionStatusesProvider);
+      await refreshQuietly(ref.read(childMissionsProvider.future));
+      if (!mounted) return;
       await context.push(AppRoutes.childMission(taskId));
     }
   }
@@ -207,21 +231,23 @@ class _DailyChoicesState extends ConsumerState<_DailyChoices> {
                         ),
                         const SizedBox(height: AppSpacing.sm),
                         Text(
-                          choice.content.title,
+                          choice.content.childTitle,
                           style: context.text.titleLarge,
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(choice.content.description),
                         const SizedBox(height: AppSpacing.sm),
                         Text(
-                          AppLocalizations.of(context).missionEarn(
-                            choice.content.starReward,
-                          ),
+                          AppLocalizations.of(
+                            context,
+                          ).missionEarn(choice.content.starReward),
                           style: context.text.labelLarge,
                         ),
                         const SizedBox(height: AppSpacing.md),
                         PrimaryButton(
-                          label: AppLocalizations.of(context).missionStartMission,
+                          label: AppLocalizations.of(
+                            context,
+                          ).missionStartMission,
                           icon: Icons.play_arrow_rounded,
                           loading: _selecting == choice.id,
                           onPressed: choice.isSelectable
@@ -229,8 +255,8 @@ class _DailyChoicesState extends ConsumerState<_DailyChoices> {
                               : choice.taskId == null
                               ? null
                               : () async => context.push(
-                                AppRoutes.childMission(choice.taskId!),
-                              ),
+                                  AppRoutes.childMission(choice.taskId!),
+                                ),
                         ),
                       ],
                     ),
@@ -243,6 +269,80 @@ class _DailyChoicesState extends ConsumerState<_DailyChoices> {
       ),
       _ => const SizedBox.shrink(),
     };
+  }
+}
+
+/// Missions chosen on an earlier day and not finished. They keep their task,
+/// submissions and status, so "Continue" opens the same mission: nothing is
+/// selected or created again, and finishing it uses the usual submission and
+/// parent-approval flow.
+class _UnfinishedMissions extends ConsumerWidget {
+  const _UnfinishedMissions();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final older =
+        ref.watch(unfinishedMissionsProvider).value ??
+        const <DailyMissionAssignment>[];
+    final openable = [
+      for (final a in older)
+        if (a.taskId != null) a,
+    ];
+    if (openable.isEmpty) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    return Column(
+      key: const Key('missions.unfinished'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(l10n.missionsUnfinishedTitle, style: context.text.headlineSmall),
+        const SizedBox(height: AppSpacing.sm),
+        Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.md,
+          children: [
+            for (final mission in openable)
+              SizedBox(
+                width: 280,
+                child: AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        mission.content.childTitle,
+                        style: context.text.titleLarge,
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        l10n.missionFromDay(
+                          DateFormat.MMMd(locale).format(mission.localDate),
+                        ),
+                        style: context.text.labelLarge?.copyWith(
+                          color: context.colors.onSurfaceVariant,
+                        ),
+                      ),
+                      if (mission.status == 'rejected') ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        ?missionStatusChip(context, MissionStatus.rejected),
+                      ],
+                      const SizedBox(height: AppSpacing.md),
+                      PrimaryButton(
+                        key: Key('missions.unfinished.open.${mission.id}'),
+                        label: l10n.missionContinue,
+                        icon: Icons.play_arrow_rounded,
+                        onPressed: () => context.push(
+                          AppRoutes.childMission(mission.taskId!),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+      ],
+    );
   }
 }
 

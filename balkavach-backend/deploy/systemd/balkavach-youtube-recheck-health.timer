@@ -1,0 +1,10 @@
+# EXAMPLE ONLY. Enable with: systemctl enable --now balkavach-youtube-recheck-health.timer
+[Unit]
+Description=Hourly check that the YouTube recheck is running
+
+[Timer]
+OnCalendar=*:15
+Persistent=true
+
+[Install]
+WantedBy=timers.target

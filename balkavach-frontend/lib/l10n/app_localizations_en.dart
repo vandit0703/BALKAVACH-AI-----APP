@@ -2204,7 +2204,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get watchNothingYet =>
-      'No videos here yet. A grown-up checks every video before it appears.';
+      'No videos here right now. Check back soon, or try a mission!';
 
   @override
   String get shortsMore => 'more';
@@ -2949,4 +2949,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get pandaConsentOutdated =>
       'This explanation has changed. Please update the app, then try again.';
+
+  @override
+  String get missionsUnfinishedTitle => 'Still to finish';
+
+  @override
+  String get missionContinue => 'Continue';
+
+  @override
+  String missionFromDay(String date) {
+    return 'From $date';
+  }
 }

@@ -35,6 +35,24 @@ final dailyMissionChoicesProvider = FutureProvider<DailyMissionChoices>((ref) {
   return ref.watch(missionsRepositoryProvider).getDailyChoices();
 });
 
+/// Missions the child chose on an earlier day and has not finished. They keep
+/// their task, submissions and status, so opening one resumes it: nothing is
+/// selected or created again. If the list cannot be loaded the missions still
+/// appear in the general list, so a failure here hides nothing for good.
+final unfinishedMissionsProvider = FutureProvider<List<DailyMissionAssignment>>(
+  (ref) async {
+    final childId = ref.watch(activeChildIdProvider);
+    if (childId == null) return const [];
+    try {
+      return await ref
+          .watch(missionsRepositoryProvider)
+          .getUnfinishedDailyMissions();
+    } on ApiException {
+      return const [];
+    }
+  },
+);
+
 /// Missions for the parent's family.
 final familyMissionsProvider = FutureProvider.family<List<Mission>, String>((
   ref,
@@ -232,7 +250,13 @@ final childMissionProvider = FutureProvider.family<Mission?, String>((
   taskId,
 ) async {
   final missions = await ref.watch(childMissionsProvider.future);
-  return missions.where((m) => m.id == taskId).firstOrNull;
+  final listed = missions.where((m) => m.id == taskId).firstOrNull;
+  if (listed != null) return listed;
+  // The cached list may predate this mission (chosen or assigned moments
+  // ago, or opened from a notification): ask the server once before saying
+  // it is gone.
+  final fresh = await ref.read(missionsRepositoryProvider).listMissions();
+  return fresh.where((m) => m.id == taskId).firstOrNull;
 });
 
 /// Mission ideas for the create-mission form. Failing to load them never

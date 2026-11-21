@@ -2197,7 +2197,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get watchNothingYet =>
-      'હજી અહીં કોઈ વિડિઓ નથી. દરેક વિડિઓ દેખાય તે પહેલાં કોઈ મોટો તેને તપાસે છે.';
+      'હજી અહીં કોઈ વિડિઓ નથી. જલ્દી ફરી જુઓ, અથવા કોઈ મિશન કરો!';
 
   @override
   String get shortsMore => 'વધુ જુઓ';
@@ -2936,4 +2936,15 @@ class AppLocalizationsGu extends AppLocalizations {
   @override
   String get pandaConsentOutdated =>
       'આ માહિતી બદલાઈ ગઈ છે. કૃપા કરીને ઍપ અપડેટ કરો, પછી ફરી પ્રયાસ કરો.';
+
+  @override
+  String get missionsUnfinishedTitle => 'હજી પૂરા કરવાના છે';
+
+  @override
+  String get missionContinue => 'આગળ વધો';
+
+  @override
+  String missionFromDay(String date) {
+    return '$date થી';
+  }
 }

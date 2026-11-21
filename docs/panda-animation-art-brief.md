@@ -1,5 +1,7 @@
 # Panda animation art brief
 
+> **Status 2026-11-21:** the talk panel now uses a code-drawn layered vector rig (`panda_rig_painter.dart`) with 8 mouth shapes, blinking and 9 expressions. The frame slots below are no longer read; this brief remains the specification for **production art** (layered PNG or a Rive state machine) to replace the vector stand-in. The viseme set to draw is in `lib/features/companion/domain/viseme.dart`.
+
 The talk panel already drives these slots (`PandaArtSet` in
 `lib/features/companion/presentation/panda_character.dart`). Today only the
 pose slots are filled, using the five existing scenes. **Keep Panda's existing

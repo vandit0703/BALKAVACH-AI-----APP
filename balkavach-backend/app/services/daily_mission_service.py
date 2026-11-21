@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import APIError
 from app.db.base import get_model
 from app.services.mission_rotation_service import POLICY, Candidate, load_child_history, rank_candidates
+from app.services.mission_titles import child_facing_title
 from app.services.timezone_service import family_timezone_name, local_today
 from app.utils import utc_naive
 
@@ -69,7 +70,14 @@ def _snapshot(template, variation) -> dict[str, Any]:
     }
 
 
-def _public(row) -> dict[str, Any]:
+def public_assignment(row) -> dict[str, Any]:
+    """An assignment as the child API shows it.
+
+    The title is shown without the age range some titles carry ("... (4 to 6)"); ``age_band`` and the stored
+    snapshot are unchanged, so eligibility and history keep their metadata."""
+    content = dict(row.snapshot or {})
+    if isinstance(content.get("title"), str):
+        content["title"] = child_facing_title(content["title"])
     return {
         "id": row.id,
         "local_date": row.local_date,
@@ -80,8 +88,11 @@ def _public(row) -> dict[str, Any]:
         "selected_at": row.selected_at,
         "started_at": row.started_at,
         "skipped_at": row.skipped_at,
-        "content": row.snapshot,
+        "content": content,
     }
+
+
+_public = public_assignment  # the name older callers and tests import
 
 
 def _child_language(session: Session, child) -> list[str]:
@@ -248,7 +259,7 @@ def select_assignment(session: Session, child, assignment_id: UUID):
         family_id=child.family_id,
         created_by=child.user_id,
         assigned_child_id=child.id,
-        title=assignment.snapshot["title"],
+        title=child_facing_title(assignment.snapshot["title"]),
         description=task_description(assignment.snapshot),
         star_reward=assignment.snapshot["star_reward"],
         xp_reward=assignment.snapshot["xp_reward"],
@@ -261,6 +272,39 @@ def select_assignment(session: Session, child, assignment_id: UUID):
     assignment.status = "selected"
     assignment.selected_at = now
     return assignment
+
+
+# Statuses of a mission the child chose and has not finished: still theirs to do. "Pending parent approval" is
+# not listed (nothing left for the child to do), nor "approved" / "skipped" (finished or given up), nor "available"
+# (offered but never chosen: it was a menu, not a commitment).
+UNFINISHED_STATUSES = ("selected", "in_progress", "rejected")
+UNFINISHED_LIMIT = 20
+
+
+def unfinished_assignments(session: Session, child, now_utc: datetime | None = None):
+    """Missions the child chose on an earlier family-local day and has not finished, newest first.
+
+    Read-only. It never creates an assignment, so listing or reopening one cannot duplicate or reset it: the
+    mission keeps its Task, its submissions and its status, and is finished through the same submission and
+    parent-approval flow as today's mission."""
+    now_utc = now_utc or _now()
+    today = local_today(session, child.family_id, now_utc)
+    Assignment = get_model("DailyMissionAssignment")
+    Task = get_model("Task")
+    return (
+        session.query(Assignment)
+        .join(Task, Task.id == Assignment.task_id)
+        .filter(
+            Assignment.child_id == child.id,
+            Assignment.is_current.is_(True),
+            Assignment.local_date < today,
+            Assignment.status.in_(UNFINISHED_STATUSES),
+            Task.is_active.is_(True),
+        )
+        .order_by(Assignment.local_date.desc(), Assignment.choice_slot)
+        .limit(UNFINISHED_LIMIT)
+        .all()
+    )
 
 
 def start_assignment(session: Session, child, assignment_id: UUID):

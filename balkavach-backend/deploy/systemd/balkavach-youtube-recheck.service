@@ -1,0 +1,18 @@
+# EXAMPLE ONLY (VPS option). Nothing in the repository installs this. See docs/video-feed-restoration.md.
+# Install as /etc/systemd/system/balkavach-youtube-recheck.service and pair it with the .timer next to it.
+[Unit]
+Description=BalKavach YouTube recheck (keeps approved videos in the child feed)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# A dedicated non-root user; never root.
+User=balkavach
+WorkingDirectory=/opt/balkavach/balkavach-backend
+# DATABASE_URL, YOUTUBE_DATA_API_KEY, YOUTUBE_REGION_CODE, YOUTUBE_REVERIFY_HOURS (same values as the API).
+# File mode 0600, owned by root:balkavach.
+EnvironmentFile=/etc/balkavach/backend.env
+ExecStart=/opt/balkavach/venv/bin/python -m app.cli youtube-recheck --limit 200
+TimeoutStartSec=900
+# Type=oneshot never overlaps itself; the job is also safe if two ever ran (FOR UPDATE SKIP LOCKED).

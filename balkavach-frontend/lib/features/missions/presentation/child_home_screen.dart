@@ -15,8 +15,6 @@ import '../../../shared/widgets/illustration.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../authentication/presentation/session_controller.dart';
 import '../../child_profile/presentation/family_providers.dart';
-import '../../companion/domain/companion_director.dart';
-import '../../companion/presentation/panda_companion.dart';
 import '../../progress/data/progress_repository.dart';
 import '../domain/mission_models.dart';
 import '../domain/mission_status.dart';
@@ -252,16 +250,6 @@ class _TodayCard extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: AppSpacing.md,
       children: [
-        if (todo.isNotEmpty)
-          PandaCompanion(
-            key: ValueKey(todo.first.id),
-            event: CompanionEvent.missionIntro,
-            missionTitle: todo.first.title,
-          )
-        else if (total > 0)
-          const PandaCompanion(event: CompanionEvent.missionApproved)
-        else
-          const PandaCompanion(event: CompanionEvent.greeting),
         if (statuses != null && !statuses.reviewsAvailable)
           InlineNotice(message: l10n.reviewsUnavailable),
         AppCard(
@@ -321,7 +309,7 @@ class _NextMissionRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                mission.title,
+                mission.childTitle,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: context.text.titleMedium,

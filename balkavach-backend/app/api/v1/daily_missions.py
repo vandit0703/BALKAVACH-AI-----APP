@@ -22,7 +22,8 @@ from app.schemas.daily_mission import (
 from app.schemas.task import TaskSubmissionCreate
 from app.services.mission_catalogue_service import assignment_counts, catalogue_health, missing_combinations
 from app.services.daily_mission_service import (
-    _public,
+    public_assignment as _public,
+    unfinished_assignments,
     task_description,
     ensure_daily_choices,
     select_assignment,
@@ -81,6 +82,13 @@ def active_mission(child=Depends(require_child), session: Session = Depends(get_
         .first()
     )
     return DailyMissionAssignmentPublic(**_public(row)) if row else None
+
+
+@router.get("/unfinished", response_model=list[DailyMissionAssignmentPublic])
+def unfinished_missions(child=Depends(require_child), session: Session = Depends(get_db)):
+    """Missions the child chose on an earlier day and has not finished. Read-only: reopening one is the same
+    Task and submission flow as today's mission, so nothing is duplicated or reset."""
+    return [DailyMissionAssignmentPublic(**_public(row)) for row in unfinished_assignments(session, child)]
 
 
 @router.post("/{assignment_id}/start", response_model=DailyMissionAssignmentPublic)

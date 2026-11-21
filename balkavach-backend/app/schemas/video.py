@@ -412,6 +412,10 @@ class YouTubeDiagnosticsPublic(BaseModel):
 	publication_failure_reasons: dict[str, int]
 	configuration: dict[str, bool]
 	oldest_approved_verification: datetime | None = None
+	last_recheck_run: datetime | None = None
+	last_recheck_result: dict[str, int] = {}
+	last_recheck_failure: datetime | None = None
+	last_recheck_failure_code: str | None = None
 	approved_stale: int = 0
 	reverify_hours: int = 72
 	approved: int = 0

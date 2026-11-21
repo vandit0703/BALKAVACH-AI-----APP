@@ -6,7 +6,10 @@ import 'dart:async';
 import 'package:balkavach_app/core/errors/api_exception.dart';
 import 'package:balkavach_app/features/companion/data/companion_chat_repository.dart';
 import 'package:balkavach_app/features/companion/data/speech_services.dart';
+import 'package:balkavach_app/features/companion/domain/lip_sync.dart';
 import 'package:balkavach_app/features/companion/domain/panda_interaction.dart';
+import 'package:balkavach_app/features/companion/domain/panda_performer.dart';
+import 'package:balkavach_app/features/companion/domain/viseme.dart';
 import 'package:balkavach_app/features/companion/presentation/panda_character.dart';
 import 'package:balkavach_app/features/companion/presentation/panda_talk_sheet.dart';
 import 'package:balkavach_app/features/learning/data/video_feed_repository.dart';
@@ -68,7 +71,8 @@ class FakeOutput implements SpeechOutput {
   final spoken = <(String, String)>[];
   final supported = {'en', 'hi', 'gu'};
   Completer<SpeakOutcome>? current;
-  void Function()? word;
+  void Function()? start;
+  void Function(SpokenWord word)? word;
   int stops = 0;
 
   /// When true, lines finish immediately.
@@ -78,13 +82,15 @@ class FakeOutput implements SpeechOutput {
   Future<SpeakOutcome> speak(
     String text, {
     required String languageCode,
-    void Function()? onWord,
+    void Function()? onStart,
+    void Function(SpokenWord word)? onWord,
   }) {
     spoken.add((text, languageCode));
     if (!supported.contains(languageCode)) {
       return Future.value(SpeakOutcome.unsupported);
     }
     if (instant) return Future.value(SpeakOutcome.completed);
+    start = onStart;
     word = onWord;
     return (current = Completer<SpeakOutcome>()).future;
   }
@@ -260,15 +266,19 @@ void main() {
       expect(w.state.pandaText, contains('octopus'));
 
       final onWord = w.output.word!;
-      onWord();
-      onWord();
+      w.output.start!();
+      onWord(const SpokenWord(word: 'Fun'));
+      onWord(const SpokenWord(word: 'fact'));
       expect(w.state.spokenWords, 2);
+      expect(w.controller.lipSync.wordsHeard, 2);
 
       w.output.finish();
       await flush(tester);
       // A word callback arriving after the line ended moves nothing.
-      onWord();
+      onWord(const SpokenWord(word: 'late'));
       expect(w.state.spokenWords, 2);
+      expect(w.controller.lipSync.isSpeaking, isFalse);
+      expect(w.controller.lipSync.viseme.value, Viseme.rest);
       expect(w.state.phase, PandaPhase.curious);
 
       // "yes" next turn carries the follow-up topic.
@@ -592,103 +602,334 @@ void main() {
     expect(reply.suggestions, [PandaSuggestion.joke]);
   });
 
-  group('PandaCharacter', () {
-    Future<void> pump(WidgetTester tester, PandaPhase phase, int words) =>
-        pumpScreen(
-          tester,
-          Scaffold(
-            body: Center(
-              child: SizedBox(
-                width: 300,
-                child: PandaCharacter(phase: phase, spokenWords: words),
-              ),
-            ),
+  group('PandaCharacter (layered, lip-synced rig)', () {
+    late LipSyncController sync;
+    var tick = Duration.zero;
+
+    Future<void> pump(
+      WidgetTester tester,
+      PandaPhase phase, {
+      LipSyncController? lipSync,
+      bool settle = false,
+    }) => pumpScreen(
+      tester,
+      Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: 300,
+            child: PandaCharacter(phase: phase, lipSync: lipSync),
           ),
-          overrides: const [],
-          settle: false,
-        );
+        ),
+      ),
+      overrides: const [],
+      settle: settle,
+    );
 
-    double scaleOf(WidgetTester tester) => tester
-        .widget<Transform>(
-          find
-              .descendant(
-                of: find.byKey(const Key('panda.talk.character')),
-                matching: find.byType(Transform),
-              )
-              .last,
-        )
-        .transform
-        .getMaxScaleOnAxis();
+    PandaCharacterState rig(WidgetTester tester) =>
+        tester.state<PandaCharacterState>(find.byType(PandaCharacter));
 
-    testWidgets('each spoken word gives one talk beat', (tester) async {
-      await pump(tester, PandaPhase.speaking, 0);
-      expect(scaleOf(tester), closeTo(1, 0.001));
-      await pump(tester, PandaPhase.speaking, 1); // 100 ms into a 180 ms beat
-      expect(scaleOf(tester), greaterThan(1.005));
-      await tester.pump(const Duration(milliseconds: 200));
-      expect(scaleOf(tester), closeTo(1, 0.001));
+    Finder mouth(Viseme v) =>
+        find.byKey(ValueKey('panda.rig.viseme.${v.name}'));
+
+    setUp(() {
+      tick = Duration.zero;
+      sync = LipSyncController(clock: () => tick);
     });
+    tearDown(() => sync.dispose());
 
-    testWidgets('reduced motion: words and happy news move nothing', (
+    testWidgets('the mouth shows the shape the speech engine is on', (
       tester,
     ) async {
+      await pump(tester, PandaPhase.speaking, lipSync: sync);
+      expect(mouth(Viseme.rest), findsOneWidget);
+
+      sync.begin('mama');
+      sync.audioStarted();
+      sync.wordStarted(const SpokenWord(word: 'mama'));
+      await tester.pump();
+      expect(mouth(Viseme.mbp), findsOneWidget);
+      // The painter's own mouth moves toward that shape on the next frames.
+      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(rig(tester).performer.viseme, Viseme.mbp);
+      expect(rig(tester).performer.mouth.pressed, isTrue);
+
+      tick += const Duration(milliseconds: 80);
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(mouth(Viseme.ah), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(rig(tester).performer.mouth.open, greaterThan(0.5));
+    });
+
+    testWidgets('cancelling speech closes the mouth at once, and it settles', (
+      tester,
+    ) async {
+      await pump(tester, PandaPhase.speaking, lipSync: sync);
+      sync.begin('ah ah ah');
+      sync.audioStarted();
+      sync.wordStarted(const SpokenWord(word: 'ah'));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(rig(tester).performer.mouth.open, greaterThan(0.2));
+
+      sync.cancel(); // what Stop, closing, an error or an interrupt calls
+      await tester.pump();
+      expect(mouth(Viseme.rest), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(rig(tester).performer.mouth.open, lessThan(0.02));
+    });
+
+    testWidgets('speaking, listening, thinking and idle look different', (
+      tester,
+    ) async {
+      final poses = <PandaPhase, PandaPose>{};
+      for (final phase in [
+        PandaPhase.idle,
+        PandaPhase.listening,
+        PandaPhase.thinking,
+        PandaPhase.speaking,
+        PandaPhase.happy,
+        PandaPhase.curious,
+        PandaPhase.sleepy,
+      ]) {
+        await pump(tester, phase);
+        await tester.pump(const Duration(seconds: 2));
+        poses[phase] = rig(tester).performer.pose;
+        expect(
+          find.byKey(ValueKey('panda.rig.phase.${phase.name}')),
+          findsOneWidget,
+        );
+      }
+      final phases = poses.keys.toList();
+      for (var a = 0; a < phases.length; a++) {
+        for (var b = a + 1; b < phases.length; b++) {
+          expect(
+            poses[phases[a]]!.distanceTo(poses[phases[b]]!),
+            greaterThan(0.1),
+            reason: '${phases[a]} vs ${phases[b]}',
+          );
+        }
+      }
+    });
+
+    testWidgets('changing state eases in instead of jumping', (tester) async {
+      await pump(tester, PandaPhase.idle);
+      await tester.pump(const Duration(seconds: 1));
+      await pump(tester, PandaPhase.listening);
+      await tester.pump(const Duration(milliseconds: 40));
+      final early = rig(tester).performer.pose;
+      expect(early.headTilt, greaterThan(0));
+      expect(
+        early.headTilt,
+        lessThan(pandaPoses[PandaPhase.listening]!.headTilt),
+      );
+      await tester.pump(const Duration(seconds: 2));
+      expect(
+        rig(tester).performer.pose.headTilt,
+        closeTo(pandaPoses[PandaPhase.listening]!.headTilt, 0.005),
+      );
+    });
+
+    testWidgets('Panda blinks on its own while idle', (tester) async {
+      await pump(tester, PandaPhase.idle);
+      var blinked = false;
+      for (var i = 0; i < 400 && !blinked; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+        blinked = rig(tester).performer.blink > 0.5;
+      }
+      expect(blinked, isTrue);
+    });
+
+    testWidgets('reduced motion: no blinking or bobbing, the mouth still '
+        'follows the voice', (tester) async {
       tester.platformDispatcher.accessibilityFeaturesTestValue =
           const FakeAccessibilityFeatures(disableAnimations: true);
       addTearDown(
         tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
       );
-      await pump(tester, PandaPhase.speaking, 0);
-      await pump(tester, PandaPhase.speaking, 3);
-      await tester.pump(const Duration(milliseconds: 90));
-      expect(scaleOf(tester), 1);
-      await pump(tester, PandaPhase.happy, 3);
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(scaleOf(tester), 1);
-      expect(tester.hasRunningAnimations, isFalse);
-    });
-
-    testWidgets('motion stops as soon as the words stop', (tester) async {
-      await pump(tester, PandaPhase.speaking, 0);
-      for (var words = 1; words <= 3; words++) {
-        await pump(tester, PandaPhase.speaking, words);
+      await pump(tester, PandaPhase.idle, lipSync: sync);
+      for (var i = 0; i < 300; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+        expect(rig(tester).performer.blink, 0);
       }
-      await tester.pump(const Duration(milliseconds: 200));
       expect(tester.hasRunningAnimations, isFalse);
-      expect(scaleOf(tester), closeTo(1, 0.001));
+
+      sync.begin('ah');
+      sync.audioStarted();
+      sync.wordStarted(const SpokenWord(word: 'ah'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(rig(tester).performer.mouth.open, greaterThan(0.3));
+      expect(rig(tester).performer.headBob, 0);
+      sync.cancel();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(tester.hasRunningAnimations, isFalse);
     });
 
-    testWidgets('idle breathing is bounded, so it cannot drain the battery', (
-      tester,
-    ) async {
-      await pump(tester, PandaPhase.idle, 0);
-      expect(tester.hasRunningAnimations, isTrue);
+    testWidgets('idle animation stops after a while so it cannot drain the '
+        'battery, and wakes when Panda speaks again', (tester) async {
+      await pump(tester, PandaPhase.idle, lipSync: sync);
+      expect(rig(tester).isTicking, isTrue);
       await tester.pump(const Duration(minutes: 1));
       expect(tester.hasRunningAnimations, isFalse);
+      expect(rig(tester).isTicking, isFalse);
+
+      sync.begin('ma');
+      sync.audioStarted();
+      sync.wordStarted(const SpokenWord(word: 'ma'));
+      await tester.pump();
+      expect(rig(tester).isTicking, isTrue, reason: 'a viseme change wakes it');
+      sync.cancel();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(minutes: 1));
+      expect(rig(tester).isTicking, isFalse);
     });
 
-    testWidgets('removing Panda mid-animation leaks no controller', (
+    testWidgets('removing Panda mid-speech leaks no ticker or listener', (
       tester,
     ) async {
-      await pump(tester, PandaPhase.happy, 0);
-      await pump(tester, PandaPhase.speaking, 1);
-      expect(tester.hasRunningAnimations, isTrue);
+      await pump(tester, PandaPhase.speaking, lipSync: sync);
+      sync.begin('ma ma');
+      sync.audioStarted();
+      sync.wordStarted(const SpokenWord(word: 'ma'));
+      await tester.pump(const Duration(milliseconds: 50));
       await tester.pumpWidget(const SizedBox());
-      // An undisposed AnimationController would throw here.
+      // An undisposed Ticker would throw here; the listener must be gone too.
       expect(tester.takeException(), isNull);
       expect(tester.hasRunningAnimations, isFalse);
+      sync.wordStarted(const SpokenWord(word: 'ba'));
+      expect(tester.takeException(), isNull);
     });
 
-    testWidgets('each state uses the existing Panda artwork', (tester) async {
-      for (final phase in PandaPhase.values) {
-        expect(kPandaArt.poseFor(phase), startsWith('assets/images/panda_'));
-      }
-      await pump(tester, PandaPhase.happy, 0);
-      expect(
-        find.byKey(
-          const ValueKey('panda.pose.assets/images/panda_cheering.jpg'),
-        ),
-        findsOneWidget,
-      );
+    testWidgets('without a mouth source the mouth stays closed', (
+      tester,
+    ) async {
+      await pump(tester, PandaPhase.speaking);
+      await tester.pump(const Duration(seconds: 1));
+      expect(rig(tester).performer.mouth.open, lessThan(0.01));
+    });
+  });
+
+  group('Panda speech and animation start and stop together', () {
+    pandaTest('speech starting puts the mouth on the audio, not before', (
+      tester,
+      w,
+    ) async {
+      unawaited(w.controller.send('joke'));
+      await flush(tester);
+      expect(w.state.phase, PandaPhase.speaking);
+      final sync = w.controller.lipSync;
+      expect(sync.isSpeaking, isTrue);
+      expect(sync.viseme.value, Viseme.rest, reason: 'audio has not started');
+
+      w.output.start!();
+      w.output.word!(const SpokenWord(word: 'Why'));
+      sync.update();
+      expect(sync.mode, LipSyncMode.boundaries);
+      expect(sync.viseme.value, isNot(Viseme.rest));
+    });
+
+    pandaTest('speech completing returns the mouth to rest and Panda to a '
+        'resting state', (tester, w) async {
+      unawaited(w.controller.send('joke'));
+      await flush(tester);
+      w.output.start!();
+      w.output.word!(const SpokenWord(word: 'Why'));
+      w.output.finish();
+      await flush(tester);
+      expect(w.controller.lipSync.isSpeaking, isFalse);
+      expect(w.controller.lipSync.viseme.value, Viseme.rest);
+      expect(w.state.phase, PandaPhase.happy);
+      await tester.pump(PandaTalkController.happyRest);
+      expect(w.state.phase, PandaPhase.idle);
+    });
+
+    pandaTest('Stop ends the voice and the mouth together', (tester, w) async {
+      unawaited(w.controller.send('joke'));
+      await flush(tester);
+      w.output.start!();
+      w.output.word!(const SpokenWord(word: 'Why'));
+      expect(w.controller.lipSync.isSpeaking, isTrue);
+
+      final stopped = w.controller.stop();
+      // Synchronously, before the voice call has even returned:
+      expect(w.controller.lipSync.isSpeaking, isFalse);
+      expect(w.controller.lipSync.viseme.value, Viseme.rest);
+      await stopped;
+      expect(w.output.stops, greaterThan(0));
+      expect(w.state.phase, PandaPhase.idle);
+      // A word callback from the stopped line moves nothing.
+      w.output.word!(const SpokenWord(word: 'late'));
+      expect(w.controller.lipSync.viseme.value, Viseme.rest);
+    });
+
+    pandaTest('the child interrupting (mic tap) stops voice and mouth', (
+      tester,
+      w,
+    ) async {
+      await w.controller.refreshVoiceConsent(); // the panel does this on open
+      unawaited(w.controller.send('joke'));
+      await flush(tester);
+      w.output.start!();
+      w.output.word!(const SpokenWord(word: 'Why'));
+      unawaited(w.controller.startListening());
+      expect(w.controller.lipSync.isSpeaking, isFalse);
+      await flush(tester);
+      expect(w.output.stops, greaterThan(0));
+      expect(w.state.phase, PandaPhase.listening);
+      expect(w.controller.lipSync.viseme.value, Viseme.rest);
+    });
+
+    pandaTest('sending a new message while Panda talks cuts the old mouth', (
+      tester,
+      w,
+    ) async {
+      unawaited(w.controller.send('joke'));
+      await flush(tester);
+      w.output.start!();
+      w.output.word!(const SpokenWord(word: 'Why'));
+      w.output.instant = true;
+      unawaited(w.controller.send('fact'));
+      expect(w.controller.lipSync.wordsHeard, 0);
+      await flush(tester);
+      expect(w.controller.lipSync.viseme.value, Viseme.rest);
+    });
+
+    pandaTest('a failed or unsupported voice never moves the mouth', (
+      tester,
+      w,
+    ) async {
+      w.output.supported.remove('en');
+      unawaited(w.controller.send('joke'));
+      await flush(tester);
+      expect(w.state.voiceMissing, isTrue);
+      expect(w.controller.lipSync.isSpeaking, isFalse);
+      expect(w.controller.lipSync.viseme.value, Viseme.rest);
+      expect(w.controller.lipSync.wordsHeard, 0);
+    });
+
+    pandaTest('an interrupted line (watchdog or engine) ends the mouth, '
+        'it does not finish gently', (tester, w) async {
+      unawaited(w.controller.send('joke'));
+      await flush(tester);
+      w.output.start!();
+      w.output.word!(const SpokenWord(word: 'Why'));
+      await w.output.stop(); // engine cancels the line
+      await flush(tester);
+      expect(w.controller.lipSync.isSpeaking, isFalse);
+      expect(w.controller.lipSync.viseme.value, Viseme.rest);
+    });
+
+    pandaTest('closing the panel disposes the mouth source', (tester, w) async {
+      unawaited(w.controller.send('joke'));
+      await flush(tester);
+      w.output.start!();
+      final sync = w.controller.lipSync;
+      w.container.dispose();
+      expect(sync.isSpeaking, isFalse);
+      // Disposed: any later call is a safe no-op.
+      sync.wordStarted(const SpokenWord(word: 'x'));
+      sync.cancel();
+      w.container = ProviderContainer(); // for the tear-down
     });
   });
 

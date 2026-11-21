@@ -13,6 +13,10 @@ It changes no server and no configuration; it is the plan to execute under your 
 | `youtube-auto-review --limit 100` | Re-reviews waiting videos only | optional (discover already does it) | Waiting videos stay pending |
 | `streak-check` | Moves streaks to at-risk/broken and sends "streak at risk" notifications | hourly (idempotent, 20 h notification de-dupe) | No at-risk pushes; states update lazily on next activity |
 | `youtube-report` | Read-only status report | on demand / daily to logs | none |
+| `youtube-recheck-health` | Read-only monitor: exit 3 if approved videos are stale or no recheck completed in `--max-age-hours` (default 3) | hourly | none; a non-zero exit is the alert |
+| `video-feed-diagnose --child-id <id>` | Read-only: which feed rule empties a child's Home/Shorts | on demand | none |
+
+Example Render and systemd definitions for these jobs are in `balkavach-backend/deploy/`; the runbook is `docs/video-feed-restoration.md`.
 
 Exit codes: `0` success, `1` handled error (e.g. YouTube quota), `2` database error. Overlapping runs are safe for
 `youtube-recheck` (`FOR UPDATE SKIP LOCKED`); do not run two `youtube-discover` at once.

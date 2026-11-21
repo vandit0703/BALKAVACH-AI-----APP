@@ -3758,7 +3758,7 @@ abstract class AppLocalizations {
   /// Home empty state when no section has content.
   ///
   /// In en, this message translates to:
-  /// **'No videos here yet. A grown-up checks every video before it appears.'**
+  /// **'No videos here right now. Check back soon, or try a mission!'**
   String get watchNothingYet;
 
   /// Expands a Short's description.
@@ -4936,6 +4936,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This explanation has changed. Please update the app, then try again.'**
   String get pandaConsentOutdated;
+
+  /// No description provided for @missionsUnfinishedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Still to finish'**
+  String get missionsUnfinishedTitle;
+
+  /// No description provided for @missionContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get missionContinue;
+
+  /// No description provided for @missionFromDay.
+  ///
+  /// In en, this message translates to:
+  /// **'From {date}'**
+  String missionFromDay(String date);
 }
 
 class _AppLocalizationsDelegate

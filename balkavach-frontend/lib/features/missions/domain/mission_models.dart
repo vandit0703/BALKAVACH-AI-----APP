@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'mission_titles.dart';
+
 DateTime? _parseDate(Object? value) =>
     value == null ? null : DateTime.parse(value as String);
 
@@ -75,6 +77,9 @@ class Mission {
   final String createdBy;
   final String? assignedChildId;
   final String title;
+
+  /// The title as a child reads it (no age range). [title] stays as stored.
+  String get childTitle => childFacingMissionTitle(title);
   final String? description;
   final int starReward;
   final int xpReward;

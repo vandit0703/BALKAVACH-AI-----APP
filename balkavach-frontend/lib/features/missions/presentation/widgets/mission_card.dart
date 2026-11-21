@@ -33,7 +33,7 @@ class MissionCard extends StatelessWidget {
 
     return AppCard(
       onTap: onOpen,
-      semanticLabel: mission.title,
+      semanticLabel: mission.childTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: AppSpacing.md,
@@ -48,7 +48,7 @@ class MissionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      mission.title,
+                      mission.childTitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: context.text.titleLarge,

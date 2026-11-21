@@ -218,7 +218,7 @@ class _Hero extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      mission.title,
+                      mission.childTitle,
                       style: context.text.headlineMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,

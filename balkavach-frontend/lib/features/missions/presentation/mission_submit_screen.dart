@@ -203,7 +203,7 @@ class _MissionBanner extends StatelessWidget {
         spacing: AppSpacing.sm,
         children: [
           StarPill(count: mission.starReward, prefix: '+'),
-          Text(mission.title, style: context.text.headlineMedium),
+          Text(mission.childTitle, style: context.text.headlineMedium),
         ],
       ),
     );

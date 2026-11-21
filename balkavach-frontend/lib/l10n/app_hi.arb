@@ -608,7 +608,7 @@
   "watchTopicsSection": "विषय खोजें",
   "watchVideosSection": "सीखने वाले वीडियो",
   "watchPickedSection": "बड़ों द्वारा चुने गए",
-  "watchNothingYet": "अभी यहाँ कोई वीडियो नहीं है। हर वीडियो दिखने से पहले कोई बड़ा उसे जाँचता है।",
+  "watchNothingYet": "अभी यहाँ कोई वीडियो नहीं है। जल्दी फिर देखो, या कोई मिशन करो!",
   "shortsMore": "और देखें",
   "shortsLess": "कम देखें",
   "shortsActionSound": "आवाज़",
@@ -835,5 +835,8 @@
   "pandaConsentCancel": "अभी नहीं",
   "pandaConsentWithdrawn": "{name} के लिए माइक्रोफ़ोन बंद कर दिया गया।",
   "pandaConsentSaveFailed": "हम इसे सेव नहीं कर सके। कृपया फिर कोशिश करें।",
-  "pandaConsentOutdated": "यह जानकारी बदल गई है। कृपया ऐप अपडेट करें, फिर कोशिश करें।"
+  "pandaConsentOutdated": "यह जानकारी बदल गई है। कृपया ऐप अपडेट करें, फिर कोशिश करें।",
+  "missionsUnfinishedTitle": "अभी पूरे करने हैं",
+  "missionContinue": "आगे बढ़ो",
+  "missionFromDay": "{date} से"
 }
