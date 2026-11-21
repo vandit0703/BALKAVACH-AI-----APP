@@ -26,7 +26,7 @@ CREATE TABLE users (
 
 CREATE TABLE families (
 	id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	name text NOT NULL DEFAULT 'Family',
+	family_name text NOT NULL DEFAULT 'Family',
 	created_by uuid REFERENCES users(id),
 	created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -35,7 +35,8 @@ CREATE TABLE family_members (
 	id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	family_id uuid NOT NULL REFERENCES families(id) ON DELETE CASCADE,
 	user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-	role text NOT NULL DEFAULT 'parent',
+	relationship text NOT NULL DEFAULT 'parent',
+	is_primary_parent boolean NOT NULL DEFAULT false,
 	is_active boolean NOT NULL DEFAULT true,
 	created_at timestamptz NOT NULL DEFAULT now(),
 	UNIQUE (family_id, user_id)
@@ -65,7 +66,8 @@ CREATE TABLE task_categories (
 	name text NOT NULL,
 	description text,
 	icon_name text,
-	is_default boolean NOT NULL DEFAULT false
+	is_default boolean NOT NULL DEFAULT false,
+	is_active boolean NOT NULL DEFAULT true
 );
 
 CREATE TABLE tasks (
@@ -195,7 +197,8 @@ CREATE TABLE user_settings (
 	user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
 	language_code text NOT NULL DEFAULT 'en',
 	push_enabled boolean NOT NULL DEFAULT true,
-	email_notifications_enabled boolean NOT NULL DEFAULT true
+	email_notifications_enabled boolean NOT NULL DEFAULT true,
+	updated_at timestamptz
 );
 
 CREATE TABLE family_settings (
