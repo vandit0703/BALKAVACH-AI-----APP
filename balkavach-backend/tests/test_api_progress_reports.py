@@ -42,7 +42,9 @@ def test_first_approval_unlocks_badge_once_and_sets_level(api, seeded):
     child = ctx["child"]
     _approve_one(api, ctx, title="First task", star_reward=2, xp_reward=150)
     progress = api.get(f"/progress/children/{child['id']}", child["token"]).json()
-    assert progress["level_number"] == 2
+    # The standard 15 XP (not the 150 requested) keeps the child at level 1, which is now set on the row.
+    assert progress["total_xp"] == 15
+    assert progress["level_number"] == 1
     names = [b["name"] for b in progress["badges"]]
     assert "First Mission" in names
     types = [n["notification_type"] for n in api.get("/notifications", child["token"]).json()]
@@ -96,7 +98,8 @@ def test_weekly_report_totals_categories_and_scope(api):
     report = api.get(f"/progress/children/{ctx['child']['id']}/weekly", ctx["parent"]["token"])
     assert report.status_code == 200, report.text
     body = report.json()
-    assert body["totals"] == {"completed_tasks": 3, "stars_earned": 7, "xp_earned": 50}
+    # Three approvals at the standard 10 stars / 15 XP each, read from what the ledgers recorded.
+    assert body["totals"] == {"completed_tasks": 3, "stars_earned": 30, "xp_earned": 45}
     assert body["pending_submissions"] == 1
     assert {c["name"]: c["completed_tasks"] for c in body["categories"]} == {"Learning": 1, "Fitness": 2}
     assert len(body["days"]) == 7

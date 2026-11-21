@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import APIError
 from app.db.base import get_model
+from app.services.mission_rewards import MISSION_STAR_REWARD, MISSION_XP_REWARD
 from app.services.mission_rotation_service import POLICY, Candidate, load_child_history, rank_candidates
 from app.services.mission_titles import child_facing_title
 from app.services.timezone_service import family_timezone_name, local_today
@@ -62,8 +63,9 @@ def _snapshot(template, variation) -> dict[str, Any]:
         "completion_criteria": variation.completion_criteria,
         "mission_type": template.mission_type,
         "theme": template.theme,
-        "star_reward": template.star_reward,
-        "xp_reward": template.xp_reward,
+        # The standard reward (mission_rewards), not the template's own values.
+        "star_reward": MISSION_STAR_REWARD,
+        "xp_reward": MISSION_XP_REWARD,
         "is_surprise": bool(template.is_surprise),
         "mystery_bonus": template.mystery_bonus,
         "locale": variation.locale,
@@ -78,6 +80,11 @@ def public_assignment(row) -> dict[str, Any]:
     content = dict(row.snapshot or {})
     if isinstance(content.get("title"), str):
         content["title"] = child_facing_title(content["title"])
+    if row.status != "approved":
+        # Not earned yet: show what an approval pays now. An approved row keeps the snapshot it was earned
+        # with (history is shown as recorded).
+        content["star_reward"] = MISSION_STAR_REWARD
+        content["xp_reward"] = MISSION_XP_REWARD
     return {
         "id": row.id,
         "local_date": row.local_date,
@@ -261,8 +268,8 @@ def select_assignment(session: Session, child, assignment_id: UUID):
         assigned_child_id=child.id,
         title=child_facing_title(assignment.snapshot["title"]),
         description=task_description(assignment.snapshot),
-        star_reward=assignment.snapshot["star_reward"],
-        xp_reward=assignment.snapshot["xp_reward"],
+        star_reward=MISSION_STAR_REWARD,
+        xp_reward=MISSION_XP_REWARD,
         is_custom=False,
         is_active=True,
     )

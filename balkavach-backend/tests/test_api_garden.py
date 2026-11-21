@@ -29,25 +29,27 @@ def test_new_child_starts_with_a_seed_and_nothing_unlocked(api, seeded):
 
 def test_stage_follows_xp_and_items_follow_badges(api, seeded):
     ctx = api.family_with_child()
-    _approve(api, ctx, xp_reward=150)
+    for _ in range(7):  # 7 approvals x the standard 15 XP = 105 XP
+        _approve(api, ctx)
     garden = api.get(f"/progress/children/{ctx['child']['id']}", ctx["child"]["token"]).json()["garden"]
     assert garden["stage"] == 2
-    assert garden["xp_to_next_stage"] == 150  # 300 - 150
+    assert garden["xp_to_next_stage"] == 195  # 300 - 105
     unlocked = {item["key"] for item in garden["items"] if item["unlocked"]}
-    assert unlocked == {"first-mission"}
+    # 7 missions: First Mission, and 70 stars passes Star Collector (50); not yet Mission Master (10).
+    assert unlocked == {"first-mission", "star-collector"}
 
 
-def test_top_stage_has_no_next_target(api, seeded):
-    ctx = api.family_with_child()
-    _approve(api, ctx, xp_reward=100000, star_reward=0)
-    garden = api.get(f"/progress/children/{ctx['child']['id']}", ctx["child"]["token"]).json()["garden"]
+def test_top_stage_has_no_next_target():
+    # Missions now pay a fixed 15 XP, so reaching the top stage through the API would take hundreds of
+    # approvals; the stage rule itself is what this checks.
+    garden = build_garden(total_xp=GARDEN_STAGES[-1]["minimum_xp"] + 1, earned_badge_names=set())
     assert garden["stage"] == len(GARDEN_STAGES)
     assert garden["xp_to_next_stage"] is None
 
 
 def test_parent_sees_the_same_garden(api, seeded):
     ctx = api.family_with_child()
-    _approve(api, ctx, xp_reward=120)
+    _approve(api, ctx)
     child_view = api.get(f"/progress/children/{ctx['child']['id']}", ctx["child"]["token"]).json()["garden"]
     parent_view = api.get(f"/progress/children/{ctx['child']['id']}", ctx["parent"]["token"]).json()["garden"]
     assert child_view == parent_view

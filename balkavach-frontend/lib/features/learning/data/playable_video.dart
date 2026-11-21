@@ -13,6 +13,10 @@ enum VideoUnavailableReason {
   /// The item carries nothing this app can play (no URL, or a YouTube page
   /// that is not a single video).
   noSource,
+
+  /// Listed for browsing, but today's video time is used up; the server
+  /// withheld the playable id.
+  timeUp,
 }
 
 /// Where a video's picture comes from. Exactly one player handles each case.
@@ -101,7 +105,9 @@ class PlayableVideo {
     reportVideoId: video.id,
     format: video.format,
     resumePositionSeconds: video.resumePositionSeconds,
-    source: video.isYouTube
+    source: video.playbackLocked
+        ? const UnavailableSource(VideoUnavailableReason.timeUp)
+        : video.isYouTube
         ? YouTubeVideoSource(video.youtubeVideoId!)
         : video.source == 'youtube'
         ? const UnavailableSource(VideoUnavailableReason.noSource)
@@ -168,6 +174,10 @@ class PlayableVideo {
   }
 
   bool get isPlayable => source is! UnavailableSource;
+
+  /// Listed, but locked until more video time is earned today.
+  bool get isTimeLocked =>
+      source == const UnavailableSource(VideoUnavailableReason.timeUp);
   bool get isYouTube => source is YouTubeVideoSource;
 
   /// What the share sheet may offer. Hosted media is never shared.

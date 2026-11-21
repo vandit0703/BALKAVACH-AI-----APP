@@ -248,11 +248,11 @@ def test_a_duplicate_youtube_video_appears_once(feed_db):
 	assert first.video.id != second.video.id
 
 
-def test_completed_videos_leave_the_feed_unless_a_parent_authorised_a_replay(feed_db):
+def test_completed_videos_stay_in_the_feed_after_unwatched_ones_without_any_parent_replay(feed_db):
 	child = make_child(feed_db)
-	seen = add_youtube(feed_db, title="Seen")
-	replay = add_youtube(feed_db, title="Replay")
-	add_youtube(feed_db, title="New")
+	seen = add_youtube(feed_db, title="Seen", display_order=0)
+	replay = add_youtube(feed_db, title="Replay", display_order=1)
+	add_youtube(feed_db, title="New", display_order=2)
 	now = utc_naive(datetime.now(timezone.utc))
 	for video, authorised in ((seen.video, False), (replay.video, True)):
 		feed_db.add(
@@ -262,7 +262,8 @@ def test_completed_videos_leave_the_feed_unless_a_parent_authorised_a_replay(fee
 			)
 		)
 	feed_db.commit()
-	assert titles(feed_db, child, "regular") == {"Replay", "New"}
+	ordered = [v.title for v in eligible_feed(feed_db, child, None, 50, 0, video_format="regular")]
+	assert ordered[0] == "New" and set(ordered) == {"Seen", "Replay", "New"}
 
 
 def test_pagination_returns_every_eligible_video_exactly_once(feed_db):
@@ -410,14 +411,16 @@ def test_both_routes_are_empty_only_when_nothing_is_eligible(api):
 	assert len(http.get("/api/v1/videos/feed").json()) == 1
 
 
-def test_an_exhausted_allowance_empties_both_routes_even_with_eligible_videos(api):
+def test_an_exhausted_allowance_keeps_listing_both_feeds_with_playback_locked(api):
 	http, child, session = api
 	add_youtube(session, title="Short", duration_seconds=30)
 	add_youtube(session, title="Long", duration_seconds=200)
 	assert http.get("/api/v1/videos/shorts").json() and http.get("/api/v1/videos/feed").json()
 	_use_up_allowance(session, child)
-	assert http.get("/api/v1/videos/shorts").json() == []
-	assert http.get("/api/v1/videos/feed").json() == []
+	for path in ("/api/v1/videos/shorts", "/api/v1/videos/feed"):
+		items = http.get(path).json()
+		assert len(items) == 1
+		assert items[0]["playback_locked"] is True and items[0]["youtube_video_id"] is None
 
 
 def test_playback_progress_charges_the_free_allowance_through_the_one_authoritative_path(api):

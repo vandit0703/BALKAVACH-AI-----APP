@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_serializer, field_validator, model_validator
 
+from app.services.mission_rewards import effective_star_reward, effective_xp_reward
 from app.utils import utc_aware
 
 
@@ -80,6 +81,17 @@ class TaskPublic(BaseModel):
 	def serialize_timestamp(self, value: datetime | None) -> datetime | None:
 		return utc_aware(value) if value else None
 
+	@field_validator("star_reward", mode="after")
+	@classmethod
+	def standard_star_reward(cls, value: int) -> int:
+		# What an approval of this mission pays now (one rule for every mission, see mission_rewards).
+		return effective_star_reward(value)
+
+	@field_validator("xp_reward", mode="after")
+	@classmethod
+	def standard_xp_reward(cls, value: int) -> int:
+		return effective_xp_reward(value)
+
 
 class TaskSubmissionCreate(BaseModel):
 	proof_type: Literal["none", "note", "image", "video", "file"] = "none"
@@ -136,3 +148,7 @@ class MySubmissionPublic(TaskSubmissionPublic):
 
 	task_title: str
 	review_note: str | None
+	# What this attempt actually earned, read from the star and XP ledgers (0 unless approved). Historical
+	# amounts are shown as recorded, never recalculated.
+	stars_awarded: int = 0
+	xp_awarded: int = 0

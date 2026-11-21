@@ -19,6 +19,8 @@ from app.schemas.task import (
 	TaskSubmissionPublic,
 	TaskUpdate,
 )
+from app.services.ledger_service import awarded_by_submission
+from app.services.mission_rewards import MISSION_STAR_REWARD, MISSION_XP_REWARD
 from app.services.notification_service import notify_task_assigned
 from app.services.task_service import submit_completion
 from app.utils import utc_naive
@@ -132,8 +134,9 @@ def create_task(
 		assigned_child_id=request.assigned_child_id,
 		title=request.title.strip(),
 		description=request.description,
-		star_reward=request.star_reward,
-		xp_reward=request.xp_reward,
+		# Every mission earns the standard reward (mission_rewards); a submitted value is not stored.
+		star_reward=MISSION_STAR_REWARD,
+		xp_reward=MISSION_XP_REWARD,
 		due_at=utc_naive(request.due_at) if request.due_at else None,
 		repeat_rule=request.repeat_rule,
 		is_custom=True,
@@ -198,6 +201,9 @@ def update_task(
 		raise HTTPException(status_code=404, detail="Task not found")
 	_require_family(session, task.family_id, parent.id)
 	updates = request.model_dump(exclude_unset=True)
+	# The reward is the same for every mission (mission_rewards): an edit cannot change it.
+	updates.pop("star_reward", None)
+	updates.pop("xp_reward", None)
 	if updates.get("due_at") is not None:
 		updates["due_at"] = utc_naive(updates["due_at"])
 	if "assigned_child_id" in updates and updates["assigned_child_id"] is not None:
@@ -274,11 +280,16 @@ def list_my_submissions(
 			.all()
 		)
 		notes = {submission_id: note for submission_id, note, _ in reviews}
+		awarded = awarded_by_submission(session, [submission.id for submission, _ in rows])
+	else:
+		awarded = {}
 	return [
 		MySubmissionPublic(
 			**TaskSubmissionPublic.model_validate(submission).model_dump(),
 			task_title=title,
 			review_note=notes.get(submission.id),
+			stars_awarded=awarded.get(submission.id, (0, 0))[0],
+			xp_awarded=awarded.get(submission.id, (0, 0))[1],
 		)
 		for submission, title in rows
 	]

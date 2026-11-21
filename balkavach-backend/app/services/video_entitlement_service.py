@@ -184,7 +184,9 @@ def grant_mission_video_entitlement(
     # 4. Check remaining cap room
     daily_cap = get_daily_cap_seconds(session, task.family_id)
     cap_room = max(0, daily_cap - total_granted_today)
-    grant_amount = min(MISSION_REWARD_ALLOWANCE_SECONDS, cap_room)
+    # A mission unlocks a whole 15 minutes or nothing: never a leftover slice of the cap,
+    # so "one mission = 15 minutes" is always what the child and parent are told.
+    grant_amount = MISSION_REWARD_ALLOWANCE_SECONDS if cap_room >= MISSION_REWARD_ALLOWANCE_SECONDS else 0
 
     if grant_amount <= 0:
         logger.info(

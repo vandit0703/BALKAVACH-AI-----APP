@@ -5,6 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.base import get_model
+from app.services.ledger_service import awarded_by_submission
 from app.services.timezone_service import (
 	family_timezone_name,
 	local_day_bounds_utc_naive,
@@ -26,7 +27,7 @@ def weekly_report(session: Session, child, weeks_back: int = 0) -> dict:
 	Task = get_model("Task")
 	TaskCategory = get_model("TaskCategory")
 	approved = (
-		session.query(TaskSubmission.reviewed_at, Task.title, Task.star_reward, Task.xp_reward, TaskCategory.id, TaskCategory.name)
+		session.query(TaskSubmission.id, TaskSubmission.reviewed_at, Task.title, TaskCategory.id, TaskCategory.name)
 		.join(Task, Task.id == TaskSubmission.task_id)
 		.outerjoin(TaskCategory, TaskCategory.id == Task.category_id)
 		.filter(
@@ -42,7 +43,10 @@ def weekly_report(session: Session, child, weeks_back: int = 0) -> dict:
 	days = {week_start + timedelta(days=i): {"completed_tasks": 0, "stars_earned": 0, "xp_earned": 0} for i in range(7)}
 	categories: dict[str, dict] = {}
 	recent = []
-	for reviewed_at, title, stars, xp, category_id, category_name in approved:
+	# What each approval actually paid, from the ledgers (not the task's stored reward fields).
+	awarded = awarded_by_submission(session, [row[0] for row in approved])
+	for submission_id, reviewed_at, title, category_id, category_name in approved:
+		stars, xp = awarded.get(submission_id, (0, 0))
 		local_day = utc_aware(reviewed_at).astimezone(zone).date()
 		bucket = days[local_day]
 		bucket["completed_tasks"] += 1

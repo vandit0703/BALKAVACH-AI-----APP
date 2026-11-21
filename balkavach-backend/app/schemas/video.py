@@ -118,6 +118,9 @@ class VideoFeedItem(BaseModel):
 	# player. Hosted videos never expose a media URL here.
 	youtube_video_id: str | None = None
 	last_position_seconds: int = 0
+	# True when today's watch allowance is used up: the video is listed (browsing never needs
+	# approval) but its playable id is withheld, so the lock cannot be bypassed by reading this JSON.
+	playback_locked: bool = False
 
 
 class VideoWatchProgressRequest(BaseModel):

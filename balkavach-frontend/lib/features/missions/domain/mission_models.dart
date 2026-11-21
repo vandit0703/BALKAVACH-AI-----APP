@@ -189,6 +189,8 @@ class TaskSubmission {
     this.starReward,
     this.xpReward,
     this.categoryName,
+    this.starsAwarded,
+    this.xpAwarded,
   });
 
   factory TaskSubmission.fromJson(Map<String, dynamic> json) => TaskSubmission(
@@ -209,6 +211,8 @@ class TaskSubmission {
     starReward: json['star_reward'] as int?,
     xpReward: json['xp_reward'] as int?,
     categoryName: json['category_name'] as String?,
+    starsAwarded: json['stars_awarded'] as int?,
+    xpAwarded: json['xp_awarded'] as int?,
   );
 
   final String id;
@@ -228,6 +232,11 @@ class TaskSubmission {
   final int? starReward;
   final int? xpReward;
   final String? categoryName;
+
+  /// What this attempt actually earned, from the server's ledgers
+  /// (`GET /tasks/submissions/mine`). `null` from a server that predates it.
+  final int? starsAwarded;
+  final int? xpAwarded;
   final int submissionNumber;
   final String proofType;
   final String? proofUrl;

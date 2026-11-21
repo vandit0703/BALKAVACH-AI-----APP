@@ -49,6 +49,17 @@ class MissionsRepository {
         return DailyMissionAssignment.fromJson(response.data!);
       });
 
+  /// `POST /api/v1/daily-missions/{id}/start`: marks a chosen mission as
+  /// started (`selected` -> `in_progress`). Pays nothing; repeating it on a
+  /// started, submitted or reviewed mission is a no-op on the server.
+  Future<DailyMissionAssignment> startDailyMission(String assignmentId) =>
+      guardApi(() async {
+        final response = await _dio.post<Map<String, dynamic>>(
+          '/api/v1/daily-missions/$assignmentId/start',
+        );
+        return DailyMissionAssignment.fromJson(response.data!);
+      });
+
   /// `GET /api/v1/tasks/categories` (any signed-in user).
   Future<List<TaskCategory>> listCategories() => guardApi(() async {
     final response = await _dio.get<List<dynamic>>('/api/v1/tasks/categories');

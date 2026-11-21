@@ -28,6 +28,7 @@ String describeError(AppLocalizations l10n, Object error) {
 String? _messageForCode(AppLocalizations l10n, String? code) => switch (code) {
   'submission_pending' => l10n.errorAlreadyPending,
   'task_already_completed' => l10n.errorAlreadyCompleted,
+  'daily_mission_already_selected' => l10n.errorDailyAlreadySelected,
   'upload_too_large' => l10n.errorPhotoTooLarge,
   'unsupported_image' => l10n.errorPhotoUnsupported,
   'too_many_uploads' => l10n.errorPhotoQuota,

@@ -35,7 +35,6 @@ STAGE_MEANING = {
 	"format_short": "there is no eligible video of 1-60 seconds",
 	"format_regular": "there is no eligible video longer than 60 seconds (or of unknown length)",
 	"requested_category": "nothing in the requested category",
-	"not_already_completed": "this child has already completed every remaining video (parent replay not authorised)",
 }
 
 

@@ -236,7 +236,7 @@ void main() {
     await _pumpApp(tester, h);
 
     await _tap(tester, find.text('Missions'));
-    expect(find.text('Child Missions'), findsOneWidget);
+    expect(find.text('My Missions'), findsOneWidget);
     expect(find.text('Play Outdoors or Yoga'), findsOneWidget);
 
     await _tap(tester, find.byKey(const Key('mission.${Fx.taskId}')));

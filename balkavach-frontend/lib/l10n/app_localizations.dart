@@ -1057,7 +1057,7 @@ abstract class AppLocalizations {
   /// No description provided for @missionsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Child Missions'**
+  /// **'My Missions'**
   String get missionsTitle;
 
   /// No description provided for @missionsFilterAll.
@@ -3422,7 +3422,7 @@ abstract class AppLocalizations {
   /// No description provided for @videoFeedEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No videos here yet. A grown-up checks every video before it appears.'**
+  /// **'No videos here yet. New videos appear after our team checks they are right for kids.'**
   String get videoFeedEmpty;
 
   /// No description provided for @videoFeedAdsNotice.
@@ -3686,7 +3686,7 @@ abstract class AppLocalizations {
   /// Watch & Learn home subheading.
   ///
   /// In en, this message translates to:
-  /// **'Every video here was checked by a grown-up.'**
+  /// **'Every video here was checked to be right for kids.'**
   String get watchGreetingBody;
 
   /// Shorts row heading on Home.
@@ -4940,7 +4940,7 @@ abstract class AppLocalizations {
   /// No description provided for @missionsUnfinishedTitle.
   ///
   /// In en, this message translates to:
-  /// **'Still to finish'**
+  /// **'Continue Your Missions'**
   String get missionsUnfinishedTitle;
 
   /// No description provided for @missionContinue.
@@ -4954,6 +4954,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'From {date}'**
   String missionFromDay(String date);
+
+  /// No description provided for @missionsHeroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready for an adventure?'**
+  String get missionsHeroTitle;
+
+  /// No description provided for @missionsHeroSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish a mission, earn stars and help your garden grow. You\'ve got this!'**
+  String get missionsHeroSubtitle;
+
+  /// No description provided for @missionsProgressStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s finish your first mission!'**
+  String get missionsProgressStart;
+
+  /// No description provided for @missionsProgressKeepGoing.
+  ///
+  /// In en, this message translates to:
+  /// **'Great start! Keep going!'**
+  String get missionsProgressKeepGoing;
+
+  /// No description provided for @missionsProgressAllDone.
+  ///
+  /// In en, this message translates to:
+  /// **'All done! Amazing work!'**
+  String get missionsProgressAllDone;
+
+  /// No description provided for @missionsStarsEarned.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 star earned} other{{count} stars earned}}'**
+  String missionsStarsEarned(int count);
+
+  /// No description provided for @missionsUnfinishedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick up right where you left off.'**
+  String get missionsUnfinishedSubtitle;
+
+  /// No description provided for @missionsChoosePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a mission to begin.'**
+  String get missionsChoosePrompt;
+
+  /// No description provided for @missionsForYouTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Missions for You'**
+  String get missionsForYouTitle;
+
+  /// No description provided for @missionsCompletedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get missionsCompletedTitle;
+
+  /// No description provided for @missionMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min'**
+  String missionMinutes(int count);
+
+  /// No description provided for @missionTrackStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get missionTrackStart;
+
+  /// No description provided for @missionTrackSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get missionTrackSent;
+
+  /// No description provided for @missionTrackDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get missionTrackDone;
+
+  /// No description provided for @missionCompleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mission complete!'**
+  String get missionCompleteTitle;
+
+  /// No description provided for @missionStepLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {number}'**
+  String missionStepLabel(int number);
+
+  /// No description provided for @missionsChoiceTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'You picked another mission today.'**
+  String get missionsChoiceTaken;
+
+  /// No description provided for @missionsStatDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done today'**
+  String get missionsStatDone;
+
+  /// No description provided for @missionsStatStars.
+  ///
+  /// In en, this message translates to:
+  /// **'Stars today'**
+  String get missionsStatStars;
+
+  /// No description provided for @missionsStatXp.
+  ///
+  /// In en, this message translates to:
+  /// **'XP today'**
+  String get missionsStatXp;
+
+  /// No description provided for @missionEarnBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish this mission to earn {stars} stars and {xp} XP.'**
+  String missionEarnBoth(int stars, int xp);
+
+  /// No description provided for @missionEarnedBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'You earned {stars} stars and {xp} XP!'**
+  String missionEarnedBoth(int stars, int xp);
+
+  /// No description provided for @errorDailyAlreadySelected.
+  ///
+  /// In en, this message translates to:
+  /// **'You already picked today\'s mission. Finish that one first!'**
+  String get errorDailyAlreadySelected;
 }
 
 class _AppLocalizationsDelegate

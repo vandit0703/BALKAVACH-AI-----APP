@@ -128,13 +128,21 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
   Future<void> _openShort(int index) async {
     // The server confirms time remains before anything opens.
     if (!await ensureVideoAllowance(context, ref) || !mounted) return;
+    var start = index;
+    if (_shorts.items.any((v) => v.playbackLocked)) {
+      // Time was earned since this list was loaded: reload it so the Shorts
+      // carry their playable ids, then open the one the child tapped.
+      await _shorts.refresh();
+      if (!mounted || _shorts.items.isEmpty) return;
+      start = index.clamp(0, _shorts.items.length - 1);
+    }
     unawaited(
       context
           .push(
             AppRoutes.childShorts,
             extra: ShortsLaunch(
               initialVideos: _shorts.items,
-              initialIndex: index,
+              initialIndex: start,
               nextOffset: _shorts.nextOffset,
               exhausted: !_shorts.hasMore,
             ),
@@ -145,6 +153,12 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
 
   Future<void> _openVideo(PlayableVideo video, List<PlayableVideo> from) async {
     if (!await ensureVideoAllowance(context, ref) || !mounted) return;
+    if (video.isTimeLocked) {
+      // Time was earned since this card was loaded: reload so it becomes
+      // playable. The child taps again; nothing plays from a stale card.
+      await _afterPlayback();
+      return;
+    }
     // "Up next" prefers the same topic, then the rest of the list.
     final related = [
       ...from.where(
@@ -185,11 +199,11 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
         videos.isEmpty &&
         _videos.status == PagerStatus.done &&
         _categoryId == null;
+    // The server lists the catalogue even at zero allowance (cards are then
+    // locked and the allowance card explains why), so an empty feed really
+    // means nothing is eligible right now.
     final nothingAtAll =
         shortsSettledEmpty && videosSettledEmpty && picked.isEmpty;
-    // At zero allowance the server empties both feeds on purpose. That is a
-    // time-up state (the allowance card above explains it), not "no videos".
-    final timeUp = ref.watch(videoAllowanceProvider).value?.isExhausted == true;
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -243,15 +257,7 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
                 ),
               ),
             ),
-          if (nothingAtAll && timeUp)
-            SliverToBoxAdapter(
-              child: EmptyView(
-                key: const Key('watch.timeUp'),
-                message: l10n.videoTimeExhaustedBody,
-                image: AppImages.pandaDrawing,
-              ),
-            )
-          else if (nothingAtAll)
+          if (nothingAtAll)
             SliverToBoxAdapter(
               child: EmptyView(
                 key: const Key('watch.empty'),
@@ -608,6 +614,15 @@ class _ShortCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (!video.isPlayable)
+                const Center(
+                  child: Icon(
+                    Icons.lock_rounded,
+                    key: Key('watch.short.locked'),
+                    size: 36,
+                    color: AppPalette.onPrimary,
+                  ),
+                ),
               Positioned(
                 top: AppSpacing.sm,
                 left: AppSpacing.sm,
@@ -674,6 +689,7 @@ class _VideoCard extends StatelessWidget {
                       child: Center(
                         child: Icon(
                           Icons.lock_rounded,
+                          key: Key('watch.video.locked'),
                           size: 40,
                           color: AppPalette.onPrimary,
                         ),

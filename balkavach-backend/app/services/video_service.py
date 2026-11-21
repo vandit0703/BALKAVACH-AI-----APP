@@ -77,24 +77,6 @@ def feed_conditions(
 		conditions.append(("format_regular", regular_clause(Video)))
 	if category_id:
 		conditions.append(("requested_category", Video.category_id == category_id))
-	if child_id is not None and has_model("ChildVideoWatchHistory"):
-		WatchHistory = get_model("ChildVideoWatchHistory")
-		# Finished videos leave the feed unless a parent authorised a replay.
-		conditions.append((
-			"not_already_completed",
-			or_(
-				~exists().where(
-					WatchHistory.child_id == child_id,
-					WatchHistory.video_id == Video.id,
-					WatchHistory.is_completed.is_(True),
-				),
-				exists().where(
-					WatchHistory.child_id == child_id,
-					WatchHistory.video_id == Video.id,
-					WatchHistory.parent_replay_authorized.is_(True),
-				),
-			),
-		))
 	return conditions
 
 
@@ -136,30 +118,28 @@ def eligible_feed(
 	query = session.query(Video).outerjoin(VideoCategory, VideoCategory.id == Video.category_id).filter(
 		*[clause for _, clause in conditions]
 	)
-	partially_watched = None
-	parent_replay = None
-	if has_model("ChildVideoWatchHistory"):
-		WatchHistory = get_model("ChildVideoWatchHistory")
-		partially_watched = exists().where(
-			WatchHistory.child_id == child.id,
-			WatchHistory.video_id == Video.id,
-			WatchHistory.is_completed.is_(False),
-			WatchHistory.last_position_seconds > 0,
-		)
-		parent_replay = exists().where(
-			WatchHistory.child_id == child.id,
-			WatchHistory.video_id == Video.id,
-			WatchHistory.is_completed.is_(True),
-			WatchHistory.parent_replay_authorized.is_(True),
-		)
 	order = [
 		case((Video.language_code == user.preferred_language, 0), else_=1),
 		Video.display_order,
 		Video.published_at.desc().nullslast(),
 		Video.id,
 	]
-	if partially_watched is not None:
-		order.insert(0, case((parent_replay, 2), (partially_watched, 1), else_=0))
+	if has_model("ChildVideoWatchHistory"):
+		WatchHistory = get_model("ChildVideoWatchHistory")
+		# Unwatched first, then videos in progress, then finished ones. Finished videos are never
+		# hidden: rewatching an eligible video needs no parent approval (the allowance still caps time).
+		partially_watched = exists().where(
+			WatchHistory.child_id == child.id,
+			WatchHistory.video_id == Video.id,
+			WatchHistory.is_completed.is_(False),
+			WatchHistory.last_position_seconds > 0,
+		)
+		finished = exists().where(
+			WatchHistory.child_id == child.id,
+			WatchHistory.video_id == Video.id,
+			WatchHistory.is_completed.is_(True),
+		)
+		order.insert(0, case((finished, 2), (partially_watched, 1), else_=0))
 	result = query.order_by(*order).offset(offset).limit(limit).all()
 	if not result and offset == 0:
 		# The first page of a feed is empty: say which rule removed the last candidates.

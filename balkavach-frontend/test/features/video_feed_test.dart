@@ -4,6 +4,7 @@ import 'package:balkavach_app/features/learning/data/video_feed_repository.dart'
 import 'package:balkavach_app/features/learning/data/youtube_embed_policy.dart';
 import 'package:balkavach_app/features/learning/presentation/video_feed_screen.dart';
 import 'package:balkavach_app/features/learning/presentation/youtube_player_screen.dart';
+import 'package:balkavach_app/l10n/app_localizations_en.dart';
 import 'package:balkavach_app/shared/platform/link_opener.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -438,16 +439,15 @@ void main() {
       );
     });
 
-    testWidgets('empty feed explains that grown-ups check videos', (
+    testWidgets('empty feed never says a grown-up must approve each video', (
       tester,
     ) async {
       await pump(tester, learn: (_) => const FakeReply(200, <Object?>[]));
       expect(find.byKey(const Key('videos.learn.empty')), findsOneWidget);
+      expect(find.text(AppLocalizationsEn().videoFeedEmpty), findsOneWidget);
       expect(
-        find.text(
-          'No videos here yet. A grown-up checks every video before it appears.',
-        ),
-        findsOneWidget,
+        find.textContaining(RegExp('grown-up', caseSensitive: false)),
+        findsNothing,
       );
     });
 

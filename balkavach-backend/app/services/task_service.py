@@ -9,6 +9,7 @@ from app.core.exceptions import APIError
 from app.db.base import get_model
 from app.schemas.task import TaskReviewCreate, TaskSubmissionCreate
 from app.services.ledger_service import star_balance, xp_total
+from app.services.mission_rewards import MISSION_STAR_REWARD, MISSION_XP_REWARD
 from app.services.notification_service import create_notification, family_parent_ids
 from app.services.progress_service import badge_qualifies
 from app.services.timezone_service import local_date_of
@@ -157,74 +158,62 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 	if request.decision == "approved":
 		ChildProfile = get_model("ChildProfile")
 		child = session.query(ChildProfile).filter(ChildProfile.id == submission.child_id).with_for_update().one()
-		if task.star_reward:
-			StarTransaction = get_model("StarTransaction")
-			session.add(
-				StarTransaction(
-					child_id=child.id,
-					amount=task.star_reward,
-					transaction_type="task_approved",
-					submission_id=submission.id,
-					idempotency_key=f"task-approved:{submission.id}:stars",
-					description=f"Approved task: {task.title}",
-				)
-			)
-		if daily_assignment is not None:
-			mystery_bonus = (daily_assignment.snapshot or {}).get("mystery_bonus")
-			if isinstance(mystery_bonus, dict) and mystery_bonus.get("type") == "stars":
-				bonus = int(mystery_bonus.get("amount", 0))
-				if bonus > 0:
-					StarTransaction = get_model("StarTransaction")
-					session.add(
-						StarTransaction(
-							child_id=child.id,
-							amount=bonus,
-							transaction_type="daily_surprise_bonus",
-							submission_id=submission.id,
-							idempotency_key=f"daily-surprise:{submission.id}:stars",
-							description="Daily Surprise Mission bonus",
-						)
-					)
-		if task.xp_reward:
-			XPTransaction = get_model("XPTransaction")
-			session.add(
-				XPTransaction(
-					child_id=child.id,
-					amount=task.xp_reward,
-					submission_id=submission.id,
-					reason="task_approved",
-					idempotency_key=f"task-approved:{submission.id}:xp",
-				)
-			)
-			ChildProgress = get_model("ChildProgress")
-			progress_insert = pg_insert(ChildProgress).values(
+		# One standard reward for every approved mission (see mission_rewards). The stored task values and any
+		# template "mystery bonus" are not paid any more: a mission earns exactly these amounts, once per
+		# approved submission (the submission was locked and is no longer pending after this transaction, and
+		# the ledger idempotency keys are per submission).
+		stars_awarded = MISSION_STAR_REWARD
+		xp_awarded = MISSION_XP_REWARD
+		StarTransaction = get_model("StarTransaction")
+		session.add(
+			StarTransaction(
 				child_id=child.id,
-				total_xp=task.xp_reward,
-				garden_progress={},
-				updated_at=now,
+				amount=stars_awarded,
+				transaction_type="task_approved",
+				submission_id=submission.id,
+				idempotency_key=f"task-approved:{submission.id}:stars",
+				description=f"Approved task: {task.title}",
 			)
-			session.execute(
-				progress_insert.on_conflict_do_update(
-					index_elements=[ChildProgress.child_id],
-					set_={
-						"total_xp": ChildProgress.total_xp + task.xp_reward,
-						"updated_at": now,
-					},
-				)
+		)
+		XPTransaction = get_model("XPTransaction")
+		session.add(
+			XPTransaction(
+				child_id=child.id,
+				amount=xp_awarded,
+				submission_id=submission.id,
+				reason="task_approved",
+				idempotency_key=f"task-approved:{submission.id}:xp",
 			)
-			total_xp = session.query(ChildProgress.total_xp).filter(ChildProgress.child_id == child.id).scalar()
-			Level = get_model("Level")
-			level = (
-				session.query(Level)
-				.filter(Level.minimum_xp <= total_xp)
-				.order_by(Level.minimum_xp.desc())
-				.first()
+		)
+		ChildProgress = get_model("ChildProgress")
+		progress_insert = pg_insert(ChildProgress).values(
+			child_id=child.id,
+			total_xp=xp_awarded,
+			garden_progress={},
+			updated_at=now,
+		)
+		session.execute(
+			progress_insert.on_conflict_do_update(
+				index_elements=[ChildProgress.child_id],
+				set_={
+					"total_xp": ChildProgress.total_xp + xp_awarded,
+					"updated_at": now,
+				},
 			)
-			if level:
-				session.query(ChildProgress).filter(ChildProgress.child_id == child.id).update(
-					{ChildProgress.current_level_id: level.id}
-				)
-				child.current_level_id = level.id
+		)
+		total_xp = session.query(ChildProgress.total_xp).filter(ChildProgress.child_id == child.id).scalar()
+		Level = get_model("Level")
+		level = (
+			session.query(Level)
+			.filter(Level.minimum_xp <= total_xp)
+			.order_by(Level.minimum_xp.desc())
+			.first()
+		)
+		if level:
+			session.query(ChildProgress).filter(ChildProgress.child_id == child.id).update(
+				{ChildProgress.current_level_id: level.id}
+			)
+			child.current_level_id = level.id
 
 		activity_date = submission_activity_date(session, task.family_id, submission, now)
 		ChildActivityDay = get_model("ChildActivityDay")
@@ -232,8 +221,8 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 			child_id=child.id,
 			activity_date=activity_date,
 			completed_tasks=1,
-			stars_earned=task.star_reward,
-			xp_earned=task.xp_reward,
+			stars_earned=stars_awarded,
+			xp_earned=xp_awarded,
 			created_at=now,
 		)
 		session.execute(
@@ -241,8 +230,8 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 				index_elements=[ChildActivityDay.child_id, ChildActivityDay.activity_date],
 				set_={
 					"completed_tasks": ChildActivityDay.completed_tasks + 1,
-					"stars_earned": ChildActivityDay.stars_earned + task.star_reward,
-					"xp_earned": ChildActivityDay.xp_earned + task.xp_reward,
+					"stars_earned": ChildActivityDay.stars_earned + stars_awarded,
+					"xp_earned": ChildActivityDay.xp_earned + xp_awarded,
 				},
 			)
 		)

@@ -307,8 +307,9 @@ def test_stacking_invariant_consumed_time_does_not_create_cap_room():
     assert len(session.added) == 0
 
 
-def test_partial_cap_remainder_grant():
-    """If daily limit is 1200s (20m) and 900s was already granted, next grant is 300s (5m)."""
+def test_cap_remainder_smaller_than_a_mission_grants_nothing():
+    """If daily limit is 1200s (20m) and 900s was already granted, the next mission grants nothing:
+    a mission unlocks a whole 15 minutes or nothing, never a 5-minute slice."""
     child_id = uuid4()
     family_id = uuid4()
     child = MagicMock(id=child_id, family_id=family_id)
@@ -322,8 +323,7 @@ def test_partial_cap_remainder_grant():
         sub = MagicMock(id=uuid4())
         result = grant_mission_video_entitlement(session, child, task, sub, now_utc=TEST_NOW)
 
-    assert result is not None
-    assert result.granted_seconds == 300
+    assert result is None
 
 
 def test_idempotent_grant_returns_existing_entitlement():

@@ -557,7 +557,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get reviewsUnavailable => 'अभी माता-पिता की समीक्षा जांच नहीं पाए।';
 
   @override
-  String get missionsTitle => 'बच्चे के मिशन';
+  String get missionsTitle => 'मेरे मिशन';
 
   @override
   String missionsFilterAll(int count) {
@@ -2027,7 +2027,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get videoFeedEmpty =>
-      'अभी यहाँ कोई वीडियो नहीं है। हर वीडियो दिखने से पहले कोई बड़ा उसे जाँचता है।';
+      'अभी यहाँ कोई वीडियो नहीं है। हमारी टीम जाँचती है कि वीडियो बच्चों के लिए सही हैं, फिर वे यहाँ दिखते हैं।';
 
   @override
   String get videoFeedAdsNotice =>
@@ -2166,7 +2166,8 @@ class AppLocalizationsHi extends AppLocalizations {
   String get watchGreeting => 'आज हम क्या देखें?';
 
   @override
-  String get watchGreetingBody => 'यहाँ हर वीडियो किसी बड़े ने जाँचा है।';
+  String get watchGreetingBody =>
+      'यहाँ हर वीडियो बच्चों के लिए सही होने की जाँच के बाद ही दिखता है।';
 
   @override
   String get watchShortsSection => 'छोटे वीडियो';
@@ -2951,7 +2952,7 @@ class AppLocalizationsHi extends AppLocalizations {
       'यह जानकारी बदल गई है। कृपया ऐप अपडेट करें, फिर कोशिश करें।';
 
   @override
-  String get missionsUnfinishedTitle => 'अभी पूरे करने हैं';
+  String get missionsUnfinishedTitle => 'अपने मिशन जारी रखो';
 
   @override
   String get missionContinue => 'आगे बढ़ो';
@@ -2960,4 +2961,91 @@ class AppLocalizationsHi extends AppLocalizations {
   String missionFromDay(String date) {
     return '$date से';
   }
+
+  @override
+  String get missionsHeroTitle => 'साहसिक सफ़र के लिए तैयार?';
+
+  @override
+  String get missionsHeroSubtitle =>
+      'मिशन पूरा करो, स्टार कमाओ और अपना बगीचा बढ़ाओ। तुम कर सकते हो!';
+
+  @override
+  String get missionsProgressStart => 'चलो, अपना पहला मिशन पूरा करें!';
+
+  @override
+  String get missionsProgressKeepGoing => 'बढ़िया शुरुआत! जारी रखो!';
+
+  @override
+  String get missionsProgressAllDone => 'सब पूरा! कमाल का काम!';
+
+  @override
+  String missionsStarsEarned(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count स्टार मिले',
+      one: '1 स्टार मिला',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get missionsUnfinishedSubtitle => 'जहाँ रुके थे, वहीं से शुरू करो।';
+
+  @override
+  String get missionsChoosePrompt => 'शुरू करने के लिए एक मिशन चुनो।';
+
+  @override
+  String get missionsForYouTitle => 'तुम्हारे लिए मिशन';
+
+  @override
+  String get missionsCompletedTitle => 'पूरे हुए';
+
+  @override
+  String missionMinutes(int count) {
+    return '$count मिनट';
+  }
+
+  @override
+  String get missionTrackStart => 'शुरू';
+
+  @override
+  String get missionTrackSent => 'भेजा';
+
+  @override
+  String get missionTrackDone => 'पूरा';
+
+  @override
+  String get missionCompleteTitle => 'मिशन पूरा हुआ!';
+
+  @override
+  String missionStepLabel(int number) {
+    return 'चरण $number';
+  }
+
+  @override
+  String get missionsChoiceTaken => 'आज तुमने दूसरा मिशन चुना है।';
+
+  @override
+  String get missionsStatDone => 'आज पूरे';
+
+  @override
+  String get missionsStatStars => 'आज के स्टार';
+
+  @override
+  String get missionsStatXp => 'आज के XP';
+
+  @override
+  String missionEarnBoth(int stars, int xp) {
+    return 'यह मिशन पूरा करके $stars स्टार और $xp XP कमाओ।';
+  }
+
+  @override
+  String missionEarnedBoth(int stars, int xp) {
+    return 'तुमने $stars स्टार और $xp XP कमाए!';
+  }
+
+  @override
+  String get errorDailyAlreadySelected =>
+      'तुमने आज का मिशन पहले ही चुन लिया है। पहले उसे पूरा करो!';
 }

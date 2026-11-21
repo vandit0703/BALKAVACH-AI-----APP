@@ -46,6 +46,7 @@ from app.schemas.admin_manage import (
 )
 from app.services.admin_service import record_audit
 from app.services.app_settings_service import DEFAULTS, read_all, write_setting
+from app.services.mission_rewards import effective_star_reward, effective_xp_reward
 from app.services.session_service import revoke_user_sessions
 from app.services.timezone_service import family_timezone_name
 
@@ -271,8 +272,8 @@ def list_tasks(
 			title=task.title,
 			category_name=category_name,
 			assigned_child_name=child_name,
-			star_reward=task.star_reward,
-			xp_reward=task.xp_reward,
+			star_reward=effective_star_reward(task.star_reward),
+			xp_reward=effective_xp_reward(task.xp_reward),
 			due_at=task.due_at,
 			is_active=task.is_active,
 			created_at=task.created_at,
@@ -318,8 +319,8 @@ def _task_row(session: Session, task_id: UUID) -> AdminTaskPublic:
 		title=task.title,
 		category_name=category_name,
 		assigned_child_name=child_name,
-		star_reward=task.star_reward,
-		xp_reward=task.xp_reward,
+		star_reward=effective_star_reward(task.star_reward),
+		xp_reward=effective_xp_reward(task.xp_reward),
 		due_at=task.due_at,
 		is_active=task.is_active,
 		created_at=task.created_at,

@@ -22,8 +22,9 @@ Both feeds, the "Up next" list and playback by id share `youtube_visibility_clau
 `eligible_feed` returns a video only if **all** of these hold (`video_service.feed_conditions`, now the single definition):
 published; age band contains the child's age (3-15, from the birth date); rating general/educational; language is the child's or
 English; category active; for YouTube rows: review `approved`, `made_for_kids`, rights `cleared` **and `last_verified_at` within
-`YOUTUBE_REVERIFY_HOURS` (72)**; not a duplicate; not already completed by this child unless a parent authorised a replay. If the
-daily allowance is used up, both routes return `[]` before any query.
+`YOUTUBE_REVERIFY_HOURS` (72)**; not a duplicate. **Update 2026-11-21:** finished videos are no longer hidden (they are listed after
+unwatched ones; no parent replay approval is needed), and a used-up daily allowance no longer empties the routes: the catalogue is
+listed with `playback_locked: true` and `youtube_video_id: null`, and playback is still refused by the progress endpoint.
 
 `tests/test_video_feed_real_filters.py` runs these real SQL rules (SQLite) and shows each rule alone can empty the feed. The one that
 needs no wrong data and nobody's mistake is **freshness**: an approved, published, rights-cleared video older than 72 h since its last
@@ -68,8 +69,8 @@ Backend
   (`VIDEO_PLAY_TICKETS_ENABLED` untouched; tickets cannot activate without the deferred table), YouTube client.
 
 Flutter
-* `WatchHomeScreen`: when the server empties the feeds because today's allowance is used up, Home shows the time-up state
-  (`watch.timeUp`, the existing "used today's video time" text) instead of "No videos here right now".
+* `WatchHomeScreen` (updated 2026-11-21): at zero allowance Home lists the locked catalogue (lock icon on each card; a tap opens the
+  existing time-up lock page). The separate `watch.timeUp` empty state was removed because the feeds are no longer emptied.
 
 Deliberately **not** done: no auto-publish of anything, no seed or data command run, no extension of the 72 h window (it is a safety
 control: a video made private or unsuitable on YouTube must leave the feed within that time), no hard-coded or mock videos.

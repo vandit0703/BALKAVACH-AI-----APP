@@ -120,6 +120,7 @@ class FeedVideo {
     this.channelName,
     this.resumePositionSeconds = 0,
     this.format = VideoFormat.regular,
+    this.playbackLocked = false,
   });
 
   factory FeedVideo.fromJson(Map<String, dynamic> json) => FeedVideo(
@@ -135,6 +136,7 @@ class FeedVideo {
     resumePositionSeconds:
         (json['last_position_seconds'] as num?)?.toInt() ?? 0,
     format: VideoFormat.parse(json['video_format']),
+    playbackLocked: json['playback_locked'] as bool? ?? false,
   );
 
   final String id;
@@ -153,6 +155,10 @@ class FeedVideo {
   /// The server's classification (1-60 s is a short). The app never decides
   /// this itself; a missing duration arrives as `unknown`.
   final VideoFormat format;
+
+  /// Today's video time is used up. The server still lists the video so the
+  /// child can browse, but withholds its playable id until time is earned.
+  final bool playbackLocked;
 
   /// Playable in the official YouTube embed: a YouTube item with a well-formed id.
   bool get isYouTube =>

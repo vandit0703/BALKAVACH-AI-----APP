@@ -12,7 +12,7 @@ Approved by the product owner on 2026-11-19; do not change without approval.
 | Free allowance | Every child gets 900 s (15 min) of video per family-local day with no mission. It is spent first. |
 | Mission reward | Each parent-approved mission grants exactly 900 s. Pending, rejected or unapproved missions grant nothing. |
 | Stacking | Grants add up (15, 30, 45, 60 min ...). |
-| Daily cap | The parent's `video_settings.daily_limit_seconds`, default 3600 s, clamped to 900-14400 s. It limits mission seconds *granted* that day, plus the free 900 s. Watching does not create room for more grants. A partial remainder is granted in part. |
+| Daily cap | The parent's `video_settings.daily_limit_seconds`, default 3600 s, clamped to 900-14400 s. It limits mission seconds *granted* that day, plus the free 900 s. Watching does not create room for more grants. Each approved mission grants exactly 900 s or nothing: when less than 900 s of cap room is left, the mission grants no time (no partial slice; changed 2026-11-21). |
 | Duplicate grants | One grant per submission (unique `submission_id`); re-approval returns the existing grant. |
 | Approval-date rule | A grant belongs to the family-local day on which the parent **approves** the mission (`granted_at`), not the day it was submitted. A mission done on Monday and approved on Tuesday counts toward Tuesday's cap and Tuesday's time. (Streaks and activity use the submission day; that is separate.) |
 | Midnight expiry | Unspent time expires at the end of the family-local day (the family timezone, falling back as in `timezone_service`). Nothing carries over. |

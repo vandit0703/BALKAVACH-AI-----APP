@@ -181,13 +181,14 @@ def test_task_approval_awards_once_and_retries_do_not_duplicate(isolated_test_se
     )
 
     assert reviewed.status == "approved"
-    assert star_balance(isolated_test_session, child.id) == 5
-    assert xp_total(isolated_test_session, child.id) == 12
+    # The stored 5 / 12 are history only: an approval pays the standard 10 stars / 15 XP, once.
+    assert star_balance(isolated_test_session, child.id) == 10
+    assert xp_total(isolated_test_session, child.id) == 15
     with pytest.raises(APIError) as error:
         review_submission(isolated_test_session, submission.id, parent, TaskReviewCreate(decision="approved"))
     assert error.value.status_code == 409
-    assert star_balance(isolated_test_session, child.id) == 5
-    assert xp_total(isolated_test_session, child.id) == 12
+    assert star_balance(isolated_test_session, child.id) == 10
+    assert xp_total(isolated_test_session, child.id) == 15
 
 
 def test_redemption_is_idempotent_and_approved_cancel_refunds_once(isolated_test_session):

@@ -23,9 +23,10 @@ def test_full_mission_flow_awards_once_and_notifies(api):
     assert reviewed.status_code == 200, reviewed.text
     assert api.review(parent, submission.json()["id"], "approved").status_code == 409
 
+    # The task asked for 5 stars / 20 XP; every approved mission earns the standard 10 stars / 15 XP.
     progress = api.get(f"/progress/children/{child['id']}", child["token"]).json()
-    assert progress["star_balance"] == 5
-    assert progress["total_xp"] == 20
+    assert progress["star_balance"] == 10
+    assert progress["total_xp"] == 15
     assert progress["current_streak"] == 1
     assert "task_approved" in _types(api, child["token"])
 

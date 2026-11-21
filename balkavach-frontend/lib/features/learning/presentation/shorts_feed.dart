@@ -968,9 +968,11 @@ class _ShortsPageState extends ConsumerState<_ShortsPage>
           key: const Key('videos.shorts.unavailable'),
           background: still,
           icon: Icons.lock_rounded,
-          message: reason == VideoUnavailableReason.needsGrownUp
-              ? l10n.videoNeedsGrownUp
-              : l10n.learnNotReady,
+          message: switch (reason) {
+            VideoUnavailableReason.needsGrownUp => l10n.videoNeedsGrownUp,
+            VideoUnavailableReason.timeUp => l10n.videoTimeExhaustedBody,
+            VideoUnavailableReason.noSource => l10n.learnNotReady,
+          },
         );
       case YouTubeVideoSource():
         final ticketStage = _ticketStage(l10n, still);

@@ -346,7 +346,7 @@ def test_trusted_channel_does_not_override_explicit_video_rights_denial(api, you
 	assert video.is_published is False
 
 
-def test_child_watch_history_is_independent_and_completed_shorts_leave_feed(api, youtube):
+def test_child_watch_history_is_independent_and_completed_shorts_stay_listed(api, youtube):
 	if not has_model("ChildVideoWatchHistory"):
 		pytest.skip("Migration 0011 is not applied to the test database")
 	admin = api.make_admin()
@@ -374,7 +374,7 @@ def test_child_watch_history_is_independent_and_completed_shorts_leave_feed(api,
 		)
 		assert response.status_code == 200, response.text
 	assert response.json()["is_completed"] is True
-	assert VIDEO_ID not in _feed_ids(api, child["token"], "/videos/shorts")
+	assert VIDEO_ID in _feed_ids(api, child["token"], "/videos/shorts")  # finished videos stay browsable
 
 	second_child = api.create_child(ctx["parent"]["token"], ctx["family"]["id"], "Sibling")
 	ChildProfile = get_model("ChildProfile")

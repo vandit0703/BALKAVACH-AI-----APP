@@ -121,18 +121,19 @@ def test_parent_child_mission_reward_journey(world):
     assert api.review(parent, second["id"], "approved", "Great").status_code == 200
     assert api.review(parent, second["id"], "approved").status_code == 409
     progress = api.get(f"/progress/children/{child['id']}", kid).json()
-    assert (progress["star_balance"], progress["total_xp"], progress["current_streak"]) == (5, 120, 1)
-    assert progress["level_number"] == 2 and "First Mission" in [b["name"] for b in progress["badges"]]
+    # Every approved mission earns the standard 10 stars / 15 XP (the 5 / 120 in the request are ignored).
+    assert (progress["star_balance"], progress["total_xp"], progress["current_streak"]) == (10, 15, 1)
+    assert progress["level_number"] == 1 and "First Mission" in [b["name"] for b in progress["badges"]]
     assert ("c", "task_approved") in provider.sent and ("c", "badge_unlocked") in provider.sent
     report = api.get(f"/progress/children/{child['id']}/weekly", parent).json()
     assert report["timezone"] == "Asia/Kolkata"
-    assert report["totals"] == {"completed_tasks": 1, "stars_earned": 5, "xp_earned": 120}
+    assert report["totals"] == {"completed_tasks": 1, "stars_earned": 10, "xp_earned": 15}
     assert report["categories"][0]["name"] == "Learning" and report["pending_submissions"] == 0
     assert api.post(f"/tasks/{task['id']}/submissions", kid, {"proof_type": "none"}).status_code == 409
 
     # 10: parent creates rewards, child redeems one; reject keeps stars, approve debits once
     treat = api.create_reward(parent, family["id"], name="Ice cream", star_cost=3).json()
-    toy = api.create_reward(parent, family["id"], name="Big toy", star_cost=9).json()
+    toy = api.create_reward(parent, family["id"], name="Big toy", star_cost=11).json()
     catalog = {r["name"] for r in api.get("/rewards", kid).json()}
     assert catalog == {"Ice cream", "Big toy"}
     too_dear = api.post("/redemptions", kid, {"reward_id": toy["id"]}, headers={"Idempotency-Key": "journey-key-toy"})
@@ -142,10 +143,10 @@ def test_parent_child_mission_reward_journey(world):
     pending = api.get(f"/redemptions?family_id={family['id']}&status=pending", parent).json()
     assert [r["reward_name"] for r in pending] == ["Ice cream"]
     assert api.post(f"/redemptions/{first['id']}/reject", parent, {"review_note": "after dinner"}).status_code == 200
-    assert api.get(f"/progress/children/{child['id']}", kid).json()["star_balance"] == 5
+    assert api.get(f"/progress/children/{child['id']}", kid).json()["star_balance"] == 10
     again = api.post("/redemptions", kid, {"reward_id": treat["id"]}, headers={"Idempotency-Key": "journey-key-2"}).json()
     assert api.post(f"/redemptions/{again['id']}/approve", parent, {}).status_code == 200
-    assert api.get(f"/progress/children/{child['id']}", kid).json()["star_balance"] == 2
+    assert api.get(f"/progress/children/{child['id']}", kid).json()["star_balance"] == 7
     assert api.post(f"/redemptions/{again['id']}/fulfill", parent).json()["status"] == "fulfilled"
     history = [r["status"] for r in api.get("/redemptions/mine", kid).json()]
     assert history == ["fulfilled", "rejected"]

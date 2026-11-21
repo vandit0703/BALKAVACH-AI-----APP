@@ -85,6 +85,7 @@ def _feed_item(
 	video,
 	channel_name: str | None = None,
 	last_position_seconds: int = 0,
+	playback_locked: bool = False,
 ) -> VideoFeedItem:
 	is_youtube = video.video_source == "youtube"
 	return VideoFeedItem(
@@ -99,9 +100,10 @@ def _feed_item(
 		language_code=video.language_code,
 		content_rating=video.content_rating,
 		video_source=video.video_source,
-		youtube_video_id=video.external_video_id if is_youtube else None,
+		youtube_video_id=video.external_video_id if is_youtube and not playback_locked else None,
 		channel_name=channel_name if is_youtube else None,
 		last_position_seconds=last_position_seconds,
+		playback_locked=playback_locked,
 	)
 
 
@@ -139,10 +141,22 @@ def _resume_positions(session: Session, child, videos) -> dict[UUID, int]:
 def _allowance_exhausted(session: Session, child) -> bool:
 	"""True when the child has no video time left today (server-side, family-local day).
 
-	Playable identifiers (YouTube ids) are withheld while this is true, so the lock cannot be
-	bypassed by calling the feed API directly instead of using the app screen.
+	The feeds still LIST the catalogue while this is true (browsing needs no approval and an
+	empty Home would look broken), but playable identifiers (YouTube ids) are withheld and each
+	item says ``playback_locked``, so the lock cannot be bypassed by calling the feed API
+	directly instead of using the app screen. Playback itself is refused by the watch-history
+	endpoint, which is the single place time is charged.
 	"""
 	return bool(get_child_video_allowance_today(session, child.id, child.family_id)["is_exhausted"])
+
+
+def _feed_page(session: Session, child, videos, locked: bool) -> list[VideoFeedItem]:
+	channels = _channel_names(session, videos) if any(video.video_source == "youtube" for video in videos) else {}
+	positions = _resume_positions(session, child, videos)
+	return [
+		_feed_item(video, channels.get(video.id), positions.get(video.id, 0), playback_locked=locked)
+		for video in videos
+	]
 
 
 @router.get("/feed", response_model=list[VideoFeedItem])
@@ -153,14 +167,10 @@ def video_feed(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoFeedItem]:
-	if _allowance_exhausted(session, child):
-		return []
 	# Regular videos only: Shorts (1-60 s) have their own feed, so no video
 	# appears in both.
 	videos = eligible_feed(session, child, category_id, limit, offset, video_format="regular")
-	channels = _channel_names(session, videos) if any(video.video_source == "youtube" for video in videos) else {}
-	positions = _resume_positions(session, child, videos)
-	return [_feed_item(video, channels.get(video.id), positions.get(video.id, 0)) for video in videos]
+	return _feed_page(session, child, videos, _allowance_exhausted(session, child))
 
 
 @router.get("/shorts", response_model=list[VideoFeedItem])
@@ -171,12 +181,8 @@ def video_shorts(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoFeedItem]:
-	if _allowance_exhausted(session, child):
-		return []
 	videos = eligible_feed(session, child, category_id, limit, offset, video_format="short")
-	channels = _channel_names(session, videos) if any(video.video_source == "youtube" for video in videos) else {}
-	positions = _resume_positions(session, child, videos)
-	return [_feed_item(video, channels.get(video.id), positions.get(video.id, 0)) for video in videos]
+	return _feed_page(session, child, videos, _allowance_exhausted(session, child))
 
 
 @router.get("/{video_id}/next", response_model=list[VideoFeedItem])
@@ -239,11 +245,12 @@ def continue_watching(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoWatchHistoryPublic]:
-	if _allowance_exhausted(session, child):
-		return []
-	return [VideoWatchHistoryPublic(**row) for row in video_watch_history_service.list_child_history(
+	rows = video_watch_history_service.list_child_history(
 		session, child.id, continue_watching=True, eligible_child=child, limit=limit
-	)]
+	)
+	if _allowance_exhausted(session, child):
+		rows = [{**row, "youtube_video_id": None} for row in rows]
+	return [VideoWatchHistoryPublic(**row) for row in rows]
 
 
 def _require_parent_child(session: Session, parent, child_id: UUID):

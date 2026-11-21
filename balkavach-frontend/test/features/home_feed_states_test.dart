@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:balkavach_app/app.dart';
+import 'package:balkavach_app/features/learning/data/playable_video.dart';
 import 'package:balkavach_app/features/learning/data/video_feed_repository.dart';
 import 'package:balkavach_app/l10n/app_localizations_en.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +25,16 @@ final _contract =
         as Map<String, dynamic>;
 List<dynamic> get _feed => _contract['feed'] as List<dynamic>;
 List<dynamic> get _shorts => _contract['shorts'] as List<dynamic>;
+
+/// What the server sends at zero allowance: same videos, ids withheld.
+List<dynamic> _locked(List<dynamic> items) => [
+  for (final item in items)
+    {
+      ...item as Map<String, dynamic>,
+      'playback_locked': true,
+      'youtube_video_id': null,
+    },
+];
 
 Map<String, Object?> _allowance({bool exhausted = false}) => {
   'child_id': Fx.childId,
@@ -86,6 +97,7 @@ void main() {
     expect(video.channelName, 'Little Learners');
     expect(video.format, VideoFormat.regular);
     expect(video.durationSeconds, 240);
+    expect(video.playbackLocked, isFalse);
 
     final short = FeedVideo.fromJson(_shorts.single as Map<String, dynamic>);
     expect(short.title, 'Clap along');
@@ -103,7 +115,6 @@ void main() {
     expect(find.byKey(const Key('watch.shorts.header')), findsOneWidget);
     expect(find.byKey(const Key('watch.videos.header')), findsOneWidget);
     expect(find.byKey(const Key('watch.empty')), findsNothing);
-    expect(find.byKey(const Key('watch.timeUp')), findsNothing);
     expect(h.backend.requestsTo('GET', '/api/v1/videos/shorts'), isNotEmpty);
     expect(h.backend.requestsTo('GET', '/api/v1/videos/feed'), isNotEmpty);
   });
@@ -134,22 +145,82 @@ void main() {
 
     expect(find.byKey(const Key('watch.empty')), findsOneWidget);
     expect(find.text(AppLocalizationsEn().watchNothingYet), findsOneWidget);
-    expect(find.byKey(const Key('watch.timeUp')), findsNothing);
     expect(find.byKey(const Key('watch.allowance.card')), findsOneWidget);
   });
 
-  testWidgets('zero allowance empties the feeds on the server: Home says '
-      'time is up, never "no videos"', (tester) async {
-    final h = await _child(feed: const [], shorts: const [], exhausted: true);
+  testWidgets('zero allowance keeps the catalogue on Home: cards are listed '
+      'with a lock, never "no videos"', (tester) async {
+    final h = await _child(
+      feed: _locked(_feed),
+      shorts: _locked(_shorts),
+      exhausted: true,
+    );
     await _pump(tester, h);
 
-    expect(find.byKey(const Key('watch.timeUp')), findsOneWidget);
-    expect(
-      find.text(AppLocalizationsEn().videoTimeExhaustedBody),
-      findsWidgets,
-    );
+    expect(find.text('Counting to ten'), findsOneWidget);
+    expect(find.text('Clap along'), findsOneWidget);
+    expect(find.byKey(const Key('watch.video.locked')), findsOneWidget);
+    expect(find.byKey(const Key('watch.short.locked')), findsOneWidget);
     expect(find.byKey(const Key('watch.empty')), findsNothing);
     expect(find.text(AppLocalizationsEn().watchNothingYet), findsNothing);
+
+    // Tapping a locked card explains the time limit; nothing plays.
+    await tester.tap(find.text('Counting to ten'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('video.lock.panda')), findsOneWidget);
+    expect(
+      h.backend.requests.where((r) => r.uri.path.contains('/progress')),
+      isEmpty,
+    );
+  });
+
+  testWidgets('a locked card reloads the feed once time is earned, instead of '
+      'opening a video it cannot play', (tester) async {
+    final h = await _child(feed: _locked(_feed), exhausted: true);
+    await _pump(tester, h);
+    final before = h.backend.requestsTo('GET', '/api/v1/videos/feed').length;
+
+    // A grown-up approved a mission: time is back and the server unlocks.
+    h.backend
+      ..reply('GET', '/api/v1/video-access/allowance', _allowance())
+      ..reply('GET', '/api/v1/videos/feed', _feed);
+    await tester.tap(find.text('Counting to ten'));
+    await tester.pumpAndSettle();
+
+    expect(
+      h.backend.requestsTo('GET', '/api/v1/videos/feed').length,
+      greaterThan(before),
+    );
+    expect(find.byKey(const Key('watch.video.locked')), findsNothing);
+    expect(find.byKey(const Key('video.lock.panda')), findsNothing);
+  });
+
+  testWidgets('Home and Shorts open for a child with no grown-up approval '
+      'step or learning-gate check', (tester) async {
+    final h = await _child();
+    await _pump(tester, h);
+
+    expect(find.text('Counting to ten'), findsOneWidget);
+    expect(find.text('Clap along'), findsOneWidget);
+    expect(
+      h.backend.requests.where((r) => r.uri.path.contains('learning-gate')),
+      isEmpty,
+    );
+    expect(
+      find.textContaining(RegExp('grown-up', caseSensitive: false)),
+      findsNothing,
+    );
+  });
+
+  test('a locked item from the server parses as listed but not playable', () {
+    final video = FeedVideo.fromJson(
+      _locked(_feed).single as Map<String, dynamic>,
+    );
+    expect(video.playbackLocked, isTrue);
+    expect(video.youtubeVideoId, isNull);
+    final playable = PlayableVideo.fromFeed(video);
+    expect(playable.isPlayable, isFalse);
+    expect(playable.isTimeLocked, isTrue);
   });
 
   testWidgets('a failing Shorts request shows an error with retry, and the '
@@ -177,6 +248,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Clap along'), findsOneWidget);
     expect(find.byKey(const Key('watch.shorts.error')), findsNothing);
+  });
+
+  testWidgets('when both feeds fail, Home shows errors with retry, never the '
+      'empty state', (tester) async {
+    final h = await _child();
+    for (final path in ['/api/v1/videos/feed', '/api/v1/videos/shorts']) {
+      h.backend.on(
+        'GET',
+        path,
+        (_) => FakeReply.error(500, 'internal_error', 'boom'),
+      );
+    }
+    await _pump(tester, h);
+    expect(find.byKey(const Key('watch.shorts.error')), findsOneWidget);
+    expect(find.byKey(const Key('watch.videos.error')), findsOneWidget);
+    expect(find.byKey(const Key('watch.empty')), findsNothing);
+    expect(find.text(AppLocalizationsEn().watchNothingYet), findsNothing);
   });
 
   testWidgets('while the feeds load there are spinners, not the empty state', (

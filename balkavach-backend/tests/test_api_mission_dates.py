@@ -58,7 +58,7 @@ def test_approving_twice_credits_stars_xp_and_video_time_exactly_once(api):
 	assert api.review(parent, submission_id, "approved").status_code == 409
 
 	progress = api.get(f"/progress/children/{child['id']}", child["token"]).json()
-	assert (progress["star_balance"], progress["total_xp"]) == (5, 20)
+	assert (progress["star_balance"], progress["total_xp"]) == (10, 15)  # the standard mission reward, once
 	Entitlement = get_model("VideoAccessEntitlement")
 	grants = api.session.query(Entitlement).filter(Entitlement.submission_id == UUID(submission_id)).all()
 	assert len(grants) == 1 and grants[0].granted_seconds == 900

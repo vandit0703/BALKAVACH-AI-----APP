@@ -256,7 +256,7 @@
   "navHome": "Home",
   "navMissions": "Missions",
   "reviewsUnavailable": "Couldn't check for parent reviews right now.",
-  "missionsTitle": "Child Missions",
+  "missionsTitle": "My Missions",
   "missionsFilterAll": "All ({count})",
   "@missionsFilterAll": {
     "placeholders": {
@@ -1229,7 +1229,7 @@
   "videoFeedOpen": "More videos",
   "videoFeedLearnTab": "Learn",
   "videoFeedShortsTab": "Shorts",
-  "videoFeedEmpty": "No videos here yet. A grown-up checks every video before it appears.",
+  "videoFeedEmpty": "No videos here yet. New videos appear after our team checks they are right for kids.",
   "videoFeedAdsNotice": "Videos from YouTube play in YouTube's own player and may show ads.",
   "youtubeLeaveTitle": "Leave BALKAVACH?",
   "youtubeLeaveBody": "This opens YouTube outside the app. Ask a grown-up before you continue.",
@@ -1339,7 +1339,7 @@
   "@watchGreeting": {
     "description": "Watch & Learn home heading."
   },
-  "watchGreetingBody": "Every video here was checked by a grown-up.",
+  "watchGreetingBody": "Every video here was checked to be right for kids.",
   "@watchGreetingBody": {
     "description": "Watch & Learn home subheading."
   },
@@ -1649,8 +1649,36 @@
   "@pandaConsentWithdrawn": {"placeholders": {"name": {"type": "String"}}},
   "pandaConsentSaveFailed": "We couldn’t save that. Please try again.",
   "pandaConsentOutdated": "This explanation has changed. Please update the app, then try again.",
-  "missionsUnfinishedTitle": "Still to finish",
+  "missionsUnfinishedTitle": "Continue Your Missions",
   "missionContinue": "Continue",
   "missionFromDay": "From {date}",
-  "@missionFromDay": {"placeholders": {"date": {"type": "String"}}}
+  "@missionFromDay": {"placeholders": {"date": {"type": "String"}}},
+  "missionsHeroTitle": "Ready for an adventure?",
+  "missionsHeroSubtitle": "Finish a mission, earn stars and help your garden grow. You've got this!",
+  "missionsProgressStart": "Let's finish your first mission!",
+  "missionsProgressKeepGoing": "Great start! Keep going!",
+  "missionsProgressAllDone": "All done! Amazing work!",
+  "missionsStarsEarned": "{count, plural, =1{1 star earned} other{{count} stars earned}}",
+  "@missionsStarsEarned": {"placeholders": {"count": {"type": "int"}}},
+  "missionsUnfinishedSubtitle": "Pick up right where you left off.",
+  "missionsChoosePrompt": "Choose a mission to begin.",
+  "missionsForYouTitle": "Missions for You",
+  "missionsCompletedTitle": "Completed",
+  "missionMinutes": "{count} min",
+  "@missionMinutes": {"placeholders": {"count": {"type": "int"}}},
+  "missionTrackStart": "Start",
+  "missionTrackSent": "Sent",
+  "missionTrackDone": "Done",
+  "missionCompleteTitle": "Mission complete!",
+  "missionStepLabel": "Step {number}",
+  "@missionStepLabel": {"placeholders": {"number": {"type": "int"}}},
+  "missionsChoiceTaken": "You picked another mission today.",
+  "missionsStatDone": "Done today",
+  "missionsStatStars": "Stars today",
+  "missionsStatXp": "XP today",
+  "missionEarnBoth": "Finish this mission to earn {stars} stars and {xp} XP.",
+  "@missionEarnBoth": {"placeholders": {"stars": {"type": "int"}, "xp": {"type": "int"}}},
+  "missionEarnedBoth": "You earned {stars} stars and {xp} XP!",
+  "@missionEarnedBoth": {"placeholders": {"stars": {"type": "int"}, "xp": {"type": "int"}}},
+  "errorDailyAlreadySelected": "You already picked today's mission. Finish that one first!"
 }
