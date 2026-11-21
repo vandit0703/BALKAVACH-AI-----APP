@@ -72,6 +72,7 @@ class SessionController extends AsyncNotifier<Session?> {
         case _Unreachable():
           // Offline at launch: keep the session; the first request that
           // reaches the server will renew it.
+          tokens.token = stored.accessToken;
           return stored;
       }
     }

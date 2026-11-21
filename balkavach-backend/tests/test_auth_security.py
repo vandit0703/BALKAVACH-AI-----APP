@@ -1,3 +1,4 @@
+import logging
 import jwt
 from cryptography.fernet import Fernet
 import pytest
@@ -77,15 +78,16 @@ def test_access_tokens_are_signed_and_expiring(monkeypatch) -> None:
     assert expires_at.timestamp() == payload["exp"]
 
 
-def test_access_tokens_reject_tampering(monkeypatch) -> None:
+def test_access_tokens_reject_tampering(monkeypatch, caplog) -> None:
     monkeypatch.setattr(settings, "jwt_secret_key", "test-secret-that-is-at-least-32-bytes-long")
     token, _ = create_access_token("user-id")
     parts = token.split(".")
     tampered = ".".join([parts[0], parts[1], jwt.utils.base64url_encode(b"wrong-signature").decode()])
 
-    try:
-        decode_access_token(tampered)
-    except Exception as error:
-        assert getattr(error, "status_code", None) == 401
-    else:
-        raise AssertionError("Tampered token was accepted")
+    with caplog.at_level(logging.WARNING, logger="app.core.security"):
+        with pytest.raises(Exception) as error:
+            decode_access_token(tampered)
+
+    assert getattr(error.value, "status_code", None) == 401
+    assert "auth.access_token_rejected reason=invalid_signature" in caplog.text
+    assert tampered not in caplog.text

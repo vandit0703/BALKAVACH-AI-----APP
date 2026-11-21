@@ -191,6 +191,50 @@ void main() {
         expect(output, isNot(contains(secret)));
       }
     });
+
+    test('logs feed auth state and sanitized error details only', () async {
+      final lines = <String>[];
+      final logging = Dio(BaseOptions(baseUrl: 'https://api.test'))
+        ..httpClientAdapter = backend
+        ..interceptors.addAll([
+          AuthInterceptor(tokens),
+          RedactingLogInterceptor(sink: lines.add),
+        ]);
+      backend.on('GET', '/api/v1/videos/feed', (request) {
+        return request.headers.containsKey('Authorization')
+            ? FakeReply.error(
+                401,
+                'invalid_access_token',
+                'raw private response detail',
+              )
+            : const FakeReply(401, {'detail': 'Authentication required'});
+      });
+
+      await expectLater(
+        logging.get<Object?>('/api/v1/videos/feed'),
+        throwsA(isA<DioException>()),
+      );
+      tokens.token = 'never-log-this-token';
+      await expectLater(
+        logging.get<Object?>('/api/v1/videos/feed'),
+        throwsA(isA<DioException>()),
+      );
+
+      final output = lines.join('\n');
+      expect(output, contains('status=401'));
+      expect(
+        output,
+        contains('token_present=false authorization_attached=false'),
+      );
+      expect(output, contains('backend_error=authentication_required'));
+      expect(
+        output,
+        contains('token_present=true authorization_attached=true'),
+      );
+      expect(output, contains('backend_error_code=invalid_access_token'));
+      expect(output, isNot(contains('never-log-this-token')));
+      expect(output, isNot(contains('raw private response detail')));
+    });
   });
 
   group('AppConfig', () {

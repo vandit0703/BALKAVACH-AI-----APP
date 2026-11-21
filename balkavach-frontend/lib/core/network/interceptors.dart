@@ -10,6 +10,12 @@ const kAuthenticatedExtra = 'authenticated';
 /// Request option key: set on the retried copy of a request so a second 401
 /// ends the session instead of refreshing again.
 const kRetriedExtra = 'retried_after_refresh';
+const _tokenPresentExtra = 'diagnostic_token_present';
+const _authorizationAttachedExtra = 'diagnostic_authorization_attached';
+
+bool _isVideoFeedPath(String path) =>
+    path.endsWith('/api/v1/videos/feed') ||
+    path.endsWith('/api/v1/videos/shorts');
 
 /// Adds `Authorization: Bearer` from [AccessTokenStore]. On a 401 for an
 /// authenticated request it renews the session once and replays the request;
@@ -30,6 +36,12 @@ class AuthInterceptor extends Interceptor {
         token != null &&
         !options.headers.containsKey('Authorization')) {
       options.headers['Authorization'] = 'Bearer $token';
+    }
+    if (_isVideoFeedPath(options.uri.path)) {
+      options.extra[_tokenPresentExtra] = token?.isNotEmpty ?? false;
+      options.extra[_authorizationAttachedExtra] = options.headers.containsKey(
+        'Authorization',
+      );
     }
     handler.next(options);
   }
@@ -107,19 +119,52 @@ class RedactingLogInterceptor extends Interceptor {
     _log(
       err.requestOptions,
       err.response?.statusCode?.toString() ?? err.type.name,
+      err.response?.data,
     );
     handler.next(err);
   }
 
-  void _log(RequestOptions options, String outcome) {
-    if (!kDebugMode) return;
+  void _log(RequestOptions options, String outcome, [Object? errorBody]) {
+    final isVideoFeed = _isVideoFeedPath(options.uri.path);
+    if (!kDebugMode && !isVideoFeed) return;
     final started = options.extra[_startedAt];
     final elapsed = started is int
         ? '${DateTime.now().millisecondsSinceEpoch - started} ms'
         : '?';
+    final authState = isVideoFeed
+        ? ' token_present=${options.extra[_tokenPresentExtra] == true}'
+              ' authorization_attached=${options.extra[_authorizationAttachedExtra] == true}'
+        : '';
+    final errorSummary = errorBody == null
+        ? ''
+        : ' ${_sanitizedError(errorBody)}';
     _sink(
-      '[api] ${options.method} ${redactPath(options.uri.path)} → $outcome ($elapsed)',
+      '[api] ${options.method} ${redactPath(options.uri.path)} status=$outcome'
+      ' ($elapsed)$authState$errorSummary',
     );
+  }
+
+  static String _sanitizedError(Object? body) {
+    if (body is! Map<String, dynamic>) return 'backend_error=unavailable';
+    final error = body['error'];
+    if (error is Map<String, dynamic>) {
+      final code = error['code'];
+      if (code is String && RegExp(r'^[a-z0-9_]{1,64}$').hasMatch(code)) {
+        return 'backend_error_code=$code';
+      }
+      return 'backend_error=unknown';
+    }
+    final detail = body['detail'];
+    return 'backend_error=${switch (detail) {
+      'Authentication required' => 'authentication_required',
+      'Invalid access token' => 'invalid_access_token',
+      'Invalid or expired access token' => 'invalid_or_expired_access_token',
+      'Session has ended' => 'session_ended',
+      'Invalid or inactive account' => 'invalid_or_inactive_account',
+      'Child access required' => 'child_role_required',
+      'Active child profile required' => 'active_child_profile_required',
+      _ => 'other',
+    }}';
   }
 
   /// Replaces UUID path segments so ids of children are not logged.

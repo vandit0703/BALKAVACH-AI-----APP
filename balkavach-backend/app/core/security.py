@@ -1,14 +1,16 @@
 from datetime import datetime, timedelta, timezone
+import logging
 from typing import Any
 
 import jwt
 from fastapi import HTTPException
-from jwt import InvalidTokenError
+from jwt import ExpiredSignatureError, InvalidSignatureError, InvalidTokenError
 from pwdlib import PasswordHash
 
 from app.core.config import settings
 
 password_hash = PasswordHash.recommended()
+logger = logging.getLogger(__name__)
 
 
 def hash_password(password: str) -> str:
@@ -45,6 +47,13 @@ def decode_access_token(token: str) -> dict[str, Any]:
 			algorithms=[settings.jwt_algorithm],
 			options={"require": ["sub", "exp"]},
 		)
+	except ExpiredSignatureError as error:
+		logger.warning("auth.access_token_rejected reason=expired")
+		raise HTTPException(status_code=401, detail="Invalid or expired access token") from error
+	except InvalidSignatureError as error:
+		logger.warning("auth.access_token_rejected reason=invalid_signature")
+		raise HTTPException(status_code=401, detail="Invalid or expired access token") from error
 	except InvalidTokenError as error:
+		logger.warning("auth.access_token_rejected reason=invalid_token")
 		raise HTTPException(status_code=401, detail="Invalid or expired access token") from error
 	return payload

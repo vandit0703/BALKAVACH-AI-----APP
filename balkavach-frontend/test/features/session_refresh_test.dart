@@ -1,6 +1,7 @@
 import 'package:balkavach_app/core/errors/api_exception.dart';
 import 'package:balkavach_app/core/network/access_token_store.dart';
 import 'package:balkavach_app/core/network/api_client.dart';
+import 'package:balkavach_app/features/learning/data/video_feed_repository.dart';
 import 'package:balkavach_app/features/authentication/data/auth_repository.dart';
 import 'package:balkavach_app/features/authentication/domain/session.dart';
 import 'package:balkavach_app/features/authentication/presentation/session_controller.dart';
@@ -113,6 +114,150 @@ void main() {
       expect(await container.read(sessionControllerProvider.future), isNotNull);
       expect(await h.storage.read(), isNotNull);
     });
+
+    test(
+      'restored child session retries feed after startup refresh was offline',
+      () async {
+        final childUser = Fx.user(
+          id: Fx.childUserId,
+          role: 'child',
+          name: 'Aarav',
+          email: null,
+        );
+        final h = await Harness.create();
+        h.backend.reply(
+          'POST',
+          '/api/v1/auth/login',
+          Fx.token(
+            accessToken: 'child.access.old',
+            expiresAt: '2020-01-01T00:00:00Z',
+            childId: Fx.childId,
+            refreshToken: 'child.refresh.old',
+            user: childUser,
+          ),
+        );
+        final overrides = h.overrides;
+        final loginContainer = ProviderContainer(
+          overrides: overrides,
+          retry: (_, _) => null,
+        );
+        addTearDown(loginContainer.dispose);
+        await loginContainer.read(sessionControllerProvider.future);
+        await loginContainer
+            .read(sessionControllerProvider.notifier)
+            .signIn(identifier: 'aarav', password: 'password');
+        expect(
+          loginContainer.read(sessionControllerProvider).value?.isChild,
+          isTrue,
+        );
+        expect((await h.storage.read())?.accessToken, 'child.access.old');
+
+        var refreshCalls = 0;
+        h.backend.on('POST', '/api/v1/auth/refresh', (_) {
+          refreshCalls++;
+          return refreshCalls == 1
+              ? const FakeReply.fail(DioExceptionType.connectionError)
+              : FakeReply(
+                  200,
+                  Fx.token(
+                    accessToken: 'child.access.new',
+                    childId: Fx.childId,
+                    refreshToken: 'child.refresh.new',
+                    user: childUser,
+                  ),
+                );
+        });
+        h.backend.on('GET', '/api/v1/videos/feed', (request) {
+          if (request.headers['Authorization'] == 'Bearer child.access.old') {
+            return FakeReply.error(
+              401,
+              'http_error',
+              'Invalid or expired access token',
+            );
+          }
+          if (request.headers['Authorization'] == 'Bearer child.access.new') {
+            return const FakeReply(200, [
+              {
+                'id': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+                'title': 'Approved video',
+                'duration_seconds': 120,
+                'language_code': 'en',
+                'content_rating': 'general',
+                'video_source': 'youtube',
+                'video_format': 'regular',
+                'youtube_video_id': 'abcdefghijk',
+                'last_position_seconds': 0,
+                'playback_locked': false,
+              },
+            ]);
+          }
+          return FakeReply.error(401, 'http_error', 'Authentication required');
+        });
+        h.backend.on('GET', '/api/v1/videos/shorts', (request) {
+          if (request.headers['Authorization'] == 'Bearer child.access.new') {
+            return const FakeReply(200, [
+              {
+                'id': 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+                'title': 'Approved Short',
+                'duration_seconds': 30,
+                'language_code': 'en',
+                'content_rating': 'general',
+                'video_source': 'youtube',
+                'video_format': 'short',
+                'youtube_video_id': 'lmnopqrstuv',
+                'last_position_seconds': 0,
+                'playback_locked': false,
+              },
+            ]);
+          }
+          return FakeReply.error(401, 'http_error', 'Authentication required');
+        });
+
+        final appContainer = ProviderContainer(
+          overrides: overrides,
+          retry: (_, _) => null,
+        );
+        addTearDown(appContainer.dispose);
+        final restored = await appContainer.read(
+          sessionControllerProvider.future,
+        );
+        expect(restored?.isChild, isTrue);
+
+        final videos = await appContainer
+            .read(videoFeedRepositoryProvider)
+            .page(VideoFeedKind.learn, limit: 20, offset: 0);
+
+        expect(videos, hasLength(1));
+        expect(videos.single.isYouTube, isTrue);
+        expect(videos.single.youtubeVideoId, 'abcdefghijk');
+        final shorts = await appContainer
+            .read(videoFeedRepositoryProvider)
+            .page(VideoFeedKind.shorts, limit: 10, offset: 0);
+        expect(shorts, hasLength(1));
+        expect(shorts.single.format, VideoFormat.short);
+        expect(shorts.single.isYouTube, isTrue);
+        expect(shorts.single.youtubeVideoId, 'lmnopqrstuv');
+        expect(
+          h.backend
+              .requestsTo('GET', '/api/v1/videos/feed')
+              .map((request) => request.headers['Authorization'])
+              .toList(),
+          ['Bearer child.access.old', 'Bearer child.access.new'],
+        );
+        expect(
+          h.backend
+              .requestsTo('GET', '/api/v1/videos/shorts')
+              .single
+              .headers['Authorization'],
+          'Bearer child.access.new',
+        );
+        expect(
+          appContainer.read(accessTokenStoreProvider).token,
+          'child.access.new',
+        );
+        expect((await h.storage.read())?.accessToken, 'child.access.new');
+      },
+    );
 
     test('an expired refresh token needs no network call', () async {
       final dead = Session.fromTokenResponse(
