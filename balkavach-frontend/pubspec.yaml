@@ -50,7 +50,7 @@ dependencies:
   webview_flutter: ^4.14.1
   speech_to_text: ^7.5.0
   flutter_tts: ^4.2.5
-  flutter_local_notifications: ^23.0.3
+  flutter_local_notifications: ^21.0.0
 
 dev_dependencies:
   flutter_test:

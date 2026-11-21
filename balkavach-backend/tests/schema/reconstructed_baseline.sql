@@ -9,6 +9,8 @@
 -- constraint below is an assumption; the ones that decide the approval outcome are listed in
 -- docs/parent-approval-troubleshooting.md and are exercised both ways by tests/test_parent_approval_postgres.py.
 --
+-- Timestamps are naive UTC (timestamp without time zone): the application stores utc_naive() values everywhere.
+--
 -- Never run this against anything but a throwaway database whose name contains "test".
 
 
@@ -20,15 +22,15 @@ CREATE TABLE users (
 	role text NOT NULL DEFAULT 'parent',
 	preferred_language text NOT NULL DEFAULT 'en',
 	is_active boolean NOT NULL DEFAULT true,
-	created_at timestamptz NOT NULL DEFAULT now(),
-	updated_at timestamptz NOT NULL DEFAULT now()
+	created_at timestamp NOT NULL DEFAULT now(),
+	updated_at timestamp NOT NULL DEFAULT now()
 );
 
 CREATE TABLE families (
 	id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	family_name text NOT NULL DEFAULT 'Family',
 	created_by uuid REFERENCES users(id),
-	created_at timestamptz NOT NULL DEFAULT now()
+	created_at timestamp NOT NULL DEFAULT now()
 );
 
 CREATE TABLE family_members (
@@ -38,7 +40,7 @@ CREATE TABLE family_members (
 	relationship text NOT NULL DEFAULT 'parent',
 	is_primary_parent boolean NOT NULL DEFAULT false,
 	is_active boolean NOT NULL DEFAULT true,
-	created_at timestamptz NOT NULL DEFAULT now(),
+	created_at timestamp NOT NULL DEFAULT now(),
 	UNIQUE (family_id, user_id)
 );
 
@@ -58,7 +60,7 @@ CREATE TABLE child_profiles (
 	avatar_url text,
 	current_level_id uuid REFERENCES levels(id),
 	is_active boolean NOT NULL DEFAULT true,
-	created_at timestamptz NOT NULL DEFAULT now()
+	created_at timestamp NOT NULL DEFAULT now()
 );
 
 CREATE TABLE task_categories (
@@ -80,12 +82,12 @@ CREATE TABLE tasks (
 	description text,
 	star_reward integer NOT NULL DEFAULT 0 CHECK (star_reward >= 0),
 	xp_reward integer NOT NULL DEFAULT 0 CHECK (xp_reward >= 0),
-	due_at timestamptz,
+	due_at timestamp,
 	repeat_rule text,
 	is_custom boolean NOT NULL DEFAULT true,
 	is_active boolean NOT NULL DEFAULT true,
-	created_at timestamptz NOT NULL DEFAULT now(),
-	updated_at timestamptz NOT NULL DEFAULT now()
+	created_at timestamp NOT NULL DEFAULT now(),
+	updated_at timestamp NOT NULL DEFAULT now()
 );
 
 CREATE TABLE task_submissions (
@@ -97,8 +99,8 @@ CREATE TABLE task_submissions (
 	proof_url text,
 	proof_note text,
 	status text NOT NULL DEFAULT 'pending',
-	submitted_at timestamptz NOT NULL DEFAULT now(),
-	reviewed_at timestamptz,
+	submitted_at timestamp NOT NULL DEFAULT now(),
+	reviewed_at timestamp,
 	UNIQUE (task_id, child_id, submission_number)
 );
 
@@ -108,7 +110,7 @@ CREATE TABLE task_reviews (
 	reviewed_by uuid NOT NULL REFERENCES users(id),
 	decision text NOT NULL,
 	review_note text,
-	created_at timestamptz NOT NULL DEFAULT now()
+	created_at timestamp NOT NULL DEFAULT now()
 );
 
 -- ASSUMPTION A: the idempotency keys carry a UNIQUE constraint. Production may or may not (see the troubleshooting doc).
@@ -121,7 +123,7 @@ CREATE TABLE star_transactions (
 	redemption_id uuid,
 	idempotency_key text,
 	description text,
-	created_at timestamptz NOT NULL DEFAULT now(),
+	created_at timestamp NOT NULL DEFAULT now(),
 	CONSTRAINT star_transactions_idempotency_key_key UNIQUE (idempotency_key)
 );
 
@@ -132,7 +134,7 @@ CREATE TABLE xp_transactions (
 	submission_id uuid REFERENCES task_submissions(id) ON DELETE SET NULL,
 	reason text NOT NULL,
 	idempotency_key text,
-	created_at timestamptz NOT NULL DEFAULT now(),
+	created_at timestamp NOT NULL DEFAULT now(),
 	CONSTRAINT xp_transactions_idempotency_key_key UNIQUE (idempotency_key)
 );
 
@@ -141,7 +143,7 @@ CREATE TABLE child_progress (
 	total_xp integer NOT NULL DEFAULT 0,
 	current_level_id uuid REFERENCES levels(id),
 	garden_progress jsonb NOT NULL DEFAULT '{}'::jsonb,
-	updated_at timestamptz NOT NULL DEFAULT now()
+	updated_at timestamp NOT NULL DEFAULT now()
 );
 
 CREATE TABLE child_activity_days (
@@ -150,7 +152,7 @@ CREATE TABLE child_activity_days (
 	completed_tasks integer NOT NULL DEFAULT 0,
 	stars_earned integer NOT NULL DEFAULT 0,
 	xp_earned integer NOT NULL DEFAULT 0,
-	created_at timestamptz NOT NULL DEFAULT now(),
+	created_at timestamp NOT NULL DEFAULT now(),
 	PRIMARY KEY (child_id, activity_date)
 );
 
@@ -159,13 +161,14 @@ CREATE TABLE child_streaks (
 	current_streak integer NOT NULL DEFAULT 0,
 	longest_streak integer NOT NULL DEFAULT 0,
 	last_activity_date date,
-	updated_at timestamptz NOT NULL DEFAULT now()
+	updated_at timestamp NOT NULL DEFAULT now()
 );
 
 CREATE TABLE badges (
 	id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	name text NOT NULL UNIQUE,
 	description text,
+	icon_url text,
 	criteria_type text NOT NULL,
 	criteria_value jsonb NOT NULL DEFAULT '{}'::jsonb,
 	is_active boolean NOT NULL DEFAULT true
@@ -175,7 +178,7 @@ CREATE TABLE child_badges (
 	id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	child_id uuid NOT NULL REFERENCES child_profiles(id) ON DELETE CASCADE,
 	badge_id uuid NOT NULL REFERENCES badges(id) ON DELETE CASCADE,
-	unlocked_at timestamptz NOT NULL DEFAULT now(),
+	unlocked_at timestamp NOT NULL DEFAULT now(),
 	UNIQUE (child_id, badge_id)
 );
 
@@ -189,8 +192,8 @@ CREATE TABLE notifications (
 	related_submission_id uuid,
 	related_redemption_id uuid,
 	is_read boolean NOT NULL DEFAULT false,
-	read_at timestamptz,
-	created_at timestamptz NOT NULL DEFAULT now()
+	read_at timestamp,
+	created_at timestamp NOT NULL DEFAULT now()
 );
 
 CREATE TABLE user_settings (
@@ -198,7 +201,7 @@ CREATE TABLE user_settings (
 	language_code text NOT NULL DEFAULT 'en',
 	push_enabled boolean NOT NULL DEFAULT true,
 	email_notifications_enabled boolean NOT NULL DEFAULT true,
-	updated_at timestamptz
+	updated_at timestamp
 );
 
 CREATE TABLE family_settings (
@@ -207,7 +210,7 @@ CREATE TABLE family_settings (
 	mission_settings jsonb NOT NULL DEFAULT '{}'::jsonb,
 	reward_settings jsonb NOT NULL DEFAULT '{}'::jsonb,
 	video_settings jsonb NOT NULL DEFAULT '{}'::jsonb,
-	updated_at timestamptz NOT NULL DEFAULT now()
+	updated_at timestamp NOT NULL DEFAULT now()
 );
 
 CREATE TABLE video_categories (
@@ -236,10 +239,12 @@ CREATE TABLE videos (
 	age_max integer NOT NULL DEFAULT 15,
 	content_rating text NOT NULL DEFAULT 'general',
 	is_published boolean NOT NULL DEFAULT false,
-	published_at timestamptz,
+	published_at timestamp,
 	display_order integer NOT NULL DEFAULT 0,
 	created_by uuid REFERENCES users(id),
-	created_at timestamptz NOT NULL DEFAULT now()
+	uploaded_by uuid REFERENCES users(id),
+	created_at timestamp NOT NULL DEFAULT now(),
+	updated_at timestamp NOT NULL DEFAULT now()
 );
 
 CREATE TABLE video_collections (
@@ -262,16 +267,24 @@ CREATE TABLE rewards (
 	access_duration_seconds integer,
 	access_validity_seconds integer,
 	max_uses integer,
-	is_active boolean NOT NULL DEFAULT true
+	is_active boolean NOT NULL DEFAULT true,
+	created_at timestamp NOT NULL DEFAULT now()
 );
 
 CREATE TABLE redemption_requests (
 	id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	reward_id uuid NOT NULL REFERENCES rewards(id),
 	child_id uuid NOT NULL REFERENCES child_profiles(id),
+	star_cost_at_request integer NOT NULL DEFAULT 0,
 	status text NOT NULL DEFAULT 'pending',
-	fulfilled_at timestamptz,
-	created_at timestamptz NOT NULL DEFAULT now()
+	idempotency_key text,
+	requested_at timestamp NOT NULL DEFAULT now(),
+	reviewed_by uuid REFERENCES users(id),
+	reviewed_at timestamp,
+	review_note text,
+	fulfilled_at timestamp,
+	cancelled_at timestamp,
+	created_at timestamp NOT NULL DEFAULT now()
 );
 
 -- The star-redemption entitlement table as migration 0013 found it. Star-redemption rows always have exactly one of
@@ -286,8 +299,21 @@ CREATE TABLE video_access_entitlements (
 	video_collection_id uuid REFERENCES video_collections(id) ON DELETE CASCADE,
 	granted_seconds integer NOT NULL DEFAULT 0 CHECK (granted_seconds >= 0),
 	consumed_seconds integer NOT NULL DEFAULT 0 CHECK (consumed_seconds >= 0),
-	granted_at timestamptz NOT NULL DEFAULT now(),
-	valid_from timestamptz,
-	expires_at timestamptz,
+	granted_at timestamp NOT NULL DEFAULT now(),
+	valid_from timestamp,
+	expires_at timestamp,
 	status text NOT NULL DEFAULT 'active'
+);
+
+CREATE TABLE consent_records (
+	id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	family_id uuid NOT NULL REFERENCES families(id) ON DELETE CASCADE,
+	child_id uuid REFERENCES child_profiles(id) ON DELETE CASCADE,
+	parent_user_id uuid NOT NULL REFERENCES users(id),
+	consent_type text NOT NULL,
+	document_version text NOT NULL,
+	accepted boolean NOT NULL,
+	accepted_at timestamp,
+	revoked_at timestamp,
+	created_at timestamp NOT NULL DEFAULT now()
 );

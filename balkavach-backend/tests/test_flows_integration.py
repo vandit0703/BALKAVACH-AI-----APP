@@ -184,8 +184,12 @@ def test_task_approval_awards_once_and_retries_do_not_duplicate(isolated_test_se
     # The stored 5 / 12 are history only: an approval pays the standard 10 stars / 15 XP, once.
     assert star_balance(isolated_test_session, child.id) == 10
     assert xp_total(isolated_test_session, child.id) == 15
+    # A repeat (the first response was lost) returns the existing result and pays nothing more.
+    repeated = review_submission(isolated_test_session, submission.id, parent, TaskReviewCreate(decision="approved"))
+    assert repeated.id == reviewed.id and repeated.status == "approved"
+    # A different decision on a reviewed submission is still refused.
     with pytest.raises(APIError) as error:
-        review_submission(isolated_test_session, submission.id, parent, TaskReviewCreate(decision="approved"))
+        review_submission(isolated_test_session, submission.id, parent, TaskReviewCreate(decision="rejected"))
     assert error.value.status_code == 409
     assert star_balance(isolated_test_session, child.id) == 10
     assert xp_total(isolated_test_session, child.id) == 15

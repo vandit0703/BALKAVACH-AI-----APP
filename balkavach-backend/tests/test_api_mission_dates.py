@@ -54,8 +54,10 @@ def test_approving_twice_credits_stars_xp_and_video_time_exactly_once(api):
 	submission_id, _ = _submit(api, ctx, submitted_ago=timedelta(hours=1))
 
 	assert api.review(parent, submission_id, "approved").status_code == 200
-	assert api.review(parent, submission_id, "approved").status_code == 409
-	assert api.review(parent, submission_id, "approved").status_code == 409
+	# Repeats (a lost response retried) return the existing result and pay nothing more; a different decision is refused.
+	assert api.review(parent, submission_id, "approved").status_code == 200
+	assert api.review(parent, submission_id, "approved").status_code == 200
+	assert api.review(parent, submission_id, "rejected").status_code == 409
 
 	progress = api.get(f"/progress/children/{child['id']}", child["token"]).json()
 	assert (progress["star_balance"], progress["total_xp"]) == (10, 15)  # the standard mission reward, once

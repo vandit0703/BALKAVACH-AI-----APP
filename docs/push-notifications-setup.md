@@ -73,7 +73,27 @@ Watch, Parent settings…) on cold start and while running; see
 to three times inside the worker; it is still not durable. **None of this has
 been verified with real Firebase or on a phone.**
 
-## Not included
+## Android notification channels, icon and foreground banner (2026-11-21)
 
-A banner while the app is in the foreground (needs `flutter_local_notifications`).
-iOS needs APNs setup and an iOS build, neither of which exists in this project.
+* **Channels** (created on app start, `lib/core/push/local_notifications.dart`; the server targets them by id in
+  `app/integrations/fcm.py`, and a test keeps the two lists in sync): `balkavach_missions`, `balkavach_approvals`,
+  `balkavach_rewards`, `balkavach_reminders`, `balkavach_safety`. Users can mute each in Android settings.
+* **Small icon / colour:** `ic_stat_balkavach` (a flat panda-face silhouette; Android only draws status-bar icons as one colour,
+  so the full-colour mascot cannot be used) and brand blue `#0051B6`. Please have a designer confirm the silhouette.
+* **Foreground banner:** Android never shows an FCM notification message while the app is open, so the app shows it itself with
+  `flutter_local_notifications`. Tapping it goes through the same coordinator as a system push.
+* **Sign-out** also clears the app's notifications from the shade.
+* **Reward values:** a `task_approved` push says "You earned N Stars and M XP" using the amounts read from the star/XP ledgers at
+  delivery time (what the server recorded, never recomputed). Nothing else about the mission is in the text, and the data payload
+  is still only `{type, notification_id}`.
+* **New missions:** `python -m app.cli daily-missions-notify` (run hourly; it only notifies families whose local time is 08:00-19:00
+  and at most once per child per family-local day) creates a `daily_missions_ready` notification (category `new_missions`).
+  It needs the FCM environment variables (`NOTIFICATION_PROVIDER`, `FCM_SERVICE_ACCOUNT_*`) on the cron job, unlike the YouTube
+  jobs. `streak-check` now also delivers its pushes; before this, cron-created notifications were stored but never pushed.
+
+## Not implemented
+
+* An "unfinished mission" reminder push (needs a scheduler decision and product wording).
+* A push when new learning videos become eligible (the feed is built on demand; there is no event to hook).
+* Channel names are English only (Android shows them in system settings); the notification text itself is localised.
+* iOS needs APNs setup and an iOS build, neither of which exists in this project.
