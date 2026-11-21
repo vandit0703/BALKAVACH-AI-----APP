@@ -305,29 +305,37 @@ class _TabPills extends StatelessWidget {
                         ),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.xs,
+                            horizontal: AppSpacing.sm,
                             vertical: AppSpacing.xs,
                           ),
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 6,
-                            runSpacing: 2,
-                            children: [
-                              Text(
-                                labels[tab]!,
-                                style: context.text.labelLarge?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: tab == selected
-                                      ? colors.onPrimary
-                                      : colors.onSurfaceVariant,
-                                ),
+                          // One line always: label + badge shrink together on
+                          // narrow screens or large text instead of wrapping,
+                          // so all three tabs keep the same height and baseline.
+                          child: Center(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    labels[tab]!,
+                                    maxLines: 1,
+                                    softWrap: false,
+                                    style: context.text.labelLarge?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: tab == selected
+                                          ? colors.onPrimary
+                                          : colors.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  _CountBadge(
+                                    count: counts[tab] ?? 0,
+                                    selected: tab == selected,
+                                  ),
+                                ],
                               ),
-                              _CountBadge(
-                                count: counts[tab] ?? 0,
-                                selected: tab == selected,
-                              ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
