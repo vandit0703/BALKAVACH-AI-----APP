@@ -389,6 +389,8 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
       widget.item.childName ?? AppLocalizations.of(context).someChild;
 
   Future<void> _review(ReviewDecision decision) async {
+    // One request at a time: a second tap while one is running does nothing.
+    if (_busy != null) return;
     final l10n = AppLocalizations.of(context);
     String? note;
     if (decision != ReviewDecision.approved) {
@@ -416,12 +418,20 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
         decision: decision,
         note: note,
       );
-      final stars = widget.item.mission?.starReward ?? 0;
+      // Shown only after the server confirmed the approval; the amounts are the
+      // ones the server stated for this mission (the same it just paid).
+      final submission = widget.item.submission;
+      final stars =
+          submission.starReward ?? widget.item.mission?.starReward ?? 0;
+      final xp = submission.xpReward;
+      final minutes = submission.videoMinutesReward;
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
             content: Text(switch (decision) {
+              ReviewDecision.approved when xp != null && minutes != null =>
+                l10n.approvalsApprovedToastFull(_childName, stars, xp, minutes),
               ReviewDecision.approved => l10n.approvalsApprovedToast(
                 _childName,
                 stars,
@@ -450,7 +460,9 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
     final colors = context.colors;
     final submission = widget.item.submission;
     final mission = widget.item.mission;
-    final stars = mission?.starReward ?? 0;
+    final stars = submission.starReward ?? mission?.starReward ?? 0;
+    final xp = submission.xpReward;
+    final minutes = submission.videoMinutesReward;
     final child = widget.item.child;
     final avatar = child == null
         ? null
@@ -498,8 +510,28 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
+            ],
+          ),
+          // What approving pays, as the server states it: stars, XP and video
+          // time are separate rewards.
+          Wrap(
+            key: const Key('review.rewards'),
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            children: [
               StarPill(count: stars, prefix: '+'),
+              if (xp != null)
+                _RewardPill(
+                  key: const Key('review.reward.xp'),
+                  icon: Icons.bolt_rounded,
+                  label: '+${l10n.missionXpCount(xp)}',
+                ),
+              if (minutes != null && minutes > 0)
+                _RewardPill(
+                  key: const Key('review.reward.video'),
+                  icon: Icons.play_circle_rounded,
+                  label: l10n.approvalsVideoMinutes(minutes),
+                ),
             ],
           ),
           if (proofUrl != null && submission.proofType == 'image')
@@ -636,6 +668,46 @@ class _ProofImage extends ConsumerWidget {
                   child: image(provider),
                 ),
               ),
+      ),
+    );
+  }
+}
+
+/// One reward the server pays for an approval (XP, video time), styled like [StarPill].
+class _RewardPill extends StatelessWidget {
+  const _RewardPill({required this.icon, required this.label, super.key});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.secondaryContainer,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: colors.onSecondaryContainer),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.text.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: colors.onSecondaryContainer,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

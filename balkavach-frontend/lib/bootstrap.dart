@@ -19,7 +19,11 @@ Future<void> bootstrap() async {
         pushTokenSourceProvider.overrideWithValue(pushSource),
         if (pushSource.isAvailable)
           notificationOpenSourceProvider.overrideWithValue(
-            const FirebaseNotificationOpenSource(),
+            FirebaseNotificationOpenSource(
+              local: pushSource is FirebasePushTokenSource
+                  ? pushSource.local
+                  : null,
+            ),
           ),
       ],
       // Screens offer explicit retry; silent automatic retries would hide

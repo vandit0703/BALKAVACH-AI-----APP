@@ -447,8 +447,7 @@ void main() {
         'description': 'Read one story and tell us your favourite part.',
         'category_id': Fx.categoryId,
         'assigned_child_id': Fx.childId,
-        'star_reward': 10,
-        'xp_reward': 20,
+        // No reward is sent: the server sets it.
         'due_at': '2026-11-03T18:29:00.000Z',
       });
       expect(find.text('Mission saved'), findsOneWidget);

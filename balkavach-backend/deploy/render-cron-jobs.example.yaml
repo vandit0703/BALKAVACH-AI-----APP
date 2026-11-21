@@ -27,7 +27,7 @@ services:
     rootDir: balkavach-backend
     buildCommand: pip install -r requirements.txt
     startCommand: python -m app.cli youtube-discover --max-results 50
-    schedule: "30 */3 * * *"       # every 3 hours; hourly while a large backfill is pending
+    schedule: "30 */6 * * *"       # every 6 hours. Each run costs ~700+ quota units (search.list); see docs/video-feed-production-recovery.md section 6
     envVars:
       - fromGroup: balkavach-backend
 

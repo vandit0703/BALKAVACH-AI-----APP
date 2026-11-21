@@ -91,12 +91,7 @@ void main() {
         title: ' Read ',
         description: '   ',
       );
-      expect(mission.toJson(), {
-        'family_id': Fx.familyId,
-        'title': 'Read',
-        'star_reward': 0,
-        'xp_reward': 0,
-      });
+      expect(mission.toJson(), {'family_id': Fx.familyId, 'title': 'Read'});
     });
 
     test('create sends the due date as UTC with an offset', () {
@@ -121,19 +116,12 @@ void main() {
     });
 
     test('patch sends explicit nulls so fields can be cleared', () {
-      const mission = NewMission(
-        familyId: Fx.familyId,
-        title: 'Read',
-        starReward: 5,
-        xpReward: 9,
-      );
+      const mission = NewMission(familyId: Fx.familyId, title: 'Read');
       expect(mission.toPatchJson(), {
         'title': 'Read',
         'description': null,
         'category_id': null,
         'assigned_child_id': null,
-        'star_reward': 5,
-        'xp_reward': 9,
         'due_at': null,
       });
     });

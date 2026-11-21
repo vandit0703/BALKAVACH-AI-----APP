@@ -427,6 +427,9 @@ def _streak_check(session_factory) -> int:
 							notifications_sent += 1
 
 			session.commit()
+			from app.services import push_service
+
+			push_service.deliver_ready(session)
 			print(
 				f"Streak check complete: {len(changes)} state change(s), {notifications_sent} notification(s) sent."
 			)
@@ -437,6 +440,48 @@ def _streak_check(session_factory) -> int:
 	except Exception as err:
 		print(f"Error during streak check: {err}", file=sys.stderr)
 		return 1
+
+
+def _daily_missions_notify(session_factory, *, from_hour: int, to_hour: int) -> int:
+	"""Once per family-local day, tell each active child that new missions are ready.
+
+	Only runs for families whose local time is within [from_hour, to_hour), so nobody is notified at night.
+	Re-running is safe: ``notify_daily_missions_ready`` skips a child who already has today's notification."""
+	from datetime import datetime, timezone
+
+	from app.db.base import get_model
+	from app.services import push_service
+	from app.services.notification_service import notify_daily_missions_ready
+	from app.services.timezone_service import family_timezone_name, parse_timezone
+
+	try:
+		with session_factory() as session:
+			ChildProfile = get_model("ChildProfile")
+			User = get_model("User")
+			now = datetime.now(timezone.utc)
+			children = (
+				session.query(ChildProfile)
+				.join(User, User.id == ChildProfile.user_id)
+				.filter(User.is_active.is_(True))
+				.all()
+			)
+			zones: dict = {}
+			sent = skipped = 0
+			for child in children:
+				if child.family_id not in zones:
+					zones[child.family_id] = parse_timezone(family_timezone_name(session, child.family_id))
+				if not from_hour <= now.astimezone(zones[child.family_id]).hour < to_hour:
+					skipped += 1
+					continue
+				if notify_daily_missions_ready(session, child, now) is not None:
+					sent += 1
+			session.commit()
+			push_service.deliver_ready(session)
+			print(f"Daily missions notify complete: {sent} sent, {skipped} outside the daytime window.")
+			return 0
+	except SQLAlchemyError:
+		print("Database operation failed during daily missions notify.", file=sys.stderr)
+		return 2
 
 
 def _youtube_auto_review(session_factory, limit: int) -> int:
@@ -611,6 +656,11 @@ def main(argv: list[str] | None = None) -> int:
 	diagnose.add_argument("--age", type=int, choices=range(0, 19), metavar="0-18", help="Without --child-id")
 	diagnose.add_argument("--language", default="en", choices=["en", "hi", "gu"], help="Without --child-id")
 	commands.add_parser("streak-check", help="Check and update daily streak states and deliver notifications")
+	notify = commands.add_parser(
+		"daily-missions-notify", help="Notify children once per local day that new missions are ready"
+	)
+	notify.add_argument("--from-hour", type=int, default=8, choices=range(0, 24), metavar="0-23")
+	notify.add_argument("--to-hour", type=int, default=19, choices=range(1, 25), metavar="1-24")
 	seed = commands.add_parser(
 		"seed-daily-missions",
 		help="Validate the localized daily-mission catalogue; with --apply, add missing templates/variations",
@@ -623,6 +673,14 @@ def main(argv: list[str] | None = None) -> int:
 		help="Unpublish the original placeholder templates that were never edited (needs --apply; deletes nothing)",
 	)
 	args = parser.parse_args(argv)
+
+	if args.command == "daily-missions-notify":
+		from app.db.session import SessionLocal as notify_factory
+
+		if notify_factory is None:
+			print("DATABASE_URL is not configured", file=sys.stderr)
+			return 2
+		return _daily_missions_notify(notify_factory, from_hour=args.from_hour, to_hour=args.to_hour)
 
 	if args.command == "seed-daily-missions":
 		if (args.publish or args.retire_placeholders) and not args.apply:

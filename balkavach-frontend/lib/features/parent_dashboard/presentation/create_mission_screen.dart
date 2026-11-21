@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -39,12 +38,6 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
   late final _description = TextEditingController(
     text: widget.mission?.description,
   );
-  late final _stars = TextEditingController(
-    text: '${widget.mission?.starReward ?? 10}',
-  );
-  late final _xp = TextEditingController(
-    text: '${widget.mission?.xpReward ?? 20}',
-  );
   late String? _categoryId = widget.mission?.categoryId;
   late String? _childId = widget.mission?.assignedChildId;
   late DateTime? _dueAt = widget.mission?.dueAt?.toLocal();
@@ -57,8 +50,6 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
   void dispose() {
     _title.dispose();
     _description.dispose();
-    _stars.dispose();
-    _xp.dispose();
     super.dispose();
   }
 
@@ -97,10 +88,9 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
                           key: Key('idea.${preset.id}'),
                           title: Text(preset.title),
                           subtitle: Text(
-                            [
-                              ?preset.categoryName,
-                              '${preset.suggestedStars} ★ · ${preset.suggestedXp} XP',
-                            ].join(' · '),
+                            // The idea's own reward suggestion is not shown: every
+                            // approved mission earns the same standard reward.
+                            preset.categoryName ?? '',
                           ),
                           onTap: () => Navigator.pop(context, preset),
                         ),
@@ -114,8 +104,6 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
     setState(() {
       _title.text = chosen.title;
       _description.text = chosen.description ?? '';
-      _stars.text = '${chosen.suggestedStars}';
-      _xp.text = '${chosen.suggestedXp}';
       _categoryId = chosen.categoryId;
     });
   }
@@ -152,8 +140,6 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
         description: _description.text,
         categoryId: _categoryId,
         assignedChildId: _childId,
-        starReward: int.tryParse(_stars.text.trim()) ?? 0,
-        xpReward: int.tryParse(_xp.text.trim()) ?? 0,
         dueAt: _dueAt,
       );
       final repository = ref.read(missionsRepositoryProvider);
@@ -238,7 +224,6 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
         ? const <ChildProfile>[]
         : ref.watch(familyChildrenProvider(family.id)).value ??
               const <ChildProfile>[];
-    final digitsOnly = [FilteringTextInputFormatter.digitsOnly];
     final locale = Localizations.localeOf(context).toLanguageTag();
     final busy = _busy || _removing;
 
@@ -345,34 +330,9 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
                 ),
               ],
             ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: AppSpacing.md,
-              children: [
-                Expanded(
-                  child: AppTextField(
-                    fieldKey: const Key('mission.stars'),
-                    label: l10n.createMissionStars,
-                    controller: _stars,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: digitsOnly,
-                    validator: (v) =>
-                        validators.intRange(v, min: 0, max: 10000),
-                  ),
-                ),
-                Expanded(
-                  child: AppTextField(
-                    fieldKey: const Key('mission.xp'),
-                    label: l10n.createMissionXp,
-                    controller: _xp,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: digitsOnly,
-                    validator: (v) =>
-                        validators.intRange(v, min: 0, max: 100000),
-                  ),
-                ),
-              ],
-            ),
+            // Read-only: the server sets the reward (it ignores any amount the app
+            // might send), so a parent cannot change it here.
+            const _RewardNote(),
             PrimaryButton(
               key: const Key('mission.submit'),
               label: _editing ? l10n.saveChanges : l10n.createMissionSubmit,
@@ -490,6 +450,65 @@ class _Dropdown<T> extends StatelessWidget {
           onChanged: onChanged,
         ),
       ],
+    );
+  }
+}
+
+/// What approving any mission earns. Informational only: the backend is the
+/// authority on the amounts and never reads them from the app.
+class _RewardNote extends StatelessWidget {
+  const _RewardNote();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = context.colors;
+    return MergeSemantics(
+      child: DecoratedBox(
+        key: const Key('mission.reward.note'),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.card_giftcard_rounded, color: colors.primary),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: AppSpacing.xs,
+                  children: [
+                    Text(
+                      l10n.createMissionRewardTitle,
+                      style: context.text.titleSmall,
+                    ),
+                    Text(
+                      l10n.createMissionRewardStars(kMissionStarReward),
+                      key: const Key('mission.reward.stars'),
+                      style: context.text.bodyMedium,
+                    ),
+                    Text(
+                      l10n.createMissionRewardXp(kMissionXpReward),
+                      key: const Key('mission.reward.xp'),
+                      style: context.text.bodyMedium,
+                    ),
+                    Text(
+                      l10n.createMissionRewardFixed,
+                      style: context.text.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

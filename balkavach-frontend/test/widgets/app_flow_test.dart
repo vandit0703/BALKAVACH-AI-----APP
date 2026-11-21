@@ -237,6 +237,13 @@ void main() {
 
     await _tap(tester, find.text('Missions'));
     expect(find.text('My Missions'), findsOneWidget);
+    // The missions sit under today's progress header: scroll to them, as a
+    // child would.
+    await tester.scrollUntilVisible(
+      find.text('Play Outdoors or Yoga'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Play Outdoors or Yoga'), findsOneWidget);
 
     await _tap(tester, find.byKey(const Key('mission.${Fx.taskId}')));

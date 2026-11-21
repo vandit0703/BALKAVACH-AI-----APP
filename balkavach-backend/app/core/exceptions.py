@@ -27,6 +27,25 @@ class APIError(Exception):
 		self.details = details
 
 
+def database_error_details(error: BaseException) -> str:
+	"""Which rule the database rejected, for the server log: SQLSTATE plus constraint, table and column names.
+
+	Names only: never the statement parameters or row values (they can hold personal data). Works for psycopg 3
+	(``sqlstate``) and psycopg 2 (``pgcode``).
+	"""
+	original = getattr(error, "orig", None)
+	if original is None:
+		return ""
+	diag = getattr(original, "diag", None)
+	parts = {
+		"sqlstate": getattr(original, "sqlstate", None) or getattr(original, "pgcode", None),
+		"constraint": getattr(diag, "constraint_name", None),
+		"table": getattr(diag, "table_name", None),
+		"column": getattr(diag, "column_name", None),
+	}
+	return " " + " ".join(f"{key}={value}" for key, value in parts.items() if value)
+
+
 def register_exception_handlers(app: FastAPI) -> None:
 	@app.exception_handler(APIError)
 	async def handle_api_error(request: Request, exc: APIError) -> JSONResponse:
@@ -58,7 +77,13 @@ def register_exception_handlers(app: FastAPI) -> None:
 	@app.exception_handler(Exception)
 	async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
 		if isinstance(exc, SQLAlchemyError):
-			logger.error("Unhandled database request error (%s)", type(exc).__name__)
+			logger.error(
+				"Unhandled database request error (%s%s) on %s %s",
+				type(exc).__name__,
+				database_error_details(exc),
+				request.method,
+				request.url.path,
+			)
 		else:
 			logger.exception("Unhandled request error", exc_info=exc)
 		return JSONResponse(

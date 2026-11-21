@@ -244,6 +244,10 @@
   "approvalsRetryToast": "{name} को फिर से कोशिश करने को कहा जाएगा.",
   "approvalsDeclinedToast": "मिशन अस्वीकार किया गया.",
   "approvalsAlreadyReviewed": "इस मिशन की समीक्षा हो चुकी है. सूची ताज़ा कर दी गई है.",
+  "approvalsVideoMinutes": "{minutes} मिनट वीडियो",
+  "approvalsApprovedToastFull": "मंज़ूर! {name} को {stars} स्टार, {xp} XP और {minutes} मिनट वीडियो समय मिला।",
+  "errorApprovalFailed": "मंज़ूरी सेव नहीं हो सकी। कुछ भी इनाम नहीं दिया गया। कृपया फिर कोशिश करें।",
+  "errorVideoAllowanceUnavailable": "अभी वीडियो समय नहीं दिया जा सकता, इसलिए यह मिशन मंज़ूर नहीं हुआ। कुछ भी इनाम नहीं दिया गया। कृपया बाद में फिर कोशिश करें।",
   "approvalsStarsCredited": "+{count} स्टार जमा",
   "approvalsRetrySent": "दोबारा करने को कहा",
   "approvalsTipTitle": "परफ़ेक्शन से ज़्यादा मेहनत की तारीफ़ करें",
@@ -861,5 +865,13 @@
   "missionsStatXp": "आज के XP",
   "missionEarnBoth": "यह मिशन पूरा करके {stars} स्टार और {xp} XP कमाओ।",
   "missionEarnedBoth": "तुमने {stars} स्टार और {xp} XP कमाए!",
-  "errorDailyAlreadySelected": "तुमने आज का मिशन पहले ही चुन लिया है। पहले उसे पूरा करो!"
+  "errorDailyAlreadySelected": "तुमने आज का मिशन पहले ही चुन लिया है। पहले उसे पूरा करो!",
+  "errorBirthDateRequired": "रोज़ के मिशन पाने के लिए किसी बड़े से अपना जन्मदिन जुड़वाओ।",
+  "errorBirthDateInvalid": "तुम्हारा जन्मदिन गलत लग रहा है। किसी बड़े से इसे ठीक करवाओ।",
+  "errorAgeRange": "रोज़ के मिशन 4 से 15 साल के बच्चों के लिए हैं।",
+  "errorMissionNotForAge": "यह मिशन किसी और उम्र के लिए बना था। आज के मिशनों में से एक चुनो!",
+  "createMissionRewardTitle": "हर मंज़ूर हुए मिशन का इनाम",
+  "createMissionRewardStars": "मंज़ूरी पर इनाम: {count} स्टार",
+  "createMissionRewardXp": "मंज़ूरी पर इनाम: {count} XP",
+  "createMissionRewardFixed": "इनाम हर मिशन के लिए एक जैसा है और ऐप तय करता है, इसलिए यहाँ बदला नहीं जा सकता।"
 }

@@ -28,6 +28,34 @@ _SCOPE = "https://www.googleapis.com/auth/firebase.messaging"
 _REQUIRED = ("project_id", "client_email", "private_key")
 
 
+# Android notification channels created by the app (lib/core/push/local_notifications.dart).
+# Keep the ids in sync. A push for an unmapped type uses the missions channel.
+_DEFAULT_CHANNEL = "balkavach_missions"
+_CHANNEL_BY_TYPE = {
+	"task_submitted": "balkavach_approvals",
+	"task_approved": "balkavach_rewards",
+	"task_rejected": "balkavach_approvals",
+	"task_resubmission_requested": "balkavach_approvals",
+	"reward_requested": "balkavach_approvals",
+	"reward_approved": "balkavach_rewards",
+	"reward_rejected": "balkavach_rewards",
+	"reward_fulfilled": "balkavach_rewards",
+	"badge_unlocked": "balkavach_rewards",
+	"mission_video_time_granted": "balkavach_rewards",
+	"streak_at_risk": "balkavach_reminders",
+	"streak_one_day_left": "balkavach_reminders",
+	"video_time_nearly_exhausted": "balkavach_reminders",
+	"video_time_exhausted": "balkavach_reminders",
+	"parent_mode_locked": "balkavach_safety",
+}
+_ANDROID_ICON = "ic_stat_balkavach"
+_ANDROID_COLOR = "#0051B6"
+
+
+def android_channel_for(notification_type: str | None) -> str:
+	return _CHANNEL_BY_TYPE.get(notification_type or "", _DEFAULT_CHANNEL)
+
+
 class FcmProvider:
 	def __init__(self, service_account: dict, http_client: httpx.Client | None = None) -> None:
 		missing = [key for key in _REQUIRED if not service_account.get(key)]
@@ -82,7 +110,14 @@ class FcmProvider:
 				"token": token,
 				"notification": {"title": title, "body": body},
 				"data": {str(key): str(value) for key, value in data.items()},
-				"android": {"priority": "HIGH"},
+				"android": {
+					"priority": "HIGH",
+					"notification": {
+						"channel_id": android_channel_for(data.get("type")),
+						"icon": _ANDROID_ICON,
+						"color": _ANDROID_COLOR,
+					},
+				},
 			}
 		}
 		try:

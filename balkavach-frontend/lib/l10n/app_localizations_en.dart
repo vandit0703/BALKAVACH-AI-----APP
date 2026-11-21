@@ -871,6 +871,29 @@ class AppLocalizationsEn extends AppLocalizations {
       'This submission was already reviewed. The list has been refreshed.';
 
   @override
+  String approvalsVideoMinutes(int minutes) {
+    return '$minutes min video';
+  }
+
+  @override
+  String approvalsApprovedToastFull(
+    String name,
+    int stars,
+    int xp,
+    int minutes,
+  ) {
+    return 'Approved! $name earned $stars stars, $xp XP and $minutes minutes of video time.';
+  }
+
+  @override
+  String get errorApprovalFailed =>
+      'The approval could not be saved. Nothing was awarded. Please try again.';
+
+  @override
+  String get errorVideoAllowanceUnavailable =>
+      'Video time can\'t be granted right now, so this mission wasn\'t approved. Nothing was awarded. Please try again later.';
+
+  @override
   String approvalsStarsCredited(int count) {
     return '+$count Stars credited';
   }
@@ -3048,4 +3071,36 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorDailyAlreadySelected =>
       'You already picked today\'s mission. Finish that one first!';
+
+  @override
+  String get errorBirthDateRequired =>
+      'Ask a grown-up to add your birthday to get daily missions.';
+
+  @override
+  String get errorBirthDateInvalid =>
+      'Your birthday looks wrong. Ask a grown-up to fix it.';
+
+  @override
+  String get errorAgeRange => 'Daily missions are for ages 4 to 15.';
+
+  @override
+  String get errorMissionNotForAge =>
+      'This mission was made for a different age. Pick one of today\'s missions!';
+
+  @override
+  String get createMissionRewardTitle => 'Reward for every approved mission';
+
+  @override
+  String createMissionRewardStars(int count) {
+    return 'Approval reward: $count Stars';
+  }
+
+  @override
+  String createMissionRewardXp(int count) {
+    return 'Approval reward: $count XP';
+  }
+
+  @override
+  String get createMissionRewardFixed =>
+      'The reward is the same for every mission and is set by the app, so it cannot be changed here.';
 }

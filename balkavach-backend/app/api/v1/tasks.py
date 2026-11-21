@@ -19,6 +19,7 @@ from app.schemas.task import (
 	TaskSubmissionPublic,
 	TaskUpdate,
 )
+from app.services.child_age import child_age_band_or_none, ineligible_daily_task_ids
 from app.services.ledger_service import awarded_by_submission
 from app.services.mission_rewards import MISSION_STAR_REWARD, MISSION_XP_REWARD
 from app.services.notification_service import notify_task_assigned
@@ -181,6 +182,8 @@ def list_tasks(
 		query = query.filter(
 			Task.family_id == child.family_id,
 			(Task.assigned_child_id.is_(None)) | (Task.assigned_child_id == child.id),
+			# Daily missions chosen for another age group are history, not current missions (child_age).
+			Task.id.notin_(ineligible_daily_task_ids(session, child, child_age_band_or_none(session, child))),
 		)
 	else:
 		raise HTTPException(status_code=403, detail="Task access denied")

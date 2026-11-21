@@ -654,9 +654,21 @@ class _DailyChoicesState extends ConsumerState<_DailyChoices> {
           ),
         ],
       ),
+      // No birth date, a wrong one, or an age outside 4-15: say what is
+      // needed (a grown-up can fix the birthday); never guess an age group.
+      AsyncError(error: final ApiException error)
+          when const {
+            'birth_date_required',
+            'birth_date_invalid',
+            'daily_missions_age_range',
+          }.contains(error.code) =>
+        InlineNotice(
+          key: const Key('missions.today.notice'),
+          message: describeError(l10n, error),
+          icon: Icons.cake_rounded,
+        ),
       // Offline or a server error: say so (with a way to retry) instead of
-      // quietly leaving the section out. Other refusals (no birth date, age
-      // outside 4-15) mean daily missions do not apply to this child.
+      // quietly leaving the section out.
       AsyncError(:final error)
           when error is NetworkException ||
               error is RequestTimeoutException ||

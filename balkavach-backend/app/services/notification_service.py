@@ -176,6 +176,39 @@ def notify_streak_event(
 	)
 
 
+def notify_daily_missions_ready(session: Session, child, now_utc: datetime | None = None):
+	"""Tell a child that today's missions are ready, at most once per family-local day.
+
+	Returns the notification, or ``None`` when one was already created today (a repeated cron run or a
+	retried request never sends a second one). The caller commits; the push follows the commit."""
+	from app.services.timezone_service import family_timezone_name, local_day_bounds_utc_naive, parse_timezone
+
+	Notification = get_model("Notification")
+	now = now_utc or datetime.now(timezone.utc)
+	zone = parse_timezone(family_timezone_name(session, child.family_id))
+	start, end = local_day_bounds_utc_naive(zone, now.astimezone(zone).date(), 1)
+	existing = (
+		session.query(Notification.id)
+		.filter(
+			Notification.recipient_user_id == child.user_id,
+			Notification.notification_type == "daily_missions_ready",
+			Notification.created_at >= start,
+			Notification.created_at < end,
+		)
+		.first()
+	)
+	if existing is not None:
+		return None
+	return create_notification(
+		session,
+		child.user_id,
+		"daily_missions_ready",
+		"New missions are ready",
+		"Your learning adventure is waiting!",
+		now=utc_naive(now),
+	)
+
+
 def notify_video_entitlement_event(
 	session: Session,
 	child_user_id: UUID,

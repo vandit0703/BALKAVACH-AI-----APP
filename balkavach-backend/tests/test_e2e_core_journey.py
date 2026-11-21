@@ -119,7 +119,8 @@ def test_parent_child_mission_reward_journey(world):
 
     # 7-9: approval awards once; level, badge, streak, report all update
     assert api.review(parent, second["id"], "approved", "Great").status_code == 200
-    assert api.review(parent, second["id"], "approved").status_code == 409
+    assert api.review(parent, second["id"], "approved").status_code == 200  # repeat = existing result, no second award
+    assert api.review(parent, second["id"], "rejected").status_code == 409
     progress = api.get(f"/progress/children/{child['id']}", kid).json()
     # Every approved mission earns the standard 10 stars / 15 XP (the 5 / 120 in the request are ignored).
     assert (progress["star_balance"], progress["total_xp"], progress["current_streak"]) == (10, 15, 1)

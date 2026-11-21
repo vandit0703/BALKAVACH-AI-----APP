@@ -50,6 +50,11 @@ GENERIC_TEXT: dict[str, dict[str, tuple[str, str]]] = {
 		"hi": ("नया मिशन", "आपके लिए एक नया मिशन है।"),
 		"gu": ("નવું મિશન", "તમારા માટે એક નવું મિશન છે."),
 	},
+	"daily_missions_ready": {
+		"en": ("New Missions Are Ready!", "Your learning adventure is waiting!"),
+		"hi": ("नए मिशन तैयार हैं!", "आपकी सीखने की यात्रा आपका इंतज़ार कर रही है!"),
+		"gu": ("નવા મિશન તૈયાર છે!", "તમારી શીખવાની સફર તમારી રાહ જોઈ રહી છે!"),
+	},
 	"task_submitted": {
 		"en": ("Mission submitted", "A mission is waiting for your review."),
 		"hi": ("मिशन समीक्षा के लिए भेजा गया", "समीक्षा के लिए एक मिशन इंतज़ार कर रहा है।"),
@@ -145,6 +150,26 @@ GENERIC_TEXT: dict[str, dict[str, tuple[str, str]]] = {
 			"આજનો વિડિયો સમય પૂરો થયો",
 			"એક મિશન પૂરું કરો અને તમારા વડીલ મંજૂર કરે ત્યારે વધુ વિડિયો સમય મળશે.",
 		),
+	},
+}
+
+# Body for an approval that earned something. The numbers are read from the star and XP
+# ledgers (what the server actually recorded), never computed or guessed here.
+REWARD_TEXT: dict[str, dict[str, str]] = {
+	"stars_xp": {
+		"en": "Your mission was approved! You earned {stars} Stars and {xp} XP.",
+		"hi": "आपका मिशन स्वीकृत हो गया! आपने {stars} स्टार और {xp} XP कमाए।",
+		"gu": "તમારું મિશન મંજૂર થયું! તમે {stars} સ્ટાર અને {xp} XP મેળવ્યા.",
+	},
+	"stars": {
+		"en": "Your mission was approved! You earned {stars} Stars.",
+		"hi": "आपका मिशन स्वीकृत हो गया! आपने {stars} स्टार कमाए।",
+		"gu": "તમારું મિશન મંજૂર થયું! તમે {stars} સ્ટાર મેળવ્યા.",
+	},
+	"xp": {
+		"en": "Your mission was approved! You earned {xp} XP.",
+		"hi": "आपका मिशन स्वीकृत हो गया! आपने {xp} XP कमाए।",
+		"gu": "તમારું મિશન મંજૂર થયું! તમે {xp} XP મેળવ્યા.",
 	},
 }
 
@@ -254,6 +279,25 @@ def _send_with_retry(provider, token: str, title: str, body: str, data: dict[str
 	return "retry_exhausted"
 
 
+def _approval_body(session: Session, notification_id: UUID, language: str) -> str | None:
+	"""The reward sentence for an approved mission, or ``None`` when nothing was earned or it cannot be read."""
+	try:
+		from app.services.ledger_service import awarded_by_submission
+
+		Notification = get_model("Notification")
+		row = session.query(Notification.related_submission_id).filter(Notification.id == notification_id).first()
+		if row is None or row[0] is None:
+			return None
+		stars, xp = awarded_by_submission(session, [row[0]]).get(row[0], (0, 0))
+	except Exception:
+		logger.warning("Reward amounts unreadable for push; sending the generic text")
+		return None
+	key = "stars_xp" if stars > 0 and xp > 0 else "stars" if stars > 0 else "xp" if xp > 0 else None
+	if key is None:
+		return None
+	return (REWARD_TEXT[key].get(language) or REWARD_TEXT[key]["en"]).format(stars=stars, xp=xp)
+
+
 def _deliver_with_session(session: Session, provider, items) -> Counter:
 	"""Send each staged push once. Returns the outcome counts (also logged; no names or tokens)."""
 	DeviceToken = get_model("DeviceToken")
@@ -283,6 +327,8 @@ def _deliver_with_session(session: Session, provider, items) -> Counter:
 			logger.info("Push suppressed (%s): type=%s notification=%s", decision, notification_type, notification_id)
 			continue
 		title, body = texts.get(language) or texts["en"]
+		if notification_type == "task_approved":
+			body = _approval_body(session, notification_id, language) or body
 		devices = session.query(DeviceToken).filter(DeviceToken.user_id == user_id, DeviceToken.is_active.is_(True)).all()
 		if not devices:
 			stats["no_active_device"] += 1

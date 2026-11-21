@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'local_notifications.dart';
+
 /// Where the phone gets its push address from. Firebase Cloud Messaging in
 /// production; a stand-in when Firebase is not set up for this build, so the
 /// app works the same without it (in-app notifications still arrive).
@@ -50,9 +52,13 @@ class NoopPushTokenSource implements PushTokenSource {
 }
 
 class FirebasePushTokenSource implements PushTokenSource {
-  FirebasePushTokenSource(this._messaging);
+  FirebasePushTokenSource(this._messaging, {this.local});
 
   final FirebaseMessaging _messaging;
+
+  /// Shows pushes that arrive while the app is open; `null` if it could not
+  /// be set up (push still works in the background, just without a banner).
+  final LocalNotifications? local;
 
   @override
   bool get isAvailable => true;
@@ -71,10 +77,25 @@ class FirebasePushTokenSource implements PushTokenSource {
   Stream<String> get onTokenRefresh => _messaging.onTokenRefresh;
 
   @override
-  Stream<void> get onMessage => FirebaseMessaging.onMessage.map((_) {});
+  Stream<void> get onMessage => FirebaseMessaging.onMessage.asyncMap((
+    message,
+  ) async {
+    try {
+      await local?.showForeground(message);
+    } on Object {
+      // The banner is a courtesy; the app still refreshes its data.
+    }
+  });
 
   @override
-  Future<void> deleteToken() => _messaging.deleteToken();
+  Future<void> deleteToken() async {
+    try {
+      await local?.clearAll();
+    } on Object {
+      // Nothing more to clear.
+    }
+    await _messaging.deleteToken();
+  }
 }
 
 /// Initialises Firebase if this build has a configuration. Without
@@ -83,10 +104,17 @@ class FirebasePushTokenSource implements PushTokenSource {
 Future<PushTokenSource> createPushTokenSource() async {
   try {
     await Firebase.initializeApp();
-    return FirebasePushTokenSource(FirebaseMessaging.instance);
   } on Object {
     return const NoopPushTokenSource();
   }
+  LocalNotifications? local;
+  try {
+    local = LocalNotifications();
+    await local.init();
+  } on Object {
+    local = null;
+  }
+  return FirebasePushTokenSource(FirebaseMessaging.instance, local: local);
 }
 
 /// Overridden in `bootstrap()` with the real source when available.

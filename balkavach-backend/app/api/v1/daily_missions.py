@@ -32,6 +32,7 @@ from app.services.daily_mission_service import (
     has_complete_localized_variations,
     weekly_summary,
 )
+from app.services.child_age import child_age_band_or_none, ensure_assignment_eligible
 from app.services.timezone_service import family_timezone_name
 from app.services.task_service import submit_completion
 
@@ -71,11 +72,15 @@ def select_today_mission(assignment_id: UUID, child=Depends(require_child), sess
 @router.get("/active", response_model=DailyMissionAssignmentPublic | None)
 def active_mission(child=Depends(require_child), session: Session = Depends(get_db)):
     Assignment = get_model("DailyMissionAssignment")
+    age_band = child_age_band_or_none(session, child)
+    if age_band is None:
+        return None
     row = (
         session.query(Assignment)
         .filter(
             Assignment.child_id == child.id,
             Assignment.is_current.is_(True),
+            Assignment.age_band == age_band,
             Assignment.status.in_(["selected", "in_progress", "pending_parent_approval", "approved", "rejected"]),
         )
         .order_by(Assignment.local_date.desc())
@@ -109,6 +114,7 @@ def submit_today_mission(
     row = session.query(Assignment).filter(Assignment.id == assignment_id, Assignment.child_id == child.id, Assignment.is_current.is_(True)).one_or_none()
     if row is None or row.task_id is None:
         raise APIError(409, "daily_mission_not_selected", "Select a daily mission before submitting it")
+    ensure_assignment_eligible(row, child_age_band_or_none(session, child))
     submission = submit_completion(session, row.task_id, child, request)
     row.status = "pending_parent_approval"
     _commit(session)

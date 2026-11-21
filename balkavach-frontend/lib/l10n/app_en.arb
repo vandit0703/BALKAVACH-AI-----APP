@@ -456,6 +456,12 @@
   },
   "approvalsDeclinedToast": "Submission declined.",
   "approvalsAlreadyReviewed": "This submission was already reviewed. The list has been refreshed.",
+  "approvalsVideoMinutes": "{minutes} min video",
+  "@approvalsVideoMinutes": {"placeholders": {"minutes": {"type": "int"}}},
+  "approvalsApprovedToastFull": "Approved! {name} earned {stars} stars, {xp} XP and {minutes} minutes of video time.",
+  "@approvalsApprovedToastFull": {"placeholders": {"name": {"type": "String"}, "stars": {"type": "int"}, "xp": {"type": "int"}, "minutes": {"type": "int"}}},
+  "errorApprovalFailed": "The approval could not be saved. Nothing was awarded. Please try again.",
+  "errorVideoAllowanceUnavailable": "Video time can't be granted right now, so this mission wasn't approved. Nothing was awarded. Please try again later.",
   "approvalsStarsCredited": "+{count} Stars credited",
   "@approvalsStarsCredited": {
     "placeholders": {
@@ -1680,5 +1686,15 @@
   "@missionEarnBoth": {"placeholders": {"stars": {"type": "int"}, "xp": {"type": "int"}}},
   "missionEarnedBoth": "You earned {stars} stars and {xp} XP!",
   "@missionEarnedBoth": {"placeholders": {"stars": {"type": "int"}, "xp": {"type": "int"}}},
-  "errorDailyAlreadySelected": "You already picked today's mission. Finish that one first!"
+  "errorDailyAlreadySelected": "You already picked today's mission. Finish that one first!",
+  "errorBirthDateRequired": "Ask a grown-up to add your birthday to get daily missions.",
+  "errorBirthDateInvalid": "Your birthday looks wrong. Ask a grown-up to fix it.",
+  "errorAgeRange": "Daily missions are for ages 4 to 15.",
+  "errorMissionNotForAge": "This mission was made for a different age. Pick one of today's missions!",
+  "createMissionRewardTitle": "Reward for every approved mission",
+  "createMissionRewardStars": "Approval reward: {count} Stars",
+  "@createMissionRewardStars": {"placeholders": {"count": {"type": "int"}}},
+  "createMissionRewardXp": "Approval reward: {count} XP",
+  "@createMissionRewardXp": {"placeholders": {"count": {"type": "int"}}},
+  "createMissionRewardFixed": "The reward is the same for every mission and is set by the app, so it cannot be changed here."
 }

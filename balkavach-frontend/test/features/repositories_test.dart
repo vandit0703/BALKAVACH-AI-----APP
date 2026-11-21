@@ -331,14 +331,8 @@ void main() {
           familyId: Fx.familyId,
           title: ' Tidy up ',
           description: '  ',
-          starReward: 5,
         ).toJson(),
-        {
-          'family_id': Fx.familyId,
-          'title': 'Tidy up',
-          'star_reward': 5,
-          'xp_reward': 0,
-        },
+        {'family_id': Fx.familyId, 'title': 'Tidy up'},
       );
     });
   });

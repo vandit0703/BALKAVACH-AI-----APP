@@ -112,7 +112,13 @@ class Mission {
   );
 }
 
-/// Input for `POST /api/v1/tasks`.
+/// What approving any mission earns. The backend sets and pays these
+/// (`app/services/mission_rewards.py`) and ignores any amount the app sends,
+/// so they are only shown to parents as an explanation, never submitted.
+const kMissionStarReward = 10;
+const kMissionXpReward = 15;
+
+/// Input for `POST /api/v1/tasks`. It carries no reward: the server decides.
 @immutable
 class NewMission {
   const NewMission({
@@ -121,8 +127,6 @@ class NewMission {
     this.description,
     this.categoryId,
     this.assignedChildId,
-    this.starReward = 0,
-    this.xpReward = 0,
     this.dueAt,
   });
 
@@ -131,8 +135,6 @@ class NewMission {
   final String? description;
   final String? categoryId;
   final String? assignedChildId;
-  final int starReward;
-  final int xpReward;
 
   /// Sent as UTC with an offset; the API rejects a naive timestamp.
   final DateTime? dueAt;
@@ -149,8 +151,6 @@ class NewMission {
     'description': ?_trimmedDescription,
     'category_id': ?categoryId,
     'assigned_child_id': ?assignedChildId,
-    'star_reward': starReward,
-    'xp_reward': xpReward,
     'due_at': ?dueAt?.toUtc().toIso8601String(),
   };
 
@@ -162,8 +162,6 @@ class NewMission {
     'description': _trimmedDescription,
     'category_id': categoryId,
     'assigned_child_id': assignedChildId,
-    'star_reward': starReward,
-    'xp_reward': xpReward,
     'due_at': dueAt?.toUtc().toIso8601String(),
   };
 }
@@ -191,6 +189,7 @@ class TaskSubmission {
     this.categoryName,
     this.starsAwarded,
     this.xpAwarded,
+    this.videoMinutesReward,
   });
 
   factory TaskSubmission.fromJson(Map<String, dynamic> json) => TaskSubmission(
@@ -213,6 +212,7 @@ class TaskSubmission {
     categoryName: json['category_name'] as String?,
     starsAwarded: json['stars_awarded'] as int?,
     xpAwarded: json['xp_awarded'] as int?,
+    videoMinutesReward: json['video_minutes_reward'] as int?,
   );
 
   final String id;
@@ -237,6 +237,10 @@ class TaskSubmission {
   /// (`GET /tasks/submissions/mine`). `null` from a server that predates it.
   final int? starsAwarded;
   final int? xpAwarded;
+
+  /// Review queue only: minutes of video time an approval unlocks, as the
+  /// server states it. `null` from a server that predates it (nothing shown).
+  final int? videoMinutesReward;
   final int submissionNumber;
   final String proofType;
   final String? proofUrl;

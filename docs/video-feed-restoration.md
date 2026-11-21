@@ -112,7 +112,7 @@ A mutation check (disabling the freshness condition) failed 11 of these tests, t
    Ubuntu VPS. Use whichever serves `api.balkavach.tech`:
    * **Render:** three Cron Jobs from `balkavach-backend/deploy/render-cron-jobs.example.yaml` (root `balkavach-backend`, build
      `pip install -r requirements.txt`, shared Environment Group with the web service's values, failure notifications on):
-     recheck hourly `0 * * * *`, discover `30 */3 * * *`, health `15 * * * *`.
+     recheck hourly `0 * * * *`, discover `30 */6 * * *` (each run costs ~700 quota units, see the recovery doc), health `15 * * * *`.
    * **VPS:** copy `deploy/systemd/*` to `/etc/systemd/system/`, create the `balkavach` user and `/etc/balkavach/backend.env`
      (mode 0600), then `systemctl enable --now balkavach-youtube-recheck.timer balkavach-youtube-recheck-health.timer`.
    * Add `youtube-discover` only with `YOUTUBE_DISCOVERY_ACTOR_ID` set to an active administrator with `video:write`.

@@ -29,6 +29,10 @@ String? _messageForCode(AppLocalizations l10n, String? code) => switch (code) {
   'submission_pending' => l10n.errorAlreadyPending,
   'task_already_completed' => l10n.errorAlreadyCompleted,
   'daily_mission_already_selected' => l10n.errorDailyAlreadySelected,
+  'birth_date_required' => l10n.errorBirthDateRequired,
+  'birth_date_invalid' => l10n.errorBirthDateInvalid,
+  'daily_missions_age_range' => l10n.errorAgeRange,
+  'mission_not_age_eligible' => l10n.errorMissionNotForAge,
   'upload_too_large' => l10n.errorPhotoTooLarge,
   'unsupported_image' => l10n.errorPhotoUnsupported,
   'too_many_uploads' => l10n.errorPhotoQuota,
@@ -36,6 +40,8 @@ String? _messageForCode(AppLocalizations l10n, String? code) => switch (code) {
   'insufficient_stars' => l10n.errorNotEnoughStars,
   'redemption_pending' => l10n.errorRewardPending,
   'reward_unavailable' => l10n.errorRewardUnavailable,
+  'approval_failed' => l10n.errorApprovalFailed,
+  'video_allowance_unavailable' => l10n.errorVideoAllowanceUnavailable,
   _ => null,
 };
 

@@ -57,6 +57,8 @@ void main() {
     });
   });
 
+  rewardFormTests();
+
   group('create mission', () {
     Future<Harness> pump(
       WidgetTester tester, {
@@ -82,17 +84,18 @@ void main() {
       await pump(tester);
       await _tap(tester, find.byKey(const Key('mission.ideas')));
       expect(find.text('Mission ideas'), findsOneWidget);
-      expect(find.text('Learn · 2 ★ · 15 XP'), findsOneWidget);
+      // The idea's own reward suggestion is no longer shown: every mission earns the same.
+      expect(find.text('Learn'), findsWidgets);
+      expect(find.textContaining('15 XP'), findsNothing);
 
       await _tap(tester, find.byKey(const Key('idea.p1')));
       expect(
         find.widgetWithText(TextFormField, 'Brush your teeth'),
         findsOneWidget,
       );
-      expect(find.widgetWithText(TextFormField, '15'), findsOneWidget);
-
-      await tester.enterText(find.byKey(const Key('mission.stars')), '4');
-      expect(find.widgetWithText(TextFormField, '4'), findsOneWidget);
+      // No editable reward fields: just the read-only standard reward.
+      expect(find.byKey(const Key('mission.stars')), findsNothing);
+      expect(find.byKey(const Key('mission.xp')), findsNothing);
     });
 
     testWidgets(
@@ -115,5 +118,82 @@ void main() {
       await pump(tester, mission: Mission.fromJson(Fx.task()));
       expect(find.byKey(const Key('mission.ideas')), findsNothing);
     });
+  });
+}
+
+// The parent form shows the reward read-only; the server decides it.
+void rewardFormTests() {
+  group('reward note on the parent form', () {
+    Future<Harness> pump(
+      WidgetTester tester, {
+      Locale locale = const Locale('en'),
+      Size size = const Size(393, 1400),
+      double textScale = 1,
+    }) async {
+      final h = await Harness.create(
+        session: Fx.parentSession(),
+        prefs: onboardedPrefs,
+      );
+      h.backend.reply('GET', '/api/v1/tasks/presets', [_preset()]);
+      await pumpScreen(
+        tester,
+        const CreateMissionScreen(),
+        overrides: h.overrides,
+        locale: locale,
+        size: size,
+        textScale: textScale,
+      );
+      return h;
+    }
+
+    testWidgets('shows 10 Stars and 15 XP, with no editable reward fields', (
+      tester,
+    ) async {
+      await pump(tester);
+      await tester.ensureVisible(find.byKey(const Key('mission.reward.note')));
+      expect(find.text('Approval reward: 10 Stars'), findsOneWidget);
+      expect(find.text('Approval reward: 15 XP'), findsOneWidget);
+      expect(find.byKey(const Key('mission.stars')), findsNothing);
+      expect(find.byKey(const Key('mission.xp')), findsNothing);
+    });
+
+    testWidgets('a created mission sends no reward at all', (tester) async {
+      final h = await pump(tester);
+      h.backend.reply('POST', '/api/v1/tasks', {
+        ...Fx.task(),
+        'star_reward': 10,
+        'xp_reward': 15,
+      }, status: 201);
+      await tester.enterText(find.byKey(const Key('mission.title')), 'Tidy up');
+      await _tap(tester, find.byKey(const Key('mission.submit')));
+      final body =
+          h.backend.requestsTo('POST', '/api/v1/tasks').single.data
+              as Map<String, dynamic>;
+      expect(body.containsKey('star_reward'), isFalse);
+      expect(body.containsKey('xp_reward'), isFalse);
+      expect(body['title'], 'Tidy up');
+    });
+
+    for (final locale in const ['en', 'gu', 'hi']) {
+      for (final (size, scale) in const [
+        (Size(320, 1600), 2.0),
+        (Size(393, 1400), 1.0),
+        (Size(840, 1200), 1.0),
+      ]) {
+        testWidgets('$locale ${size.width.toInt()}px x$scale fits', (
+          tester,
+        ) async {
+          await pump(
+            tester,
+            locale: Locale(locale),
+            size: size,
+            textScale: scale,
+          );
+          expect(tester.takeException(), isNull);
+          expect(find.byKey(const Key('mission.reward.note')), findsOneWidget);
+          expect(find.byKey(const Key('mission.reward.stars')), findsOneWidget);
+        });
+      }
+    }
   });
 }

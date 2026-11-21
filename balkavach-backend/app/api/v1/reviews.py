@@ -10,6 +10,7 @@ from app.db.session import get_db
 from app.schemas.task import PendingSubmissionPublic, TaskReviewCreate, TaskSubmissionPublic
 from app.services.mission_rewards import effective_star_reward, effective_xp_reward
 from app.services.task_service import review_submission
+from app.services.video_entitlement_service import MISSION_REWARD_ALLOWANCE_SECONDS
 
 SubmissionStatus = Literal["pending", "approved", "rejected", "resubmission_requested", "cancelled"]
 
@@ -56,6 +57,7 @@ def _review_queue(
 			child_name=child.display_name,
 			star_reward=effective_star_reward(task.star_reward),
 			xp_reward=effective_xp_reward(task.xp_reward),
+			video_minutes_reward=MISSION_REWARD_ALLOWANCE_SECONDS // 60,
 		)
 		for submission, task, child, category_name in rows
 	]

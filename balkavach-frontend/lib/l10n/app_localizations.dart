@@ -1564,6 +1564,35 @@ abstract class AppLocalizations {
   /// **'This submission was already reviewed. The list has been refreshed.'**
   String get approvalsAlreadyReviewed;
 
+  /// No description provided for @approvalsVideoMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min video'**
+  String approvalsVideoMinutes(int minutes);
+
+  /// No description provided for @approvalsApprovedToastFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved! {name} earned {stars} stars, {xp} XP and {minutes} minutes of video time.'**
+  String approvalsApprovedToastFull(
+    String name,
+    int stars,
+    int xp,
+    int minutes,
+  );
+
+  /// No description provided for @errorApprovalFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The approval could not be saved. Nothing was awarded. Please try again.'**
+  String get errorApprovalFailed;
+
+  /// No description provided for @errorVideoAllowanceUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Video time can\'t be granted right now, so this mission wasn\'t approved. Nothing was awarded. Please try again later.'**
+  String get errorVideoAllowanceUnavailable;
+
   /// No description provided for @approvalsStarsCredited.
   ///
   /// In en, this message translates to:
@@ -5092,6 +5121,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You already picked today\'s mission. Finish that one first!'**
   String get errorDailyAlreadySelected;
+
+  /// No description provided for @errorBirthDateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a grown-up to add your birthday to get daily missions.'**
+  String get errorBirthDateRequired;
+
+  /// No description provided for @errorBirthDateInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Your birthday looks wrong. Ask a grown-up to fix it.'**
+  String get errorBirthDateInvalid;
+
+  /// No description provided for @errorAgeRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily missions are for ages 4 to 15.'**
+  String get errorAgeRange;
+
+  /// No description provided for @errorMissionNotForAge.
+  ///
+  /// In en, this message translates to:
+  /// **'This mission was made for a different age. Pick one of today\'s missions!'**
+  String get errorMissionNotForAge;
+
+  /// No description provided for @createMissionRewardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reward for every approved mission'**
+  String get createMissionRewardTitle;
+
+  /// No description provided for @createMissionRewardStars.
+  ///
+  /// In en, this message translates to:
+  /// **'Approval reward: {count} Stars'**
+  String createMissionRewardStars(int count);
+
+  /// No description provided for @createMissionRewardXp.
+  ///
+  /// In en, this message translates to:
+  /// **'Approval reward: {count} XP'**
+  String createMissionRewardXp(int count);
+
+  /// No description provided for @createMissionRewardFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'The reward is the same for every mission and is set by the app, so it cannot be changed here.'**
+  String get createMissionRewardFixed;
 }
 
 class _AppLocalizationsDelegate

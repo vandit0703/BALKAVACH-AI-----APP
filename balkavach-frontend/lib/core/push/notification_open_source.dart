@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'local_notifications.dart';
 
 /// A push the user tapped. The server's payload is only
 /// `{type, notification_id}` (no names or titles), so this is all there is.
@@ -50,19 +54,45 @@ class NoopNotificationOpenSource implements NotificationOpenSource {
 }
 
 class FirebaseNotificationOpenSource implements NotificationOpenSource {
-  const FirebaseNotificationOpenSource();
+  const FirebaseNotificationOpenSource({this.local});
+
+  /// Source of taps on banners shown while the app was open.
+  final LocalNotifications? local;
 
   @override
   Future<PushOpen?> initial() async {
     final message = await FirebaseMessaging.instance.getInitialMessage();
-    return message == null ? null : PushOpen.fromData(message.data);
+    if (message != null) return PushOpen.fromData(message.data);
+    return local?.launchOpen;
   }
 
   @override
-  Stream<PushOpen> get onOpened => FirebaseMessaging.onMessageOpenedApp
-      .map((m) => PushOpen.fromData(m.data))
-      .where((open) => open != null)
-      .cast<PushOpen>();
+  Stream<PushOpen> get onOpened {
+    final system = FirebaseMessaging.onMessageOpenedApp
+        .map((m) => PushOpen.fromData(m.data))
+        .where((open) => open != null)
+        .cast<PushOpen>();
+    final banner = local?.taps ?? const Stream<PushOpen>.empty();
+    return _merge(system, banner);
+  }
+
+  static Stream<PushOpen> _merge(Stream<PushOpen> a, Stream<PushOpen> b) {
+    late StreamController<PushOpen> controller;
+    final subscriptions = <StreamSubscription<PushOpen>>[];
+    controller = StreamController<PushOpen>(
+      onListen: () {
+        subscriptions
+          ..add(a.listen(controller.add))
+          ..add(b.listen(controller.add));
+      },
+      onCancel: () async {
+        for (final s in subscriptions) {
+          await s.cancel();
+        }
+      },
+    );
+    return controller.stream;
+  }
 }
 
 /// Overridden in `bootstrap()` when Firebase is configured.

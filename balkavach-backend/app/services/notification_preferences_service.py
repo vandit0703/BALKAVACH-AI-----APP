@@ -56,7 +56,7 @@ class Category:
 
 
 CATEGORIES: tuple[Category, ...] = (
-	Category("new_missions", frozenset({"task_assigned"})),
+	Category("new_missions", frozenset({"task_assigned", "daily_missions_ready"})),
 	Category(
 		"mission_reviews",
 		frozenset({"task_submitted", "task_approved", "task_rejected", "task_resubmission_requested"}),

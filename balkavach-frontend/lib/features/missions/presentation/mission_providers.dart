@@ -30,9 +30,24 @@ final childMissionsProvider = FutureProvider<List<Mission>>((ref) {
   return ref.watch(missionsRepositoryProvider).listMissions();
 });
 
-final dailyMissionChoicesProvider = FutureProvider<DailyMissionChoices>((ref) {
+/// Today's choices for the signed-in child. The server decides which missions
+/// fit the child's age group (it is the authority); as a last line of defence
+/// a choice labelled for another group than the response's is never shown.
+final dailyMissionChoicesProvider = FutureProvider<DailyMissionChoices>((
+  ref,
+) async {
   ref.watch(activeChildIdProvider);
-  return ref.watch(missionsRepositoryProvider).getDailyChoices();
+  final today = await ref.watch(missionsRepositoryProvider).getDailyChoices();
+  return DailyMissionChoices(
+    localDate: today.localDate,
+    timezone: today.timezone,
+    ageBand: today.ageBand,
+    selectedAssignmentId: today.selectedAssignmentId,
+    choices: [
+      for (final c in today.choices)
+        if (c.ageBand == today.ageBand) c,
+    ],
+  );
 });
 
 /// Missions the child chose on an earlier day and has not finished. They keep
@@ -43,13 +58,26 @@ final unfinishedMissionsProvider = FutureProvider<List<DailyMissionAssignment>>(
   (ref) async {
     final childId = ref.watch(activeChildIdProvider);
     if (childId == null) return const [];
+    final List<DailyMissionAssignment> older;
     try {
-      return await ref
+      older = await ref
           .watch(missionsRepositoryProvider)
           .getUnfinishedDailyMissions();
     } on ApiException {
       return const [];
     }
+    // The server only carries forward missions for the child's current age
+    // group. Defensively, when today's group is known, drop any other.
+    String? band;
+    try {
+      band = (await ref.watch(dailyMissionChoicesProvider.future)).ageBand;
+    } on ApiException {
+      band = null;
+    }
+    return [
+      for (final a in older)
+        if (band == null || a.ageBand == band) a,
+    ];
   },
 );
 

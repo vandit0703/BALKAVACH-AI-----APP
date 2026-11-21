@@ -18,7 +18,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
-from app.db.base import get_model
+from app.db.base import get_model, has_model
 from app.services.timezone_service import (
     family_timezone_name,
     local_day_bounds_utc_naive,
@@ -125,6 +125,33 @@ def get_child_video_allowance_today(
             [e for e in entitlements if e.status == "active" and (e.consumed_seconds or 0) < (e.granted_seconds or 0)]
         ),
     }
+
+
+MISSION_ALLOWANCE_COLUMNS = (
+    "child_id",
+    "source_type",
+    "task_id",
+    "submission_id",
+    "granted_seconds",
+    "consumed_seconds",
+    "granted_at",
+    "valid_from",
+    "expires_at",
+    "status",
+)
+
+
+def missing_mission_allowance_columns() -> list[str]:
+    """Columns the mission video grant needs that the reflected database does not have (empty = ready).
+
+    The schema is reflected from the live database, so a migration that was never applied (0013 adds
+    ``task_id``, ``submission_id`` and ``source_type``) only shows up as an ``AttributeError`` at the first
+    approval. Checking up front lets an approval fail *before* anything is written, with a named cause.
+    """
+    if not has_model("VideoAccessEntitlement"):
+        return ["video_access_entitlements (table)"]
+    model = get_model("VideoAccessEntitlement")
+    return [name for name in MISSION_ALLOWANCE_COLUMNS if not hasattr(model, name)]
 
 
 def grant_mission_video_entitlement(

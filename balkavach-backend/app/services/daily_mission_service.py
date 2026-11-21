@@ -10,6 +10,12 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import APIError
 from app.db.base import get_model
+from app.services.child_age import (
+    age_band_for_birth_date,  # noqa: F401  (re-exported: the name older callers and tests import)
+    child_age_band,
+    child_age_band_or_none,
+    ensure_assignment_eligible,
+)
 from app.services.mission_rewards import MISSION_STAR_REWARD, MISSION_XP_REWARD
 from app.services.mission_rotation_service import POLICY, Candidate, load_child_history, rank_candidates
 from app.services.mission_titles import child_facing_title
@@ -35,17 +41,6 @@ REQUIRED_LOCALES = ("en", "gu", "hi")
 def has_complete_localized_variations(rows) -> bool:
     required = {(age_band, locale) for age_band in REQUIRED_AGE_BANDS for locale in REQUIRED_LOCALES}
     return required.issubset(set(rows))
-
-
-def age_band_for_birth_date(birth_date: date, today: date) -> str | None:
-    age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-    if 4 <= age <= 6:
-        return "4_6"
-    if 7 <= age <= 10:
-        return "7_10"
-    if 11 <= age <= 15:
-        return "11_15"
-    return None
 
 
 def _now() -> datetime:
@@ -154,14 +149,43 @@ def _choose_templates(session: Session, child, age_band: str, locales: list[str]
     return [(templates[pick.candidate.id], pick) for pick in picks], len(candidates)
 
 
+def _eligible(rows, age_band: str):
+    return [row for row in rows if row.age_band == age_band]
+
+
+# Today's rows for another age group that can be let go: nothing was sent to a parent and nothing was earned.
+# (Pending and approved rows are progress or history and are never released.)
+RELEASABLE_WHEN_AGE_CHANGES = ("available", "selected", "in_progress", "rejected")
+
+
+def release_obsolete_choices(session: Session, current, age_band: str) -> int:
+    """Hands back today's choice slots that were generated for a different age group than the child's current one.
+
+    The row is **not deleted and not rewritten**: it keeps its status, snapshot, task and age group, stays in
+    the child's history, and only stops being the *current* row of its slot (``is_current = false``, the same
+    flag a skipped mission uses), so a fresh mission for the new group can take the slot. A task already created
+    for it stays on record but can no longer be opened or submitted (``child_age.ineligible_daily_task_ids``).
+    No skip is counted and nothing is paid or recalculated."""
+    released = 0
+    for row in current:
+        if row.age_band != age_band and row.status in RELEASABLE_WHEN_AGE_CHANGES:
+            row.is_current = False
+            released += 1
+    if released:
+        session.flush()
+        logger.info("daily missions: released %s obsolete slot(s) after an age group change (now %s)", released, age_band)
+    return released
+
+
 def ensure_daily_choices(session: Session, child, now_utc: datetime | None = None):
+    """Today's choices for the child's **current** age group (``child_age``).
+
+    If the age group changed today (the birth date was corrected, or today is a birthday that moved the child
+    up), the obsolete rows are released (``release_obsolete_choices``) and the child immediately gets fresh
+    choices for the new group. Obsolete rows already sent to a parent or approved keep their slot (they are
+    progress); they are never returned, so the child may then see fewer than three, but never a wrong-age one."""
     now_utc = now_utc or _now()
-    local_date = local_today(session, child.family_id, now_utc)
-    if child.date_of_birth is None:
-        raise APIError(422, "birth_date_required", "A birth date is required for daily missions")
-    age_band = age_band_for_birth_date(child.date_of_birth, local_date)
-    if age_band is None:
-        raise APIError(422, "daily_missions_age_range", "Daily missions are available for ages 4 through 15")
+    local_date, age_band = child_age_band(session, child, now_utc)
 
     ChildProfile = get_model("ChildProfile")
     locked_child = session.query(ChildProfile).filter(ChildProfile.id == child.id).with_for_update().one()
@@ -174,8 +198,18 @@ def ensure_daily_choices(session: Session, child, now_utc: datetime | None = Non
         .order_by(Assignment.choice_slot)
         .all()
     )
+    if release_obsolete_choices(session, current, age_band):
+        current = [row for row in current if row.is_current]
     if len(current) == 3:
-        return local_date, age_band, current
+        eligible = _eligible(current, age_band)
+        if len(eligible) < 3:
+            logger.warning(
+                "daily missions: child=%s has %s current choice(s) for another age group today (now %s); not shown",
+                locked_child.id,
+                3 - len(eligible),
+                age_band,
+            )
+        return local_date, age_band, eligible
 
     locales = _child_language(session, locked_child)
     free_slots = [slot for slot in (1, 2, 3) if slot not in {row.choice_slot for row in current}]
@@ -222,7 +256,7 @@ def ensure_daily_choices(session: Session, child, now_utc: datetime | None = Non
             "There are not enough published missions for today. An administrator needs to publish more.",
             details={"eligible": eligible, "age_band": age_band},
         )
-    return local_date, age_band, current
+    return local_date, age_band, _eligible(current, age_band)
 
 
 def task_description(snapshot: dict[str, Any]) -> str:
@@ -245,6 +279,7 @@ def select_assignment(session: Session, child, assignment_id: UUID):
     )
     if assignment is None:
         raise APIError(404, "daily_assignment_not_found", "Daily mission choice not found")
+    ensure_assignment_eligible(assignment, child_age_band(session, child, _now())[1])
     if assignment.status != "available":
         return assignment
     selected = (
@@ -296,6 +331,10 @@ def unfinished_assignments(session: Session, child, now_utc: datetime | None = N
     parent-approval flow as today's mission."""
     now_utc = now_utc or _now()
     today = local_today(session, child.family_id, now_utc)
+    # Only missions for the child's current age group are carried forward; older ones stay in history.
+    age_band = child_age_band_or_none(session, child, now_utc)
+    if age_band is None:
+        return []
     Assignment = get_model("DailyMissionAssignment")
     Task = get_model("Task")
     return (
@@ -306,6 +345,7 @@ def unfinished_assignments(session: Session, child, now_utc: datetime | None = N
             Assignment.is_current.is_(True),
             Assignment.local_date < today,
             Assignment.status.in_(UNFINISHED_STATUSES),
+            Assignment.age_band == age_band,
             Task.is_active.is_(True),
         )
         .order_by(Assignment.local_date.desc(), Assignment.choice_slot)
@@ -319,6 +359,7 @@ def start_assignment(session: Session, child, assignment_id: UUID):
     row = session.query(Assignment).filter(Assignment.id == assignment_id, Assignment.child_id == child.id, Assignment.is_current.is_(True)).with_for_update().one_or_none()
     if row is None:
         raise APIError(404, "daily_assignment_not_found", "Daily mission not found")
+    ensure_assignment_eligible(row, child_age_band(session, child, _now())[1])
     if row.status == "selected":
         row.status = "in_progress"
         row.started_at = utc_naive(_now())
@@ -337,6 +378,7 @@ def skip_assignment(session: Session, child, assignment_id: UUID, now_utc: datet
     ).with_for_update().one_or_none()
     if row is None:
         raise APIError(409, "daily_mission_cannot_skip", "This mission cannot be skipped while it is awaiting review or already approved")
+    ensure_assignment_eligible(row, child_age_band(session, child, now_utc or _now())[1])
     skipped_today = (
         session.query(Assignment.id)
         .filter(Assignment.child_id == child.id, Assignment.local_date == row.local_date, Assignment.status == "skipped")

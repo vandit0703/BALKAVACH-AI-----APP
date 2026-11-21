@@ -141,6 +141,8 @@ class PendingSubmissionPublic(TaskSubmissionPublic):
 	child_name: str
 	star_reward: int
 	xp_reward: int
+	# Minutes of video time an approval unlocks (the backend's rule; the app only displays it).
+	video_minutes_reward: int = 0
 
 
 class MySubmissionPublic(TaskSubmissionPublic):

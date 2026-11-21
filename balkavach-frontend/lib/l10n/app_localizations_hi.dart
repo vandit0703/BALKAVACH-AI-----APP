@@ -873,6 +873,29 @@ class AppLocalizationsHi extends AppLocalizations {
       'इस मिशन की समीक्षा हो चुकी है. सूची ताज़ा कर दी गई है.';
 
   @override
+  String approvalsVideoMinutes(int minutes) {
+    return '$minutes मिनट वीडियो';
+  }
+
+  @override
+  String approvalsApprovedToastFull(
+    String name,
+    int stars,
+    int xp,
+    int minutes,
+  ) {
+    return 'मंज़ूर! $name को $stars स्टार, $xp XP और $minutes मिनट वीडियो समय मिला।';
+  }
+
+  @override
+  String get errorApprovalFailed =>
+      'मंज़ूरी सेव नहीं हो सकी। कुछ भी इनाम नहीं दिया गया। कृपया फिर कोशिश करें।';
+
+  @override
+  String get errorVideoAllowanceUnavailable =>
+      'अभी वीडियो समय नहीं दिया जा सकता, इसलिए यह मिशन मंज़ूर नहीं हुआ। कुछ भी इनाम नहीं दिया गया। कृपया बाद में फिर कोशिश करें।';
+
+  @override
   String approvalsStarsCredited(int count) {
     return '+$count स्टार जमा';
   }
@@ -3048,4 +3071,36 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get errorDailyAlreadySelected =>
       'तुमने आज का मिशन पहले ही चुन लिया है। पहले उसे पूरा करो!';
+
+  @override
+  String get errorBirthDateRequired =>
+      'रोज़ के मिशन पाने के लिए किसी बड़े से अपना जन्मदिन जुड़वाओ।';
+
+  @override
+  String get errorBirthDateInvalid =>
+      'तुम्हारा जन्मदिन गलत लग रहा है। किसी बड़े से इसे ठीक करवाओ।';
+
+  @override
+  String get errorAgeRange => 'रोज़ के मिशन 4 से 15 साल के बच्चों के लिए हैं।';
+
+  @override
+  String get errorMissionNotForAge =>
+      'यह मिशन किसी और उम्र के लिए बना था। आज के मिशनों में से एक चुनो!';
+
+  @override
+  String get createMissionRewardTitle => 'हर मंज़ूर हुए मिशन का इनाम';
+
+  @override
+  String createMissionRewardStars(int count) {
+    return 'मंज़ूरी पर इनाम: $count स्टार';
+  }
+
+  @override
+  String createMissionRewardXp(int count) {
+    return 'मंज़ूरी पर इनाम: $count XP';
+  }
+
+  @override
+  String get createMissionRewardFixed =>
+      'इनाम हर मिशन के लिए एक जैसा है और ऐप तय करता है, इसलिए यहाँ बदला नहीं जा सकता।';
 }

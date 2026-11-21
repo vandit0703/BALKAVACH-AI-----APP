@@ -21,7 +21,11 @@ def test_full_mission_flow_awards_once_and_notifies(api):
 
     reviewed = api.review(parent, submission.json()["id"], "approved", "Great job")
     assert reviewed.status_code == 200, reviewed.text
-    assert api.review(parent, submission.json()["id"], "approved").status_code == 409
+    # A repeated approval (the first response was lost) returns the existing result and pays nothing more;
+    # a different decision on a reviewed submission is still refused.
+    repeated = api.review(parent, submission.json()["id"], "approved")
+    assert repeated.status_code == 200 and repeated.json()["id"] == reviewed.json()["id"]
+    assert api.review(parent, submission.json()["id"], "rejected").status_code == 409
 
     # The task asked for 5 stars / 20 XP; every approved mission earns the standard 10 stars / 15 XP.
     progress = api.get(f"/progress/children/{child['id']}", child["token"]).json()

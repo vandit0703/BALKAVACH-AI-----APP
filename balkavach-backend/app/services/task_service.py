@@ -1,3 +1,5 @@
+import functools
+import logging
 from datetime import date, datetime, timezone
 from uuid import UUID
 
@@ -8,13 +10,17 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import APIError
 from app.db.base import get_model
 from app.schemas.task import TaskReviewCreate, TaskSubmissionCreate
+from app.services.child_age import ensure_task_age_eligible
 from app.services.ledger_service import star_balance, xp_total
 from app.services.mission_rewards import MISSION_STAR_REWARD, MISSION_XP_REWARD
 from app.services.notification_service import create_notification, family_parent_ids
 from app.services.progress_service import badge_qualifies
 from app.services.timezone_service import local_date_of
 from app.services.upload_service import claim_upload_for_submission, proof_url
+from app.services.video_entitlement_service import missing_mission_allowance_columns
 from app.utils import utc_naive
+
+logger = logging.getLogger(__name__)
 
 
 def submit_completion(session: Session, task_id: UUID, child, request: TaskSubmissionCreate):
@@ -25,6 +31,8 @@ def submit_completion(session: Session, task_id: UUID, child, request: TaskSubmi
 		raise APIError(404, "task_not_found", "Task not found")
 	if task.assigned_child_id is not None and task.assigned_child_id != child.id:
 		raise APIError(403, "task_not_assigned", "Task is assigned to another child")
+	# A daily mission made for another age group (see child_age) cannot be completed as a current mission.
+	ensure_task_age_eligible(session, child, task.id)
 
 	existing_statuses = {
 		row[0]
@@ -101,7 +109,44 @@ def submission_activity_date(session: Session, family_id: UUID, submission, fall
 	return local_date_of(session, family_id, submission.submitted_at or fallback)
 
 
+def _all_or_nothing(review):
+	"""Run a review as one transaction: any failure rolls everything back and raises a named, safe error.
+
+	The decision, the review row, stars, XP, the video allowance and the notifications commit together or
+	not at all, so a mission is never left approved without its rewards (or rewarded without being approved).
+	"""
+
+	@functools.wraps(review)
+	def run(session: Session, submission_id: UUID, reviewer, request: TaskReviewCreate):
+		try:
+			return review(session, submission_id, reviewer, request)
+		except APIError:
+			session.rollback()
+			raise
+		except Exception as error:  # noqa: BLE001 - nothing may be half written, whatever failed
+			session.rollback()
+			logger.exception(
+				"Mission approval failed and was rolled back (submission %s, decision %s): %s",
+				submission_id,
+				request.decision,
+				type(error).__name__,
+			)
+			raise APIError(
+				500,
+				"approval_failed",
+				"The approval could not be saved. Nothing was awarded. Please try again.",
+			) from error
+
+	return run
+
+
+@_all_or_nothing
 def review_submission(session: Session, submission_id: UUID, reviewer, request: TaskReviewCreate):
+	"""Approve, decline or ask to retry a submission (all-or-nothing, see ``_all_or_nothing``).
+
+	Repeating a decision that was already applied returns that result unchanged: the parent's first
+	response may have been lost, and a retry must not pay twice.
+	"""
 	TaskSubmission = get_model("TaskSubmission")
 	Task = get_model("Task")
 	FamilyMember = get_model("FamilyMember")
@@ -127,7 +172,25 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 	if authorized is None:
 		raise APIError(404, "submission_not_found", "Task submission not found")
 	if submission.status != "pending":
+		if submission.status == request.decision:
+			# Already applied (a retry after a lost response): report the existing result, change nothing.
+			session.rollback()
+			return submission
 		raise APIError(409, "submission_already_reviewed", "This submission has already been reviewed")
+	if request.decision == "approved":
+		missing = missing_mission_allowance_columns()
+		if missing:
+			# Fail before writing anything: an approval must pay all three rewards or none.
+			logger.critical(
+				"Mission approval refused: the database lacks the video allowance schema (%s). "
+				"Apply migration 0013_mission_video_entitlement.",
+				", ".join(missing),
+			)
+			raise APIError(
+				503,
+				"video_allowance_unavailable",
+				"Video time cannot be granted right now, so this mission was not approved. Nothing was awarded.",
+			)
 
 	approved_at = datetime.now(timezone.utc)  # one instant for every write this approval makes
 	now = utc_naive(approved_at)

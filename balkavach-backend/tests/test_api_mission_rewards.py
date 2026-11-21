@@ -32,7 +32,7 @@ def test_an_approved_mission_pays_exactly_ten_stars_and_fifteen_xp_once(api):
 	# Approval pays once; retries and refreshes never pay again.
 	assert api.review(parent, submission.json()["id"], "approved").status_code == 200
 	assert _progress(api, child) == (10, 15)
-	assert api.review(parent, submission.json()["id"], "approved").status_code == 409
+	assert api.review(parent, submission.json()["id"], "approved").status_code == 200  # repeat: existing result, no second award
 	assert api.review(parent, submission.json()["id"], "rejected").status_code == 409
 	assert _progress(api, child) == (10, 15)
 	assert _progress(api, child) == (10, 15)

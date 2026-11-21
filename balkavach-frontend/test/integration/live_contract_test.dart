@@ -103,8 +103,6 @@ void main() {
         title: 'Live mission',
         assignedChildId: child.id,
         categoryId: categories.first.id,
-        starReward: 5,
-        xpReward: 150,
       ),
     );
     expect(await missions.listPresets(), isA<List<MissionPreset>>());

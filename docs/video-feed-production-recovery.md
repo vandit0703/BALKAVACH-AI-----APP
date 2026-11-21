@@ -7,10 +7,12 @@ Read first: `docs/video-feed-restoration.md` (what was built and why), `docs/you
 
 ## 0. Summary for the owner
 
-1. **The new commands are not deployed.** They exist only in the uncommitted working tree (`HEAD` = `origin/main` = `822892a`).
-   Production cannot run `video-feed-diagnose` or `youtube-recheck-health` until the change is committed, pushed and deployed, which
-   needs your approval. Two things already work on the deployed code and are enough to start: `python -m app.cli youtube-report`
-   and `GET /api/v1/admin/videos/youtube/diagnostics` (both read-only, both show `approved_stale` and `oldest_approved_verification`).
+1. **Status update 2026-11-21:** the new commands and the feed change are now **committed and pushed to `origin/main`** (commits
+   `0ceda6f`, `77470d9`, `63b959a`; the last two were made by the repository owner while this work was in progress). **Whether Render
+   built and deployed them is unknown**: read the deployed commit in the Render dashboard before assuming any new command exists.
+   Production as last known ran `822892a`, where only `create-admin`, `youtube-report`, `streak-check` and `youtube-recheck`
+   exist. Two read-only things work there: `python -m app.cli youtube-report` and
+   `GET /api/v1/admin/videos/youtube/diagnostics` (both show `approved_stale` and `oldest_approved_verification`).
 2. **A recheck bug was found and fixed locally** (needs the same deploy): permanently `unavailable` videos kept their old timestamp,
    sorted first, and could fill the whole `--limit` batch so approved videos were never re-verified. Approved videos now go first.
    Until the fix is deployed, use `--limit 1000` and check `unavailable` in `youtube-report` (section 4.3).
@@ -97,8 +99,8 @@ Not verifiable from the repository (it cannot see what Render runs). Check the d
 | Needed for | Needs this code |
 |---|---|
 | Steps 1-2 using `youtube-report` / admin diagnostics, and a recheck | already in `822892a` |
-| `video-feed-diagnose`, `youtube-recheck-health`, `youtube-report` `last_recheck_*`, failure audit row, DB-enforced read-only | **uncommitted working tree only** |
-| Starvation fix (approved videos first) | **uncommitted working tree only** |
+| `video-feed-diagnose`, `youtube-recheck-health`, `youtube-report` `last_recheck_*`, failure audit row, DB-enforced read-only | in `0ceda6f`+ (pushed to `origin/main`); **deployed state unknown** |
+| Starvation fix (approved videos first) | in commits `0ceda6f`..`63b959a` on `origin/main`; **deployed state unknown** |
 
 Deploying means: review the diff, commit, push `main`, let Render build, confirm the deployed commit. That needs your approval and was
 not done. CI (`.github/workflows/ci.yml`) runs the backend suite on a disposable PostgreSQL; it has **never run these new tests**.
@@ -208,7 +210,7 @@ Do not proceed without the owner's written approval of the checklist in section 
 4. If a feed is still empty, the diagnosis names the next rule; do not re-run recheck for a non-freshness cause.
 
 ### 4.7 Step 7: schedule (after the host is confirmed, section 2.1)
-* **Render:** create the three cron jobs in `balkavach-backend/deploy/render-cron-jobs.example.yaml` (recheck `0 * * * *`, health `15 * * * *`, discover `30 */3 * * *` only if wanted) using the shared environment group; turn on failure notifications. Check the keys against Render's current Blueprint reference first.
+* **Render:** create the three cron jobs in `balkavach-backend/deploy/render-cron-jobs.example.yaml` (recheck `0 * * * *`, health `15 * * * *`, discover `30 */6 * * *` only if wanted, and only after recheck is proven: each run costs ~700 quota units) using the shared environment group; turn on failure notifications. Check the keys against Render's current Blueprint reference first.
 * **VPS (only if proven to serve the API):** `deploy/systemd/*`, a dedicated `balkavach` user, `/etc/balkavach/backend.env` mode 0600.
 * Verify after the first hour: `youtube-recheck-health` exits 0; `youtube-report` shows a recent `last_recheck_run`; the audit table has a `youtube.recheck.completed` row.
 
@@ -257,6 +259,7 @@ Date/time:                         Approver:
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
+| **Discovery can starve the recheck of YouTube quota** (found in the 2026-11-21 audit). `youtube-discover` runs one `search.list` per topic (100 quota units each) and there are 7 default topics, so one run is about 700+ units; every 3 hours that is about 5,600 units a day, over half of the default 10,000, and the recheck shares the same key. If quota runs out the recheck fails (`youtube_quota_exhausted`) and the feed empties 72 h later. | medium | Do not create the discover job until recheck is proven; then run it every 6-12 h, or reduce `YOUTUBE_DISCOVERY_TOPICS`, or use a separate API key/project for discovery. The recheck alone is about 96 units a day. |
 | Wrong `YOUTUBE_REGION_CODE` withdraws region-blocked videos | medium if unset/changed | canary; verify the value |
 | Recheck withdraws a video that should be shown (YouTube really changed it) | expected, by design | audit rows; admin re-approve |
 | Admin actions wait on locked rows during a run | low | quiet period |

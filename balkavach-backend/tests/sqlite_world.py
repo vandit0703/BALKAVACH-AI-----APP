@@ -241,6 +241,7 @@ def _get_model(name: str):
 @pytest.fixture
 def world_session(monkeypatch) -> Session:
 	"""Session configured like production (``autoflush=False``) over an in-memory SQLite database."""
+	import app.services.child_age as child_age
 	import app.services.daily_mission_service as missions
 	import app.services.streak_service as streaks
 	import app.api.v1.daily_missions as missions_api
@@ -250,7 +251,7 @@ def world_session(monkeypatch) -> Session:
 	import app.services.session_service as sessions
 	import app.services.timezone_service as zones
 
-	for module in (missions, streaks, zones, sessions, resets, catalogue, missions_api, rotation):
+	for module in (missions, streaks, zones, sessions, resets, catalogue, missions_api, rotation, child_age):
 		monkeypatch.setattr(module, "get_model", _get_model)
 	engine = create_engine("sqlite://")
 	World.metadata.create_all(engine)
