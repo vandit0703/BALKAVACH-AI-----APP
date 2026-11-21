@@ -130,9 +130,11 @@ class ParentGateButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     // Labelled pill (Stitch) when the app bar has room; icon-only on small
-    // phones or with large text so the title is not crushed.
+    // phones, curved-edge screens or with large text so the title is not crushed.
     final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final compact = MediaQuery.sizeOf(context).width / textScale < 380;
+    final padding = MediaQuery.paddingOf(context);
+    final usableWidth = MediaQuery.sizeOf(context).width - padding.horizontal;
+    final compact = usableWidth / textScale < 420;
     void open() => context.push(AppRoutes.childParentGate);
 
     if (compact) {

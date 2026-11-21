@@ -1011,7 +1011,7 @@ class AppLocalizationsEn extends AppLocalizations {
     int xp,
     int streak,
   ) {
-    return '$name, $range: $missions missions approved, $stars stars and $xp XP earned, $streak-day streak.';
+    return '🌟 *BALKAVACH Weekly Progress Report* 🌟\n👤 *Child:* $name\n📅 *Period:* $range\n\n━━━━━━━━━━━━━━━━━━━━━\n✅ *Achievements This Week:*\n• $missions missions approved\n• $stars stars and $xp XP earned\n• $streak-day streak maintained!\n━━━━━━━━━━━━━━━━━━━━━\n\n🛡️ Safe childhood, smart digital future with BALKAVACH.';
   }
 
   @override
@@ -1773,6 +1773,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String reportsTimezoneNote(String zone) {
     return 'Days follow $zone time.';
+  }
+
+  @override
+  String get rewardsShareAction => 'Share';
+
+  @override
+  String rewardsShareSubject(String name) {
+    return '$name\'s BALKAVACH Achievement Report ⭐';
+  }
+
+  @override
+  String rewardsShareText(String name, int stars, int streak, int badges) {
+    return '🌟 *$name is thriving on BALKAVACH!*\n\n━━━━━━━━━━━━━━━━━━━━━\n⭐  *Star Balance:*  $stars stars\n🔥  *Current Streak:*  $streak days in a row!\n🏆  *Badges Earned:*  $badges achievements unlocked\n━━━━━━━━━━━━━━━━━━━━━\n\n$name is learning, growing and earning rewards on BALKAVACH — the safe, ad-free kids learning app! 📚✨';
+  }
+
+  @override
+  String rewardsShareBadgeText(String badge) {
+    return '🏆 *Achievement Unlocked on BALKAVACH!*\n\n🎖️  *\"$badge\"*\n\nI earned this badge on BALKAVACH — the safe, ad-free kids learning app! 📚⭐';
   }
 
   @override

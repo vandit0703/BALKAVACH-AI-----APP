@@ -561,7 +561,7 @@
   "reportsVerifiedBody": "All statistics reflect parent-approved missions only.",
   "reportsCopySummary": "Copy Weekly Summary",
   "reportsSummaryCopied": "Weekly summary copied",
-  "reportsSummaryText": "{name}, {range}: {missions} missions approved, {stars} stars and {xp} XP earned, {streak}-day streak.",
+  "reportsSummaryText": "🌟 *BALKAVACH Weekly Progress Report* 🌟\n👤 *Child:* {name}\n📅 *Period:* {range}\n\n━━━━━━━━━━━━━━━━━━━━━\n✅ *Achievements This Week:*\n• {missions} missions approved\n• {stars} stars and {xp} XP earned\n• {streak}-day streak maintained!\n━━━━━━━━━━━━━━━━━━━━━\n\n🛡️ Safe childhood, smart digital future with BALKAVACH.",
   "@reportsSummaryText": {
     "placeholders": {
       "name": {
@@ -1077,6 +1077,28 @@
       "zone": {
         "type": "String"
       }
+    }
+  },
+  "rewardsShareAction": "Share",
+  "rewardsShareSubject": "{name}'s BALKAVACH Achievement Report ⭐",
+  "@rewardsShareSubject": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "rewardsShareText": "🌟 *{name} is thriving on BALKAVACH!*\n\n━━━━━━━━━━━━━━━━━━━━━\n⭐  *Star Balance:*  {stars} stars\n🔥  *Current Streak:*  {streak} days in a row!\n🏆  *Badges Earned:*  {badges} achievements unlocked\n━━━━━━━━━━━━━━━━━━━━━\n\n{name} is learning, growing and earning rewards on BALKAVACH — the safe, ad-free kids learning app! 📚✨",
+  "@rewardsShareText": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "stars": { "type": "int" },
+      "streak": { "type": "int" },
+      "badges": { "type": "int" }
+    }
+  },
+  "rewardsShareBadgeText": "🏆 *Achievement Unlocked on BALKAVACH!*\n\n🎖️  *\"{badge}\"*\n\nI earned this badge on BALKAVACH — the safe, ad-free kids learning app! 📚⭐",
+  "@rewardsShareBadgeText": {
+    "placeholders": {
+      "badge": { "type": "String" }
     }
   },
   "reportsShare": "Share progress",

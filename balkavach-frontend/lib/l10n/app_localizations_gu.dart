@@ -1007,7 +1007,7 @@ class AppLocalizationsGu extends AppLocalizations {
     int xp,
     int streak,
   ) {
-    return '$name, $range: $missions મિશન મંજૂર, $stars સ્ટાર અને $xp XP મેળવ્યા, $streak દિવસની સ્ટ્રીક.';
+    return '🌟 *BALKAVACH સાપ્તાહિક પ્રગતિ અહેવાલ* 🌟\n👤 *બાળક:* $name\n📅 *સમયગાળો:* $range\n\n━━━━━━━━━━━━━━━━━━━━━\n✅ *આ સપ્તાહની સિદ્ધિઓ:*\n• $missions મિશન મંજૂર\n• $stars સ્ટાર અને $xp XP મેળવ્યા\n• $streak દિવસની સ્ટ્રીક!\n━━━━━━━━━━━━━━━━━━━━━\n\n🛡️ સુરક્ષિત બાળપણ, સ્માર્ટ ભવિષ્ય - BALKAVACH';
   }
 
   @override
@@ -1764,6 +1764,24 @@ class AppLocalizationsGu extends AppLocalizations {
   @override
   String reportsTimezoneNote(String zone) {
     return 'દિવસો $zone સમય મુજબ છે.';
+  }
+
+  @override
+  String get rewardsShareAction => 'શેર કરો';
+
+  @override
+  String rewardsShareSubject(String name) {
+    return '$name નો BALKAVACH સિદ્ધિ અહેવાલ ⭐';
+  }
+
+  @override
+  String rewardsShareText(String name, int stars, int streak, int badges) {
+    return '🌟 *$name BALKAVACH પર ઉત્કૃષ્ટ કામ કરી રહ્યા છે!*\n\n━━━━━━━━━━━━━━━━━━━━━\n⭐  *તારા:*  $stars તારા\n🔥  *સ્ટ્રીક:*  $streak દિવસ સળંગ!\n🏆  *બેજ:*  $badges સિદ્ધિ મળી\n━━━━━━━━━━━━━━━━━━━━━\n\n$name BALKAVACH પર શીખી રહ્યા છે અને ઇનામ કમાઈ રહ્યા છે! 📚✨';
+  }
+
+  @override
+  String rewardsShareBadgeText(String badge) {
+    return '🏆 *BALKAVACH પર સિદ્ધિ મળી!*\n\n🎖️  *\"$badge\"*\n\nમેં BALKAVACH પર આ બેજ કમાયો! 📚⭐';
   }
 
   @override
