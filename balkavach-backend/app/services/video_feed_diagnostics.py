@@ -8,6 +8,7 @@ The ``videos.feed.empty`` log line and ``python -m app.cli video-feed-diagnose``
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import re
 from typing import Any, Literal
 from uuid import UUID
 
@@ -19,6 +20,7 @@ from app.db.base import get_model, has_model
 from app.utils import utc_aware, utc_naive
 
 FeedFormat = Literal["short", "regular"]
+_YOUTUBE_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 
 # What it means when a stage is the one that removed the last candidates.
 STAGE_MEANING = {
@@ -77,7 +79,70 @@ def funnel(
 		if remaining == 0 and limiting is None:
 			limiting = name
 		previous = remaining
-	return {"total": total, "stages": stages, "limiting_stage": limiting, "eligible": previous}
+	condition_by_name = dict(conditions)
+	moderation_rules = ("published", "content_rating", "youtube_approved_and_fresh")
+	age_language_rules = (*moderation_rules, "age_band", "language")
+	breakdown = {
+		"candidate_total": total,
+		"after_publication": base.filter(condition_by_name["published"]).count(),
+		"after_moderation": base.filter(*(condition_by_name[name] for name in moderation_rules)).count(),
+		"after_age_language": base.filter(*(condition_by_name[name] for name in age_language_rules)).count(),
+		"eligible_before_paging": previous,
+		"publication_status_counts": {
+			"published" if is_published else "unpublished": count
+			for is_published, count in session.query(Video.is_published, func.count(Video.id))
+			.group_by(Video.is_published)
+			.all()
+		},
+	}
+	youtube_ids = [
+		external_id
+		for (external_id,) in session.query(Video.external_video_id).filter(Video.video_source == "youtube").all()
+	]
+	breakdown["youtube_id_counts"] = {
+		"valid": sum(isinstance(external_id, str) and _YOUTUBE_ID.fullmatch(external_id) is not None for external_id in youtube_ids),
+		"missing": sum(external_id is None or external_id == "" for external_id in youtube_ids),
+		"invalid": sum(
+			external_id is not None and external_id != "" and (not isinstance(external_id, str) or _YOUTUBE_ID.fullmatch(external_id) is None)
+			for external_id in youtube_ids
+		),
+	}
+	if has_model("YouTubeContentReview"):
+		Review = get_model("YouTubeContentReview")
+		moderation_status_counts: dict[str, int] = {}
+		moderation_rows = (
+			session.query(Review.status, func.count(Video.id))
+			.select_from(Video)
+			.outerjoin(Review, Review.video_id == Video.id)
+			.filter(Video.video_source == "youtube")
+			.group_by(Review.status)
+			.all()
+		)
+		for status, count in moderation_rows:
+			label = "unreviewed" if status is None else str(status)
+			if re.fullmatch(r"[a-z_]{1,32}", label) is None:
+				label = "other"
+			moderation_status_counts[label] = moderation_status_counts.get(label, 0) + count
+		breakdown["moderation_status_counts"] = moderation_status_counts
+	else:
+		breakdown["moderation_status_counts"] = {"review_table_missing": 1}
+	freshness = youtube_freshness(session)
+	breakdown["youtube_freshness_counts"] = (
+		{
+			"approved": freshness["approved"],
+			"fresh": freshness["approved_fresh"],
+			"stale": freshness["approved_stale"],
+		}
+		if freshness is not None
+		else {"review_table_missing": 1}
+	)
+	return {
+		"total": total,
+		"stages": stages,
+		"limiting_stage": limiting,
+		"eligible": previous,
+		"diagnostic_counts": breakdown,
+	}
 
 
 def youtube_freshness(session: Session) -> dict[str, Any] | None:

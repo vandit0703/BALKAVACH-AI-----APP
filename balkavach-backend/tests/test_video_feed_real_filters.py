@@ -286,6 +286,17 @@ def test_the_funnel_names_the_rule_that_empties_the_feed_for_stale_content(feed_
 	result = funnel(feed_db, age=8, languages=["en"], child_id=child.id, video_format="regular")
 	assert result["limiting_stage"] == "youtube_approved_and_fresh"
 	assert result["eligible"] == 0
+	assert result["diagnostic_counts"] == {
+		"candidate_total": 2,
+		"after_publication": 2,
+		"after_moderation": 0,
+		"after_age_language": 0,
+		"eligible_before_paging": 0,
+		"publication_status_counts": {"published": 2},
+		"moderation_status_counts": {"approved": 2},
+		"youtube_id_counts": {"valid": 2, "missing": 0, "invalid": 0},
+		"youtube_freshness_counts": {"approved": 2, "fresh": 0, "stale": 2},
+	}
 	stage = {row["stage"]: row for row in result["stages"]}
 	assert stage["published"]["remaining"] == 2 and stage["youtube_approved_and_fresh"]["removed"] == 2
 
@@ -334,6 +345,35 @@ def test_an_empty_first_page_logs_which_rule_removed_everything(feed_db, caplog)
 	record = next(r for r in caplog.records if getattr(r, "event", "") == "videos.feed.empty")
 	assert record.limiting_stage == "youtube_approved_and_fresh"
 	assert record.stage_published == 1 and record.stage_youtube_approved_and_fresh == 0
+	assert record.candidate_total == 1
+	assert record.after_publication == 1
+	assert record.after_moderation == 0
+	assert record.after_age_language == 0
+	assert record.final_returned_count == 0
+	assert not hasattr(record, "age")
+	assert "candidate_total=1" in record.message
+	assert "publication_status_counts=published:1" in record.message
+	assert "moderation_status_counts=approved:1" in record.message
+	assert "youtube_id_counts=invalid:0,missing:0,valid:1" in record.message
+	assert "youtube_freshness_counts=approved:1,fresh:0,stale:1" in record.message
+	assert "youtube_approved_and_fresh:0/1" in record.message
+	assert child.id.hex not in record.message
+
+
+def test_missing_age_feed_log_has_counts_but_no_child_details(feed_db, caplog):
+	child = make_child(feed_db, age=None)
+	add_youtube(feed_db, title="Approved")
+	with caplog.at_level("INFO", logger="app.services.video_service"):
+		assert eligible_feed(feed_db, child, None, 20, 0, video_format="regular") == []
+	record = next(r for r in caplog.records if getattr(r, "event", "") == "videos.feed.empty")
+	assert record.stage == "child_age"
+	assert record.candidate_total == 1
+	assert record.after_publication == 1
+	assert record.after_moderation == 1
+	assert record.after_age_language == 0
+	assert record.final_returned_count == 0
+	assert not hasattr(record, "age")
+	assert not hasattr(record, "child_id")
 
 
 # ---- allowance ---------------------------------------------------------------------------------------------------

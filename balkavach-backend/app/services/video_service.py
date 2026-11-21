@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -17,6 +17,14 @@ from app.services.youtube_review_service import youtube_visibility_clause
 from app.utils import utc_naive
 
 logger = logging.getLogger(__name__)
+
+
+def _count_summary(counts: dict[str, int]) -> str:
+	return ",".join(f"{name}:{count}" for name, count in sorted(counts.items())) or "none"
+
+
+def _stage_summary(stages: list[dict[str, Any]]) -> str:
+	return ",".join(f"{row['stage']}:{row['remaining']}/{row['removed']}" for row in stages)
 
 
 def child_age(child) -> int | None:
@@ -99,9 +107,39 @@ def eligible_feed(
 	age = child_age(child)
 	if age is None or not 3 <= age <= 15:
 		if offset == 0:
+			from app.services.video_feed_diagnostics import funnel
+
+			stages = funnel(
+				session,
+				age=age if age is not None else -1,
+				languages=feed_languages(user.preferred_language),
+				child_id=child.id,
+				category_id=category_id,
+				video_format=video_format,
+			)
 			logger.info(
-				"videos.feed.empty",
-				extra={"event": "videos.feed.empty", "stage": "child_age", "age": age, "video_format": video_format},
+				"videos.feed.empty event=videos.feed.empty limiting_stage=child_age "
+				"candidate_total=%d after_publication=%d after_moderation=%d "
+				"after_age_language=%d final_returned_count=0 publication_status_counts=%s "
+				"moderation_status_counts=%s youtube_id_counts=%s youtube_freshness_counts=%s stages=%s",
+				stages["diagnostic_counts"]["candidate_total"],
+				stages["diagnostic_counts"]["after_publication"],
+				stages["diagnostic_counts"]["after_moderation"],
+				stages["diagnostic_counts"]["after_age_language"],
+				_count_summary(stages["diagnostic_counts"]["publication_status_counts"]),
+				_count_summary(stages["diagnostic_counts"]["moderation_status_counts"]),
+				_count_summary(stages["diagnostic_counts"]["youtube_id_counts"]),
+				_count_summary(stages["diagnostic_counts"]["youtube_freshness_counts"]),
+				_stage_summary(stages["stages"]),
+				extra={
+					"event": "videos.feed.empty",
+					"stage": "child_age",
+					"age_valid": False,
+					"limiting_stage": "child_age",
+					**stages["diagnostic_counts"],
+					"final_returned_count": 0,
+					"video_format": video_format,
+				},
 			)
 		return []
 	languages = feed_languages(user.preferred_language)
@@ -154,13 +192,28 @@ def eligible_feed(
 			video_format=video_format,
 		)
 		logger.info(
-			"videos.feed.empty",
+			"videos.feed.empty event=videos.feed.empty limiting_stage=%s "
+			"candidate_total=%d after_publication=%d after_moderation=%d "
+			"after_age_language=%d final_returned_count=%d publication_status_counts=%s "
+			"moderation_status_counts=%s youtube_id_counts=%s youtube_freshness_counts=%s stages=%s",
+			stages["limiting_stage"],
+			stages["diagnostic_counts"]["candidate_total"],
+			stages["diagnostic_counts"]["after_publication"],
+			stages["diagnostic_counts"]["after_moderation"],
+			stages["diagnostic_counts"]["after_age_language"],
+			len(result),
+			_count_summary(stages["diagnostic_counts"]["publication_status_counts"]),
+			_count_summary(stages["diagnostic_counts"]["moderation_status_counts"]),
+			_count_summary(stages["diagnostic_counts"]["youtube_id_counts"]),
+			_count_summary(stages["diagnostic_counts"]["youtube_freshness_counts"]),
+			_stage_summary(stages["stages"]),
 			extra={
 				"event": "videos.feed.empty",
-				"age": age,
 				"video_format": video_format,
 				"requested_category": str(category_id) if category_id else None,
 				"limiting_stage": stages["limiting_stage"],
+				**stages["diagnostic_counts"],
+				"final_returned_count": len(result),
 				**{f"stage_{row['stage']}": row["remaining"] for row in stages["stages"]},
 			},
 		)
