@@ -86,7 +86,7 @@ void main() {
       expect(find.text('Mission ideas'), findsOneWidget);
       // The idea's own reward suggestion is no longer shown: every mission earns the same.
       expect(find.text('Learn'), findsWidgets);
-      expect(find.textContaining('15 XP'), findsNothing);
+      expect(find.text('Learn · 2 ★ · 15 XP'), findsNothing);
 
       await _tap(tester, find.byKey(const Key('idea.p1')));
       expect(

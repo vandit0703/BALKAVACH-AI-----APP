@@ -22,6 +22,8 @@ const _submissionB = '77777777-7777-4777-8777-77777777777b';
 const _expired = 'Your session has ended. Please sign in again.';
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {
+  // Let late-loading sections (lists, notes) take their height before scrolling to the target.
+  await tester.pumpAndSettle();
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
   await tester.tap(finder);
