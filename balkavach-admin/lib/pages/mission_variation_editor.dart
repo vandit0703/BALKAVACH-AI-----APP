@@ -246,17 +246,26 @@ class _VariationEditorDialogState extends ConsumerState<VariationEditorDialog> {
 
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context);
-    final done = await runAction(
-      context,
-      () => ref
+    try {
+      await ref
           .read(adminApiProvider)
           .patch(
             '/api/v1/admin/daily-missions/templates/${widget.templateId}/variations/${_v['id']}',
             _fields,
-          ),
-      success: l10n.missionEditSaved,
-    );
-    if (done && mounted) Navigator.of(context).pop(true);
+          );
+      if (!mounted) return;
+      showMessage(context, l10n.missionEditSaved);
+      Navigator.of(context).pop(true);
+    } on ApiError catch (error) {
+      if (!mounted) return;
+      if (error.code == 'published_variation_edit_invalid') {
+        // Nothing was saved: the mission stays published and unchanged.
+        showMessage(context, l10n.errorPublishedEditInvalid);
+        await showPublishProblems(context, error.details);
+      } else {
+        showError(context, error);
+      }
+    }
   }
 
   void _move(List<TextEditingController> list, int from, int to) {

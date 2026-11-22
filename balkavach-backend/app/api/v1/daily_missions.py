@@ -25,7 +25,7 @@ from app.services.mission_instructions import (
     AGE_BANDS,
     as_error_details,
     parse_numbered_steps,
-    band_distinctness_errors,
+    instruction_problems,
     instruction_status,
     render_task_text,
     structured_content,
@@ -263,21 +263,6 @@ def _issues(v) -> dict:
     }
 
 
-def instruction_problems(variations) -> list[dict]:
-    """Everything that stops a template being published: per-variation errors and age bands that reuse each other's steps."""
-    problems: list[dict] = []
-    by_locale: dict[str, dict[str, dict]] = {}
-    for v in variations:
-        report = _issues(v)
-        for item in report["errors"]:
-            problems.append({"age_band": v.age_band, "locale": v.locale, "variation_id": str(v.id), **item})
-        by_locale.setdefault(v.locale, {})[v.age_band] = report["structured"]
-    for locale, bands in by_locale.items():
-        for code, message in band_distinctness_errors(bands):
-            problems.append({"age_band": None, "locale": locale, "variation_id": None, "code": code, "message": message})
-    return problems
-
-
 @admin_router.post("/variations/preview")
 def preview_variation(request: DailyMissionVariationCreate, admin=Depends(require_admin_permission("tasks:read"))):
     """What a child will see for this variation, and what is still missing. Saves nothing."""
@@ -331,9 +316,21 @@ def update_daily_template(template_id: UUID, request: DailyMissionTemplateUpdate
 
 @admin_router.patch("/templates/{template_id}/variations/{variation_id}")
 def update_daily_variation(template_id: UUID, variation_id: UUID, request: DailyMissionVariationUpdate, admin=Depends(require_admin_permission("tasks:write")), session: Session = Depends(get_db)):
+    """Edit one age band x language version in place (its id, and every assignment, submission and approval that
+    refers to it, never changes; assignments keep the snapshot they were made with).
+
+    Publication follows the content, not the act of editing: editing one version used to unpublish the whole template
+    (all nine versions vanished from rotation until someone republished). Now
+    * an unpublished template stays unpublished;
+    * a published template that is still publishable after the edit stays published;
+    * an edit that would make a valid published template unpublishable is refused (422, nothing changes), so a child
+      never sees a half-edited mission and the admin unpublishes first on purpose;
+    * a published template that was already unpublishable is unpublished by the edit (the old protective behaviour)."""
+    Template = get_model("DailyMissionTemplate")
     Variation = get_model("DailyMissionVariation")
+    template = session.query(Template).filter(Template.id == template_id).with_for_update().one_or_none()  # same lock order as publish
     row = session.query(Variation).filter(Variation.id == variation_id, Variation.template_id == template_id).with_for_update().one_or_none()
-    if row is None:
+    if template is None or row is None:
         raise APIError(404, "daily_variation_not_found", "Daily mission variation not found")
     changes = request.model_dump(exclude_unset=True)
     if "steps" in changes and changes["steps"] is not None and "instructions" not in changes:
@@ -343,12 +340,37 @@ def update_daily_variation(template_id: UUID, variation_id: UUID, request: Daily
         changes["instructions"] = "\n".join([f"{n}. {step}" for n, step in enumerate(changes["steps"], start=1)] + extras)
     values = {**{field: getattr(row, field, None) for field in _VARIATION_FIELDS}, **changes}
     DailyMissionVariationCreate(**values)
+
+    was_published = bool(template.is_published)
+    problems_before = _publish_problems(session, template_id) if was_published else []
     for field, value in changes.items():
         setattr(row, field, value)
-    Template = get_model("DailyMissionTemplate")
-    session.query(Template).filter(Template.id == template_id).update({"is_published": False})
+    if was_published:
+        session.flush()
+        problems_after = _publish_problems(session, template_id)
+        if problems_after and not problems_before:
+            session.rollback()
+            raise APIError(
+                422,
+                "published_variation_edit_invalid",
+                "This edit would leave a published mission incomplete. Unpublish the mission first, or fix the problems.",
+                details={"problems": problems_after},
+            )
+        if problems_after:
+            template.is_published = False
     _commit(session)
-    return {"id": row.id, "template_id": row.template_id}
+    return {"id": row.id, "template_id": row.template_id, "is_published": bool(template.is_published)}
+
+
+def _publish_problems(session: Session, template_id: UUID) -> list[dict]:
+    """What would stop this template being published right now (missing versions and instruction problems)."""
+    Variation = get_model("DailyMissionVariation")
+    rows = session.query(Variation).filter(Variation.template_id == template_id).all()
+    problems = instruction_problems(rows)
+    missing = missing_combinations((v.age_band, v.locale) for v in rows)
+    if missing:
+        problems.append({"age_band": None, "locale": None, "variation_id": None, "code": "versions_missing", "message": "Missing versions: " + ", ".join(missing)})
+    return problems
 
 
 @admin_router.patch("/templates/{template_id}/publish")

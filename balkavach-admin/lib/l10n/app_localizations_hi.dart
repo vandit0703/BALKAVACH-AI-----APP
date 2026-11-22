@@ -853,6 +853,10 @@ class AppLocalizationsHi extends AppLocalizations {
       'यह मिशन अभी प्रकाशित नहीं हो सकता: कुछ संस्करणों में असली चरण या जमा करने की आवश्यकता नहीं है। क्या ठीक करना है, यह देखने के लिए संस्करण देखें खोलें।';
 
   @override
+  String get errorPublishedEditInvalid =>
+      'इस बदलाव से प्रकाशित मिशन अधूरा रह जाता, इसलिए यह सहेजा नहीं गया। नीचे की समस्याएँ ठीक करें, या पहले मिशन को अप्रकाशित करें।';
+
+  @override
   String get missionIssueStepsMissing => 'कोई क्रमांकित चरण नहीं';
 
   @override

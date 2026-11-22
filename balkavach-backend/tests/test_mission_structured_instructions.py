@@ -129,10 +129,15 @@ def test_catalogue_audit_counts_match_the_source_files():
 	assert report["templates"] == 42 and report["age_specific_missions"] == 126 and report["variations_audited"] == 378
 	assert {band: sum(c.values()) for band, c in report["by_age_band"].items()} == {"4_6": 126, "7_10": 126, "11_15": 126}
 	assert {loc: sum(c.values()) for loc, c in report["by_locale"].items()} == {"en": 126, "gu": 126, "hi": 126}
-	assert report["classification"][INCOMPLETE] == 0 and report["classification"][SAFETY_REVIEW] == 0
 	assert sum(report["classification"].values()) == 378
-	# Honest: the catalogue authors never wrote objective / observation text, so nothing is COMPLETE yet.
-	assert report["issue_codes"]["objective_missing"] == 378 and report["classification"][COMPLETE] == 0
+	assert report["classification"][INCOMPLETE] == 0 and report["classification"][SAFETY_REVIEW] == 0
+	# Every variation is actionable (real steps), but none has the child-facing "what to submit" text yet: that is an
+	# essential publish blocker, so nothing is COMPLETE or publish-ready until it is authored.
+	assert report["actionable"] == 378 and report["submission_not_clear_to_child"] == 378
+	assert report["publish_ready"] == 0 and report["classification"][NEEDS_IMPROVEMENT] == 378
+	# Enrichment is reported but never decides the class.
+	assert report["enrichment_missing"] == {"learning_objective": 378, "observation_guidance": 378}
+	assert report["needs_native_review"] == 252
 
 
 def test_placeholder_rows_are_incomplete_and_flagged_for_admin_review():
@@ -146,9 +151,12 @@ def test_unsafe_activity_text_goes_to_safety_review():
 	assert classify_variation(content, age_band="7_10", locale="en")["classification"] == SAFETY_REVIEW
 
 
-def test_a_complete_variation_classifies_complete_and_a_missing_objective_needs_improvement():
+def test_a_complete_variation_classifies_complete_and_missing_enrichment_does_not_lower_it():
 	assert classify_variation(_good(), age_band="7_10", locale="en")["classification"] == COMPLETE
-	assert classify_variation(_good(learning_objective=None), age_band="7_10", locale="en")["classification"] == NEEDS_IMPROVEMENT
+	# optional enrichment alone never lowers the class
+	missing = classify_variation(_good(learning_objective=None, observation_guidance=None), age_band="7_10", locale="en")
+	assert missing["classification"] == COMPLETE and missing["learning_objective_missing"] and missing["observation_guidance_missing"]
+	assert missing["publish_ready"] is True
 
 
 def test_database_audit_is_select_only_and_reports_placeholders(world_session):
@@ -234,7 +242,7 @@ def test_a_template_with_placeholder_variations_cannot_be_published(world_sessio
 	assert template.is_published is False
 
 
-def test_age_bands_that_reuse_each_others_steps_block_publishing(world_session):
+def test_age_bands_that_reuse_each_others_steps_block_publishing(world_session, standin_submit):
 	template = _seed(world_session)
 	rows = world_session.query(DailyMissionVariation).filter_by(template_id=template.id, locale="en").all()
 	reference = next(r for r in rows if r.age_band == "7_10")
@@ -246,12 +254,12 @@ def test_age_bands_that_reuse_each_others_steps_block_publishing(world_session):
 	assert any(p["code"] == "bands_identical" for p in error.value.details["problems"])
 
 
-def test_the_seeded_catalogue_template_publishes(world_session):
+def test_the_seeded_catalogue_template_publishes(world_session, standin_submit):
 	template = _seed(world_session)
 	assert publish_daily_template(template.id, True, admin=None, session=world_session)["is_published"] is True
 
 
-def test_editing_a_variation_keeps_its_id_and_unpublishes_the_template(world_session):
+def test_editing_a_variation_keeps_its_id_and_a_still_valid_template_stays_published(world_session, standin_submit):
 	template = _seed(world_session)
 	publish_daily_template(template.id, True, admin=None, session=world_session)
 	row = world_session.query(DailyMissionVariation).filter_by(template_id=template.id, age_band="7_10", locale="en").one()
@@ -262,7 +270,7 @@ def test_editing_a_variation_keeps_its_id_and_unpublishes_the_template(world_ses
 	assert row.instructions.startswith("1. First new step.\n2. Second new step.\n3. Third new step.")
 	assert all(line in row.instructions for line in old_extra)  # the 'Another way' line survives
 	assert row.learning_objective == "Learn something."
-	assert world_session.get(DailyMissionTemplate, template.id).is_published is False
+	assert world_session.get(DailyMissionTemplate, template.id).is_published is True
 
 
 def test_a_bad_edit_is_rejected_and_changes_nothing(world_session):
@@ -309,6 +317,7 @@ def test_preview_shows_the_child_content_and_what_blocks_publishing():
 
 def test_preview_of_a_complete_variation_is_publishable_and_rendered():
 	payload = variation_payload(MISSIONS[0], "7_10", "en")
+	payload["submission_requirements"] = "Draw what you found and show it to a grown-up."
 	result = preview_variation(DailyMissionVariationCreate(**payload), admin=None)
 	assert result["publishable"] is True and "1. " in result["task_text"] and "What to submit" in result["task_text"]
 

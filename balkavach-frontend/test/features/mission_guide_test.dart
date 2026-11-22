@@ -37,16 +37,19 @@ Map<String, dynamic> _json({Map<String, Object?> over = const {}}) => {
   ...over,
 };
 
-DailyMissionContent _content(String slug, String age, String locale) =>
-    DailyMissionContent.fromJson(
-      _entries.firstWhere(
-            (e) =>
-                e['slug'] == slug &&
-                e['age_band'] == age &&
-                e['locale'] == locale,
-          )['content']
-          as Map<String, dynamic>,
-    );
+DailyMissionContent _content(
+  String slug,
+  String age,
+  String locale, {
+  String? submit,
+}) => DailyMissionContent.fromJson({
+  ..._entries.firstWhere(
+        (e) =>
+            e['slug'] == slug && e['age_band'] == age && e['locale'] == locale,
+      )['content']
+      as Map<String, dynamic>,
+  'submission_requirements': ?submit,
+});
 
 Future<void> _pump(
   WidgetTester tester,
@@ -79,7 +82,9 @@ void main() {
         expect(c.instructionsReady, isTrue, reason: '${e['slug']}');
         expect(c.steps.length, greaterThanOrEqualTo(3));
         expect(c.materials, isNotEmpty);
-        expect(c.submissionRequirements, isNotNull);
+        // Reviewer-facing text is never handed to the child: until a child-facing
+        // "what to submit" is authored the field is null and the section is omitted.
+        expect(c.submissionRequirements, isNull);
       }
     });
 
@@ -136,6 +141,7 @@ void main() {
             as Map<String, dynamic>,
         'learning_objective': 'Notice sounds around you.',
         'observation_guidance': 'Which sound is loudest?',
+        'submission_requirements': 'Tell a grown-up your three sounds.',
       });
       await _pump(tester, content);
       expect(find.text('What you will learn'), findsOneWidget);
@@ -149,7 +155,7 @@ void main() {
         expect(find.text('$i'), findsWidgets);
       }
       expect(find.text(base.steps.first), findsOneWidget);
-      expect(find.text(base.submissionRequirements!), findsOneWidget);
+      expect(find.text('Tell a grown-up your three sounds.'), findsOneWidget);
     });
 
     testWidgets('sections the mission does not have are left out', (
@@ -158,6 +164,7 @@ void main() {
       await _pump(tester, _content('cat1_monday_sound_detective', '4_6', 'en'));
       expect(find.text('What you will learn'), findsNothing);
       expect(find.text('What to observe'), findsNothing);
+      expect(find.text('What to submit'), findsNothing);
       expect(find.text('Steps'), findsOneWidget);
     });
 
@@ -181,7 +188,12 @@ void main() {
     ) async {
       await _pump(
         tester,
-        _content('cat1_monday_sound_detective', '7_10', 'hi'),
+        _content(
+          'cat1_monday_sound_detective',
+          '7_10',
+          'hi',
+          submit: 'अपनी आवाज़ें बताओ।',
+        ),
         locale: 'hi',
       );
       expect(find.text('चरण'), findsOneWidget);
@@ -189,7 +201,12 @@ void main() {
       expect(find.text('Steps'), findsNothing);
       await _pump(
         tester,
-        _content('cat1_monday_sound_detective', '7_10', 'gu'),
+        _content(
+          'cat1_monday_sound_detective',
+          '7_10',
+          'gu',
+          submit: 'તમારા અવાજો કહો.',
+        ),
         locale: 'gu',
       );
       expect(find.text('પગલાં'), findsOneWidget);

@@ -36,6 +36,8 @@ from tests.sqlite_world import (
 	world_session,  # noqa: F401  (fixture)
 )
 
+pytestmark = pytest.mark.usefixtures("standin_submit")  # the catalogue has no child-facing submit text yet (see conftest)
+
 # The 14 templates seeded before this milestone. Their slugs and rewards must never change.
 ORIGINAL_SLUGS = (
 	"cat1_monday_sound_detective", "cat1_tuesday_memory_master", "cat1_wednesday_magic_story_maker",

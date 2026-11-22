@@ -47,8 +47,18 @@ PLACEHOLDER_PATTERNS = (
 _PLACEHOLDER_RE = re.compile("|".join(PLACEHOLDER_PATTERNS), re.IGNORECASE)
 _NUMBERED = re.compile(r"^\s*(\d{1,2})[.)]\s+(.+?)\s*$")
 
-# Error codes that mean "there are no real instructions" (classified INCOMPLETE, not merely lacking detail).
-FATAL_CODES = frozenset({"steps_missing", "steps_too_few", "placeholder_text", "steps_malformed", "submission_missing"})
+# Error codes that mean "there are no real instructions": the child cannot act (classified INCOMPLETE).
+FATAL_CODES = frozenset({"steps_missing", "steps_too_few", "placeholder_text", "steps_malformed"})
+# Other errors are essential for publishing (the validator blocks them) but the child can still follow the steps,
+# so they classify as NEEDS IMPROVEMENT, not INCOMPLETE.
+# Warnings split three ways:
+#  * ENRICHMENT: educational extras. Never change the class and never block publishing.
+#  * ADVISORY:   guidelines ("not arbitrary limits"). Reported, never change the class.
+#  * everything else (QUALITY) makes the class NEEDS IMPROVEMENT because a child may struggle with it.
+ENRICHMENT_CODES = frozenset({"objective_missing", "observation_missing"})
+ADVISORY_CODES = frozenset({"step_count_guideline"})
+# A submission written for the reviewer ("The child names three sounds") instead of the child.
+_REVIEWER_VOICE = re.compile(r"^\s*(the\s+)?(child|student|kid|learner)\b", re.IGNORECASE)
 
 
 def is_placeholder(text: Any) -> bool:
@@ -168,6 +178,8 @@ def validate_content(
         errors.append(("submission_missing", "No clear statement of what the child must submit."))
     elif is_placeholder(submission):
         errors.append(("placeholder_text", "The submission requirement is generic placeholder text."))
+    elif _REVIEWER_VOICE.match(submission):
+        warnings.append(("submission_reviewer_voice", "The submission text talks about the child; tell the child directly what to submit."))
 
     if not content.get("safety_instructions"):
         errors.append(("safety_missing", "Safety guidance missing."))
@@ -218,3 +230,28 @@ def render_task_text(content: dict[str, Any]) -> str:
 
 def as_error_details(issues: Iterable[tuple[str, str]]) -> list[dict[str, str]]:
     return [{"code": code, "message": message} for code, message in issues]
+
+
+def instruction_problems(variations: Iterable[Any]) -> list[dict[str, Any]]:
+    """Everything that stops a template being published (rows or mappings): every variation's errors, plus age bands
+    in one language that reuse each other's steps. Shared by the admin publish endpoint and the seeder."""
+    problems: list[dict[str, Any]] = []
+    by_locale: dict[str, dict[str, dict[str, Any]]] = {}
+
+    def get(row: Any, name: str) -> Any:
+        return row.get(name) if isinstance(row, dict) else getattr(row, name, None)
+
+    for row in variations:
+        content = structured_content(row)
+        issues = validate_content(
+            content, age_band=get(row, "age_band"), description=get(row, "description"), instructions=get(row, "instructions")
+        )
+        for code, message in issues["errors"]:
+            problems.append(
+                {"age_band": get(row, "age_band"), "locale": get(row, "locale"), "variation_id": str(get(row, "id")) if get(row, "id") else None, "code": code, "message": message}
+            )
+        by_locale.setdefault(get(row, "locale"), {})[get(row, "age_band")] = content
+    for locale, bands in by_locale.items():
+        for code, message in band_distinctness_errors(bands):
+            problems.append({"age_band": None, "locale": locale, "variation_id": None, "code": code, "message": message})
+    return problems

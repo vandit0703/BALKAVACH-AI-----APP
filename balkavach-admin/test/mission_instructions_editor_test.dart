@@ -267,4 +267,43 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'an edit refused for a published mission explains why and saves nothing',
+    (tester) async {
+      final server = _server()
+        ..reply(
+          'PATCH',
+          '/api/v1/admin/daily-missions/templates/$_tid/variations/$_vid',
+          {
+            'error': {
+              'code': 'published_variation_edit_invalid',
+              'message':
+                  'This edit would leave a published mission incomplete.',
+              'details': {
+                'problems': [
+                  {
+                    'age_band': '4_6',
+                    'locale': 'en',
+                    'variation_id': _vid,
+                    'code': 'submission_missing',
+                    'message': 'No submission',
+                  },
+                ],
+              },
+            },
+          },
+          status: 422,
+        );
+      await _openEditor(tester, server);
+      await tester.tap(find.byKey(const Key('editor.save')));
+      await tester.pumpAndSettle();
+      expect(find.text('Publishing blocked'), findsOneWidget);
+      expect(find.textContaining('What to submit is missing'), findsWidgets);
+      expect(
+        find.byKey(const Key('editor.save')),
+        findsOneWidget,
+      ); // editor stays open
+    },
+  );
 }

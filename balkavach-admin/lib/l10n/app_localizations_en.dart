@@ -856,6 +856,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This mission cannot be published yet: some versions have no real steps or no submission requirement. Open View versions to see what to fix.';
 
   @override
+  String get errorPublishedEditInvalid =>
+      'This edit would leave a published mission incomplete, so it was not saved. Fix the problems below, or unpublish the mission first.';
+
+  @override
   String get missionIssueStepsMissing => 'No numbered steps';
 
   @override

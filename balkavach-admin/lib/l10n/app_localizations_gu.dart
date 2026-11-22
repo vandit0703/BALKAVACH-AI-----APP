@@ -850,6 +850,10 @@ class AppLocalizationsGu extends AppLocalizations {
       'આ મિશન હજી પ્રકાશિત થઈ શકતું નથી: કેટલાક સંસ્કરણોમાં સાચાં પગલાં અથવા જમા કરવાની જરૂરિયાત નથી. શું સુધારવું તે જોવા સંસ્કરણો જુઓ ખોલો.';
 
   @override
+  String get errorPublishedEditInvalid =>
+      'આ ફેરફારથી પ્રકાશિત મિશન અધૂરું રહેત, તેથી તે સાચવ્યો નથી. નીચેની સમસ્યાઓ સુધારો, અથવા પહેલાં મિશનને અપ્રકાશિત કરો.';
+
+  @override
   String get missionIssueStepsMissing => 'કોઈ ક્રમાંકિત પગલાં નથી';
 
   @override

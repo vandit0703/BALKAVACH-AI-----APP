@@ -35,6 +35,7 @@ from app.content.daily_missions import (
 from app.db.base import get_model
 from app.schemas.daily_mission import DailyMissionTemplateCreate, DailyMissionVariationCreate
 from app.services.daily_mission_service import THEMES_BY_WEEKDAY, has_complete_localized_variations
+from app.services.mission_instructions import instruction_problems
 from app.services.mission_rotation_service import MIN_ELIGIBLE_PER_THEME
 
 MIN_MINUTES, MAX_MINUTES = 5, 15
@@ -255,8 +256,20 @@ def _validate_text(spot: str, locale: str, mission: dict[str, Any], age_band: st
 		if locale != "en" and not _SCRIPT[locale].search(step):
 			problems.append(f"{spot}: a step has no {locale} script")
 
+	for field in ("submit", "objective", "observe"):  # optional child-facing authored text
+		if field in text:
+			value = str(text[field] or "").strip()
+			if not value:
+				problems.append(f"{spot}: {field} is present but empty")
+			elif locale != "en" and not _SCRIPT[locale].search(value):
+				problems.append(f"{spot}: {field} has no {locale} script")
+			elif field == "submit" and re.match(r"^\s*(the\s+)?(child|student|kid|learner)\b", value, re.IGNORECASE):
+				problems.append(f"{spot}: submit is written about the child; tell the child directly")
+
 	# Children-facing text must not ask for unsafe things, purchases, permissions or pressure.
-	asked = " ".join([*steps, text.get("alt", ""), text.get("show", ""), text.get("parent_check", ""), *text.get("materials", [])])
+	asked = " ".join(
+		[*steps, text.get("alt", ""), text.get("show", ""), text.get("parent_check", ""), text.get("submit", ""), *text.get("materials", [])]
+	)
 	hit = _has(_UNSAFE[locale], asked, regex=locale == "en")
 	if hit:
 		problems.append(f"{spot}: unsafe or restricted term {hit!r} in the activity text")
@@ -380,6 +393,7 @@ def apply_catalogue(
 		"variations_differing": [],
 		"structured_fields_backfilled": 0,
 		"published": 0,
+		"publish_blocked": [],
 	}
 	has_columns = all(hasattr(Variation, field) for field in STRUCTURED_FIELDS)
 	if backfill_structured and not has_columns:
@@ -415,8 +429,13 @@ def apply_catalogue(
 		if publish and created:
 			rows = session.query(Variation.age_band, Variation.locale).filter(Variation.template_id == template.id).all()
 			if has_complete_localized_variations(rows):
-				template.is_published = True
-				report["published"] += 1
+				# The same checks as the admin publish endpoint: real steps, materials, a child-facing submission, safety...
+				problems = instruction_problems(session.query(Variation).filter(Variation.template_id == template.id).all())
+				if problems:
+					report["publish_blocked"].append({"template": mission["slug"], "problems": sorted({p["code"] for p in problems})})
+				else:
+					template.is_published = True
+					report["published"] += 1
 	session.flush()
 	return report
 

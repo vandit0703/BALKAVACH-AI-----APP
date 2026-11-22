@@ -210,34 +210,123 @@ final _cases = <_Case>[
   _Case('role', () => const RoleSelectionScreen()),
   _Case('child login', () => const ChildLoginScreen()),
   _Case('parent auth', () => const ParentAuthScreen()),
-  _Case('parent gate', () => const ParentModeScreen(), session: Fx.childSession),
-  _Case('reset password', () => const ResetPasswordScreen(token: 'token-0123456789-0123456789')),
-  _Case('parent home', () => const ParentHomeScreen(), session: Fx.parentSession),
-  _Case('create child', () => const CreateChildScreen(), session: Fx.parentSession),
-  _Case('create mission', () => const CreateMissionScreen(), session: Fx.parentSession),
-  _Case('child home', () => const ChildShell(location: '/child', child: WatchHomeScreen()), session: Fx.childSession),
-  _Case('child profile tab', () => const ChildShell(location: '/child/profile', child: ChildHomeProfileScreen()), session: Fx.childSession),
-  _Case('missions', () => const ChildShell(location: '/child/missions', child: MissionsScreen()), session: Fx.childSession),
-  _Case('mission detail', () => const MissionDetailScreen(taskId: Fx.taskId), session: Fx.childSession),
-  _Case('mission submit', () => const MissionSubmitScreen(taskId: Fx.taskId), session: Fx.childSession),
-  _Case('mission waiting', () => const MissionWaitingScreen(taskId: Fx.taskId), session: Fx.childSession),
+  _Case(
+    'parent gate',
+    () => const ParentModeScreen(),
+    session: Fx.childSession,
+  ),
+  _Case(
+    'reset password',
+    () => const ResetPasswordScreen(token: 'token-0123456789-0123456789'),
+  ),
+  _Case(
+    'parent home',
+    () => const ParentHomeScreen(),
+    session: Fx.parentSession,
+  ),
+  _Case(
+    'create child',
+    () => const CreateChildScreen(),
+    session: Fx.parentSession,
+  ),
+  _Case(
+    'create mission',
+    () => const CreateMissionScreen(),
+    session: Fx.parentSession,
+  ),
+  _Case(
+    'child home',
+    () => const ChildShell(location: '/child', child: WatchHomeScreen()),
+    session: Fx.childSession,
+  ),
+  _Case(
+    'child profile tab',
+    () => const ChildShell(
+      location: '/child/profile',
+      child: ChildHomeProfileScreen(),
+    ),
+    session: Fx.childSession,
+  ),
+  _Case(
+    'missions',
+    () =>
+        const ChildShell(location: '/child/missions', child: MissionsScreen()),
+    session: Fx.childSession,
+  ),
+  _Case(
+    'mission detail',
+    () => const MissionDetailScreen(taskId: Fx.taskId),
+    session: Fx.childSession,
+  ),
+  _Case(
+    'mission submit',
+    () => const MissionSubmitScreen(taskId: Fx.taskId),
+    session: Fx.childSession,
+  ),
+  _Case(
+    'mission waiting',
+    () => const MissionWaitingScreen(taskId: Fx.taskId),
+    session: Fx.childSession,
+  ),
   _Case('approvals', () => const ApprovalsScreen(), session: Fx.parentSession),
-  _Case('weekly report', () => const WeeklyReportScreen(), session: Fx.parentSession),
-  _Case('child profile', () => const ChildProfileScreen(childId: Fx.childId), session: Fx.parentSession),
-  _Case('parent settings', () => const ParentSettingsScreen(), session: Fx.parentSession),
-  _Case('rewards', () => const ChildShell(location: '/child/rewards', child: RewardsScreen()), session: Fx.childSession),
-  _Case('garden', () => const ChildShell(location: '/child/garden', child: GardenScreen()), session: Fx.childSession),
-  _Case('learning', () => const ChildShell(location: '/child/learn', child: LearningScreen()), session: Fx.childSession),
+  _Case(
+    'weekly report',
+    () => const WeeklyReportScreen(),
+    session: Fx.parentSession,
+  ),
+  _Case(
+    'child profile',
+    () => const ChildProfileScreen(childId: Fx.childId),
+    session: Fx.parentSession,
+  ),
+  _Case(
+    'parent settings',
+    () => const ParentSettingsScreen(),
+    session: Fx.parentSession,
+  ),
+  _Case(
+    'rewards',
+    () => const ChildShell(location: '/child/rewards', child: RewardsScreen()),
+    session: Fx.childSession,
+  ),
+  _Case(
+    'garden',
+    () => const ChildShell(location: '/child/garden', child: GardenScreen()),
+    session: Fx.childSession,
+  ),
+  _Case(
+    'learning',
+    () => const ChildShell(location: '/child/learn', child: LearningScreen()),
+    session: Fx.childSession,
+  ),
   _Case('video feed', () => const VideoFeedScreen(), session: Fx.childSession),
-  _Case('youtube player', () => ProviderScope(
-    overrides: [
-      youtubeEmbedBuilderProvider.overrideWithValue((_) => const ColoredBox(color: Colors.black)),
-    ],
-    child: YouTubePlayerScreen(video: FeedVideo.fromJson(_longFeedVideo)),
-  ), session: Fx.childSession),
-  _Case('learning detail', () => LearningDetailScreen(item: LearningItem.fromJson(_longLearningItem)), session: Fx.childSession),
-  _Case('parent rewards', () => const ParentRewardsScreen(), session: Fx.parentSession),
-  _Case('reward form', () => const RewardFormScreen(rewardId: Fx.rewardId), session: Fx.parentSession),
+  _Case(
+    'youtube player',
+    () => ProviderScope(
+      overrides: [
+        youtubeEmbedBuilderProvider.overrideWithValue(
+          (_) => const ColoredBox(color: Colors.black),
+        ),
+      ],
+      child: YouTubePlayerScreen(video: FeedVideo.fromJson(_longFeedVideo)),
+    ),
+    session: Fx.childSession,
+  ),
+  _Case(
+    'learning detail',
+    () => LearningDetailScreen(item: LearningItem.fromJson(_longLearningItem)),
+    session: Fx.childSession,
+  ),
+  _Case(
+    'parent rewards',
+    () => const ParentRewardsScreen(),
+    session: Fx.parentSession,
+  ),
+  _Case(
+    'reward form',
+    () => const RewardFormScreen(rewardId: Fx.rewardId),
+    session: Fx.parentSession,
+  ),
 ];
 
 Future<void> _renderDevice(
@@ -253,24 +342,45 @@ Future<void> _renderDevice(
 
   h.backend
     ..reply('GET', '/api/v1/tasks', [
-      Fx.task(title: 'Help Clean Your Study Table and Arrange All the Colourful Books'),
-      Fx.task(id: Fx.task2Id, title: 'Draw Something Creative', stars: 1500, categoryId: null),
+      Fx.task(
+        title:
+            'Help Clean Your Study Table and Arrange All the Colourful Books',
+      ),
+      Fx.task(
+        id: Fx.task2Id,
+        title: 'Draw Something Creative',
+        stars: 1500,
+        categoryId: null,
+      ),
     ])
-    ..reply('GET', '/api/v1/notifications', [Fx.notification(type: 'task_submitted')])
+    ..reply('GET', '/api/v1/notifications', [
+      Fx.notification(type: 'task_submitted'),
+    ])
     ..reply('GET', '/api/v1/tasks/${Fx.taskId}/submissions', [
       Fx.submission(note: 'Finished tidying up table and arranging books!'),
     ])
     ..reply('GET', '/api/v1/progress/children/${Fx.childId}', Fx.progress())
     ..reply('GET', '/api/v1/redemptions/mine', [Fx.redemption()])
     ..reply('GET', '/api/v1/rewards', [
-      Fx.reward(name: 'A Special Evening Out With The Whole Family', cost: 1500),
+      Fx.reward(
+        name: 'A Special Evening Out With The Whole Family',
+        cost: 1500,
+      ),
       Fx.reward(id: 'r2', name: 'Sticker', cost: 5, description: null),
     ])
     ..reply('GET', '/api/v1/redemptions', [
-      Fx.redemption(rewardName: 'A Special Evening Out', childName: 'Aarav', cost: 1500),
+      Fx.redemption(
+        rewardName: 'A Special Evening Out',
+        childName: 'Aarav',
+        cost: 1500,
+      ),
     ])
     ..reply('GET', '/api/v1/tasks/submissions/mine', [
-      Fx.submission(number: 2, status: 'rejected', taskTitle: 'Help Clean Your Study Table'),
+      Fx.submission(
+        number: 2,
+        status: 'rejected',
+        taskTitle: 'Help Clean Your Study Table',
+      ),
     ])
     ..reply('GET', '/api/v1/videos/feed', [_longFeedVideo])
     ..reply('GET', '/api/v1/videos/shorts', <Object?>[])
@@ -318,10 +428,15 @@ Future<void> _renderDevice(
       'recent_approved': <Object?>[],
     })
     ..reply('GET', '/api/v1/settings/me', Fx.userSettings())
-    ..reply('GET', '/api/v1/settings/families/${Fx.familyId}/consents', [Fx.consent()]);
+    ..reply('GET', '/api/v1/settings/families/${Fx.familyId}/consents', [
+      Fx.consent(),
+    ]);
 
   tester.view
-    ..physicalSize = Size(config.size.width * config.pixelRatio, config.size.height * config.pixelRatio)
+    ..physicalSize = Size(
+      config.size.width * config.pixelRatio,
+      config.size.height * config.pixelRatio,
+    )
     ..devicePixelRatio = config.pixelRatio
     ..padding = FakeViewPadding(
       top: config.topInset * config.pixelRatio,
@@ -344,94 +459,118 @@ Future<void> _renderDevice(
 void main() {
   group('OEM and Foldable Device Matrix Audit', () {
     for (final config in _oemConfigs) {
-      group('${config.manufacturer}: ${config.name} (${config.size.width.toInt()}x${config.size.height.toInt()})', () {
-        for (final c in _cases) {
-          testWidgets('${c.name} fits with system insets (top: ${config.topInset}, btm: ${config.bottomInset})', (tester) async {
-            await _renderDevice(tester, c, config);
-          });
-        }
-      });
+      group(
+        '${config.manufacturer}: ${config.name} (${config.size.width.toInt()}x${config.size.height.toInt()})',
+        () {
+          for (final c in _cases) {
+            testWidgets(
+              '${c.name} fits with system insets (top: ${config.topInset}, btm: ${config.bottomInset})',
+              (tester) async {
+                await _renderDevice(tester, c, config);
+              },
+            );
+          }
+        },
+      );
     }
 
     group('Dynamic Fold / Unfold Live Window Transition', () {
-      testWidgets('Samsung Galaxy Z Fold: Cover to Inner screen live transition preserves state', (tester) async {
-        const coverConfig = _DeviceConfig(
-          name: 'Samsung Z Fold Cover',
-          manufacturer: 'Samsung',
-          size: Size(344, 882),
-          topInset: 38.0,
-          bottomInset: 24.0,
-        );
-        const innerConfig = _DeviceConfig(
-          name: 'Samsung Z Fold Inner',
-          manufacturer: 'Samsung',
-          size: Size(884, 1104),
-          topInset: 24.0,
-          bottomInset: 24.0,
-        );
+      testWidgets(
+        'Samsung Galaxy Z Fold: Cover to Inner screen live transition preserves state',
+        (tester) async {
+          const coverConfig = _DeviceConfig(
+            name: 'Samsung Z Fold Cover',
+            manufacturer: 'Samsung',
+            size: Size(344, 882),
+            topInset: 38.0,
+            bottomInset: 24.0,
+          );
+          const innerConfig = _DeviceConfig(
+            name: 'Samsung Z Fold Inner',
+            manufacturer: 'Samsung',
+            size: Size(884, 1104),
+            topInset: 24.0,
+            bottomInset: 24.0,
+          );
 
-        final homeCase = _cases.firstWhere((c) => c.name == 'child home');
-        // Start on Cover Screen
-        await _renderDevice(tester, homeCase, coverConfig);
-        expect(find.byType(NavigationBar), findsOneWidget);
-        expect(find.byType(NavigationRail), findsNothing);
+          final homeCase = _cases.firstWhere((c) => c.name == 'child home');
+          // Start on Cover Screen
+          await _renderDevice(tester, homeCase, coverConfig);
+          expect(find.byType(NavigationBar), findsOneWidget);
+          expect(find.byType(NavigationRail), findsNothing);
 
-        // Transition: Unfold device to Inner Screen
-        tester.view
-          ..physicalSize = Size(innerConfig.size.width * 3.0, innerConfig.size.height * 3.0)
-          ..devicePixelRatio = 3.0
-          ..padding = const FakeViewPadding(top: 72, bottom: 72);
-        await tester.pumpAndSettle();
+          // Transition: Unfold device to Inner Screen
+          tester.view
+            ..physicalSize = Size(
+              innerConfig.size.width * 3.0,
+              innerConfig.size.height * 3.0,
+            )
+            ..devicePixelRatio = 3.0
+            ..padding = const FakeViewPadding(top: 72, bottom: 72);
+          await tester.pumpAndSettle();
 
-        // Responsive layout adapts dynamically: NavigationRail appears on expanded screen
-        expect(find.byType(NavigationRail), findsOneWidget);
-        expect(find.byType(NavigationBar), findsNothing);
+          // Responsive layout adapts dynamically: NavigationRail appears on expanded screen
+          expect(find.byType(NavigationRail), findsOneWidget);
+          expect(find.byType(NavigationBar), findsNothing);
 
-        // Transition: Fold back to Cover Screen
-        tester.view
-          ..physicalSize = Size(coverConfig.size.width * 3.0, coverConfig.size.height * 3.0)
-          ..devicePixelRatio = 3.0
-          ..padding = const FakeViewPadding(top: 114, bottom: 72);
-        await tester.pumpAndSettle();
+          // Transition: Fold back to Cover Screen
+          tester.view
+            ..physicalSize = Size(
+              coverConfig.size.width * 3.0,
+              coverConfig.size.height * 3.0,
+            )
+            ..devicePixelRatio = 3.0
+            ..padding = const FakeViewPadding(top: 114, bottom: 72);
+          await tester.pumpAndSettle();
 
-        // Reverts cleanly to NavigationBar
-        expect(find.byType(NavigationBar), findsOneWidget);
-        expect(find.byType(NavigationRail), findsNothing);
-      });
+          // Reverts cleanly to NavigationBar
+          expect(find.byType(NavigationBar), findsOneWidget);
+          expect(find.byType(NavigationRail), findsNothing);
+        },
+      );
 
-      testWidgets('Parent Home: Cover to Inner screen live transition retains dashboard cards', (tester) async {
-        const coverConfig = _DeviceConfig(
-          name: 'Samsung Z Fold Cover',
-          manufacturer: 'Samsung',
-          size: Size(344, 882),
-          topInset: 38.0,
-          bottomInset: 24.0,
-        );
-        const innerConfig = _DeviceConfig(
-          name: 'Samsung Z Fold Inner',
-          manufacturer: 'Samsung',
-          size: Size(884, 1104),
-          topInset: 24.0,
-          bottomInset: 24.0,
-        );
+      testWidgets(
+        'Parent Home: Cover to Inner screen live transition retains dashboard cards',
+        (tester) async {
+          const coverConfig = _DeviceConfig(
+            name: 'Samsung Z Fold Cover',
+            manufacturer: 'Samsung',
+            size: Size(344, 882),
+            topInset: 38.0,
+            bottomInset: 24.0,
+          );
+          const innerConfig = _DeviceConfig(
+            name: 'Samsung Z Fold Inner',
+            manufacturer: 'Samsung',
+            size: Size(884, 1104),
+            topInset: 24.0,
+            bottomInset: 24.0,
+          );
 
-        final parentCase = _cases.firstWhere((c) => c.name == 'parent home');
-        await _renderDevice(tester, parentCase, coverConfig);
+          final parentCase = _cases.firstWhere((c) => c.name == 'parent home');
+          await _renderDevice(tester, parentCase, coverConfig);
 
-        // Unfold
-        tester.view
-          ..physicalSize = Size(innerConfig.size.width * 3.0, innerConfig.size.height * 3.0)
-          ..devicePixelRatio = 3.0
-          ..padding = const FakeViewPadding(top: 72, bottom: 72);
-        await tester.pumpAndSettle();
+          // Unfold
+          tester.view
+            ..physicalSize = Size(
+              innerConfig.size.width * 3.0,
+              innerConfig.size.height * 3.0,
+            )
+            ..devicePixelRatio = 3.0
+            ..padding = const FakeViewPadding(top: 72, bottom: 72);
+          await tester.pumpAndSettle();
 
-        // Fold
-        tester.view
-          ..physicalSize = Size(coverConfig.size.width * 3.0, coverConfig.size.height * 3.0)
-          ..devicePixelRatio = 3.0
-          ..padding = const FakeViewPadding(top: 114, bottom: 72);
-        await tester.pumpAndSettle();
-      });
+          // Fold
+          tester.view
+            ..physicalSize = Size(
+              coverConfig.size.width * 3.0,
+              coverConfig.size.height * 3.0,
+            )
+            ..devicePixelRatio = 3.0
+            ..padding = const FakeViewPadding(top: 114, bottom: 72);
+          await tester.pumpAndSettle();
+        },
+      );
     });
   });
 }

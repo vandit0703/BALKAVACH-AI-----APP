@@ -623,6 +623,9 @@ def _seed_daily_missions(
 		print("Database operation failed; nothing was committed.", file=sys.stderr)
 		return 2
 	differing = report.pop("variations_differing")
+	blocked = report.pop("publish_blocked", [])
+	if blocked:
+		print(f"{len(blocked)} template(s) NOT published (instruction checks failed), e.g. {blocked[0]['template']}: {', '.join(blocked[0]['problems'])}")
 	print(", ".join(f"{key}={value}" for key, value in report.items()))
 	if differing:
 		print(f"{len(differing)} existing variations differ from the catalogue and were left unchanged: {', '.join(differing[:5])}")

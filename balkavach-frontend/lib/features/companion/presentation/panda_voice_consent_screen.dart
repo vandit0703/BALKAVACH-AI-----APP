@@ -138,9 +138,7 @@ class _ChildConsentTileState extends ConsumerState<_ChildConsentTile> {
       if (!granted) {
         messenger.showSnackBar(
           SnackBar(
-            content: Text(
-              l10n.pandaConsentWithdrawn(widget.child.displayName),
-            ),
+            content: Text(l10n.pandaConsentWithdrawn(widget.child.displayName)),
           ),
         );
       }

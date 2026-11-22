@@ -426,9 +426,12 @@ class _StreakBanner extends ConsumerWidget {
     final colors = context.colors;
     final streakAsync = ref.watch(streakInfoProvider(childId));
 
-    final streakState = streakAsync.value?.streakState ?? progress.streakState ?? 'active';
-    final currentStreak = streakAsync.value?.currentStreak ?? progress.currentStreak;
-    final longestStreak = streakAsync.value?.longestStreak ?? progress.longestStreak;
+    final streakState =
+        streakAsync.value?.streakState ?? progress.streakState ?? 'active';
+    final currentStreak =
+        streakAsync.value?.currentStreak ?? progress.currentStreak;
+    final longestStreak =
+        streakAsync.value?.longestStreak ?? progress.longestStreak;
 
     final emoji = switch (streakState) {
       'at_risk' => '⏳',
@@ -463,8 +466,8 @@ class _StreakBanner extends ConsumerWidget {
             backgroundColor: streakState == 'at_risk'
                 ? colors.errorContainer
                 : (streakState == 'broken'
-                    ? colors.surfaceContainerHigh
-                    : colors.secondaryContainer),
+                      ? colors.surfaceContainerHigh
+                      : colors.secondaryContainer),
             child: Text(emoji, style: const TextStyle(fontSize: 20)),
           ),
           const SizedBox(width: AppSpacing.md),
@@ -503,10 +506,7 @@ class _StreakBanner extends ConsumerWidget {
               ],
             ),
           ),
-          Icon(
-            Icons.chevron_right_rounded,
-            color: colors.onSurfaceVariant,
-          ),
+          Icon(Icons.chevron_right_rounded, color: colors.onSurfaceVariant),
         ],
       ),
     );

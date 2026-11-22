@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0019_mission_structured_instructions"
+revision = "0019_mission_instruction_fields"
 down_revision = "0018_mission_video_requirements"
 branch_labels = None
 depends_on = None

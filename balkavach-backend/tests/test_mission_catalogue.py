@@ -42,6 +42,8 @@ from tests.sqlite_world import (
 	world_session,  # noqa: F401  (fixture)
 )
 
+pytestmark = pytest.mark.usefixtures("standin_submit")  # the catalogue has no child-facing submit text yet (see conftest)
+
 SCRIPT_PREFIX = {"gu": "GUJARATI", "hi": "DEVANAGARI"}
 
 

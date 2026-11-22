@@ -58,7 +58,8 @@ class _Rig {
       .where((r) => r.method == method && path.hasMatch(r.path))
       .toList();
 
-  List<RequestOptions> get ticketStarts => h.backend.requestsTo('POST', _ticketsPath);
+  List<RequestOptions> get ticketStarts =>
+      h.backend.requestsTo('POST', _ticketsPath);
   List<RequestOptions> get heartbeats => matching('POST', _heartbeat);
   List<RequestOptions> get ends => matching('POST', _end);
   List<RequestOptions> get progressReports => matching('POST', _progress);
@@ -182,9 +183,7 @@ void main() {
     });
 
     testWidgets('a ticket request that fails never plays and never falls back '
-        'to record_progress', (
-      tester,
-    ) async {
+        'to record_progress', (tester) async {
       final rig = await _pump(
         tester,
         tickets: true,
@@ -391,23 +390,27 @@ void main() {
   });
 
   group('PlaybackGuard', () {
-    test('play_ticket_required is a refusal, never counted as a failure', () async {
-      final guard = PlaybackGuard();
-      final refused = await guard.report(
-        () async => throw const ConflictException(
-          message: 'must use tickets',
-          code: kPlayTicketRequiredCode,
-        ),
-      );
-      expect(refused.verdict, PlaybackVerdict.updateRequired);
-      expect(guard.consecutiveFailures, 0);
+    test(
+      'play_ticket_required is a refusal, never counted as a failure',
+      () async {
+        final guard = PlaybackGuard();
+        final refused = await guard.report(
+          () async => throw const ConflictException(
+            message: 'must use tickets',
+            code: kPlayTicketRequiredCode,
+          ),
+        );
+        expect(refused.verdict, PlaybackVerdict.updateRequired);
+        expect(guard.consecutiveFailures, 0);
 
-      // Any other conflict is still an unverified report (tolerated once).
-      final other = await guard.report(
-        () async => throw const ConflictException(message: 'x', code: 'other'),
-      );
-      expect(other.verdict, PlaybackVerdict.ok);
-      expect(guard.consecutiveFailures, 1);
-    });
+        // Any other conflict is still an unverified report (tolerated once).
+        final other = await guard.report(
+          () async =>
+              throw const ConflictException(message: 'x', code: 'other'),
+        );
+        expect(other.verdict, PlaybackVerdict.ok);
+        expect(guard.consecutiveFailures, 1);
+      },
+    );
   });
 }

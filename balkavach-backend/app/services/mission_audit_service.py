@@ -20,7 +20,14 @@ from typing import Any, Iterable
 from app.db.base import get_model
 from app.content.daily_missions import AGE_BANDS, LOCALES, MISSIONS, variation_payload
 from app.services.mission_catalogue_service import _UNSAFE, _has
-from app.services.mission_instructions import FATAL_CODES, band_distinctness_errors, structured_content, validate_content
+from app.services.mission_instructions import (
+    ADVISORY_CODES,
+    ENRICHMENT_CODES,
+    FATAL_CODES,
+    band_distinctness_errors,
+    structured_content,
+    validate_content,
+)
 
 COMPLETE = "COMPLETE"
 NEEDS_IMPROVEMENT = "NEEDS IMPROVEMENT"
@@ -41,29 +48,55 @@ def _safety_hit(locale: str, content: dict[str, Any]) -> str | None:
     return _has(_UNSAFE.get(locale, _UNSAFE["en"]), asked, regex=locale == "en")
 
 
+def _label(errors: list[str], warnings: list[str], hit: str | None) -> str:
+    """SAFETY REVIEW beats everything. INCOMPLETE only when the child cannot act (no real steps). Essential publish
+    blockers (materials, submission, safety text, completion) and quality warnings give NEEDS IMPROVEMENT. Enrichment
+    (objective, observation) and advisory guidelines never change the class."""
+    if hit:
+        return SAFETY_REVIEW
+    if any(code in FATAL_CODES for code in errors):
+        return INCOMPLETE
+    quality = [w for w in warnings if w not in ENRICHMENT_CODES and w not in ADVISORY_CODES]
+    return NEEDS_IMPROVEMENT if errors or quality else COMPLETE
+
+
+def _facts(row: dict[str, Any], content: dict[str, Any], locale: str) -> None:
+    """The per-variation answers the review asked for, derived from the codes (call after the cross checks)."""
+    errors, warnings = row["errors"], row["warnings"]
+    label = _label(errors, warnings, row["safety_term"])
+    row.update(
+        classification=label,
+        actionable=not any(code in FATAL_CODES for code in errors),
+        steps_ok=not any(c in errors for c in ("steps_missing", "steps_too_few", "steps_malformed", "placeholder_text"))
+        and "wording_too_long_for_age" not in warnings,
+        materials_clear="materials_missing" not in errors,
+        duration_present=bool(content.get("duration_minutes")),
+        safety_guidance_present="safety_missing" not in errors,
+        submission_clear_to_child="submission_missing" not in errors and "submission_reviewer_voice" not in warnings,
+        completion_clear_to_reviewer="completion_missing" not in errors,
+        learning_objective_missing="objective_missing" in warnings,
+        observation_guidance_missing="observation_missing" in warnings,
+        publish_blockers=list(errors),
+        publish_ready=not errors and not row["safety_term"],
+        needs_safety_review=bool(row["safety_term"]),
+        # No review record exists for Gujarati/Hindi text; the catalogue docs say it is not native-reviewed.
+        needs_native_review=locale != "en",
+        admin_review=label == INCOMPLETE and not content.get("steps"),
+    )
+
+
 def classify_variation(
     content: dict[str, Any], *, age_band: str, locale: str, description: str | None = None, instructions: str | None = None
 ) -> dict[str, Any]:
     issues = validate_content(content, age_band=age_band, description=description, instructions=instructions)
-    errors = [code for code, _ in issues["errors"]]
-    warnings = [code for code, _ in issues["warnings"]]
-    hit = _safety_hit(locale, content)
-    if hit:
-        label = SAFETY_REVIEW
-    elif any(code in FATAL_CODES for code in errors):
-        label = INCOMPLETE
-    elif errors or warnings:
-        label = NEEDS_IMPROVEMENT
-    else:
-        label = COMPLETE
-    return {
-        "classification": label,
-        "errors": errors,
-        "warnings": warnings,
-        "safety_term": hit,
-        # No steps to build on: only a person who knows the intended activity can write it.
-        "admin_review": label == INCOMPLETE and not content.get("steps"),
+    row = {
+        "errors": [code for code, _ in issues["errors"]],
+        "warnings": [code for code, _ in issues["warnings"]],
+        "safety_term": _safety_hit(locale, content),
+        "classification": COMPLETE,
     }
+    _facts(row, content, locale)
+    return row
 
 
 def _summarise(rows: list[dict[str, Any]], extra: dict[str, Any]) -> dict[str, Any]:
@@ -79,6 +112,15 @@ def _summarise(rows: list[dict[str, Any]], extra: dict[str, Any]) -> dict[str, A
         "by_age_band": {band: {label: by_band[band].get(label, 0) for label in CLASSES} for band in AGE_BANDS},
         "by_locale": {loc: {label: by_locale[loc].get(label, 0) for label in CLASSES} for loc in LOCALES},
         "admin_review": sum(1 for row in rows if row["admin_review"]),
+        "publish_ready": sum(1 for row in rows if row["publish_ready"]),
+        "actionable": sum(1 for row in rows if row["actionable"]),
+        "enrichment_missing": {
+            "learning_objective": sum(1 for row in rows if row["learning_objective_missing"]),
+            "observation_guidance": sum(1 for row in rows if row["observation_guidance_missing"]),
+        },
+        "submission_not_clear_to_child": sum(1 for row in rows if not row["submission_clear_to_child"]),
+        "needs_native_review": sum(1 for row in rows if row["needs_native_review"]),
+        "needs_safety_review": sum(1 for row in rows if row["needs_safety_review"]),
         "issue_codes": dict(Counter(code for row in rows for code in row["errors"] + row["warnings"]).most_common()),
         "rows": rows,
         **extra,
@@ -103,8 +145,7 @@ def _cross_checks(rows: list[dict[str, Any]], contents: dict[tuple, dict[str, An
             for band in bands:
                 index[(template, band, locale)]["errors"].append("bands_identical")
     for row in rows:
-        if row["classification"] == COMPLETE and (row["warnings"] or row["errors"]):
-            row["classification"] = NEEDS_IMPROVEMENT
+        _facts(row, contents[(row["template"], row["age_band"], row["locale"])], row["locale"])
 
 
 def audit_catalogue(missions: Iterable[dict[str, Any]] = MISSIONS) -> dict[str, Any]:
@@ -184,6 +225,10 @@ def format_report(report: dict[str, Any]) -> str:
         f"Templates: {report['templates']}   Variations audited: {report['variations_audited']}",
         "Classification: " + ", ".join(f"{label}={report['classification'][label]}" for label in CLASSES),
         f"Needs admin review (no steps to build on): {report['admin_review']}",
+        f"Actionable by a child: {report['actionable']}   Publish-ready (no blockers): {report['publish_ready']}",
+        f"Submission not clear to the child: {report['submission_not_clear_to_child']}",
+        "Enrichment missing (never blocks): objective={learning_objective}, observation={observation_guidance}".format(**report["enrichment_missing"]),
+        f"Needs native-language review: {report['needs_native_review']}   Needs safety review: {report['needs_safety_review']}",
         "By age band:",
     ]
     for band, counts in report["by_age_band"].items():

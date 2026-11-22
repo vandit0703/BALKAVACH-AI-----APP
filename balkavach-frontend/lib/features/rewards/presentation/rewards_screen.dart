@@ -38,7 +38,9 @@ Future<void> _shareProgress(
     progress.badges.length,
   );
 
-  final opened = await ref.read(textSharerProvider).share(text, subject: subject);
+  final opened = await ref
+      .read(textSharerProvider)
+      .share(text, subject: subject);
   if (opened || !context.mounted) return;
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
@@ -161,7 +163,10 @@ class _VaultCard extends ConsumerWidget {
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.3,
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),

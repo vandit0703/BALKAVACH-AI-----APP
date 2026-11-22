@@ -259,6 +259,7 @@
   "missionEditSaved": "સાચવ્યું",
   "missionPublishBlockedTitle": "પ્રકાશન અટક્યું છે",
   "errorTemplateInstructionsIncomplete": "આ મિશન હજી પ્રકાશિત થઈ શકતું નથી: કેટલાક સંસ્કરણોમાં સાચાં પગલાં અથવા જમા કરવાની જરૂરિયાત નથી. શું સુધારવું તે જોવા સંસ્કરણો જુઓ ખોલો.",
+  "errorPublishedEditInvalid": "આ ફેરફારથી પ્રકાશિત મિશન અધૂરું રહેત, તેથી તે સાચવ્યો નથી. નીચેની સમસ્યાઓ સુધારો, અથવા પહેલાં મિશનને અપ્રકાશિત કરો.",
   "missionIssueStepsMissing": "કોઈ ક્રમાંકિત પગલાં નથી",
   "missionIssueStepsTooFew": "ઓછામાં ઓછાં બે પગલાં જોઈએ",
   "missionIssueStepsMalformed": "એક પગલું ખાલી છે",

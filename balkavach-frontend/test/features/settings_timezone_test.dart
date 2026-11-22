@@ -220,10 +220,7 @@ void main() {
           findsOneWidget,
           reason: 'only push is a working switch',
         );
-        expect(
-          find.text("BALKAVACH doesn't send emails yet."),
-          findsOneWidget,
-        );
+        expect(find.text("BALKAVACH doesn't send emails yet."), findsOneWidget);
       },
     );
 

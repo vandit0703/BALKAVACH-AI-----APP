@@ -16,6 +16,8 @@ from app.core.exceptions import APIError
 from app.services.mission_catalogue_service import apply_catalogue
 from tests.sqlite_world import DailyMissionTemplate, DailyMissionVariation, world_session  # noqa: F401  (fixture)
 
+pytestmark = pytest.mark.usefixtures("standin_submit")  # the catalogue has no child-facing submit text yet (see conftest)
+
 
 def _seed(session, publish=False):
 	apply_catalogue(session, publish=publish)

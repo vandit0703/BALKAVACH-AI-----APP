@@ -44,9 +44,9 @@ Future<void> showForgotPasswordDialog(
     if (value == null || value.trim().isEmpty || !context.mounted) return;
     await ref.read(authRepositoryProvider).requestPasswordReset(value);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.authResetSent)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.authResetSent)));
     }
   } on ApiException catch (error) {
     if (context.mounted) showErrorSnackBar(context, error);

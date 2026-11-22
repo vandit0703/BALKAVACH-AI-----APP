@@ -1654,6 +1654,12 @@ abstract class AppLocalizations {
   /// **'This mission cannot be published yet: some versions have no real steps or no submission requirement. Open View versions to see what to fix.'**
   String get errorTemplateInstructionsIncomplete;
 
+  /// No description provided for @errorPublishedEditInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This edit would leave a published mission incomplete, so it was not saved. Fix the problems below, or unpublish the mission first.'**
+  String get errorPublishedEditInvalid;
+
   /// No description provided for @missionIssueStepsMissing.
   ///
   /// In en, this message translates to:

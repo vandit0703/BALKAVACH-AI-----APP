@@ -134,7 +134,11 @@ void main() {
       await rig.session.start('v-1');
       rig.reply = () => FakeReply.error(httpStatus, code, 'refused');
       rig.session.onPlaying(0);
-      await Future<void>.delayed(const Duration(milliseconds: 10));
+      // Real-time wait for the in-flight heartbeat: poll instead of a fixed
+      // 10 ms, which lost the race when the full suite ran many isolates.
+      for (var i = 0; i < 200 && rig.stops.isEmpty; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
       expect(rig.stops, [reason]);
       expect(rig.session.stopped, isTrue);
       rig.session.dispose();
