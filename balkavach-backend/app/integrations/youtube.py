@@ -53,6 +53,10 @@ DISCOVERY_TOPICS: dict[str, str] = {
 	"language": "learn english for kids",
 	"art": "drawing and art for kids",
 	"preschool": "preschool learning",
+	"teen_funny_shorts": (
+		"clean comedy shorts for teens school life humour family friendly comedy skits "
+		"funny animation funny animals relatable teen humour safe entertaining challenges"
+	),
 }
 
 

@@ -29,9 +29,9 @@ STAGE_MEANING = {
 	"content_rating": "no video for this age has a general or educational rating",
 	"language": "no video matches the child's language (or English)",
 	"active_category": "the matching videos are all in inactive categories",
-	"youtube_approved_and_fresh": (
-		"the matching YouTube videos are not approved, rights-cleared and made-for-kids, or were not "
-		"re-verified within the re-verification window (run youtube-recheck)"
+	"youtube_approved": (
+		"the matching YouTube videos are not approved, rights-cleared and made-for-kids, "
+		"or are unavailable/quarantined/revoked"
 	),
 	"not_a_duplicate": "the remaining videos are duplicates of an earlier row",
 	"format_short": "there is no eligible video of 1-60 seconds",
@@ -80,7 +80,7 @@ def funnel(
 			limiting = name
 		previous = remaining
 	condition_by_name = dict(conditions)
-	moderation_rules = ("published", "content_rating", "youtube_approved_and_fresh")
+	moderation_rules = ("published", "content_rating", "youtube_approved")
 	age_language_rules = (*moderation_rules, "age_band", "language")
 	breakdown = {
 		"candidate_total": total,
@@ -126,12 +126,12 @@ def funnel(
 		breakdown["moderation_status_counts"] = moderation_status_counts
 	else:
 		breakdown["moderation_status_counts"] = {"review_table_missing": 1}
-	freshness = youtube_freshness(session)
-	breakdown["youtube_freshness_counts"] = (
+	freshness = youtube_verification(session)
+	breakdown["youtube_verification_counts"] = (
 		{
 			"approved": freshness["approved"],
-			"fresh": freshness["approved_fresh"],
-			"stale": freshness["approved_stale"],
+			"recently_verified": freshness["recently_verified"],
+			"not_recently_verified": freshness["not_recently_verified"],
 		}
 		if freshness is not None
 		else {"review_table_missing": 1}
@@ -145,14 +145,14 @@ def funnel(
 	}
 
 
-def youtube_freshness(session: Session) -> dict[str, Any] | None:
-	"""Approved YouTube reviews, and how many the feed hides because they were not re-verified in time."""
+def youtube_verification(session: Session) -> dict[str, Any] | None:
+	"""Approved YouTube reviews and verification recency (informational; recency does not hide feed videos)."""
 	if not has_model("YouTubeContentReview"):
 		return None
 	Review = get_model("YouTubeContentReview")
 	fresh_after = utc_naive(datetime.now(timezone.utc) - timedelta(hours=settings.youtube_reverify_hours))
 	approved = session.query(func.count(Review.id)).filter(Review.status == "approved").scalar() or 0
-	stale = (
+	not_recently_verified = (
 		session.query(func.count(Review.id))
 		.filter(Review.status == "approved", or_(Review.last_verified_at.is_(None), Review.last_verified_at < fresh_after))
 		.scalar()
@@ -161,11 +161,18 @@ def youtube_freshness(session: Session) -> dict[str, Any] | None:
 	oldest = session.query(func.min(Review.last_verified_at)).filter(Review.status == "approved").scalar()
 	return {
 		"approved": approved,
-		"approved_stale": stale,
-		"approved_fresh": approved - stale,
+		"not_recently_verified": not_recently_verified,
+		"recently_verified": approved - not_recently_verified,
+		"approved_stale": not_recently_verified,
+		"approved_fresh": approved - not_recently_verified,
 		"oldest_approved_verification": utc_aware(oldest) if oldest else None,
 		"reverify_hours": settings.youtube_reverify_hours,
 	}
+
+
+def youtube_freshness(session: Session) -> dict[str, Any] | None:
+	"""Backward-compatible alias for verification recency info."""
+	return youtube_verification(session)
 
 
 def diagnose(
@@ -199,7 +206,7 @@ def diagnose(
 	if in_range:
 		for name in ("short", "regular"):
 			feeds[name] = funnel(session, age=age, languages=languages, child_id=child_id, video_format=name)
-	youtube = youtube_freshness(session)
+	youtube = youtube_verification(session)
 
 	findings: list[str] = []
 	if child_id is not None and not has_birth_date:
@@ -212,25 +219,25 @@ def diagnose(
 		if result["eligible"] == 0:
 			stage = result["limiting_stage"]
 			findings.append(f"The {name} feed is empty because {STAGE_MEANING.get(stage, stage)}.")
-	# Both feeds see the same videos at this step (the short/regular split comes later): count them once.
-	hidden_by_freshness = max(
+	hidden_by_moderation = max(
 		(
 			row["removed"]
 			for result in feeds.values()
 			for row in result["stages"]
-			if row["stage"] == "youtube_approved_and_fresh"
+			if row["stage"] == "youtube_approved"
 		),
 		default=0,
 	)
-	if hidden_by_freshness:
+	if hidden_by_moderation:
 		findings.append(
-			f"{hidden_by_freshness} otherwise-eligible YouTube video(s) are hidden by approval or freshness rules"
-			+ (
-				f"; {youtube['approved_stale']} approved video(s) are stale (oldest verification "
-				f"{youtube['oldest_approved_verification']}), which youtube-recheck repairs."
-				if youtube and youtube["approved_stale"]
-				else "."
-			)
+			f"{hidden_by_moderation} otherwise-eligible YouTube video(s) are hidden because they are not approved, "
+			f"rights-cleared, made for kids, or currently available."
+		)
+	if youtube and youtube.get("not_recently_verified"):
+		findings.append(
+			f"{youtube['not_recently_verified']} approved YouTube video(s) have not been re-verified recently "
+			f"(oldest verification {youtube['oldest_approved_verification']}); they remain eligible while recheck is available "
+			"to refresh metadata and availability."
 		)
 	if not findings:
 		findings.append("Both feeds have eligible videos.")

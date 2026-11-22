@@ -224,9 +224,9 @@ def _youtube_recheck(session_factory, limit: int) -> int:
 def _recheck_health(session_factory, max_age_hours: float) -> int:
 	"""Read-only monitor for the recheck job: exit 0 healthy, 3 unhealthy, 2 database error.
 
-	Unhealthy means approved videos are past the re-verification window (the child feed hides them) or no
-	recheck has completed within ``max_age_hours``. Point a scheduler or uptime monitor at it so a job that
-	stopped running is noticed *before* the feed empties.
+	Unhealthy means approved videos have no recent completed recheck run on record or the latest recheck failed.
+	Old verification age alone does not hide approved feed videos, but recheck should still run regularly to refresh
+	metadata and availability. Point a scheduler or uptime monitor at it so a job that stopped running is noticed.
 	"""
 	from datetime import datetime, timezone
 
@@ -258,7 +258,8 @@ def _recheck_health(session_factory, max_age_hours: float) -> int:
 				"healthy": not problems,
 				"problems": problems,
 				"approved": info["approved"],
-				"approved_stale": info["approved_stale"],
+				"approved_not_recently_verified": info.get("approved_stale", 0),
+				"approved_stale": info.get("approved_stale", 0),
 				"last_recheck_run": last_run,
 				"oldest_approved_verification": info["oldest_approved_verification"],
 			},
@@ -319,6 +320,16 @@ def _youtube_discover(session_factory, max_results: int) -> int:
 				"automatically_published": 0,
 				"quarantined": 0,
 			}
+
+			def _merge_counts(result: dict) -> None:
+				for key, value in result.items():
+					if key == "created":
+						totals[key] = totals.get(key, 0) + (len(value) if isinstance(value, list) else int(value or 0))
+					elif isinstance(value, bool):
+						continue
+					elif isinstance(value, int):
+						totals[key] = totals.get(key, 0) + value
+
 			for topic in topics:
 				result = discover(
 					session,
@@ -326,23 +337,20 @@ def _youtube_discover(session_factory, max_results: int) -> int:
 					client,
 					YouTubeDiscoverRequest(
 						topic=topic,
+						shorts=(topic == "teen_funny_shorts"),
 						region_code=settings.youtube_region_code,
 						max_results=max_results,
 					),
 					auto_publish=True,
 				)
-				for key in totals:
-					if key in result:
-						totals[key] += len(result["created"]) if key == "created" else result[key]
-			trusted_totals = discover_trusted(session, actor, client, max_results)
-			for key, value in trusted_totals.items():
-				totals[key] += value
+				_merge_counts(result)
+			_merge_counts(discover_trusted(session, actor, client, max_results))
 			from app.services.youtube_review_service import auto_review
 
 			reviewed = auto_review(session, actor, client, limit=200)
 			totals["auto_approved"] = reviewed["auto_approved"]
 			totals["needs_manual_review"] = reviewed["needs_manual_review"]
-			totals["quarantined"] += reviewed["newly_quarantined"]
+			totals["quarantined"] = totals.get("quarantined", 0) + reviewed["newly_quarantined"]
 			from app.services.admin_service import record_audit
 			record_audit(session, actor.id, "youtube.discovery.completed", "youtube_pipeline", None, totals)
 			session.commit()

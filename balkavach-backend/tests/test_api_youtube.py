@@ -823,3 +823,35 @@ def test_auto_approval_is_safe_when_the_age_band_is_unset(api, youtube, monkeypa
 	# ...but an administrator can still approve it by hand with an explicit band.
 	assert _approve(api, admin, created[VIDEO_ID]["id"]).status_code == 200
 	assert _feed_ids(api, ctx["child"]["token"]) == {VIDEO_ID}
+
+
+def test_old_verification_does_not_hide_the_video(api, youtube):
+	child, video = _child_feed(api, age=8, language="en")
+	created = youtube.import_video(f"https://youtu.be/{VIDEO_ID}")
+	youtube.approve(created["id"], {"age_min": 6, "age_max": 8, "language_code": "en", "rights_status": "cleared"}, by="admin")
+
+	fresh = api.client.get("/api/v1/videos", headers=api.auth(child))
+	assert {item["id"] for item in fresh.json()} == {str(video.id)}
+	fresh_diag = api.client.get("/api/v1/admin/videos/youtube/diagnostics", headers=api.auth("admin"))
+	assert fresh_diag.status_code == 200
+	assert fresh_diag.json()["approved_stale"] == 0 and fresh_diag.json()["reverify_hours"] == 72
+
+	Review = get_model("YouTubeContentReview")
+	with api.session_factory() as session:
+		review = session.query(Review).filter(Review.youtube_video_id == VIDEO_ID).one()
+		review.last_verified_at = utc_naive(datetime.now(timezone.utc)) - timedelta(hours=73)
+		session.commit()
+
+	stale = api.client.get("/api/v1/videos", headers=api.auth(child))
+	assert {item["id"] for item in stale.json()} == {str(video.id)}
+
+	stale_diag = api.client.get("/api/v1/admin/videos/youtube/diagnostics", headers=api.auth("admin"))
+	assert stale_diag.status_code == 200
+	assert stale_diag.json()["approved_stale"] == 1  # informational: recheck is overdue, but feed eligibility is unchanged
+
+	# Recheck makes the same already-approved video freshly verified again; a person never has to re-approve it.
+	api.youtube = FakeYouTube(VIDEO_ID)
+	recheck = api.client.post("/api/v1/admin/videos/youtube/recheck?limit=50", headers=api.auth("admin"))
+	assert recheck.json()["verified"] == 1 and recheck.json()["quarantined"] == 0
+	restored = api.client.get("/api/v1/videos", headers=api.auth(child))
+	assert {item["id"] for item in restored.json()} == {str(video.id)}

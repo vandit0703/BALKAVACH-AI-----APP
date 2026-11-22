@@ -18,7 +18,6 @@ from app.services.notification_service import create_notification, family_parent
 from app.services.progress_service import badge_qualifies
 from app.services.timezone_service import local_date_of
 from app.services.upload_service import claim_upload_for_submission, proof_url
-from app.services.video_entitlement_service import missing_mission_allowance_columns
 from app.utils import utc_naive
 
 logger = logging.getLogger(__name__)
@@ -197,19 +196,8 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 			return submission
 		raise APIError(409, "submission_already_reviewed", "This submission has already been reviewed")
 	if request.decision == "approved":
-		missing = missing_mission_allowance_columns()
-		if missing:
-			# Fail before writing anything: an approval must pay all three rewards or none.
-			logger.critical(
-				"Mission approval refused: the database lacks the video allowance schema (%s). "
-				"Apply migration 0013_mission_video_entitlement.",
-				", ".join(missing),
-			)
-			raise APIError(
-				503,
-				"video_allowance_unavailable",
-				"Video time cannot be granted right now, so this mission was not approved. Nothing was awarded.",
-			)
+		# Mission approval credits stars/XP only; it must not create reward redemptions or video entitlements.
+		pass
 
 	approved_at = datetime.now(timezone.utc)  # one instant for every write this approval makes
 	now = utc_naive(approved_at)
@@ -366,22 +354,6 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 				notify_streak_event(
 					session, child.user_id, "streak_continued", c_streak
 				)
-
-		from app.services.video_entitlement_service import grant_mission_video_entitlement
-		from app.services.notification_service import notify_video_entitlement_event
-
-		entitlement = grant_mission_video_entitlement(
-			session, child, task, submission, now_utc=approved_at
-		)
-		if entitlement and (entitlement.granted_seconds or 0) > 0:
-			notify_video_entitlement_event(
-				session,
-				child.user_id,
-				"mission_video_time_granted",
-				minutes_granted=(entitlement.granted_seconds or 0) // 60,
-				task_id=task.id,
-				submission_id=submission.id,
-			)
 
 	ChildProfile = get_model("ChildProfile")
 	child = session.query(ChildProfile).filter(ChildProfile.id == submission.child_id).one()

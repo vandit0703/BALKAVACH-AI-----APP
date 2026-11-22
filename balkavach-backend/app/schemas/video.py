@@ -179,6 +179,7 @@ class YouTubeDiscoverRequest(BaseModel):
 		"language",
 		"art",
 		"preschool",
+		"teen_funny_shorts",
 	]
 	shorts: bool = False
 	page_token: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,128}$")

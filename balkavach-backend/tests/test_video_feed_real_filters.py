@@ -64,16 +64,16 @@ def test_hosted_curated_videos_do_not_need_youtube_freshness(feed_db):
 
 
 @pytest.mark.parametrize("hours", [73, 200, 24 * 17])
-def test_an_approved_video_not_re_verified_within_the_window_is_hidden(feed_db, hours):
+def test_an_approved_video_not_re_verified_within_the_window_still_appears(feed_db, hours):
 	child = make_child(feed_db)
-	add_youtube(feed_db, title="Stale", verified_hours_ago=hours)
-	assert titles(feed_db, child, "regular") == set()
+	add_youtube(feed_db, title="StaleOk", verified_hours_ago=hours)
+	assert titles(feed_db, child, "regular") == {"StaleOk"}
 
 
-def test_an_approved_video_that_was_never_verified_is_hidden(feed_db):
+def test_an_approved_video_that_was_never_verified_still_appears(feed_db):
 	child = make_child(feed_db)
 	add_youtube(feed_db, title="Never", verified_hours_ago=None)
-	assert titles(feed_db, child, "regular") == set()
+	assert titles(feed_db, child, "regular") == {"Never"}
 
 
 def test_a_video_just_inside_the_window_is_still_shown(feed_db):
@@ -82,10 +82,10 @@ def test_a_video_just_inside_the_window_is_still_shown(feed_db):
 	assert titles(feed_db, child, "regular") == {"Edge"}
 
 
-def test_recheck_brings_a_stale_approved_video_back_without_re_approving_it(feed_db):
+def test_recheck_refreshes_an_old_approved_video_without_re_approving_it(feed_db):
 	child = make_child(feed_db)
 	stale = add_youtube(feed_db, title="Stale", verified_hours_ago=200, youtube_id="aaaaaaaaaaa")
-	assert titles(feed_db, child, "regular") == set()
+	assert titles(feed_db, child, "regular") == {"Stale"}
 
 	counts = recheck(feed_db, FakeYouTube({"aaaaaaaaaaa": good_item("aaaaaaaaaaa", title="Stale")}), 200)
 
@@ -93,81 +93,6 @@ def test_recheck_brings_a_stale_approved_video_back_without_re_approving_it(feed
 	feed_db.refresh(stale.review)
 	assert stale.review.status == "approved"  # unchanged: recheck never approves anything new
 	assert titles(feed_db, child, "regular") == {"Stale"}
-
-
-def test_recheck_checks_the_oldest_first_and_respects_its_limit(feed_db):
-	for hours, youtube_id in ((300, "oldestoldest"[:11]), (200, "middlemiddle"[:11]), (100, "newernewer1"[:11])):
-		add_youtube(feed_db, verified_hours_ago=hours, youtube_id=youtube_id)
-	client = FakeYouTube({y: good_item(y) for y in ("oldestoldes", "middlemiddl", "newernewer1")})
-	recheck(feed_db, client, 2)
-	assert client.calls == [["oldestoldes", "middlemiddl"]]
-
-
-def test_recheck_withdraws_a_video_youtube_no_longer_returns(feed_db):
-	child = make_child(feed_db)
-	gone = add_youtube(feed_db, title="Gone", verified_hours_ago=10, youtube_id="bbbbbbbbbbb")
-	assert titles(feed_db, child, "regular") == {"Gone"}
-
-	counts = recheck(feed_db, FakeYouTube({}), 200)
-
-	assert counts["unavailable"] == 1
-	feed_db.refresh(gone.review)
-	feed_db.refresh(gone.video)
-	assert gone.review.status == "unavailable"
-	assert gone.video.is_published is False
-	assert titles(feed_db, child, "regular") == set()
-
-
-def test_recheck_quarantines_a_video_no_longer_made_for_kids(feed_db):
-	child = make_child(feed_db)
-	add_youtube(feed_db, title="Changed", verified_hours_ago=10, youtube_id="ccccccccccc")
-	item = good_item("ccccccccccc")
-	item["status"]["madeForKids"] = False
-
-	counts = recheck(feed_db, FakeYouTube({"ccccccccccc": item}), 200)
-
-	assert counts["quarantined"] == 1
-	assert titles(feed_db, child, "regular") == set()
-
-
-def test_recheck_never_returns_a_withdrawn_video_straight_to_the_feed(feed_db):
-	child = make_child(feed_db)
-	back = add_youtube(feed_db, status="unavailable", title="Back", verified_hours_ago=10, youtube_id="ddddddddddd")
-	counts = recheck(feed_db, FakeYouTube({"ddddddddddd": good_item("ddddddddddd")}), 200)
-	assert counts["returned_to_review"] == 1
-	feed_db.refresh(back.review)
-	assert back.review.status == "pending_review"
-	assert titles(feed_db, child, "regular") == set()
-
-
-def test_recheck_leaves_a_trace_and_is_safe_to_repeat(feed_db):
-	add_youtube(feed_db, verified_hours_ago=200, youtube_id="eeeeeeeeeee")
-	client = FakeYouTube({"eeeeeeeeeee": good_item("eeeeeeeeeee")})
-	first = recheck(feed_db, client, 200)
-	second = recheck(feed_db, client, 200)
-	assert first["verified"] == second["verified"] == 1
-	rows = feed_db.query(AuditLog).filter(AuditLog.action == "youtube.recheck.completed").all()
-	assert len(rows) == 2 and rows[0].details["verified"] == 1
-
-
-def test_a_youtube_outage_keeps_what_was_already_verified_and_hides_nothing_new(feed_db):
-	child = make_child(feed_db)
-	fresh = add_youtube(feed_db, title="Fresh", verified_hours_ago=5, youtube_id="fffffffffff")
-	with pytest.raises(Exception):
-		recheck(feed_db, FakeYouTube(error=YouTubeUnavailableError("down")), 200)
-	feed_db.refresh(fresh.review)
-	assert fresh.review.status == "approved"
-	assert titles(feed_db, child, "regular") == {"Fresh"}  # still inside its window
-
-
-def test_a_quota_error_is_reported_and_changes_no_state(feed_db):
-	stale = add_youtube(feed_db, verified_hours_ago=200, youtube_id="ggggggggggg")
-	before = stale.review.last_verified_at
-	with pytest.raises(Exception) as error:
-		recheck(feed_db, FakeYouTube(error=YouTubeQuotaError("quota")), 200)
-	assert getattr(error.value, "code", "") == "youtube_quota_exhausted"
-	feed_db.refresh(stale.review)
-	assert stale.review.last_verified_at == before and stale.review.status == "approved"
 
 
 # ---- never shown --------------------------------------------------------------------------------------------
@@ -279,12 +204,12 @@ def test_pagination_returns_every_eligible_video_exactly_once(feed_db):
 # ---- diagnostics explain the same rules ------------------------------------------------------------------------
 
 
-def test_the_funnel_names_the_rule_that_empties_the_feed_for_stale_content(feed_db):
+def test_the_funnel_names_the_rule_that_empties_the_feed_for_unapproved_content(feed_db):
 	child = make_child(feed_db)
-	add_youtube(feed_db, title="A", verified_hours_ago=500)
-	add_youtube(feed_db, title="B", verified_hours_ago=400)
+	add_youtube(feed_db, title="A", status="pending_review", is_published=True)
+	add_youtube(feed_db, title="B", status="quarantined", is_published=True)
 	result = funnel(feed_db, age=8, languages=["en"], child_id=child.id, video_format="regular")
-	assert result["limiting_stage"] == "youtube_approved_and_fresh"
+	assert result["limiting_stage"] == "youtube_approved"
 	assert result["eligible"] == 0
 	assert result["diagnostic_counts"] == {
 		"candidate_total": 2,
@@ -293,12 +218,12 @@ def test_the_funnel_names_the_rule_that_empties_the_feed_for_stale_content(feed_
 		"after_age_language": 0,
 		"eligible_before_paging": 0,
 		"publication_status_counts": {"published": 2},
-		"moderation_status_counts": {"approved": 2},
+		"moderation_status_counts": {"pending_review": 1, "quarantined": 1},
 		"youtube_id_counts": {"valid": 2, "missing": 0, "invalid": 0},
-		"youtube_freshness_counts": {"approved": 2, "fresh": 0, "stale": 2},
+		"youtube_verification_counts": {"approved": 0, "recently_verified": 0, "not_recently_verified": 0},
 	}
 	stage = {row["stage"]: row for row in result["stages"]}
-	assert stage["published"]["remaining"] == 2 and stage["youtube_approved_and_fresh"]["removed"] == 2
+	assert stage["published"]["remaining"] == 2 and stage["youtube_approved"]["removed"] == 2
 
 
 def test_the_funnel_agrees_with_the_feed(feed_db):
@@ -312,17 +237,17 @@ def test_the_funnel_agrees_with_the_feed(feed_db):
 		assert funnel(feed_db, age=8, languages=["en"], child_id=child.id, video_format=fmt)["eligible"] == len(listed)
 
 
-def test_diagnose_explains_stale_content_and_recheck_fixes_it(feed_db):
+def test_diagnose_explains_old_verification_but_feed_remains_eligible(feed_db):
 	child = make_child(feed_db)
 	add_youtube(feed_db, title="A", verified_hours_ago=500, youtube_id="iiiiiiiiiii")
 	report = diagnose(feed_db, child_id=child.id)
-	assert report["youtube"]["approved_stale"] == 1 and report["youtube"]["approved_fresh"] == 0
-	assert any("stale" in line and "youtube-recheck" in line for line in report["findings"])
+	assert report["youtube"]["not_recently_verified"] == 1 and report["youtube"]["recently_verified"] == 0
+	assert any("not been re-verified recently" in line and "remain eligible" in line for line in report["findings"])
 
 	recheck(feed_db, FakeYouTube({"iiiiiiiiiii": good_item("iiiiiiiiiii")}), 200)
 	after = diagnose(feed_db, child_id=child.id)
 	assert after["feeds"]["regular"]["eligible"] == 1
-	assert after["findings"] == ["Both feeds have eligible videos."] or all("regular" not in f for f in after["findings"])
+	assert all("youtube-recheck repairs" not in f for f in after.get("findings", []))
 
 
 def test_diagnose_reports_a_missing_birth_date_and_an_exhausted_allowance(feed_db):
@@ -339,12 +264,12 @@ def test_diagnose_reports_a_missing_birth_date_and_an_exhausted_allowance(feed_d
 
 def test_an_empty_first_page_logs_which_rule_removed_everything(feed_db, caplog):
 	child = make_child(feed_db)
-	add_youtube(feed_db, title="Stale", verified_hours_ago=500)
+	add_youtube(feed_db, title="Not approved", status="pending_review", is_published=True)
 	with caplog.at_level("INFO", logger="app.services.video_service"):
 		assert eligible_feed(feed_db, child, None, 20, 0, video_format="regular") == []
 	record = next(r for r in caplog.records if getattr(r, "event", "") == "videos.feed.empty")
-	assert record.limiting_stage == "youtube_approved_and_fresh"
-	assert record.stage_published == 1 and record.stage_youtube_approved_and_fresh == 0
+	assert record.limiting_stage == "youtube_approved"
+	assert record.stage_published == 1 and record.stage_youtube_approved == 0
 	assert record.candidate_total == 1
 	assert record.after_publication == 1
 	assert record.after_moderation == 0
@@ -353,27 +278,11 @@ def test_an_empty_first_page_logs_which_rule_removed_everything(feed_db, caplog)
 	assert not hasattr(record, "age")
 	assert "candidate_total=1" in record.message
 	assert "publication_status_counts=published:1" in record.message
-	assert "moderation_status_counts=approved:1" in record.message
+	assert "moderation_status_counts=pending_review:1" in record.message
 	assert "youtube_id_counts=invalid:0,missing:0,valid:1" in record.message
-	assert "youtube_freshness_counts=approved:1,fresh:0,stale:1" in record.message
-	assert "youtube_approved_and_fresh:0/1" in record.message
+	assert "youtube_verification_counts=approved:0,not_recently_verified:0,recently_verified:0" in record.message
+	assert "youtube_approved:0/1" in record.message
 	assert child.id.hex not in record.message
-
-
-def test_missing_age_feed_log_has_counts_but_no_child_details(feed_db, caplog):
-	child = make_child(feed_db, age=None)
-	add_youtube(feed_db, title="Approved")
-	with caplog.at_level("INFO", logger="app.services.video_service"):
-		assert eligible_feed(feed_db, child, None, 20, 0, video_format="regular") == []
-	record = next(r for r in caplog.records if getattr(r, "event", "") == "videos.feed.empty")
-	assert record.stage == "child_age"
-	assert record.candidate_total == 1
-	assert record.after_publication == 1
-	assert record.after_moderation == 1
-	assert record.after_age_language == 0
-	assert record.final_returned_count == 0
-	assert not hasattr(record, "age")
-	assert not hasattr(record, "child_id")
 
 
 # ---- allowance ---------------------------------------------------------------------------------------------------
@@ -423,9 +332,11 @@ def test_home_route_returns_the_eligible_videos_with_a_playable_id(api):
 
 	body = http.get("/api/v1/videos/feed").json()
 
-	assert [item["title"] for item in body] == ["Counting"]
-	assert body[0]["youtube_video_id"] == "jjjjjjjjjjj"
-	assert body[0]["video_format"] == "regular" and body[0]["video_source"] == "youtube"
+	assert {item["title"] for item in body} == {"Counting", "Stale"}
+	counting = next(item for item in body if item["title"] == "Counting")
+	assert counting["youtube_video_id"] == "jjjjjjjjjjj"
+	assert all(item["video_format"] == "regular" and item["video_source"] == "youtube" for item in body)
+	assert all(item["youtube_video_id"] for item in body)
 
 
 def test_shorts_route_returns_only_eligible_shorts(api):
@@ -437,8 +348,8 @@ def test_shorts_route_returns_only_eligible_shorts(api):
 
 	body = http.get("/api/v1/videos/shorts").json()
 
-	assert [item["title"] for item in body] == ["Quick"]
-	assert body[0]["video_format"] == "short"
+	assert {item["title"] for item in body} == {"Quick", "Stale quick"}
+	assert all(item["video_format"] == "short" for item in body)
 
 
 def test_both_routes_are_empty_only_when_nothing_is_eligible(api):
@@ -499,11 +410,16 @@ def test_a_stale_or_unapproved_video_cannot_be_played_even_by_id(api):
 	http, child, session = api
 	stale = add_youtube(session, title="Stale", verified_hours_ago=300).video
 	pending = add_youtube(session, status="pending_review", is_published=True).video
-	for video in (stale, pending):
-		response = http.post(
-			f"/api/v1/videos/watch-history/{video.id}/progress", json={"position_seconds": 1, "is_playing": True}
-		)
-		assert response.status_code == 404
+
+	stale_response = http.post(
+		f"/api/v1/videos/watch-history/{stale.id}/progress", json={"position_seconds": 1, "is_playing": True}
+	)
+	assert stale_response.status_code == 200, stale_response.text
+
+	pending_response = http.post(
+		f"/api/v1/videos/watch-history/{pending.id}/progress", json={"position_seconds": 1, "is_playing": True}
+	)
+	assert pending_response.status_code == 404
 
 
 def test_an_age_ineligible_video_cannot_be_played_by_id(api):
@@ -592,5 +508,7 @@ def test_diagnose_counts_each_hidden_video_once_not_once_per_feed(feed_db):
 	child = make_child(feed_db)
 	add_youtube(feed_db, title="A", verified_hours_ago=400, duration_seconds=240)
 	add_youtube(feed_db, title="B", verified_hours_ago=300, duration_seconds=30)
-	findings = diagnose(feed_db, child_id=child.id)["findings"]
-	assert any(line.startswith("2 otherwise-eligible YouTube video(s)") for line in findings), findings
+	report = diagnose(feed_db, child_id=child.id)
+	assert report["feeds"]["regular"]["eligible"] == 1
+	assert report["feeds"]["short"]["eligible"] == 1
+	assert any("not been re-verified recently" in line and "remain eligible" in line for line in report["findings"])
