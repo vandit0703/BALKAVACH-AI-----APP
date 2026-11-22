@@ -341,3 +341,125 @@ def test_database_errors_in_the_read_only_commands_exit_2(monkeypatch, capsys):
 		monkeypatch.setattr("app.integrations.youtube.get_youtube_client", lambda: FakeYouTube())
 		assert call() == 2
 	assert "connection refused" not in capsys.readouterr().err  # no driver detail, no connection string
+
+
+def test_youtube_discover_aggregates_unexpected_and_trusted_counters(feed_db, factory, monkeypatch, capsys):
+	from types import SimpleNamespace
+
+	from app.core.config import settings
+
+	monkeypatch.setattr(settings, "youtube_discovery_topics", ["stories", "music"] if False else ["stories", "math"])
+	monkeypatch.setattr(settings, "youtube_discovery_actor_id", "actor-1")
+	monkeypatch.setattr(settings, "youtube_region_code", "IN")
+	monkeypatch.setattr(cli, "_youtube_discovery_actor", lambda session, actor_id: SimpleNamespace(id=actor_id))
+	monkeypatch.setattr("app.integrations.youtube.get_youtube_client", lambda: object())
+
+	topic_results = [
+		{
+			"created": [{"id": "a"}, {"id": "b"}],
+			"skipped_existing": 3,
+			"skipped_unplayable": 1,
+			"automatically_published": 2,
+			"quarantined": 1,
+			"next_page_token": "token-1",
+			"channels_checked": 4,  # unexpected for topic result
+			"new_counter": 7,
+		},
+		{
+			"created": [{"id": "c"}],
+			"skipped_existing": 5,
+			"skipped_unplayable": 0,
+			"automatically_published": 1,
+			"quarantined": 0,
+			"next_page_token": None,
+			"new_counter": 2,
+		},
+	]
+	trusted_result = {
+		"channels_checked": 3,
+		"created": 5,
+		"skipped_existing": 8,
+		"automatically_published": 4,
+		"pending_review": 2,
+		"quarantined": 1,
+		"unavailable": 6,
+		"channels_unavailable": 1,
+		"pages_checked": 9,
+		"channels_pending_initial_scan": 2,
+		"channels_pending_upload_scan": 1,
+	}
+	recorded = {}
+
+	def fake_discover(session, actor, client, request, auto_publish=True):
+		assert auto_publish is True
+		return topic_results.pop(0)
+
+	monkeypatch.setattr("app.services.youtube_review_service.discover", fake_discover)
+	monkeypatch.setattr("app.services.youtube_review_service.discover_trusted", lambda *a, **k: trusted_result)
+	monkeypatch.setattr(
+		"app.services.youtube_review_service.auto_review",
+		lambda session, actor, client, limit=200: {"auto_approved": 11, "needs_manual_review": 4, "newly_quarantined": 2},
+	)
+	monkeypatch.setattr("app.services.admin_service.record_audit", lambda session, actor_id, action, entity, entity_id, details: recorded.update(details or {}))
+
+	assert cli._youtube_discover(factory, 25) == 0
+
+	output = capsys.readouterr().out
+	assert "created=8" in output  # 2 + 1 list items + 5 trusted
+	assert "skipped_existing=16" in output  # 3 + 5 + 8
+	assert "skipped_unplayable=1" in output
+	assert "automatically_published=7" in output  # 2 + 1 + 4
+	assert "quarantined=4" in output  # 1 + 0 + 1 + 2 newly_quarantined
+	assert "channels_checked=7" in output  # 4 topic + 3 trusted
+	assert "new_counter=9" in output  # 7 + 2
+	assert "pending_review=2" in output
+	assert "unavailable=6" in output
+	assert "channels_unavailable=1" in output
+	assert "pages_checked=9" in output
+	assert "channels_pending_initial_scan=2" in output
+	assert "channels_pending_upload_scan=1" in output
+	assert "auto_approved=11" in output
+	assert "needs_manual_review=4" in output
+	assert "next_page_token" not in output
+	assert recorded["channels_checked"] == 7
+	assert recorded["created"] == 8
+
+
+def test_youtube_discover_aggregates_trusted_discovery_without_preseeded_keys(feed_db, factory, monkeypatch, capsys):
+	from types import SimpleNamespace
+
+	from app.core.config import settings
+
+	monkeypatch.setattr(settings, "youtube_discovery_topics", ["stories"])
+	monkeypatch.setattr(settings, "youtube_discovery_actor_id", "actor-1")
+	monkeypatch.setattr(settings, "youtube_region_code", "IN")
+	monkeypatch.setattr(cli, "_youtube_discovery_actor", lambda session, actor_id: SimpleNamespace(id=actor_id))
+	monkeypatch.setattr("app.integrations.youtube.get_youtube_client", lambda: object())
+	monkeypatch.setattr(
+		"app.services.youtube_review_service.discover",
+		lambda session, actor, client, request, auto_publish=True: {
+			"created": [],
+			"skipped_existing": 0,
+			"skipped_unplayable": 0,
+			"automatically_published": 0,
+			"quarantined": 0,
+			"next_page_token": None,
+		},
+	)
+	monkeypatch.setattr(
+		"app.services.youtube_review_service.discover_trusted",
+		lambda *a, **k: {"channels_checked": 2, "created": 3, "skipped_existing": 1, "automatically_published": 1, "pending_review": 0, "quarantined": 0, "unavailable": 0, "channels_unavailable": 0, "pages_checked": 2, "channels_pending_initial_scan": 0, "channels_pending_upload_scan": 0},
+	)
+	monkeypatch.setattr(
+		"app.services.youtube_review_service.auto_review",
+		lambda session, actor, client, limit=200: {"auto_approved": 0, "needs_manual_review": 0, "newly_quarantined": 0},
+	)
+	monkeypatch.setattr("app.services.admin_service.record_audit", lambda *a, **k: None)
+
+	assert cli._youtube_discover(factory, 10) == 0
+	output = capsys.readouterr().out
+	assert "channels_checked=2" in output
+	assert "created=3" in output
+	assert "pages_checked=2" in output
+	assert "channels_pending_initial_scan=0" in output
+	assert "channels_pending_upload_scan=0" in output

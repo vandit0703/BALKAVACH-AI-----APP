@@ -320,6 +320,16 @@ def _youtube_discover(session_factory, max_results: int) -> int:
 				"automatically_published": 0,
 				"quarantined": 0,
 			}
+
+			def _merge_counts(result: dict) -> None:
+				for key, value in result.items():
+					if key == "created":
+						totals[key] = totals.get(key, 0) + (len(value) if isinstance(value, list) else int(value or 0))
+					elif isinstance(value, bool):
+						continue
+					elif isinstance(value, int):
+						totals[key] = totals.get(key, 0) + value
+
 			for topic in topics:
 				result = discover(
 					session,
@@ -332,18 +342,14 @@ def _youtube_discover(session_factory, max_results: int) -> int:
 					),
 					auto_publish=True,
 				)
-				for key in totals:
-					if key in result:
-						totals[key] += len(result["created"]) if key == "created" else result[key]
-			trusted_totals = discover_trusted(session, actor, client, max_results)
-			for key, value in trusted_totals.items():
-				totals[key] += value
+				_merge_counts(result)
+			_merge_counts(discover_trusted(session, actor, client, max_results))
 			from app.services.youtube_review_service import auto_review
 
 			reviewed = auto_review(session, actor, client, limit=200)
 			totals["auto_approved"] = reviewed["auto_approved"]
 			totals["needs_manual_review"] = reviewed["needs_manual_review"]
-			totals["quarantined"] += reviewed["newly_quarantined"]
+			totals["quarantined"] = totals.get("quarantined", 0) + reviewed["newly_quarantined"]
 			from app.services.admin_service import record_audit
 			record_audit(session, actor.id, "youtube.discovery.completed", "youtube_pipeline", None, totals)
 			session.commit()
