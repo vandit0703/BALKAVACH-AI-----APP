@@ -18,6 +18,12 @@ class DailyMissionContent {
     required this.xpReward,
     required this.isSurprise,
     required this.locale,
+    this.learningObjective,
+    this.steps = const [],
+    this.materials = const [],
+    this.observationGuidance,
+    this.submissionRequirements,
+    this.instructionStatus = 'incomplete',
   });
 
   factory DailyMissionContent.fromJson(Map<String, dynamic> json) =>
@@ -37,7 +43,48 @@ class DailyMissionContent {
         xpReward: json['xp_reward'] as int,
         isSurprise: json['is_surprise'] as bool? ?? false,
         locale: json['locale'] as String? ?? 'en',
+        learningObjective: _text(json['learning_objective']),
+        steps: _steps(json),
+        materials: json['materials'] is List
+            ? (json['materials'] as List<dynamic>)
+                  .map((item) => '$item'.trim())
+                  .where((item) => item.isNotEmpty)
+                  .toList()
+            : (json['required_materials'] as List<dynamic>? ?? [])
+                  .map((item) => '$item'.trim())
+                  .where((item) => item.isNotEmpty)
+                  .toList(),
+        observationGuidance: _text(json['observation_guidance']),
+        submissionRequirements: _text(json['submission_requirements']),
+        instructionStatus:
+            json['instruction_status'] as String? ??
+            (_steps(json).length >= 2 ? 'ready' : 'incomplete'),
       );
+
+  static String? _text(Object? value) {
+    final text = value is String ? value.trim() : '';
+    return text.isEmpty ? null : text;
+  }
+
+  static final _numbered = RegExp(r'^\s*\d{1,2}[.)]\s+(.+?)\s*$');
+
+  /// The server's `steps`; for an older server the numbered lines already in
+  /// `instructions` are extracted (nothing is invented, so placeholder text
+  /// yields no steps).
+  static List<String> _steps(Map<String, dynamic> json) {
+    final raw = json['steps'];
+    if (raw is List) {
+      return raw
+          .whereType<String>()
+          .map((step) => step.trim())
+          .where((step) => step.isNotEmpty)
+          .toList();
+    }
+    return [
+      for (final line in ((json['instructions'] as String?) ?? '').split('\n'))
+        if (_numbered.firstMatch(line) case final match?) match.group(1)!,
+    ];
+  }
 
   final String title;
 
@@ -55,6 +102,24 @@ class DailyMissionContent {
   final int xpReward;
   final bool isSurprise;
   final String locale;
+
+  /// "What you will learn": null when none was written (never filler text).
+  final String? learningObjective;
+
+  /// The numbered actions, in order. Empty when the mission has no real steps.
+  final List<String> steps;
+
+  /// What the child needs (may be the explicit "Nothing needed").
+  final List<String> materials;
+  final String? observationGuidance;
+  final String? submissionRequirements;
+
+  /// `ready` or `incomplete`; incomplete missions show an honest notice
+  /// instead of pretending to explain the activity.
+  final String instructionStatus;
+
+  bool get instructionsReady =>
+      instructionStatus == 'ready' && steps.isNotEmpty;
 }
 
 @immutable

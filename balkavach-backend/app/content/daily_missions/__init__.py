@@ -145,6 +145,13 @@ def variation_payload(mission: dict[str, Any], age_band: str, locale: str) -> di
 		"safety_instructions": text["safety"],
 		"completion_criteria": completion_text(locale, text),
 		"variation_key": CATALOGUE_VARIATION_KEY,
+		# Structured instructions (migration 0019). ``show`` is the catalogue's own statement of what the child
+		# produces, so it is the submission requirement. ``objective`` / ``observe`` are optional authored keys; where
+		# a mission has none they stay None and the audit reports it. Nothing is written on the authors' behalf.
+		"steps": list(text["steps"]),
+		"submission_requirements": text["show"],
+		"learning_objective": text.get("objective"),
+		"observation_guidance": text.get("observe"),
 	}
 
 

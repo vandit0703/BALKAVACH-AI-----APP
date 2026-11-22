@@ -617,6 +617,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get missionWhatToDo => 'What to do';
 
   @override
+  String get missionGuideLearn => 'What you will learn';
+
+  @override
+  String get missionGuideNeed => 'What you need';
+
+  @override
+  String get missionGuideTime => 'Time needed';
+
+  @override
+  String missionGuideTimeValue(int minutes) {
+    return 'About $minutes minutes';
+  }
+
+  @override
+  String get missionGuideSteps => 'Steps';
+
+  @override
+  String get missionGuideObserve => 'What to observe';
+
+  @override
+  String get missionGuideSubmit => 'What to submit';
+
+  @override
+  String get missionGuideSafety => 'Safety';
+
+  @override
+  String get missionGuideIncompleteTitle =>
+      'These instructions are not ready yet';
+
+  @override
+  String get missionGuideIncompleteBody =>
+      'Ask a trusted grown-up to look at this mission with you, or choose a different mission.';
+
+  @override
   String get missionNoDescription =>
       'Your parent didn\'t add extra steps. Do your best and tell them about it!';
 

@@ -1492,6 +1492,234 @@ abstract class AppLocalizations {
   /// **'Preview (what the child and the reviewing parent see)'**
   String get missionCatalogPreview;
 
+  /// No description provided for @missionEditEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit this version'**
+  String get missionEditEdit;
+
+  /// No description provided for @missionEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit mission version'**
+  String get missionEditTitle;
+
+  /// No description provided for @missionEditObjective.
+  ///
+  /// In en, this message translates to:
+  /// **'What the child will learn'**
+  String get missionEditObjective;
+
+  /// No description provided for @missionEditSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'Steps'**
+  String get missionEditSteps;
+
+  /// No description provided for @missionEditAddStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Add step'**
+  String get missionEditAddStep;
+
+  /// No description provided for @missionEditStepN.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {number}'**
+  String missionEditStepN(int number);
+
+  /// No description provided for @missionEditMoveUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get missionEditMoveUp;
+
+  /// No description provided for @missionEditMoveDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get missionEditMoveDown;
+
+  /// No description provided for @missionEditRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get missionEditRemove;
+
+  /// No description provided for @missionEditMaterials.
+  ///
+  /// In en, this message translates to:
+  /// **'Materials'**
+  String get missionEditMaterials;
+
+  /// No description provided for @missionEditAddMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Add material'**
+  String get missionEditAddMaterial;
+
+  /// No description provided for @missionEditNothingNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing needed'**
+  String get missionEditNothingNeeded;
+
+  /// No description provided for @missionEditMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Minutes'**
+  String get missionEditMinutes;
+
+  /// No description provided for @missionEditObserve.
+  ///
+  /// In en, this message translates to:
+  /// **'What to observe'**
+  String get missionEditObserve;
+
+  /// No description provided for @missionEditSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'What the child must submit'**
+  String get missionEditSubmit;
+
+  /// No description provided for @missionEditSafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety guidance'**
+  String get missionEditSafety;
+
+  /// No description provided for @missionEditCompletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Completion criteria (what the reviewer checks)'**
+  String get missionEditCompletion;
+
+  /// No description provided for @missionEditCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check and preview'**
+  String get missionEditCheck;
+
+  /// No description provided for @missionEditPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'What the child will see'**
+  String get missionEditPreview;
+
+  /// No description provided for @missionEditErrors.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix before publishing'**
+  String get missionEditErrors;
+
+  /// No description provided for @missionEditWarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Could be better'**
+  String get missionEditWarnings;
+
+  /// No description provided for @missionEditReady.
+  ///
+  /// In en, this message translates to:
+  /// **'This version can be published.'**
+  String get missionEditReady;
+
+  /// No description provided for @missionEditUnpublishNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving unpublishes this mission until you publish it again.'**
+  String get missionEditUnpublishNote;
+
+  /// No description provided for @missionEditSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get missionEditSave;
+
+  /// No description provided for @missionEditSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get missionEditSaved;
+
+  /// No description provided for @missionPublishBlockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Publishing blocked'**
+  String get missionPublishBlockedTitle;
+
+  /// No description provided for @errorTemplateInstructionsIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'This mission cannot be published yet: some versions have no real steps or no submission requirement. Open View versions to see what to fix.'**
+  String get errorTemplateInstructionsIncomplete;
+
+  /// No description provided for @missionIssueStepsMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'No numbered steps'**
+  String get missionIssueStepsMissing;
+
+  /// No description provided for @missionIssueStepsTooFew.
+  ///
+  /// In en, this message translates to:
+  /// **'At least two steps are needed'**
+  String get missionIssueStepsTooFew;
+
+  /// No description provided for @missionIssueStepsMalformed.
+  ///
+  /// In en, this message translates to:
+  /// **'A step is empty'**
+  String get missionIssueStepsMalformed;
+
+  /// No description provided for @missionIssuePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Generic placeholder text, not real instructions'**
+  String get missionIssuePlaceholder;
+
+  /// No description provided for @missionIssueMaterials.
+  ///
+  /// In en, this message translates to:
+  /// **'Materials not stated (write “Nothing needed” if none)'**
+  String get missionIssueMaterials;
+
+  /// No description provided for @missionIssueSubmission.
+  ///
+  /// In en, this message translates to:
+  /// **'What to submit is missing'**
+  String get missionIssueSubmission;
+
+  /// No description provided for @missionIssueSafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety guidance is missing'**
+  String get missionIssueSafety;
+
+  /// No description provided for @missionIssueCompletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Completion criteria are missing'**
+  String get missionIssueCompletion;
+
+  /// No description provided for @missionIssueBandsIdentical.
+  ///
+  /// In en, this message translates to:
+  /// **'Two age groups share the same steps'**
+  String get missionIssueBandsIdentical;
+
+  /// No description provided for @missionIssueObjective.
+  ///
+  /// In en, this message translates to:
+  /// **'No “what you will learn” sentence'**
+  String get missionIssueObjective;
+
+  /// No description provided for @missionIssueObservation.
+  ///
+  /// In en, this message translates to:
+  /// **'No “what to observe” guidance'**
+  String get missionIssueObservation;
+
   /// No description provided for @missionCatalogVersionMissing.
   ///
   /// In en, this message translates to:

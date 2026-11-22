@@ -1156,6 +1156,66 @@ abstract class AppLocalizations {
   /// **'What to do'**
   String get missionWhatToDo;
 
+  /// No description provided for @missionGuideLearn.
+  ///
+  /// In en, this message translates to:
+  /// **'What you will learn'**
+  String get missionGuideLearn;
+
+  /// No description provided for @missionGuideNeed.
+  ///
+  /// In en, this message translates to:
+  /// **'What you need'**
+  String get missionGuideNeed;
+
+  /// No description provided for @missionGuideTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time needed'**
+  String get missionGuideTime;
+
+  /// No description provided for @missionGuideTimeValue.
+  ///
+  /// In en, this message translates to:
+  /// **'About {minutes} minutes'**
+  String missionGuideTimeValue(int minutes);
+
+  /// No description provided for @missionGuideSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'Steps'**
+  String get missionGuideSteps;
+
+  /// No description provided for @missionGuideObserve.
+  ///
+  /// In en, this message translates to:
+  /// **'What to observe'**
+  String get missionGuideObserve;
+
+  /// No description provided for @missionGuideSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'What to submit'**
+  String get missionGuideSubmit;
+
+  /// No description provided for @missionGuideSafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety'**
+  String get missionGuideSafety;
+
+  /// No description provided for @missionGuideIncompleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'These instructions are not ready yet'**
+  String get missionGuideIncompleteTitle;
+
+  /// No description provided for @missionGuideIncompleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a trusted grown-up to look at this mission with you, or choose a different mission.'**
+  String get missionGuideIncompleteBody;
+
   /// No description provided for @missionNoDescription.
   ///
   /// In en, this message translates to:

@@ -47,6 +47,13 @@ def build() -> str:
 							"xp_reward": mission["xp_reward"],
 							"is_surprise": False,
 							"locale": locale,
+							# structured instructions, as the child API returns them (migration 0019 columns)
+							"learning_objective": payload["learning_objective"],
+							"steps": payload["steps"],
+							"materials": payload["required_materials"],
+							"observation_guidance": payload["observation_guidance"],
+							"submission_requirements": payload["submission_requirements"],
+							"instruction_status": "ready",
 						},
 					}
 				)

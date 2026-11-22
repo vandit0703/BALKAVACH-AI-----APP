@@ -195,6 +195,8 @@ String describeError(AppLocalizations l10n, Object error) {
     'invalid_setting' || 'unknown_setting' => l10n.errorInvalidSetting,
     'invalid_age_range' => l10n.errorInvalidAgeRange,
     'daily_template_incomplete' => l10n.errorTemplateIncomplete,
+    'daily_template_instructions_incomplete' =>
+      l10n.errorTemplateInstructionsIncomplete,
     _ => null,
   };
   if (byCode != null) return byCode;

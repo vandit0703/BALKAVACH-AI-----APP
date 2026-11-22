@@ -23,7 +23,7 @@ const _newTaskId = '55555555-5555-4555-8555-5555555555a2';
 const _saturday = 'Saturday Rhythm Rockstar 2 (4 to 6)';
 const _thursday = 'Thursday Paper Architect 3 (4 to 6)';
 
-Map<String, Object?> _content(String title) => {
+Map<String, Object?> _content(String title, {List<String>? steps}) => {
   'title': title,
   'description': 'Try the steps and tell a grown-up what you found.',
   'instructions': 'Do it with a trusted grown-up nearby.',
@@ -37,6 +37,11 @@ Map<String, Object?> _content(String title) => {
   'xp_reward': 10,
   'is_surprise': false,
   'locale': 'en',
+  if (steps != null) ...{
+    'steps': steps,
+    'submission_requirements': 'Tell us one thing you saw.',
+    'instruction_status': 'ready',
+  },
 };
 
 Map<String, Object?> _assignment({
@@ -46,6 +51,7 @@ Map<String, Object?> _assignment({
   String? taskId,
   String date = '2026-11-21',
   int slot = 1,
+  List<String>? steps,
 }) => {
   'id': id,
   'local_date': date,
@@ -53,7 +59,7 @@ Map<String, Object?> _assignment({
   'age_band': '4_6',
   'status': status,
   'task_id': taskId,
-  'content': _content(title),
+  'content': _content(title, steps: steps),
 };
 
 Map<String, Object?> _choices(List<Map<String, Object?>> choices) => {
@@ -135,9 +141,7 @@ void main() {
   testWidgets('Missions: no card shows an age range, the metadata is kept', (
     tester,
   ) async {
-    final h = await _child(
-      tasks: [Fx.task(title: 'Beat Builder (7 to 10)')],
-    );
+    final h = await _child(tasks: [Fx.task(title: 'Beat Builder (7 to 10)')]);
     await _pumpApp(tester, h);
     await _openMissions(tester);
 
@@ -149,9 +153,7 @@ void main() {
   });
 
   testWidgets('Mission detail: title has no age range', (tester) async {
-    final h = await _child(
-      tasks: [Fx.task(title: 'Beat Builder (7 to 10)')],
-    );
+    final h = await _child(tasks: [Fx.task(title: 'Beat Builder (7 to 10)')]);
     await _pumpApp(tester, h);
     await _openMissions(tester);
     await tester.tap(find.text('Beat Builder'));
@@ -189,7 +191,8 @@ void main() {
               Fx.task(
                 id: _newTaskId,
                 title: 'Saturday Rhythm Rockstar 2',
-                description: 'Try the steps and tell a grown-up what you found.',
+                description:
+                    'Try the steps and tell a grown-up what you found.',
               ),
           ]),
         );
@@ -255,13 +258,61 @@ void main() {
       expect(find.text('Thursday Paper Architect 3'), findsNWidgets(2));
     });
 
+    testWidgets(
+      'a mission with no real steps says so instead of showing generic text',
+      (tester) async {
+        final h = await _child(
+          choices: [_assignment(id: _assignmentToday, title: _saturday)],
+          unfinished: [
+            _assignment(
+              id: _assignmentOlder,
+              title: 'Moon Walk (4 to 6)',
+              status: 'rejected',
+              taskId: _olderTaskId,
+              date: '2026-11-19',
+            ),
+          ],
+          tasks: [
+            Fx.task(
+              id: _olderTaskId,
+              title: 'Moon Walk',
+              description: 'Do it with a trusted grown-up nearby.',
+            ),
+          ],
+          submissions: [
+            Fx.submission(
+              id: '77777777-7777-4777-8777-7777777777a1',
+              taskId: _olderTaskId,
+              status: 'rejected',
+            ),
+          ],
+        );
+        await _pumpApp(tester, h);
+        await _openMissions(tester);
+        await tester.tap(
+          find.byKey(const Key('missions.unfinished.open.$_assignmentOlder')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('mission.guide.incomplete')),
+          findsOneWidget,
+        );
+        expect(
+          find.text('These instructions are not ready yet'),
+          findsOneWidget,
+        );
+        expect(find.textContaining('trusted grown-up nearby'), findsNothing);
+        // The reward and progress UI stay.
+        expect(find.byKey(const Key('mission.progress')), findsOneWidget);
+      },
+    );
+
     testWidgets('it opens with its real content and keeps its progress', (
       tester,
     ) async {
       final h = await _child(
-        choices: [
-          _assignment(id: _assignmentToday, title: _saturday),
-        ],
+        choices: [_assignment(id: _assignmentToday, title: _saturday)],
         unfinished: [
           _assignment(
             id: _assignmentOlder,
@@ -269,6 +320,10 @@ void main() {
             status: 'rejected',
             taskId: _olderTaskId,
             date: '2026-11-19',
+            steps: [
+              'Walk like the moon.',
+              'Tell a grown-up one thing you saw.',
+            ],
           ),
         ],
         tasks: [

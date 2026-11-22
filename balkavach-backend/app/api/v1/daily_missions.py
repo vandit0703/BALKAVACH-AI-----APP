@@ -21,6 +21,16 @@ from app.schemas.daily_mission import (
 )
 from app.schemas.task import TaskSubmissionCreate
 from app.services.mission_catalogue_service import assignment_counts, catalogue_health, missing_combinations
+from app.services.mission_instructions import (
+    AGE_BANDS,
+    as_error_details,
+    parse_numbered_steps,
+    band_distinctness_errors,
+    instruction_status,
+    render_task_text,
+    structured_content,
+    validate_content,
+)
 from app.services.daily_mission_service import (
     public_assignment as _public,
     unfinished_assignments,
@@ -220,12 +230,65 @@ def get_daily_template(template_id: UUID, admin=Depends(require_admin_permission
                 "duration_minutes": v.duration_minutes,
                 "safety_instructions": v.safety_instructions,
                 "completion_criteria": v.completion_criteria,
+                "learning_objective": getattr(v, "learning_objective", None),
+                "steps": structured_content(v)["steps"],
+                "observation_guidance": getattr(v, "observation_guidance", None),
+                "submission_requirements": getattr(v, "submission_requirements", None),
+                "instruction_status": _issues(v)["instruction_status"],
+                "issues": {"errors": _issues(v)["errors"], "warnings": _issues(v)["warnings"]},
                 "preview": task_description(
                     {"description": v.description, "instructions": v.instructions, "completion_criteria": v.completion_criteria}
                 ),
             }
             for v in variations
         ],
+    }
+
+
+_STRUCTURED_FIELDS = ("learning_objective", "steps", "observation_guidance", "submission_requirements")
+_VARIATION_FIELDS = (
+    "age_band", "locale", "title", "description", "instructions", "required_materials", "duration_minutes",
+    "safety_instructions", "completion_criteria", "variation_key", *_STRUCTURED_FIELDS,
+)
+
+
+def _issues(v) -> dict:
+    content = structured_content(v)
+    issues = validate_content(content, age_band=v.age_band, description=v.description, instructions=v.instructions)
+    return {
+        "structured": content,
+        "instruction_status": instruction_status(content),
+        "errors": as_error_details(issues["errors"]),
+        "warnings": as_error_details(issues["warnings"]),
+    }
+
+
+def instruction_problems(variations) -> list[dict]:
+    """Everything that stops a template being published: per-variation errors and age bands that reuse each other's steps."""
+    problems: list[dict] = []
+    by_locale: dict[str, dict[str, dict]] = {}
+    for v in variations:
+        report = _issues(v)
+        for item in report["errors"]:
+            problems.append({"age_band": v.age_band, "locale": v.locale, "variation_id": str(v.id), **item})
+        by_locale.setdefault(v.locale, {})[v.age_band] = report["structured"]
+    for locale, bands in by_locale.items():
+        for code, message in band_distinctness_errors(bands):
+            problems.append({"age_band": None, "locale": locale, "variation_id": None, "code": code, "message": message})
+    return problems
+
+
+@admin_router.post("/variations/preview")
+def preview_variation(request: DailyMissionVariationCreate, admin=Depends(require_admin_permission("tasks:read"))):
+    """What a child will see for this variation, and what is still missing. Saves nothing."""
+    content = structured_content({**request.model_dump(), "required_materials": request.required_materials})
+    issues = validate_content(content, age_band=request.age_band, description=request.description, instructions=request.instructions)
+    return {
+        "content": {**content, "title": request.title, "description": request.description, "instruction_status": instruction_status(content)},
+        "task_text": render_task_text(content),
+        "errors": as_error_details(issues["errors"]),
+        "warnings": as_error_details(issues["warnings"]),
+        "publishable": not issues["errors"],
     }
 
 
@@ -245,7 +308,8 @@ def create_daily_variation(template_id: UUID, request: DailyMissionVariationCrea
     Variation = get_model("DailyMissionVariation")
     if session.query(Template.id).filter(Template.id == template_id).first() is None:
         raise APIError(404, "daily_template_not_found", "Daily mission template not found")
-    row = Variation(template_id=template_id, **request.model_dump())
+    values = {k: v for k, v in request.model_dump().items() if not (k in _STRUCTURED_FIELDS and v is None)}
+    row = Variation(template_id=template_id, **values)
     session.add(row)
     _commit(session)
     session.refresh(row)
@@ -271,9 +335,15 @@ def update_daily_variation(template_id: UUID, variation_id: UUID, request: Daily
     row = session.query(Variation).filter(Variation.id == variation_id, Variation.template_id == template_id).with_for_update().one_or_none()
     if row is None:
         raise APIError(404, "daily_variation_not_found", "Daily mission variation not found")
-    values = {**{field: getattr(row, field) for field in ("age_band", "locale", "title", "description", "instructions", "required_materials", "duration_minutes", "safety_instructions", "completion_criteria", "variation_key")}, **request.model_dump(exclude_unset=True)}
+    changes = request.model_dump(exclude_unset=True)
+    if "steps" in changes and changes["steps"] is not None and "instructions" not in changes:
+        # Keep the legacy ``instructions`` text in step with the steps (older clients and the Task text read it):
+        # numbered steps first, then any un-numbered line the old text carried (e.g. 'Another way: ...').
+        extras = [line for line in (row.instructions or "").splitlines() if line.strip() and not parse_numbered_steps(line)]
+        changes["instructions"] = "\n".join([f"{n}. {step}" for n, step in enumerate(changes["steps"], start=1)] + extras)
+    values = {**{field: getattr(row, field, None) for field in _VARIATION_FIELDS}, **changes}
     DailyMissionVariationCreate(**values)
-    for field, value in request.model_dump(exclude_unset=True).items():
+    for field, value in changes.items():
         setattr(row, field, value)
     Template = get_model("DailyMissionTemplate")
     session.query(Template).filter(Template.id == template_id).update({"is_published": False})
@@ -296,6 +366,14 @@ def publish_daily_template(template_id: UUID, publish: bool, admin=Depends(requi
                 "daily_template_incomplete",
                 "Publish requires English, Gujarati, and Hindi content for all age bands",
                 details={"missing": missing_combinations((a, loc) for a, loc in variations)},
+            )
+        problems = instruction_problems(session.query(Variation).filter(Variation.template_id == row.id).all())
+        if problems:
+            raise APIError(
+                422,
+                "daily_template_instructions_incomplete",
+                "Publish requires real, age-specific steps and a clear submission requirement in every version",
+                details={"problems": problems},
             )
     row.is_published = publish
     _commit(session)

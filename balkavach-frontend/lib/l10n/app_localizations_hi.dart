@@ -618,6 +618,40 @@ class AppLocalizationsHi extends AppLocalizations {
   String get missionWhatToDo => 'क्या करना है';
 
   @override
+  String get missionGuideLearn => 'आप क्या सीखेंगे';
+
+  @override
+  String get missionGuideNeed => 'आपको क्या चाहिए';
+
+  @override
+  String get missionGuideTime => 'कितना समय लगेगा';
+
+  @override
+  String missionGuideTimeValue(int minutes) {
+    return 'लगभग $minutes मिनट';
+  }
+
+  @override
+  String get missionGuideSteps => 'चरण';
+
+  @override
+  String get missionGuideObserve => 'क्या देखना है';
+
+  @override
+  String get missionGuideSubmit => 'क्या जमा करना है';
+
+  @override
+  String get missionGuideSafety => 'सुरक्षा';
+
+  @override
+  String get missionGuideIncompleteTitle =>
+      'इस मिशन के निर्देश अभी तैयार नहीं हैं';
+
+  @override
+  String get missionGuideIncompleteBody =>
+      'किसी भरोसेमंद बड़े से इसे साथ देखने को कहो, या कोई दूसरा मिशन चुनो।';
+
+  @override
   String get missionNoDescription =>
       'माता-पिता ने अतिरिक्त कदम नहीं जोड़े। अपना सबसे अच्छा करो और उन्हें बताओ!';
 

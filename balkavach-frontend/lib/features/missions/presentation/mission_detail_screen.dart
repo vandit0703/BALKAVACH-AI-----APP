@@ -24,6 +24,7 @@ import '../domain/daily_mission_models.dart';
 import '../domain/mission_models.dart';
 import '../domain/mission_status.dart';
 import 'mission_providers.dart';
+import 'widgets/mission_guide.dart';
 import 'widgets/mission_motion.dart';
 import 'widgets/mission_steps.dart';
 import 'widgets/mission_tracker.dart';
@@ -222,7 +223,11 @@ class _BodyState extends ConsumerState<_Body> {
                   style: context.text.headlineSmall,
                 ),
               ),
-              if (description == null || description.isEmpty)
+              // A daily mission shows its own structured guide; other
+              // missions (e.g. a parent's custom task) keep their text.
+              if (assignment != null)
+                MissionGuide(content: assignment.content)
+              else if (description == null || description.isEmpty)
                 Text(l10n.missionNoDescription, style: context.text.bodyLarge)
               else
                 InstructionsView(text: description),

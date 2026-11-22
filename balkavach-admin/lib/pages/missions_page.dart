@@ -5,6 +5,7 @@ import '../core/api.dart';
 import '../core/session.dart';
 import '../l10n/app_localizations.dart';
 import '../ui/widgets.dart';
+import 'mission_variation_editor.dart';
 
 class MissionsPage extends ConsumerStatefulWidget {
   const MissionsPage({super.key});
@@ -415,8 +416,10 @@ class _TemplateTile extends ConsumerWidget {
             icon: const Icon(Icons.visibility_outlined),
             onPressed: () => showDialog<void>(
               context: context,
-              builder: (_) =>
-                  _TemplateDetailDialog(templateId: '${template['id']}'),
+              builder: (_) => _TemplateDetailDialog(
+                templateId: '${template['id']}',
+                canWrite: canWrite,
+              ),
             ),
           ),
           if (canWrite)
@@ -431,17 +434,30 @@ class _TemplateTile extends ConsumerWidget {
                   );
                   return;
                 }
-                final done = await runAction(
-                  context,
-                  () => ref
+                var done = false;
+                try {
+                  await ref
                       .read(adminApiProvider)
                       .patch(
                         '/api/v1/admin/daily-missions/templates/${template['id']}/publish',
                         {},
                         query: {'publish': publish},
-                      ),
-                  success: publish ? l10n.statusActive : l10n.statusDeactivated,
-                );
+                      );
+                  done = true;
+                  if (context.mounted) {
+                    showMessage(
+                      context,
+                      publish ? l10n.statusActive : l10n.statusDeactivated,
+                    );
+                  }
+                } on ApiError catch (error) {
+                  if (!context.mounted) return;
+                  if (error.code == 'daily_template_instructions_incomplete') {
+                    await showPublishProblems(context, error.details);
+                  } else {
+                    showError(context, error);
+                  }
+                }
                 if (done) onChanged();
               },
             ),
@@ -453,9 +469,13 @@ class _TemplateTile extends ConsumerWidget {
 
 /// Every age band x language of one template, with the text a child (and the reviewing parent) will see.
 class _TemplateDetailDialog extends ConsumerStatefulWidget {
-  const _TemplateDetailDialog({required this.templateId});
+  const _TemplateDetailDialog({
+    required this.templateId,
+    this.canWrite = false,
+  });
 
   final String templateId;
+  final bool canWrite;
 
   @override
   ConsumerState<_TemplateDetailDialog> createState() =>
@@ -463,7 +483,9 @@ class _TemplateDetailDialog extends ConsumerStatefulWidget {
 }
 
 class _TemplateDetailDialogState extends ConsumerState<_TemplateDetailDialog> {
-  late final Future<Map<String, dynamic>> _detail = ref
+  late Future<Map<String, dynamic>> _detail = _load();
+
+  Future<Map<String, dynamic>> _load() => ref
       .read(adminApiProvider)
       .getMap('/api/v1/admin/daily-missions/templates/${widget.templateId}');
   String _band = _bands.first;
@@ -568,6 +590,53 @@ class _TemplateDetailDialogState extends ConsumerState<_TemplateDetailDialog> {
                         '${chosen['safety_instructions']}',
                       ),
                     ),
+                    if (chosen['issues'] is Map<String, dynamic>) ...[
+                      const SizedBox(height: 8),
+                      MissionIssueList(
+                        key: const Key('catalog.issues.errors'),
+                        title: l10n.missionEditErrors,
+                        issues:
+                            ((chosen['issues']
+                                            as Map<String, dynamic>)['errors']
+                                        as List<dynamic>? ??
+                                    const [])
+                                .cast<Map<String, dynamic>>(),
+                      ),
+                      MissionIssueList(
+                        key: const Key('catalog.issues.warnings'),
+                        title: l10n.missionEditWarnings,
+                        isError: false,
+                        issues:
+                            ((chosen['issues']
+                                            as Map<String, dynamic>)['warnings']
+                                        as List<dynamic>? ??
+                                    const [])
+                                .cast<Map<String, dynamic>>(),
+                      ),
+                    ],
+                    if (widget.canWrite)
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: TextButton.icon(
+                          key: const Key('catalog.edit'),
+                          icon: const Icon(Icons.edit_outlined),
+                          label: Text(l10n.missionEditEdit),
+                          onPressed: () async {
+                            final saved = await showDialog<bool>(
+                              context: context,
+                              builder: (_) => VariationEditorDialog(
+                                templateId: widget.templateId,
+                                variation: chosen,
+                              ),
+                            );
+                            if (saved == true && mounted) {
+                              setState(() {
+                                _detail = _load();
+                              });
+                            }
+                          },
+                        ),
+                      ),
                   ],
                 ],
               ),

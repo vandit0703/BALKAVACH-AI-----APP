@@ -615,6 +615,39 @@ class AppLocalizationsGu extends AppLocalizations {
   String get missionWhatToDo => 'શું કરવાનું છે';
 
   @override
+  String get missionGuideLearn => 'તમે શું શીખશો';
+
+  @override
+  String get missionGuideNeed => 'તમને શું જોઈશે';
+
+  @override
+  String get missionGuideTime => 'કેટલો સમય લાગશે';
+
+  @override
+  String missionGuideTimeValue(int minutes) {
+    return 'લગભગ $minutes મિનિટ';
+  }
+
+  @override
+  String get missionGuideSteps => 'પગલાં';
+
+  @override
+  String get missionGuideObserve => 'શું જોવાનું છે';
+
+  @override
+  String get missionGuideSubmit => 'શું જમા કરવાનું છે';
+
+  @override
+  String get missionGuideSafety => 'સલામતી';
+
+  @override
+  String get missionGuideIncompleteTitle => 'આ મિશનની સૂચનાઓ હજી તૈયાર નથી';
+
+  @override
+  String get missionGuideIncompleteBody =>
+      'કોઈ ભરોસાપાત્ર મોટા સાથે મળીને જુઓ, અથવા બીજું મિશન પસંદ કરો.';
+
+  @override
   String get missionNoDescription =>
       'માતા-પિતાએ વધારાનાં પગલાં ઉમેર્યાં નથી. તમારું શ્રેષ્ઠ કરો અને તેમને જણાવો!';
 

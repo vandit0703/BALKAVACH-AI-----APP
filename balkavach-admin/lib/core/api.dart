@@ -11,12 +11,15 @@ const kApiBaseUrl = String.fromEnvironment(
 
 /// A failed API call, reduced to what the panel shows.
 class ApiError implements Exception {
-  const ApiError(this.status, this.code, this.message);
+  const ApiError(this.status, this.code, this.message, {this.details});
 
   /// HTTP status, or 0 when the server could not be reached.
   final int status;
   final String? code;
   final String message;
+
+  /// The server's structured `details` (e.g. the list of publish problems), if any.
+  final Object? details;
 
   bool get isForbidden => status == 403;
   bool get isUnauthorized => status == 401;
@@ -39,12 +42,14 @@ ApiError mapError(DioException error) {
   final data = response.data;
   String? code;
   String? message;
+  Object? rawDetails;
   if (data is Map<String, dynamic>) {
     final envelope = data['error'];
     if (envelope is Map<String, dynamic>) {
       code = envelope['code'] as String?;
       message = envelope['message'] as String?;
       final details = envelope['details'];
+      rawDetails = details;
       if (details is List && details.isNotEmpty) {
         final first = details.first;
         if (first is Map<String, dynamic> && first['message'] is String) {
@@ -53,7 +58,12 @@ ApiError mapError(DioException error) {
       }
     }
   }
-  return ApiError(response.statusCode ?? 0, code, message ?? 'Request failed');
+  return ApiError(
+    response.statusCode ?? 0,
+    code,
+    message ?? 'Request failed',
+    details: rawDetails,
+  );
 }
 
 /// Access/refresh tokens, held in memory only: reloading the page signs the

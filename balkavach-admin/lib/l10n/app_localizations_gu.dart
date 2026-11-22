@@ -765,6 +765,126 @@ class AppLocalizationsGu extends AppLocalizations {
       'પૂર્વદર્શન (બાળક અને સમીક્ષા કરતા વાલી શું જુએ છે)';
 
   @override
+  String get missionEditEdit => 'આ સંસ્કરણ સંપાદિત કરો';
+
+  @override
+  String get missionEditTitle => 'મિશન સંસ્કરણ સંપાદિત કરો';
+
+  @override
+  String get missionEditObjective => 'બાળક શું શીખશે';
+
+  @override
+  String get missionEditSteps => 'પગલાં';
+
+  @override
+  String get missionEditAddStep => 'પગલું ઉમેરો';
+
+  @override
+  String missionEditStepN(int number) {
+    return 'પગલું $number';
+  }
+
+  @override
+  String get missionEditMoveUp => 'ઉપર લઈ જાઓ';
+
+  @override
+  String get missionEditMoveDown => 'નીચે લઈ જાઓ';
+
+  @override
+  String get missionEditRemove => 'દૂર કરો';
+
+  @override
+  String get missionEditMaterials => 'સામગ્રી';
+
+  @override
+  String get missionEditAddMaterial => 'સામગ્રી ઉમેરો';
+
+  @override
+  String get missionEditNothingNeeded => 'કંઈ જરૂરી નથી';
+
+  @override
+  String get missionEditMinutes => 'મિનિટ';
+
+  @override
+  String get missionEditObserve => 'શું જોવાનું છે';
+
+  @override
+  String get missionEditSubmit => 'બાળકે શું જમા કરવાનું છે';
+
+  @override
+  String get missionEditSafety => 'સલામતી માર્ગદર્શન';
+
+  @override
+  String get missionEditCompletion => 'પૂર્ણતાના માપદંડ (સમીક્ષક શું તપાસે છે)';
+
+  @override
+  String get missionEditCheck => 'તપાસો અને પૂર્વદર્શન જુઓ';
+
+  @override
+  String get missionEditPreview => 'બાળક શું જોશે';
+
+  @override
+  String get missionEditErrors => 'પ્રકાશિત કરતા પહેલાં સુધારો';
+
+  @override
+  String get missionEditWarnings => 'વધુ સારું થઈ શકે';
+
+  @override
+  String get missionEditReady => 'આ સંસ્કરણ પ્રકાશિત કરી શકાય છે.';
+
+  @override
+  String get missionEditUnpublishNote =>
+      'સાચવવાથી તમે ફરી પ્રકાશિત ન કરો ત્યાં સુધી આ મિશન અપ્રકાશિત રહેશે.';
+
+  @override
+  String get missionEditSave => 'સાચવો';
+
+  @override
+  String get missionEditSaved => 'સાચવ્યું';
+
+  @override
+  String get missionPublishBlockedTitle => 'પ્રકાશન અટક્યું છે';
+
+  @override
+  String get errorTemplateInstructionsIncomplete =>
+      'આ મિશન હજી પ્રકાશિત થઈ શકતું નથી: કેટલાક સંસ્કરણોમાં સાચાં પગલાં અથવા જમા કરવાની જરૂરિયાત નથી. શું સુધારવું તે જોવા સંસ્કરણો જુઓ ખોલો.';
+
+  @override
+  String get missionIssueStepsMissing => 'કોઈ ક્રમાંકિત પગલાં નથી';
+
+  @override
+  String get missionIssueStepsTooFew => 'ઓછામાં ઓછાં બે પગલાં જોઈએ';
+
+  @override
+  String get missionIssueStepsMalformed => 'એક પગલું ખાલી છે';
+
+  @override
+  String get missionIssuePlaceholder =>
+      'સામાન્ય પ્લેસહોલ્ડર લખાણ, સાચી સૂચનાઓ નથી';
+
+  @override
+  String get missionIssueMaterials =>
+      'સામગ્રી જણાવી નથી (ન હોય તો “કંઈ જરૂરી નથી” લખો)';
+
+  @override
+  String get missionIssueSubmission => 'શું જમા કરવાનું છે તે લખ્યું નથી';
+
+  @override
+  String get missionIssueSafety => 'સલામતી માર્ગદર્શન નથી';
+
+  @override
+  String get missionIssueCompletion => 'પૂર્ણતાના માપદંડ નથી';
+
+  @override
+  String get missionIssueBandsIdentical => 'બે વય જૂથનાં પગલાં સરખાં છે';
+
+  @override
+  String get missionIssueObjective => '“તમે શું શીખશો” વાક્ય નથી';
+
+  @override
+  String get missionIssueObservation => '“શું જોવાનું છે” માર્ગદર્શન નથી';
+
+  @override
   String get missionCatalogVersionMissing => 'ખૂટે છે';
 
   @override

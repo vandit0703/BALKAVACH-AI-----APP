@@ -767,6 +767,127 @@ class AppLocalizationsHi extends AppLocalizations {
       'पूर्वावलोकन (बच्चा और समीक्षा करने वाले अभिभावक क्या देखते हैं)';
 
   @override
+  String get missionEditEdit => 'यह संस्करण संपादित करें';
+
+  @override
+  String get missionEditTitle => 'मिशन संस्करण संपादित करें';
+
+  @override
+  String get missionEditObjective => 'बच्चा क्या सीखेगा';
+
+  @override
+  String get missionEditSteps => 'चरण';
+
+  @override
+  String get missionEditAddStep => 'चरण जोड़ें';
+
+  @override
+  String missionEditStepN(int number) {
+    return 'चरण $number';
+  }
+
+  @override
+  String get missionEditMoveUp => 'ऊपर ले जाएँ';
+
+  @override
+  String get missionEditMoveDown => 'नीचे ले जाएँ';
+
+  @override
+  String get missionEditRemove => 'हटाएँ';
+
+  @override
+  String get missionEditMaterials => 'सामग्री';
+
+  @override
+  String get missionEditAddMaterial => 'सामग्री जोड़ें';
+
+  @override
+  String get missionEditNothingNeeded => 'कुछ भी ज़रूरी नहीं';
+
+  @override
+  String get missionEditMinutes => 'मिनट';
+
+  @override
+  String get missionEditObserve => 'क्या देखना है';
+
+  @override
+  String get missionEditSubmit => 'बच्चे को क्या जमा करना है';
+
+  @override
+  String get missionEditSafety => 'सुरक्षा निर्देश';
+
+  @override
+  String get missionEditCompletion =>
+      'पूर्णता की शर्तें (समीक्षक क्या जाँचता है)';
+
+  @override
+  String get missionEditCheck => 'जाँचें और पूर्वावलोकन देखें';
+
+  @override
+  String get missionEditPreview => 'बच्चा क्या देखेगा';
+
+  @override
+  String get missionEditErrors => 'प्रकाशित करने से पहले सुधारें';
+
+  @override
+  String get missionEditWarnings => 'बेहतर हो सकता है';
+
+  @override
+  String get missionEditReady => 'यह संस्करण प्रकाशित किया जा सकता है।';
+
+  @override
+  String get missionEditUnpublishNote =>
+      'सहेजने पर यह मिशन तब तक अप्रकाशित रहेगा जब तक आप इसे फिर प्रकाशित न करें।';
+
+  @override
+  String get missionEditSave => 'सहेजें';
+
+  @override
+  String get missionEditSaved => 'सहेजा गया';
+
+  @override
+  String get missionPublishBlockedTitle => 'प्रकाशन रुका हुआ है';
+
+  @override
+  String get errorTemplateInstructionsIncomplete =>
+      'यह मिशन अभी प्रकाशित नहीं हो सकता: कुछ संस्करणों में असली चरण या जमा करने की आवश्यकता नहीं है। क्या ठीक करना है, यह देखने के लिए संस्करण देखें खोलें।';
+
+  @override
+  String get missionIssueStepsMissing => 'कोई क्रमांकित चरण नहीं';
+
+  @override
+  String get missionIssueStepsTooFew => 'कम से कम दो चरण चाहिए';
+
+  @override
+  String get missionIssueStepsMalformed => 'एक चरण खाली है';
+
+  @override
+  String get missionIssuePlaceholder =>
+      'सामान्य प्लेसहोल्डर पाठ, असली निर्देश नहीं';
+
+  @override
+  String get missionIssueMaterials =>
+      'सामग्री नहीं बताई (न हो तो “कुछ भी ज़रूरी नहीं” लिखें)';
+
+  @override
+  String get missionIssueSubmission => 'क्या जमा करना है, यह नहीं लिखा';
+
+  @override
+  String get missionIssueSafety => 'सुरक्षा निर्देश नहीं हैं';
+
+  @override
+  String get missionIssueCompletion => 'पूर्णता की शर्तें नहीं हैं';
+
+  @override
+  String get missionIssueBandsIdentical => 'दो आयु वर्गों के चरण एक जैसे हैं';
+
+  @override
+  String get missionIssueObjective => '“आप क्या सीखेंगे” वाक्य नहीं है';
+
+  @override
+  String get missionIssueObservation => '“क्या देखना है” मार्गदर्शन नहीं है';
+
+  @override
   String get missionCatalogVersionMissing => 'अनुपलब्ध';
 
   @override
