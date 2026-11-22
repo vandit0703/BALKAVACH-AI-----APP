@@ -855,3 +855,81 @@ def test_old_verification_does_not_hide_the_video(api, youtube):
 	assert recheck.json()["verified"] == 1 and recheck.json()["quarantined"] == 0
 	restored = api.client.get("/api/v1/videos", headers=api.auth(child))
 	assert {item["id"] for item in restored.json()} == {str(video.id)}
+
+
+def test_channel_discover_more_is_restricted_to_selected_channel_and_not_global(api, youtube):
+	if not has_model("YouTubeTrustedChannel"):
+		pytest.skip("Migration 0010 is not applied to the test database")
+	if not has_model("YouTubeChannelDiscoveryRun"):
+		pytest.skip("Migration 0016 is not applied to the test database")
+	admin = api.make_admin()
+	other_channel_id = "UC2222222222222222222222"
+	# Avoid initial trust-time discovery side effects so this test targets the Discover More action.
+	youtube.upload_ids = []
+	for channel_id, title in (
+		(TRUSTED_CHANNEL_ID, "Kids Science"),
+		(other_channel_id, "Other Channel"),
+	):
+		response = api.post(
+			"/admin/videos/youtube/channels/trust",
+			admin["token"],
+			{"channel_id": channel_id, "channel_title": title, "rights_status": "cleared"},
+		)
+		assert response.status_code == 200, response.text
+
+	def uploads_playlist(channel_id):
+		youtube.upload_calls.append(channel_id)
+		return f"UU{channel_id[2:]}"
+
+	def playlist_items(playlist_id, *, page_token=None, max_results=50):
+		if playlist_id.endswith(TRUSTED_CHANNEL_ID[2:]):
+			return {"video_ids": [VIDEO_ID, OTHER_ID, REGULAR_ID], "next_page_token": None}
+		if playlist_id.endswith(other_channel_id[2:]):
+			return {"video_ids": ["zyxwvutsrqp"], "next_page_token": None}
+		return {"video_ids": [], "next_page_token": None}
+
+	youtube.uploads_playlist = uploads_playlist
+	youtube.playlist_items = playlist_items
+	youtube.search_calls.clear()
+	youtube.upload_calls.clear()
+
+	response = api.post(
+		f"/admin/videos/youtube/channels/{TRUSTED_CHANNEL_ID}/discover",
+		admin["token"],
+		{},
+	)
+	assert response.status_code == 200, response.text
+	data = response.json()
+	assert data["channel_id"] == TRUSTED_CHANNEL_ID
+	assert data["status"] == "completed"
+	assert data["scanned_videos"] == 3
+	assert data["new_videos"] == 3
+	assert data["duplicate_videos"] == 0
+	assert data["shorts_count"] + data["long_videos_count"] == 3
+	assert data["error_count"] == 0
+	# Channel-specific Discover More must not run topic/global discovery or scan other trusted channels.
+	assert youtube.search_calls == []
+	assert youtube.upload_calls == [TRUSTED_CHANNEL_ID]
+
+	# Re-running should scan the channel again but only process genuinely new candidates (duplicates skipped).
+	youtube.search_calls.clear()
+	youtube.upload_calls.clear()
+	response = api.post(
+		f"/admin/videos/youtube/channels/{TRUSTED_CHANNEL_ID}/discover",
+		admin["token"],
+		{},
+	)
+	assert response.status_code == 200, response.text
+	data = response.json()
+	assert data["channel_id"] == TRUSTED_CHANNEL_ID
+	assert data["scanned_videos"] == 3
+	assert data["new_videos"] == 0
+	assert data["duplicate_videos"] == 3
+	assert youtube.search_calls == []
+	assert youtube.upload_calls == [TRUSTED_CHANNEL_ID]
+
+	# The other trusted channel must remain untouched by this selected-channel action.
+	Review = get_model("YouTubeContentReview")
+	assert api.session.query(Review).filter(Review.youtube_video_id == "zyxwvutsrqp").count() == 0
+	assert api.session.query(Review).filter(Review.channel_id == TRUSTED_CHANNEL_ID).count() == 3
+	assert api.session.query(Review).filter(Review.channel_id == other_channel_id).count() == 0

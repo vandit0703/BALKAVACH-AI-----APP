@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -23,11 +24,14 @@ class Reply {
 
 /// In-memory server for Dio, keyed by `METHOD /path`.
 class FakeServer implements HttpClientAdapter {
-  final _routes = <String, Reply Function(RequestOptions)>{};
+  final _routes = <String, FutureOr<Reply> Function(RequestOptions)>{};
   final requests = <RequestOptions>[];
 
-  void on(String method, String path, Reply Function(RequestOptions) reply) =>
-      _routes['$method $path'] = reply;
+  void on(
+    String method,
+    String path,
+    FutureOr<Reply> Function(RequestOptions) reply,
+  ) => _routes['$method $path'] = reply;
 
   void reply(String method, String path, Object? body, {int status = 200}) =>
       on(method, path, (_) => Reply(status, body));
@@ -45,7 +49,7 @@ class FakeServer implements HttpClientAdapter {
     final handler = _routes['${options.method} ${options.uri.path}'];
     final reply = handler == null
         ? Reply.error(404, 'http_error', 'Not Found')
-        : handler(options);
+        : await Future<Reply>.value(handler(options));
     return ResponseBody.fromString(
       reply.body == null ? '' : jsonEncode(reply.body),
       reply.status,

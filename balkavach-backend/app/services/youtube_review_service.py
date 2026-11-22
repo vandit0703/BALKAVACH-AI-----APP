@@ -449,16 +449,113 @@ def _auto_publish(session: Session, actor, review, video, trusted_channel=None) 
 	return True
 
 
-def list_trusted_channels(session: Session, limit: int, offset: int) -> list[Any]:
+def _trusted_channel_or_404(session: Session, channel_id: str):
 	_require_tables("YouTubeTrustedChannel")
 	Trusted = get_model("YouTubeTrustedChannel")
-	return (
+	channel = session.query(Trusted).filter(Trusted.channel_id == channel_id).one_or_none()
+	if channel is None:
+		raise APIError(404, "trusted_channel_not_found", "Trusted channel not found")
+	return channel
+
+
+def _channel_last_discovered(session: Session, channel_id: str):
+	if not has_model("YouTubeContentReview"):
+		return None
+	Review = get_model("YouTubeContentReview")
+	return session.query(func.max(Review.discovered_at)).filter(Review.channel_id == channel_id).scalar()
+
+
+def _channel_video_counts(session: Session, channel_id: str) -> dict[str, int]:
+	Review = get_model("YouTubeContentReview")
+	Video = get_model("Video")
+	by_status = dict(
+		session.query(Review.status, func.count(Review.id))
+		.filter(Review.channel_id == channel_id)
+		.group_by(Review.status)
+		.all()
+	)
+	discovered = sum(int(v) for v in by_status.values())
+	shorts = session.query(Review.id).join(Video, Video.id == Review.video_id).filter(
+		Review.channel_id == channel_id, short_clause(Video)
+	).count()
+	regular = session.query(Review.id).join(Video, Video.id == Review.video_id).filter(
+		Review.channel_id == channel_id, regular_clause(Video)
+	).count()
+	published_short_count = session.query(Review.id).join(Video, Video.id == Review.video_id).filter(
+		Review.channel_id == channel_id, Video.is_published.is_(True), short_clause(Video)
+	).count()
+	published_regular_count = session.query(Review.id).join(Video, Video.id == Review.video_id).filter(
+		Review.channel_id == channel_id, Video.is_published.is_(True), regular_clause(Video)
+	).count()
+	published = session.query(Review.id).join(Video, Video.id == Review.video_id).filter(
+		Review.channel_id == channel_id, Video.is_published.is_(True)
+	).count()
+	return {
+		"discovered": discovered,
+		"approved": int(by_status.get("approved", 0)),
+		"pending_review": int(by_status.get("pending_review", 0)),
+		"quarantined": int(by_status.get("quarantined", 0)),
+		"rejected": int(by_status.get("rejected", 0)),
+		"unavailable": int(by_status.get("unavailable", 0)),
+		"revoked": int(by_status.get("revoked", 0)),
+		"published": int(published),
+		"published_shorts": int(published_short_count),
+		"published_regular": int(published_regular_count),
+		"total_videos": discovered,
+		"shorts_count": int(shorts),
+		"long_videos_count": int(regular),
+	}
+
+
+def _channel_to_public_dict(channel, *, status: str | None = None, counts: dict[str, int] | None = None, last_discovery_at=None) -> dict[str, Any]:
+	counts = counts or {}
+	return {
+		"id": channel.id,
+		"channel_id": channel.channel_id,
+		"channel_title": channel.channel_title,
+		"thumbnail_url": channel.thumbnail_url,
+		"age_min": channel.age_min,
+		"age_max": channel.age_max,
+		"language_code": channel.language_code,
+		"category_id": channel.category_id,
+		"rights_status": channel.rights_status,
+		"is_active": channel.is_active,
+		"created_by": channel.created_by,
+		"notes": channel.notes,
+		"created_at": utc_aware(channel.created_at) if channel.created_at else None,
+		"updated_at": utc_aware(channel.updated_at) if channel.updated_at else None,
+		"status": status or channel_status(channel),
+		"total_videos": counts.get("total_videos", counts.get("discovered")),
+		"shorts_count": counts.get("shorts_count"),
+		"long_videos_count": counts.get("long_videos_count"),
+		"last_discovery_at": last_discovery_at,
+	}
+
+
+def _enrich_trusted_channel(session: Session, channel) -> dict[str, Any]:
+	counts = _channel_video_counts(session, channel.channel_id)
+	last_discovery_at = _channel_last_discovered(session, channel.channel_id)
+	return _channel_to_public_dict(
+		channel,
+		status=channel_status(channel),
+		counts=counts,
+		last_discovery_at=utc_aware(last_discovery_at) if last_discovery_at else None,
+	)
+
+
+def list_trusted_channels(session: Session, limit: int, offset: int, *, include_stats: bool = False) -> list[Any]:
+	_require_tables("YouTubeTrustedChannel")
+	Trusted = get_model("YouTubeTrustedChannel")
+	rows = (
 		session.query(Trusted)
 		.order_by(Trusted.is_active.desc(), Trusted.channel_title, Trusted.channel_id)
 		.offset(offset)
 		.limit(limit)
 		.all()
 	)
+	if not include_stats:
+		return rows
+	return [_enrich_trusted_channel(session, row) for row in rows]
 
 
 def trust_channel(session: Session, actor, request) -> Any:
@@ -515,6 +612,50 @@ def untrust_channel(session: Session, actor, channel_id: str) -> Any:
 	):
 		_move(session, actor.id, review, video, "quarantined", {"reason": "trusted channel disabled"})
 	record_audit(session, actor.id, "youtube.channel_untrusted", "youtube_trusted_channel", channel.id, {"channel_id": channel_id})
+	session.commit()
+	session.refresh(channel)
+	return channel
+
+
+def update_trusted_channel(session: Session, actor, channel_id: str, request) -> Any:
+	Trusted = get_model("YouTubeTrustedChannel")
+	channel = session.query(Trusted).filter(Trusted.channel_id == channel_id).with_for_update().one_or_none()
+	if channel is None:
+		raise APIError(404, "trusted_channel_not_found", "Trusted channel not found")
+	changes = request.model_dump(exclude_unset=True)
+	if "category_id" in changes and changes["category_id"] is not None:
+		VideoCategory = get_model("VideoCategory")
+		if not session.query(VideoCategory.id).filter(
+			VideoCategory.id == changes["category_id"], VideoCategory.is_active.is_(True)
+		).first():
+			raise APIError(404, "video_category_not_found", "Video category not found")
+	if "channel_title" in changes and changes["channel_title"] is not None:
+		channel.channel_title = changes["channel_title"].strip()
+	if "thumbnail_url" in changes:
+		channel.thumbnail_url = safe_channel_thumbnail_url(changes["thumbnail_url"])
+	if "age_min" in changes and "age_max" in changes:
+		channel.age_min = changes["age_min"]
+		channel.age_max = changes["age_max"]
+	if "language_code" in changes:
+		channel.language_code = changes["language_code"].lower() if changes["language_code"] else None
+	if "category_id" in changes:
+		channel.category_id = changes["category_id"]
+	if "rights_status" in changes and changes["rights_status"] is not None:
+		rights = changes["rights_status"]
+		if rights == "unknown":
+			rights = "unreviewed"
+		elif rights == "restricted":
+			rights = "not_cleared"
+		channel.rights_status = rights
+	if "is_active" in changes and changes["is_active"] is not None:
+		channel.is_active = changes["is_active"]
+	if "notes" in changes:
+		channel.notes = changes["notes"]
+	channel.updated_at = _now()
+	session.flush()
+	record_audit(session, actor.id, "youtube.channel_updated", "youtube_trusted_channel", channel.id, {
+		"channel_id": channel.channel_id, "fields": sorted(changes.keys()),
+	})
 	session.commit()
 	session.refresh(channel)
 	return channel
@@ -603,6 +744,9 @@ def discover_trusted(
 	client: YouTubeClient,
 	max_results: int,
 	channel_id: str | None = None,
+	*,
+	max_pages: int = TRUSTED_DISCOVERY_MAX_PAGES,
+	process_new_only: bool = False,
 ) -> dict[str, int]:
 	"""Discover all uploads from active trusted channels, deduplicating each run."""
 	_require_tables("YouTubeContentReview", "YouTubeTrustedChannel")
@@ -627,12 +771,17 @@ def discover_trusted(
 		"pages_checked": 0,
 		"channels_pending_initial_scan": 0,
 		"channels_pending_upload_scan": 0,
+		"scanned_videos": 0,
+		"shorts_count": 0,
+		"long_videos_count": 0,
+		"error_count": 0,
 	}
 	try:
 		for channel in channels:
 			playlist_id = client.uploads_playlist(channel.channel_id)
 			if playlist_id is None:
 				counts["channels_unavailable"] += 1
+				counts["error_count"] += 1
 				continue
 			initial_scan = not channel.uploads_scan_complete
 			page_token = channel.uploads_page_token
@@ -640,7 +789,7 @@ def discover_trusted(
 			seen_tokens = {page_token} if page_token else set()
 			seen_video_ids: set[str] = set()
 			pages_this_run = 0
-			while pages_this_run < TRUSTED_DISCOVERY_MAX_PAGES:
+			while pages_this_run < max_pages:
 				page = client.playlist_items(playlist_id, page_token=page_token, max_results=max_results)
 				pages_this_run += 1
 				counts["pages_checked"] += 1
@@ -658,6 +807,7 @@ def discover_trusted(
 					anchor_video_id = page_video_ids[0]
 					anchor_found = True
 				video_ids = page_video_ids
+				counts["scanned_videos"] += len(video_ids)
 				existing_rows = (
 					session.query(Review, Video)
 					.join(Video, Video.id == Review.video_id)
@@ -677,25 +827,30 @@ def discover_trusted(
 							Report.status == "open",
 						).all()
 					}
-				to_verify = [
-					video_id for video_id in video_ids
-					if video_id not in existing or (
-						existing[video_id][0].status == "pending_review"
-						and existing[video_id][0].channel_id == channel.channel_id
-					) or (
-						existing[video_id][0].status == "quarantined"
-						and existing[video_id][0].channel_id == channel.channel_id
-						and existing[video_id][0].reviewed_by is None
-						and bool(existing[video_id][0].screening_flags)
-						and existing[video_id][1].id not in open_report_video_ids
-					)
-				]
+				if process_new_only:
+					to_verify = [video_id for video_id in video_ids if video_id not in existing]
+				else:
+					to_verify = [
+						video_id for video_id in video_ids
+						if video_id not in existing or (
+							existing[video_id][0].status == "pending_review"
+							and existing[video_id][0].channel_id == channel.channel_id
+						) or (
+							existing[video_id][0].status == "quarantined"
+							and existing[video_id][0].channel_id == channel.channel_id
+							and existing[video_id][0].reviewed_by is None
+							and bool(existing[video_id][0].screening_flags)
+							and existing[video_id][1].id not in open_report_video_ids
+						)
+					]
 				details: dict[str, dict] = {}
 				for start in range(0, len(to_verify), 50):
 					details.update(client.videos(to_verify[start : start + 50], use_cache=False))
 				for video_id in to_verify:
 					item = details.get(video_id)
 					if video_id in existing:
+						if process_new_only:
+							continue
 						review, video = existing[video_id]
 						if review.channel_id != channel.channel_id:
 							continue
@@ -709,6 +864,8 @@ def discover_trusted(
 							continue
 						result = _refresh_trusted_candidate(session, actor, review, video, item, channel)
 						counts[result] += 1
+						fmt = video_format(video.video_source, getattr(video, "duration_seconds", None))
+						counts["shorts_count" if fmt == "short" else "long_videos_count"] += 1
 						continue
 					created = _create_candidate(session, actor, video_id, item, "trusted_channel_uploads", channel)
 					if created is None:
@@ -716,6 +873,8 @@ def discover_trusted(
 						continue
 					counts["created"] += 1
 					review, video = created
+					fmt = video_format(video.video_source, getattr(video, "duration_seconds", None))
+					counts["shorts_count" if fmt == "short" else "long_videos_count"] += 1
 					if review.status == "unavailable":
 						counts["unavailable"] += 1
 					elif review.status == "quarantined":
@@ -1438,6 +1597,7 @@ def approve(session: Session, actor, client: YouTubeClient, review_id: UUID, req
 	review.revoked_reason = None
 	review.revoked_at = None
 	if hasattr(review, "publication_source"):
+
 		review.publication_source = "manual"
 		review.publication_reason = "administrator approval"
 	_move(session, actor.id, review, video, "approved", {"age": [request.age_min, request.age_max], "language": video.language_code})
@@ -1639,19 +1799,32 @@ def channel_detail(session: Session, channel_id: str) -> dict[str, Any]:
 	last_discovered, last_verified = session.query(
 		func.max(Review.discovered_at), func.max(Review.last_verified_at)
 	).filter(Review.channel_id == channel_id).one()
+	discovered = sum(int(v) for v in by_status.values())
+	counts = {
+		"discovered": discovered,
+		"approved": int(by_status.get("approved", 0)),
+		"pending_review": int(by_status.get("pending_review", 0)),
+		"quarantined": int(by_status.get("quarantined", 0)),
+		"rejected": int(by_status.get("rejected", 0)),
+		"unavailable": int(by_status.get("unavailable", 0)),
+		"revoked": int(by_status.get("revoked", 0)),
+		"published": shorts + regular,
+		"published_shorts": shorts,
+		"published_regular": regular,
+		"total_videos": discovered,
+		# Best-effort compatible defaults; richer all-status format split is provided by list/channel stats APIs.
+		"shorts_count": shorts,
+		"long_videos_count": regular,
+	}
 	return {
-		"channel": channel,
+		"channel": _channel_to_public_dict(
+			channel,
+			status=channel_status(channel),
+			counts=counts,
+			last_discovery_at=last_discovered,
+		),
 		"status": channel_status(channel),
-		"counts": {
-			"discovered": sum(int(v) for v in by_status.values()),
-			"approved": int(by_status.get("approved", 0)),
-			"pending_review": int(by_status.get("pending_review", 0)),
-			"quarantined": int(by_status.get("quarantined", 0)),
-			"rejected": int(by_status.get("rejected", 0)),
-			"published": shorts + regular,
-			"published_shorts": shorts,
-			"published_regular": regular,
-		},
+		"counts": counts,
 		"last_discovered_at": last_discovered,
 		"last_verified_at": last_verified,
 	}
@@ -1672,3 +1845,245 @@ def channel_history(session: Session, channel_id: str, limit: int = 50) -> list[
 		.limit(limit)
 		.all()
 	)
+
+
+def list_channel_videos(
+	session: Session,
+	channel_id: str,
+	*,
+	limit: int = 50,
+	offset: int = 0,
+	status: str | None = None,
+	video_format_filter: str | None = None,
+	query: str | None = None,
+) -> dict[str, Any]:
+	_require_tables("YouTubeTrustedChannel", "YouTubeContentReview")
+	_trusted_channel_or_404(session, channel_id)
+	Review = get_model("YouTubeContentReview")
+	Video = get_model("Video")
+	VideoCategory = get_model("VideoCategory") if has_model("VideoCategory") else None
+	q = session.query(Review, Video).join(Video, Video.id == Review.video_id).filter(Review.channel_id == channel_id)
+	if status:
+		if status == "published":
+			q = q.filter(Video.is_published.is_(True))
+		elif status == "unpublished":
+			q = q.filter(Video.is_published.is_(False))
+		else:
+			q = q.filter(Review.status == status)
+	if video_format_filter == "short":
+		q = q.filter(short_clause(Video))
+	elif video_format_filter in {"long", "regular"}:
+		q = q.filter(regular_clause(Video))
+	if query:
+		like = f"%{query.strip()}%"
+		q = q.filter(or_(Video.title.ilike(like), Review.youtube_video_id.ilike(like)))
+	total = q.with_entities(func.count(Review.id)).order_by(None).scalar() or 0
+	rows = q.order_by(Review.discovered_at.desc(), Review.id.desc()).offset(offset).limit(limit).all()
+	items = []
+	for review, video in rows:
+		category_name = None
+		if video.category_id and VideoCategory is not None:
+			category = session.get(VideoCategory, video.category_id)
+			category_name = getattr(category, "name", None) if category else None
+		fmt = video_format(video.video_source, getattr(video, "duration_seconds", None))
+		items.append({
+			"review_id": review.id,
+			"video_id": video.id,
+			"youtube_video_id": review.youtube_video_id,
+			"title": video.title,
+			"thumbnail_url": getattr(video, "thumbnail_url", None),
+			"duration_seconds": getattr(video, "duration_seconds", None),
+			"video_format": fmt,
+			"discovery_topic": getattr(review, "discovery_topic", None),
+			"category_id": video.category_id,
+			"category_name": category_name,
+			"age_min": getattr(video, "age_min", None),
+			"age_max": getattr(video, "age_max", None),
+			"review_status": review.status,
+			"publication_status": "published" if video.is_published else review.status,
+			"is_published": bool(video.is_published),
+			"discovered_at": utc_aware(review.discovered_at) if review.discovered_at else None,
+			"source_url": review.source_url,
+			"channel_id": review.channel_id,
+		})
+	return {"items": items, "total": int(total), "limit": limit, "offset": offset}
+
+
+def list_channel_discovery_runs(session: Session, channel_id: str, limit: int = 50) -> list[Any]:
+	_trusted_channel_or_404(session, channel_id)
+	if not has_model("YouTubeChannelDiscoveryRun"):
+		return []
+	Run = get_model("YouTubeChannelDiscoveryRun")
+	return (
+		session.query(Run)
+		.filter(Run.channel_id == channel_id)
+		.order_by(Run.started_at.desc(), Run.id.desc())
+		.limit(limit)
+		.all()
+	)
+
+
+def _discovery_run_values(channel_id: str, actor_id, trigger: str = "manual") -> dict[str, Any]:
+	return {
+		"channel_id": channel_id,
+		"triggered_by": actor_id,
+		"trigger": trigger,
+		"status": "running",
+		"started_at": datetime.now(timezone.utc),
+		"scanned_videos": 0,
+		"new_videos": 0,
+		"duplicate_videos": 0,
+		"shorts_count": 0,
+		"long_videos_count": 0,
+		"auto_approved_count": 0,
+		"pending_review_count": 0,
+		"quarantined_count": 0,
+		"unavailable_count": 0,
+		"error_count": 0,
+	}
+
+
+def _finalize_discovery_run(run, counts: dict[str, Any] | None, *, status: str = "completed", error_message: str | None = None) -> None:
+	run.status = status
+	run.completed_at = datetime.now(timezone.utc)
+	if counts:
+		run.scanned_videos = int(counts.get("scanned_videos", counts.get("created", 0) + counts.get("skipped_existing", 0)))
+		run.new_videos = int(counts.get("created", 0))
+		run.duplicate_videos = int(counts.get("skipped_existing", 0))
+		run.shorts_count = int(counts.get("shorts_count", 0))
+		run.long_videos_count = int(counts.get("long_videos_count", 0))
+		run.auto_approved_count = int(counts.get("automatically_published", 0))
+		run.pending_review_count = int(counts.get("pending_review", 0))
+		run.quarantined_count = int(counts.get("quarantined", 0))
+		run.unavailable_count = int(counts.get("unavailable", 0))
+		run.error_count = int(counts.get("error_count", 0))
+	run.error_message = error_message[:2000] if error_message else None
+
+
+def discover_channel_more(session: Session, actor, client: YouTubeClient, channel_id: str, *, trigger: str = "manual") -> dict[str, Any]:
+	"""Run channel-specific trusted discovery with overlap prevention and execution history."""
+	_require_tables("YouTubeTrustedChannel")
+	Trusted = get_model("YouTubeTrustedChannel")
+	try:
+		channel = (
+			session.query(Trusted)
+			.filter(Trusted.channel_id == channel_id)
+			.with_for_update()
+			.one_or_none()
+		)
+	except Exception:
+		channel = session.query(Trusted).filter(Trusted.channel_id == channel_id).one_or_none()
+	if channel is None:
+		raise APIError(404, "trusted_channel_not_found", "Trusted channel not found")
+	if not channel.is_active:
+		raise APIError(409, "trusted_channel_not_active", "This trusted channel is not active")
+	run = None
+	if has_model("YouTubeChannelDiscoveryRun"):
+		Run = get_model("YouTubeChannelDiscoveryRun")
+		try:
+			existing_running = (
+				session.query(Run.id)
+				.filter(Run.channel_id == channel_id, Run.status == "running")
+				.with_for_update()
+				.first()
+			)
+		except Exception:
+			existing_running = (
+				session.query(Run.id)
+				.filter(Run.channel_id == channel_id, Run.status == "running")
+				.first()
+			)
+		if existing_running:
+			raise APIError(409, "youtube_channel_discovery_running", "A discovery run is already in progress for this channel")
+		run = Run(**_discovery_run_values(channel_id, actor.id, trigger))
+		session.add(run)
+		try:
+			# Persist the running state before long-running discovery so other requests can detect it.
+			session.commit()
+			session.refresh(run)
+			session.refresh(channel)
+		except IntegrityError:
+			session.rollback()
+			raise APIError(409, "youtube_channel_discovery_running", "A discovery run is already in progress for this channel")
+	counts: dict[str, Any] = {}
+	try:
+		counts = discover_trusted(
+			session,
+			actor,
+			client,
+			50,
+			channel_id=channel_id,
+			max_pages=10,
+			process_new_only=True,
+		)
+		counts.setdefault("scanned_videos", counts.get("created", 0) + counts.get("skipped_existing", 0))
+		counts.setdefault("shorts_count", 0)
+		counts.setdefault("long_videos_count", 0)
+		counts.setdefault("error_count", 0)
+		if run is not None and has_model("YouTubeChannelDiscoveryRun"):
+			session.refresh(channel)
+			_finalize_discovery_run(run, counts, status="completed")
+			session.add(run)
+			session.commit()
+			session.refresh(run)
+	except YouTubeError as error:
+		api_error = to_api_error(error)
+		if run is not None and has_model("YouTubeChannelDiscoveryRun"):
+			try:
+				session.rollback()
+				Run = get_model("YouTubeChannelDiscoveryRun")
+				failed = session.get(Run, run.id) if getattr(run, "id", None) else None
+				if failed is None:
+					failed = Run(**_discovery_run_values(channel_id, actor.id, trigger))
+					session.add(failed)
+				_finalize_discovery_run(failed, counts, status="failed", error_message=f"{api_error.code}: {api_error.message}")
+				failed.error_count = max(int(failed.error_count or 0), 1)
+				session.commit()
+				run = failed
+			except Exception:  # pragma: no cover - best effort
+				session.rollback()
+				run = None
+		raise api_error from error
+	except Exception as error:  # pragma: no cover - defensive
+		if run is not None and has_model("YouTubeChannelDiscoveryRun"):
+			try:
+				session.rollback()
+				Run = get_model("YouTubeChannelDiscoveryRun")
+				failed = session.get(Run, run.id) if getattr(run, "id", None) else None
+				if failed is None:
+					failed = Run(**_discovery_run_values(channel_id, actor.id, trigger))
+					session.add(failed)
+				_finalize_discovery_run(failed, counts, status="failed", error_message=str(error))
+				failed.error_count = max(int(failed.error_count or 0), 1)
+				session.commit()
+				run = failed
+			except Exception:
+				session.rollback()
+				run = None
+		raise
+	result = {
+		"channel_id": channel_id,
+		"channel_title": getattr(channel, "channel_title", None),
+		**counts,
+	}
+	if run is not None:
+		result.update({
+			"id": run.id,
+			"triggered_by": run.triggered_by,
+			"trigger": run.trigger,
+			"status": run.status,
+			"started_at": utc_aware(run.started_at) if run.started_at else None,
+			"completed_at": utc_aware(run.completed_at) if run.completed_at else None,
+			"scanned_videos": run.scanned_videos,
+			"new_videos": run.new_videos,
+			"duplicate_videos": run.duplicate_videos,
+			"shorts_count": run.shorts_count,
+			"long_videos_count": run.long_videos_count,
+			"auto_approved_count": run.auto_approved_count,
+			"pending_review_count": run.pending_review_count,
+			"quarantined_count": run.quarantined_count,
+			"unavailable_count": run.unavailable_count,
+			"error_count": run.error_count,
+			"error_message": run.error_message,
+		})
+	return result

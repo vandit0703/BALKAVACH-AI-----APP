@@ -61,6 +61,7 @@ MODEL_TABLES = {
 	"AppSetting": "app_settings",
 	"YouTubeContentReview": "youtube_content_reviews",
 	"YouTubeTrustedChannel": "youtube_trusted_channels",
+	"YouTubeChannelDiscoveryRun": "youtube_channel_discovery_runs",
 	"ContentReport": "content_reports",
 	"DailyMissionTemplate": "daily_mission_templates",
 	"DailyMissionVariation": "daily_mission_variations",

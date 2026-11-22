@@ -19,6 +19,7 @@ import 'pages/rewards_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/shell.dart';
 import 'pages/users_page.dart';
+import 'pages/youtube_channel_detail_page.dart';
 import 'pages/youtube_reviews_page.dart';
 
 /// Where each section lives and the permission it needs.
@@ -160,6 +161,17 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ),
               ),
             ),
+          GoRoute(
+            path: '/youtube-reviews/channels/:channelId',
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: Guarded(
+                permission: 'video:read',
+                child: YouTubeChannelDetailPage(
+                  channelId: state.pathParameters['channelId'] ?? '',
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     ],

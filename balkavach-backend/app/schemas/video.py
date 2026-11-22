@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_serializer, model_validator
@@ -262,55 +262,137 @@ class YouTubeTrustedChannelRequest(BaseModel):
 		return self
 
 
+class YouTubeTrustedChannelUpdateRequest(BaseModel):
+	channel_title: str | None = Field(default=None, min_length=1, max_length=255)
+	thumbnail_url: str | None = None
+	age_min: int | None = Field(default=None, ge=0, le=18)
+	age_max: int | None = Field(default=None, ge=0, le=18)
+	language_code: str | None = Field(default=None, min_length=2, max_length=10)
+	category_id: UUID | None = None
+	rights_status: Literal["unknown", "cleared", "restricted"] | None = None
+	is_active: bool | None = None
+	notes: str | None = Field(default=None, max_length=2000)
+
+	@model_validator(mode="after")
+	def validate_payload(self):
+		values = self.model_dump(exclude_unset=True)
+		if not values:
+			raise ValueError("At least one field must be provided")
+		if ("age_min" in values) ^ ("age_max" in values):
+			raise ValueError("age_min and age_max must be provided together")
+		if self.age_min is not None and self.age_max is not None:
+			if (self.age_min, self.age_max) not in YOUTUBE_AGE_RANGES:
+				raise ValueError("Choose a complete supported age band or contiguous combination of bands")
+		if self.language_code is not None:
+			self.language_code = self.language_code.lower()
+		return self
+
+
 class YouTubeTrustedChannelPublic(BaseModel):
+	model_config = ConfigDict(from_attributes=True, extra="allow")
+
+	id: UUID
+	channel_id: str
+	channel_title: str
+	thumbnail_url: str | None = None
+	age_min: int | None = Field(default=None, ge=0, le=18)
+	age_max: int | None = Field(default=None, ge=0, le=18)
+	language_code: str | None = None
+	category_id: UUID | None = None
+	rights_status: str
+	is_active: bool
+	created_by: UUID | None = None
+	notes: str | None = None
+	created_at: datetime
+	updated_at: datetime
+	status: str | None = None
+	total_videos: int | None = None
+	shorts_count: int | None = None
+	long_videos_count: int | None = None
+	last_discovery_at: datetime | None = None
+	initial_discovery: dict[str, Any] | None = None
+
+
+class YouTubeChannelCountsPublic(BaseModel):
+	"""How many discovered videos ended up in each review state for a channel."""
+
+	discovered: int = 0
+	approved: int = 0
+	pending_review: int = 0
+	quarantined: int = 0
+	rejected: int = 0
+	published: int = 0
+	published_shorts: int = 0
+	published_regular: int = 0
+	total_videos: int = 0
+	unavailable: int = 0
+	shorts_count: int = 0
+	long_videos_count: int = 0
+
+
+class YouTubeTrustedChannelDetailPublic(BaseModel):
+	"""One trusted channel plus the counts of what discovery found for it."""
+
+	channel: YouTubeTrustedChannelPublic
+	status: str
+	counts: YouTubeChannelCountsPublic
+	last_discovered_at: datetime | None = None
+	last_verified_at: datetime | None = None
+
+
+class YouTubeChannelVideoPublic(BaseModel):
+	review_id: UUID
+	video_id: UUID
+	youtube_video_id: str
+	title: str | None
+	thumbnail_url: str | None
+	duration_seconds: int | None
+	video_format: str | None
+	discovery_topic: str | None = None
+	category_id: UUID | None = None
+	category_name: str | None = None
+	age_min: int | None = None
+	age_max: int | None = None
+	review_status: str
+	publication_status: str
+	is_published: bool = False
+	discovered_at: datetime
+	source_url: str
+	channel_id: str | None = None
+
+
+class YouTubeChannelVideosResult(BaseModel):
+	items: list[YouTubeChannelVideoPublic]
+	total: int
+	limit: int
+	offset: int
+
+
+class YouTubeChannelDiscoveryRunPublic(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
 	id: UUID
 	channel_id: str
-	channel_title: str | None
-	thumbnail_url: str | None = None
-	age_min: int | None
-	age_max: int | None
-	language_code: str | None
-	category_id: UUID | None
-	rights_status: str
-	is_active: bool
-	created_by: UUID | None
-	created_at: datetime
-	updated_at: datetime
-	notes: str | None
-	uploads_scan_complete: bool = False
-	initial_discovery: dict[str, int | bool] | None = None
+	triggered_by: UUID | None = None
+	trigger: str
+	status: str
+	started_at: datetime
+	completed_at: datetime | None = None
+	scanned_videos: int = 0
+	new_videos: int = 0
+	duplicate_videos: int = 0
+	shorts_count: int = 0
+	long_videos_count: int = 0
+	auto_approved_count: int = 0
+	pending_review_count: int = 0
+	quarantined_count: int = 0
+	unavailable_count: int = 0
+	error_count: int = 0
+	error_message: str | None = None
 
 
-class YouTubeChannelCountsPublic(BaseModel):
-	discovered: int
-	approved: int
-	pending_review: int
-	quarantined: int
-	rejected: int
-	published: int
-	published_shorts: int
-	published_regular: int
-
-
-class YouTubeChannelEventPublic(BaseModel):
-	model_config = ConfigDict(from_attributes=True)
-
-	id: UUID
-	actor_user_id: UUID | None
-	action: str
-	created_at: datetime
-	details: dict | None = None
-
-
-class YouTubeTrustedChannelDetailPublic(BaseModel):
-	channel: YouTubeTrustedChannelPublic
-	# "approved" while trusted, "revoked" after untrust. Suspension needs new columns (deferred).
-	status: Literal["approved", "revoked"]
-	counts: YouTubeChannelCountsPublic
-	last_discovered_at: datetime | None
-	last_verified_at: datetime | None
+class YouTubeChannelDiscoverMoreResult(YouTubeChannelDiscoveryRunPublic):
+	channel_title: str | None = None
 
 
 class YouTubeChannelDiscoveryPublic(BaseModel):

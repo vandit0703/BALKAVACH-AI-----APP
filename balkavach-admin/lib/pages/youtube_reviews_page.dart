@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/api.dart';
@@ -10,16 +11,16 @@ import '../l10n/app_localizations.dart';
 import '../ui/widgets.dart';
 
 const _ageBands = {
-  '3-5': '3–5',
-  '3-8': '3–8 (3–5 + 6–8)',
-  '3-12': '3–12 (3–5 + 6–8 + 9–12)',
-  '3-15': '3–15 (all age groups)',
-  '6-8': '6–8',
-  '6-12': '6–12 (6–8 + 9–12)',
-  '6-15': '6–15 (6–8 + 9–12 + 13–15)',
-  '9-12': '9–12',
-  '9-15': '9–15 (9–12 + 13–15)',
-  '13-15': '13–15',
+  '3-5': '3Ã¢â‚¬â€œ5',
+  '3-8': '3Ã¢â‚¬â€œ8 (3Ã¢â‚¬â€œ5 + 6Ã¢â‚¬â€œ8)',
+  '3-12': '3Ã¢â‚¬â€œ12 (3Ã¢â‚¬â€œ5 + 6Ã¢â‚¬â€œ8 + 9Ã¢â‚¬â€œ12)',
+  '3-15': '3Ã¢â‚¬â€œ15 (all age groups)',
+  '6-8': '6Ã¢â‚¬â€œ8',
+  '6-12': '6Ã¢â‚¬â€œ12 (6Ã¢â‚¬â€œ8 + 9Ã¢â‚¬â€œ12)',
+  '6-15': '6Ã¢â‚¬â€œ15 (6Ã¢â‚¬â€œ8 + 9Ã¢â‚¬â€œ12 + 13Ã¢â‚¬â€œ15)',
+  '9-12': '9Ã¢â‚¬â€œ12',
+  '9-15': '9Ã¢â‚¬â€œ15 (9Ã¢â‚¬â€œ12 + 13Ã¢â‚¬â€œ15)',
+  '13-15': '13Ã¢â‚¬â€œ15',
 };
 
 class YouTubeReviewsPage extends ConsumerStatefulWidget {
@@ -133,15 +134,53 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
   Future<void> _trustChannel(Map<String, dynamic> channel) async {
     if (!_canWrite || _actionRunning) return;
     final l10n = AppLocalizations.of(context);
+    final categories = await _activeVideoCategories();
+    if (categories == null || !mounted) return;
+    final existingAge =
+        (channel['age_min'] != null && channel['age_max'] != null)
+        ? '${channel['age_min']}-${channel['age_max']}'
+        : '3-15';
+    final initialBand = _ageBands.containsKey(existingAge)
+        ? existingAge
+        : '3-15';
     final values = await showFormDialog(
       context,
-      title: l10n.youtubeTrustChannelTitle,
+      title: 'Trust / configure channel',
       fields: [
+        FormFieldSpec(
+          key: 'age_band',
+          label: l10n.youtubeAgeBand,
+          kind: FieldKind.choice,
+          required: true,
+          options: _ageBands,
+          initial: initialBand,
+        ),
+        FormFieldSpec(
+          key: 'language_code',
+          label: l10n.fieldLanguage,
+          kind: FieldKind.choice,
+          options: kLanguageNames,
+          initial: '${channel['language_code'] ?? 'en'}',
+        ),
+        FormFieldSpec(
+          key: 'category_id',
+          label: l10n.youtubeVideoCategory,
+          kind: FieldKind.choice,
+          options: categories,
+          initial: categories.keys.first,
+        ),
         FormFieldSpec(
           key: 'rights_cleared',
           label: l10n.youtubeRightsCleared,
           kind: FieldKind.toggle,
           initial: false,
+        ),
+        FormFieldSpec(
+          key: 'notes',
+          label: 'Notes',
+          kind: FieldKind.multiline,
+          initial: '${channel['notes'] ?? ''}',
+          maxLength: 2000,
         ),
       ],
       submitLabel: l10n.youtubeTrustChannel,
@@ -151,22 +190,35 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
       showMessage(context, l10n.youtubeRightsRequired);
       return;
     }
+    final band = '${values.remove('age_band')}'.split('-');
+    final payload = <String, dynamic>{
+      'channel_id': channel['channel_id'],
+      'channel_title': channel['channel_title'],
+      'thumbnail_url': channel['thumbnail_url'],
+      'age_min': int.parse(band.first),
+      'age_max': int.parse(band.last),
+      'language_code': values['language_code'],
+      'category_id': values['category_id'] == '' ? null : values['category_id'],
+      'rights_status': 'cleared',
+      'notes': values['notes'],
+    };
     setState(() => _actionRunning = true);
     try {
       final result = await ref
           .read(adminApiProvider)
-          .post('/api/v1/admin/videos/youtube/channels/trust', {
-            'channel_id': channel['channel_id'],
-            'channel_title': channel['channel_title'],
-            'thumbnail_url': channel['thumbnail_url'],
-            'rights_status': 'cleared',
-          });
+          .post('/api/v1/admin/videos/youtube/channels/trust', payload);
       if (!mounted) return;
       final discovery =
           result['initial_discovery'] as Map<String, dynamic>? ??
           const <String, dynamic>{};
-      final count = (discovery['created'] as num?)?.toInt() ?? 0;
-      showMessage(context, 'Channel trusted. $count videos discovered.');
+      final count =
+          (discovery['created'] as num?)?.toInt() ??
+          (discovery['new_videos'] as num?)?.toInt() ??
+          0;
+      showMessage(
+        context,
+        'Channel trusted/configured. $count new videos discovered.',
+      );
       _reloadAll();
     } on Object catch (error) {
       if (mounted) showMessage(context, '$error');
@@ -175,148 +227,11 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
     }
   }
 
-  String _eventLabel(AppLocalizations l10n, Object? action) => switch (action) {
-    'youtube.channel_trusted' => l10n.youtubeChannelEvT,
-    'youtube.channel_untrusted' => l10n.youtubeChannelEvU,
-    _ => '$action',
-  };
-
   String _when(Object? value) {
     final parsed = value is String ? DateTime.tryParse(value) : null;
-    return parsed == null ? '—' : parsed.toLocal().toString().split('.').first;
-  }
-
-  /// Everything the server knows about one trusted channel: how many videos
-  /// discovery found and in what state, plus the trust history.
-  Future<void> _channelDetails(Map<String, dynamic> channel) async {
-    final l10n = AppLocalizations.of(context);
-    final api = ref.read(adminApiProvider);
-    final base =
-        '/api/v1/admin/videos/youtube/channels/${channel['channel_id']}';
-    final loaded = Future.wait<Object?>([
-      api.getMap(base),
-      api.getList('$base/history'),
-    ]);
-    // The dialog shows the failure itself; this only stops it also being reported as unhandled.
-    loaded.ignore();
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        key: const Key('youtube.channelDetails'),
-        title: Text(l10n.youtubeChannelDetails),
-        content: SizedBox(
-          width: 520,
-          child: FutureBuilder<List<Object?>>(
-            future: loaded,
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Text(
-                  l10n.youtubeChannelFail,
-                  key: const Key('youtube.channelDetailsFailed'),
-                );
-              }
-              if (!snapshot.hasData) return const LinearProgressIndicator();
-              final detail = snapshot.data![0]! as Map<String, dynamic>;
-              final history = snapshot.data![1]! as List<Map<String, dynamic>>;
-              final info = detail['channel'] as Map<String, dynamic>;
-              final counts = detail['counts'] as Map<String, dynamic>;
-              final trusted = detail['status'] == 'approved';
-              return SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        _channelAvatar(info['thumbnail_url']),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            info['channel_title'] as String? ??
-                                'YouTube channel',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        ),
-                        StatusPill(
-                          label: trusted
-                              ? l10n.youtubeChannelTrusted
-                              : l10n.youtubeChannelNotTrusted,
-                          good: trusted,
-                        ),
-                      ],
-                    ),
-                    _metadata(
-                      l10n.youtubeChannelAge,
-                      '${info['age_min'] ?? '—'}–${info['age_max'] ?? '—'}',
-                    ),
-                    _metadata(l10n.youtubeChannelLang, info['language_code']),
-                    _metadata(l10n.youtubeChannelRights, info['rights_status']),
-                    _metadata(
-                      l10n.youtubeChannelLastDisc,
-                      _when(detail['last_discovered_at']),
-                    ),
-                    _metadata(
-                      l10n.youtubeChannelLastVer,
-                      _when(detail['last_verified_at']),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.youtubeChannelCounts,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    _metadata(l10n.youtubeChannelDisc, counts['discovered']),
-                    _metadata(l10n.youtubeChannelAppr, counts['approved']),
-                    _metadata(
-                      l10n.youtubeChannelPend,
-                      counts['pending_review'],
-                    ),
-                    _metadata(l10n.youtubeChannelQuar, counts['quarantined']),
-                    _metadata(l10n.youtubeChannelRej, counts['rejected']),
-                    _metadata(
-                      l10n.youtubeChannelShorts,
-                      counts['published_shorts'],
-                    ),
-                    _metadata(
-                      l10n.youtubeChannelReg,
-                      counts['published_regular'],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.youtubeChannelHist,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    if (history.isEmpty)
-                      Text(
-                        l10n.youtubeChannelNoHist,
-                        key: const Key('youtube.channelNoHistory'),
-                      )
-                    else
-                      for (final event in history)
-                        _metadata(
-                          _when(event['created_at']),
-                          _eventLabel(l10n, event['action']),
-                        ),
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.youtubeChannelNote,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              MaterialLocalizations.of(dialogContext).closeButtonLabel,
-            ),
-          ),
-        ],
-      ),
-    );
+    return parsed == null
+        ? 'Ã¢â‚¬â€'
+        : parsed.toLocal().toString().split('.').first;
   }
 
   Future<void> _untrustChannel(Map<String, dynamic> channel) async {
@@ -576,7 +491,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
 
   Widget _metadata(String label, Object? value) => Padding(
     padding: const EdgeInsets.only(top: 6),
-    child: SelectableText('$label: ${value ?? '—'}'),
+    child: SelectableText('$label: ${value ?? 'Ã¢â‚¬â€'}'),
   );
 
   Widget _channelAvatar(Object? value, {double radius = 24}) {
@@ -700,42 +615,64 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
                   _ => true,
                 },
               ))
-                ListTile(
+                Card(
                   key: Key('youtube.channelRow.${channel['channel_id']}'),
-                  onTap: () => _channelDetails(channel),
-                  contentPadding: EdgeInsets.zero,
-                  leading: _channelAvatar(channel['thumbnail_url']),
-                  title: Text(
-                    channel['channel_title'] as String? ?? 'YouTube channel',
-                  ),
-                  subtitle: SelectableText('${channel['channel_id'] ?? ''}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      StatusPill(
-                        label: channel['is_active'] == true
-                            ? l10n.youtubeChannelTrusted
-                            : l10n.youtubeChannelNotTrusted,
-                        good: channel['is_active'] == true,
-                      ),
-                      if (_canWrite)
-                        IconButton(
-                          key: Key('youtube.untrust.${channel['channel_id']}'),
-                          tooltip: channel['is_active'] == true
-                              ? l10n.youtubeUntrustChannel
-                              : l10n.youtubeTrustChannel,
-                          onPressed: _actionRunning
-                              ? null
-                              : () => channel['is_active'] == true
-                                    ? _untrustChannel(channel)
-                                    : _trustChannel(channel),
-                          icon: Icon(
-                            channel['is_active'] == true
-                                ? Icons.link_off
-                                : Icons.link,
-                          ),
+                  margin: const EdgeInsets.symmetric(vertical: 6),
+                  child: ListTile(
+                    onTap: () => context.go(
+                      '/youtube-reviews/channels/${channel['channel_id']}',
+                    ),
+                    leading: _channelAvatar(channel['thumbnail_url']),
+                    title: Text(
+                      channel['channel_title'] as String? ?? 'YouTube channel',
+                    ),
+                    subtitle: Text(
+                      'ID: ${channel['channel_id'] ?? 'Ã¢â‚¬â€'} Ã‚Â· Age: ${channel['age_min'] ?? 'Ã¢â‚¬â€'}Ã¢â‚¬â€œ${channel['age_max'] ?? 'Ã¢â‚¬â€'} Ã‚Â· '
+                      'Total: ${channel['total_videos'] ?? 'Ã¢â‚¬â€'} Ã‚Â· Shorts: ${channel['shorts_count'] ?? 'Ã¢â‚¬â€'} Ã‚Â· '
+                      'Long: ${channel['long_videos_count'] ?? 'Ã¢â‚¬â€'} Ã‚Â· Last discovery: ${_when(channel['last_discovery_at'])}',
+                    ),
+                    isThreeLine: true,
+                    trailing: Wrap(
+                      spacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        StatusPill(
+                          label: channel['is_active'] == true
+                              ? l10n.youtubeChannelTrusted
+                              : l10n.youtubeChannelNotTrusted,
+                          good: channel['is_active'] == true,
                         ),
-                    ],
+                        OutlinedButton.icon(
+                          key: Key(
+                            'youtube.viewDetails.${channel['channel_id']}',
+                          ),
+                          onPressed: () => context.go(
+                            '/youtube-reviews/channels/${channel['channel_id']}',
+                          ),
+                          icon: const Icon(Icons.open_in_new),
+                          label: const Text('View Details'),
+                        ),
+                        if (_canWrite)
+                          IconButton(
+                            key: Key(
+                              'youtube.untrust.${channel['channel_id']}',
+                            ),
+                            tooltip: channel['is_active'] == true
+                                ? l10n.youtubeUntrustChannel
+                                : l10n.youtubeTrustChannel,
+                            onPressed: _actionRunning
+                                ? null
+                                : () => channel['is_active'] == true
+                                      ? _untrustChannel(channel)
+                                      : _trustChannel(channel),
+                            icon: Icon(
+                              channel['is_active'] == true
+                                  ? Icons.link_off
+                                  : Icons.link,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
             ],
@@ -803,10 +740,10 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
                   fit: BoxFit.cover,
                 )
               : const SizedBox(width: 64, height: 44),
-          Text('${row['title'] ?? '—'}'),
-          Text('${row['channel_title'] ?? '—'}'),
+          Text('${row['title'] ?? 'Ã¢â‚¬â€'}'),
+          Text('${row['channel_title'] ?? 'Ã¢â‚¬â€'}'),
           StatusPill(
-            label: '${row['status'] ?? '—'}',
+            label: '${row['status'] ?? 'Ã¢â‚¬â€'}',
             good: row['status'] == 'approved',
           ),
           Text(

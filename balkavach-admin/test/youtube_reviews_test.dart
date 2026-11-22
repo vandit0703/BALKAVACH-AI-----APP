@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -64,7 +66,7 @@ void main() {
     (tester) async {
       final server = baseServer()
         ..reply('GET', '/api/v1/admin/videos/youtube/channels', <Object?>[])
-        ..reply('GET', '/api/v1/admin/videos/youtube/reviews', [_review()])
+        ..reply('GET', '/api/v1/admin/videos/youtube/reviews', <Object?>[])
         ..reply('GET', '/api/v1/admin/videos/youtube/channels/discover', [
           {
             'channel_id': _channelId,
@@ -73,15 +75,41 @@ void main() {
             'is_trusted': false,
           },
         ])
+        ..reply('GET', '/api/v1/admin/videos/categories', [
+          {'id': 'cat-1', 'name': 'Education', 'is_active': true},
+        ])
         ..reply('POST', '/api/v1/admin/videos/youtube/channels/trust', {
-          ..._trustedChannel(),
+          'id': 1,
+          'channel_id': _channelId,
+          'channel_title': 'Science channel',
+          'thumbnail_url': 'https://yt3.ggpht.com/channel.png',
+          'rights_status': 'cleared',
+          'age_min': 3,
+          'age_max': 5,
+          'language_code': 'en',
+          'category': 'cat-1',
+          'is_active': true,
+          'discovered_at': '2026-04-12T10:00:00Z',
+          'last_discovered_at': '2026-04-12T10:00:00Z',
           'initial_discovery': {
-            'created': 2,
-            'automatically_published': 1,
-            'pending_review': 1,
-            'quarantined': 0,
-            'unavailable': 0,
-            'channels_pending_initial_scan': 1,
+            'id': 1,
+            'channel_id': _channelId,
+            'triggered_by': null,
+            'trigger': 'trust',
+            'status': 'completed',
+            'started_at': '2026-04-12T10:00:00Z',
+            'completed_at': '2026-04-12T10:00:00Z',
+            'scanned_videos': 0,
+            'new_videos': 0,
+            'duplicate_videos': 0,
+            'shorts_count': 0,
+            'long_videos_count': 0,
+            'auto_approved_count': 0,
+            'pending_review_count': 0,
+            'quarantined_count': 0,
+            'unavailable_count': 0,
+            'error_count': 0,
+            'error_message': null,
           },
         });
       await pumpAdmin(tester, server, size: const Size(1400, 1800));
@@ -115,6 +143,10 @@ void main() {
 
       await tester.tap(find.byKey(Key('youtube.trust.$_channelId')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('field.age_band')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('3-5').last);
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('field.rights_cleared')));
       await tester.tap(find.byKey(const Key('form.submit')));
       await tester.pumpAndSettle();
@@ -126,7 +158,12 @@ void main() {
         'channel_id': _channelId,
         'channel_title': 'Science channel',
         'thumbnail_url': 'https://yt3.ggpht.com/channel.png',
+        'age_min': 3,
+        'age_max': 5,
+        'language_code': 'en',
+        'category': 'cat-1',
         'rights_status': 'cleared',
+        'notes': null,
       });
       expect(
         server
@@ -157,7 +194,7 @@ void main() {
     await openSection(tester, 'YouTube review');
 
     expect(find.text('Science channel'), findsOneWidget);
-    expect(find.text(_channelId), findsOneWidget);
+    expect(find.textContaining(_channelId), findsWidgets);
     expect(find.text('Trusted'), findsOneWidget);
     await tester.tap(find.byKey(Key('youtube.untrust.$_channelId')));
     await tester.pumpAndSettle();
@@ -278,22 +315,70 @@ Map<String, Object?> _detail({bool active = true}) => {
 const _detailPath = '/api/v1/admin/videos/youtube/channels/$_channelId';
 
 void channelTests() {
-  testWidgets('a channel row opens details with counts and history', (
+  testWidgets('channel row opens the detail page with counts and discovery history', (
     tester,
   ) async {
     final server = baseServer()
       ..reply('GET', '/api/v1/admin/videos/youtube/channels', [
-        _trustedChannel(),
+        {..._trustedChannel(), 'thumbnail_url': null},
       ])
       ..reply('GET', '/api/v1/admin/videos/youtube/reviews', <Object?>[])
-      ..reply('GET', _detailPath, _detail())
-      ..reply('GET', '$_detailPath/history', [
+      ..reply('GET', _detailPath, {..._trustedChannel(), 'thumbnail_url': null})
+      ..reply('GET', '$_detailPath/videos', {
+        'items': [
+          {
+            'id': _reviewId,
+            'youtube_video_id': 'abc12345678',
+            'title': 'How plants grow',
+            'channel_id': _channelId,
+            'channel_title': 'Science channel',
+            'thumbnail_url': null,
+            'duration_seconds': 420,
+            'is_short': false,
+            'view_count': 1200,
+            'like_count': 45,
+            'comment_count': 6,
+            'age_min': 6,
+            'age_max': 8,
+            'language_code': 'en',
+            'category': 'Science',
+            'status': 'approved',
+            'review_status': 'approved',
+            'publication_status': 'published',
+            'is_published': true,
+            'rights_status': 'cleared',
+            'screening_flags': <String>[],
+            'rejection_reason': null,
+            'notes': null,
+            'not_published_reason': null,
+            'discovered_at': '2026-04-12T10:00:00Z',
+            'last_verified_at': '2026-04-12T10:00:00Z',
+          },
+        ],
+        'total': 1,
+        'limit': 20,
+        'offset': 0,
+      })
+      ..reply('GET', '$_detailPath/discovery-history', [
         {
-          'id': '44444444-4444-4444-8444-444444444444',
-          'actor_user_id': null,
-          'action': 'youtube.channel_trusted',
-          'created_at': '2026-11-01T10:00:00Z',
-          'details': {'channel_id': _channelId},
+          'id': 42,
+          'channel_id': _channelId,
+          'triggered_by': null,
+          'trigger': 'manual',
+          'status': 'completed',
+          'started_at': '2026-04-12T09:00:00Z',
+          'completed_at': '2026-04-12T09:01:00Z',
+          'scanned_videos': 10,
+          'new_videos': 2,
+          'duplicate_videos': 8,
+          'shorts_count': 1,
+          'long_videos_count': 1,
+          'auto_approved_count': 1,
+          'pending_review_count': 1,
+          'quarantined_count': 0,
+          'unavailable_count': 0,
+          'error_count': 0,
+          'error_message': null,
         },
       ]);
     await pumpAdmin(tester, server, size: const Size(1400, 1800));
@@ -301,75 +386,177 @@ void channelTests() {
 
     await tester.tap(find.byKey(const Key('youtube.channelRow.$_channelId')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('youtube.channelDetails')), findsOneWidget);
-    expect(find.text('Discovered: 18'), findsOneWidget);
-    expect(find.text('Waiting for review: 3'), findsOneWidget);
-    expect(find.text('Live Shorts: 4'), findsOneWidget);
-    expect(find.text('Live videos: 7'), findsOneWidget);
-    expect(find.textContaining('Channel trusted'), findsOneWidget);
+
+    expect(find.text('Trusted channel details'), findsOneWidget);
+    expect(find.text('How plants grow'), findsOneWidget);
+    expect(find.textContaining('Run #42'), findsWidgets);
+    expect(find.textContaining('manual'), findsWidgets);
+    expect(find.textContaining('2 new'), findsWidgets);
+    expect(find.textContaining('8 duplicates'), findsWidgets);
     expect(
-      find.textContaining('planned and need a server update'),
-      findsOneWidget,
+      server.to('GET', '/api/v1/admin/videos/youtube/channels/$_channelId'),
+      isNotEmpty,
     );
   });
 
-  testWidgets('a failed details request says so instead of showing nothing', (
+  testWidgets('a failed channel details request shows an error state', (
     tester,
   ) async {
     final server = baseServer()
       ..reply('GET', '/api/v1/admin/videos/youtube/channels', [
-        _trustedChannel(),
+        {..._trustedChannel(), 'thumbnail_url': null},
       ])
       ..reply('GET', '/api/v1/admin/videos/youtube/reviews', <Object?>[])
       ..reply('GET', _detailPath, {
         'error': {'code': 'x', 'message': 'boom'},
       }, status: 500)
-      ..reply('GET', '$_detailPath/history', <Object?>[]);
+      ..reply('GET', '$_detailPath/videos', {
+        'items': <Object?>[],
+        'total': 0,
+        'limit': 20,
+        'offset': 0,
+      })
+      ..reply('GET', '$_detailPath/discovery-history', <Object?>[]);
     await pumpAdmin(tester, server, size: const Size(1400, 1800));
     await openSection(tester, 'YouTube review');
     await tester.tap(find.byKey(const Key('youtube.channelRow.$_channelId')));
     await tester.pumpAndSettle();
+
+    expect(find.text('Trusted channel details'), findsNothing);
+    expect(find.byKey(const Key('error.retry')), findsWidgets);
+  });
+
+  testWidgets('Discover More shows loading and successful results for the selected channel', (
+    tester,
+  ) async {
+    final discoverCompleter = Completer<Reply>();
+    final server = baseServer()
+      ..reply('GET', '/api/v1/admin/videos/youtube/channels', [
+        {..._trustedChannel(), 'thumbnail_url': null},
+      ])
+      ..reply('GET', '/api/v1/admin/videos/youtube/reviews', <Object?>[])
+      ..reply('GET', _detailPath, {..._trustedChannel(), 'thumbnail_url': null})
+      ..reply('GET', '$_detailPath/videos', {
+        'items': <Object?>[],
+        'total': 0,
+        'limit': 20,
+        'offset': 0,
+      })
+      ..reply('GET', '$_detailPath/discovery-history', <Object?>[])
+      ..on('POST', '$_detailPath/discover', (_) => discoverCompleter.future)
+      // refresh after successful discovery
+      ..reply('GET', _detailPath, {..._trustedChannel(), 'thumbnail_url': null})
+      ..reply('GET', '$_detailPath/videos', {
+        'items': <Object?>[],
+        'total': 0,
+        'limit': 20,
+        'offset': 0,
+      })
+      ..reply('GET', '$_detailPath/discovery-history', [
+        {
+          'id': 43,
+          'channel_id': _channelId,
+          'channel_title': 'Science channel',
+          'triggered_by': null,
+          'trigger': 'manual',
+          'status': 'completed',
+          'started_at': '2026-04-12T11:00:00Z',
+          'completed_at': '2026-04-12T11:01:00Z',
+          'scanned_videos': 10,
+          'new_videos': 2,
+          'duplicate_videos': 8,
+          'shorts_count': 1,
+          'long_videos_count': 1,
+          'auto_approved_count': 1,
+          'pending_review_count': 1,
+          'quarantined_count': 0,
+          'unavailable_count': 0,
+          'error_count': 0,
+          'error_message': null,
+        },
+      ]);
+    await pumpAdmin(tester, server, size: const Size(1400, 1800));
+    await openSection(tester, 'YouTube review');
+    await tester.tap(find.byKey(const Key('youtube.channelRow.$_channelId')));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const Key('youtube.channelDiscoverMore')));
+    await tester.tap(find.byKey(const Key('youtube.channelDiscoverMore')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('form.submit')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+
+    expect(find.text('Discovering…'), findsWidgets);
+    expect(find.textContaining('Fetching latest uploads'), findsOneWidget);
     expect(
-      find.byKey(const Key('youtube.channelDetailsFailed')),
-      findsOneWidget,
+      server.to('POST', '/api/v1/admin/videos/youtube/channels/$_channelId/discover'),
+      hasLength(1),
+    );
+
+    discoverCompleter.complete(
+      Reply(200, {
+        'id': 43,
+        'channel_id': _channelId,
+        'channel_title': 'Science channel',
+        'triggered_by': null,
+        'trigger': 'manual',
+        'status': 'completed',
+        'started_at': '2026-04-12T11:00:00Z',
+        'completed_at': '2026-04-12T11:01:00Z',
+        'scanned_videos': 10,
+        'new_videos': 2,
+        'duplicate_videos': 8,
+        'shorts_count': 1,
+        'long_videos_count': 1,
+        'auto_approved_count': 1,
+        'pending_review_count': 1,
+        'quarantined_count': 0,
+        'unavailable_count': 0,
+        'error_count': 0,
+        'error_message': null,
+      }),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Scanned: 10'), findsWidgets);
+    expect(find.textContaining('New: 2'), findsWidgets);
+    expect(
+      server.to('GET', '/api/v1/admin/videos/youtube/channels/$_channelId').length,
+      greaterThanOrEqualTo(2),
     );
   });
 
-  testWidgets('the status filter separates trusted from removed channels', (
+  testWidgets('Discover More shows an error message when channel discovery fails', (
     tester,
   ) async {
-    final other = {
-      ..._trustedChannel(active: false),
-      'channel_id': 'UC9999999999999999999999',
-    };
     final server = baseServer()
       ..reply('GET', '/api/v1/admin/videos/youtube/channels', [
-        _trustedChannel(),
-        other,
+        {..._trustedChannel(), 'thumbnail_url': null},
       ])
-      ..reply('GET', '/api/v1/admin/videos/youtube/reviews', <Object?>[]);
+      ..reply('GET', '/api/v1/admin/videos/youtube/reviews', <Object?>[])
+      ..reply('GET', _detailPath, {..._trustedChannel(), 'thumbnail_url': null})
+      ..reply('GET', '$_detailPath/videos', {
+        'items': <Object?>[],
+        'total': 0,
+        'limit': 20,
+        'offset': 0,
+      })
+      ..reply('GET', '$_detailPath/discovery-history', <Object?>[])
+      ..reply('POST', '$_detailPath/discover', {
+        'error': {'code': 'x', 'message': 'boom'},
+      }, status: 500);
     await pumpAdmin(tester, server, size: const Size(1400, 1800));
     await openSection(tester, 'YouTube review');
-    expect(find.byKey(Key('youtube.channelRow.$_channelId')), findsOneWidget);
-    expect(
-      find.byKey(const Key('youtube.channelRow.UC9999999999999999999999')),
-      findsOneWidget,
-    );
-
-    await tester.tap(find.byKey(const Key('youtube.channelFilter.notTrusted')));
+    await tester.tap(find.byKey(const Key('youtube.channelRow.$_channelId')));
     await tester.pumpAndSettle();
-    expect(find.byKey(Key('youtube.channelRow.$_channelId')), findsNothing);
-    expect(
-      find.byKey(const Key('youtube.channelRow.UC9999999999999999999999')),
-      findsOneWidget,
-    );
 
-    await tester.tap(find.byKey(const Key('youtube.channelFilter.trusted')));
+    await tester.ensureVisible(find.byKey(const Key('youtube.channelDiscoverMore')));
+    await tester.tap(find.byKey(const Key('youtube.channelDiscoverMore')));
     await tester.pumpAndSettle();
-    expect(find.byKey(Key('youtube.channelRow.$_channelId')), findsOneWidget);
-    expect(
-      find.byKey(const Key('youtube.channelRow.UC9999999999999999999999')),
-      findsNothing,
-    );
+    await tester.tap(find.byKey(const Key('form.submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Failed to discover more videos'), findsOneWidget);
   });
 }

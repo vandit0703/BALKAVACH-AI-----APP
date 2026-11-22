@@ -1,4 +1,4 @@
-from uuid import UUID
+﻿from uuid import UUID
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,42 +10,46 @@ from app.integrations.youtube import YouTubeError, get_youtube_client, to_api_er
 from app.db.base import get_model
 from app.db.session import get_db
 from app.schemas.video import (
-	CollectionItemCreate,
-	ContentReportCreate,
-	ContentReportPublic,
-	ContentReportReceipt,
-	ContentReportResolve,
-	VideoAdminPublic,
-	VideoCategoryCreate,
-	VideoCategoryPublic,
-	VideoCategoryUpdate,
-	VideoCollectionCreate,
-	VideoCreate,
-	VideoFeedItem,
-	VideoWatchHistoryPublic,
-	VideoWatchProgressPublic,
-	VideoWatchProgressRequest,
-	VideoUpdate,
-	YouTubeApproveRequest,
-	YouTubeDiscoverRequest,
-	YouTubeDiscoverResult,
-	YouTubeApprovedPublishRequest,
-	YouTubeApprovedPublishResult,
-	YouTubeChannelDiscoveryPublic,
-	YouTubeChannelEventPublic,
-	YouTubeTrustedChannelDetailPublic,
-	YouTubeAutoReviewRequest,
-	YouTubeAutoReviewResult,
-	YouTubeDiagnosticsPublic,
-	YouTubeImportRequest,
-	YouTubeRecheckRequest,
-	YouTubeRecheckResult,
-	YouTubeReviewDecision,
-	YouTubeReviewPublic,
-	YouTubeReviewStatus,
-	YouTubeRevokeRequest,
-	YouTubeTrustedChannelPublic,
-	YouTubeTrustedChannelRequest,
+        CollectionItemCreate,
+        ContentReportCreate,
+        ContentReportPublic,
+        ContentReportReceipt,
+        ContentReportResolve,
+        UUID,
+        VideoAdminPublic,
+        VideoCategoryCreate,
+        VideoCategoryPublic,
+        VideoCategoryUpdate,
+        VideoCollectionCreate,
+        VideoCreate,
+        VideoFeedItem,
+        VideoUpdate,
+        VideoWatchHistoryPublic,
+        VideoWatchProgressPublic,
+        VideoWatchProgressRequest,
+        YouTubeApproveRequest,
+        YouTubeApprovedPublishRequest,
+        YouTubeApprovedPublishResult,
+        YouTubeAutoReviewRequest,
+        YouTubeAutoReviewResult,
+        YouTubeChannelDiscoverMoreResult,
+        YouTubeChannelDiscoveryPublic,
+        YouTubeChannelDiscoveryRunPublic,
+        YouTubeChannelVideosResult,
+        YouTubeDiagnosticsPublic,
+        YouTubeDiscoverRequest,
+        YouTubeDiscoverResult,
+        YouTubeImportRequest,
+        YouTubeRecheckRequest,
+        YouTubeRecheckResult,
+        YouTubeReviewDecision,
+        YouTubeReviewPublic,
+        YouTubeReviewStatus,
+        YouTubeRevokeRequest,
+        YouTubeTrustedChannelDetailPublic,
+        YouTubeTrustedChannelPublic,
+        YouTubeTrustedChannelRequest,
+        YouTubeTrustedChannelUpdateRequest,
 )
 from app.services import youtube_review_service
 from app.services.video_classification import known_duration_or_none, video_format
@@ -476,7 +480,7 @@ def admin_youtube_channels(
 ) -> list[YouTubeTrustedChannelPublic]:
 	return [
 		YouTubeTrustedChannelPublic.model_validate(row)
-		for row in youtube_review_service.list_trusted_channels(session, limit, offset)
+		for row in youtube_review_service.list_trusted_channels(session, limit, offset, include_stats=True)
 	]
 
 
@@ -511,17 +515,59 @@ def admin_youtube_channel_detail(
 	return YouTubeTrustedChannelDetailPublic(**youtube_review_service.channel_detail(session, channel_id))
 
 
-@admin_router.get("/youtube/channels/{channel_id}/history", response_model=list[YouTubeChannelEventPublic])
-def admin_youtube_channel_history(
+@admin_router.patch("/youtube/channels/{channel_id}", response_model=YouTubeTrustedChannelPublic)
+def admin_youtube_update_channel(
+	channel_id: str,
+	request: YouTubeTrustedChannelUpdateRequest,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeTrustedChannelPublic:
+	channel = youtube_review_service.update_trusted_channel(session, admin, channel_id, request)
+	# Return enriched/stats-aware representation for the updated channel.
+	enriched = youtube_review_service.list_trusted_channels(session, 1, 0, include_stats=True)
+	for row in enriched:
+		if row.get("channel_id") == channel.channel_id:
+			return YouTubeTrustedChannelPublic.model_validate(row)
+	return YouTubeTrustedChannelPublic.model_validate(channel)
+
+
+@admin_router.get("/youtube/channels/{channel_id}/videos", response_model=YouTubeChannelVideosResult)
+def admin_youtube_channel_videos(
+	channel_id: str,
+	limit: int = Query(default=50, ge=1, le=100),
+	offset: int = Query(default=0, ge=0),
+	status: str | None = Query(default=None),
+	video_format: str | None = Query(default=None, alias="format"),
+	query: str | None = Query(default=None, min_length=1, max_length=100),
+	admin=Depends(require_admin_permission("video:read")),
+	session: Session = Depends(get_db),
+) -> YouTubeChannelVideosResult:
+	return YouTubeChannelVideosResult(**youtube_review_service.list_channel_videos(
+		session, channel_id, limit=limit, offset=offset, status=status, video_format_filter=video_format, query=query,
+	))
+
+
+@admin_router.post("/youtube/channels/{channel_id}/discover", response_model=YouTubeChannelDiscoverMoreResult)
+def admin_youtube_discover_channel_more(
+	channel_id: str,
+	admin=Depends(require_admin_permission("video:write")),
+	session: Session = Depends(get_db),
+) -> YouTubeChannelDiscoverMoreResult:
+	return YouTubeChannelDiscoverMoreResult(**youtube_review_service.discover_channel_more(
+		session, admin, get_youtube_client(), channel_id, trigger="manual",
+	))
+
+
+@admin_router.get("/youtube/channels/{channel_id}/discovery-history", response_model=list[YouTubeChannelDiscoveryRunPublic])
+def admin_youtube_channel_discovery_history(
 	channel_id: str,
 	limit: int = Query(default=50, ge=1, le=200),
 	admin=Depends(require_admin_permission("video:read")),
 	session: Session = Depends(get_db),
-) -> list[YouTubeChannelEventPublic]:
-	"""Trust/untrust trail for the channel, read from the audit log."""
+) -> list[YouTubeChannelDiscoveryRunPublic]:
 	return [
-		YouTubeChannelEventPublic.model_validate(row)
-		for row in youtube_review_service.channel_history(session, channel_id, limit)
+		YouTubeChannelDiscoveryRunPublic.model_validate(row)
+		for row in youtube_review_service.list_channel_discovery_runs(session, channel_id, limit)
 	]
 
 
@@ -532,10 +578,21 @@ def admin_youtube_trust_channel(
 	session: Session = Depends(get_db),
 ) -> YouTubeTrustedChannelPublic:
 	channel = youtube_review_service.trust_channel(session, admin, request)
-	discovery = youtube_review_service.discover_trusted(
-		session, admin, get_youtube_client(), 50, channel_id=channel.channel_id
-	)
-	channel_data = YouTubeTrustedChannelPublic.model_validate(channel).model_dump()
+	try:
+		discovery = youtube_review_service.discover_channel_more(
+			session, admin, get_youtube_client(), channel.channel_id, trigger="trust",
+		)
+	except APIError:
+		# Keep trust successful even if initial discovery cannot run; surface counts as unavailable.
+		discovery = {"error": "initial_discovery_failed"}
+	enriched = youtube_review_service.list_trusted_channels(session, 100, 0, include_stats=True)
+	channel_data = None
+	for row in enriched:
+		if row.get("channel_id") == channel.channel_id:
+			channel_data = dict(row)
+			break
+	if channel_data is None:
+		channel_data = YouTubeTrustedChannelPublic.model_validate(channel).model_dump()
 	channel_data["initial_discovery"] = discovery
 	return YouTubeTrustedChannelPublic(**channel_data)
 
@@ -546,7 +603,12 @@ def admin_youtube_untrust_channel(
 	admin=Depends(require_admin_permission("video:write")),
 	session: Session = Depends(get_db),
 ) -> YouTubeTrustedChannelPublic:
-	return YouTubeTrustedChannelPublic.model_validate(youtube_review_service.untrust_channel(session, admin, channel_id))
+	channel = youtube_review_service.untrust_channel(session, admin, channel_id)
+	enriched = youtube_review_service.list_trusted_channels(session, 100, 0, include_stats=True)
+	for row in enriched:
+		if row.get("channel_id") == channel_id:
+			return YouTubeTrustedChannelPublic.model_validate(row)
+	return YouTubeTrustedChannelPublic.model_validate(channel)
 
 
 @admin_router.get("/youtube/reviews", response_model=list[YouTubeReviewPublic])
@@ -690,3 +752,4 @@ def admin_resolve_report(
 ) -> ContentReportPublic:
 	report = youtube_review_service.resolve_report(session, admin, report_id, request.status)
 	return ContentReportPublic.model_validate(report)
+
