@@ -122,9 +122,9 @@ def test_the_lock_is_not_a_way_around_the_other_safety_rules(api):
 	add_youtube(session, title="Quarantined", duration_seconds=200, status="quarantined", is_published=False)
 	add_youtube(session, title="Teens", duration_seconds=200, age_min=13, age_max=15)
 	add_youtube(session, title="Mature", duration_seconds=200, content_rating="mature")
-	add_youtube(session, title="Stale", duration_seconds=200, verified_hours_ago=300)
+	add_youtube(session, title="OldButApproved", duration_seconds=200, verified_hours_ago=300)
 	use_up_allowance(session, child)
-	assert titles_of(http.get("/api/v1/videos/feed")) == ["Fine"]
+	assert set(titles_of(http.get("/api/v1/videos/feed"))) == {"Fine", "OldButApproved"}
 
 
 def test_playback_stays_refused_at_zero_allowance(api):
@@ -211,23 +211,20 @@ def test_a_child_who_finished_everything_still_sees_the_catalogue(feed_db):
 	assert [v.title for v in eligible_feed(feed_db, child, None, 20, 0, video_format="regular")] == ["Only one"]
 
 
-# ---- 7: expired verification has a recovery path ---------------------------------------------------------------
+# ---- 7: verification age no longer hides approved videos -------------------------------------------------------
 
 
-def test_expired_verification_hides_the_video_and_a_recheck_brings_it_back_without_re_approval(api, caplog):
+def test_old_verification_does_not_hide_the_video_and_recheck_refreshes_metadata(api, caplog):
 	http, child, session = api
 	stale = add_youtube(session, title="Stale", duration_seconds=200, verified_hours_ago=300, youtube_id="ttttttttttt")
 
-	with caplog.at_level("INFO", logger="app.services.video_service"):
-		assert titles_of(http.get("/api/v1/videos/feed")) == []
-	record = next(r for r in caplog.records if getattr(r, "event", "") == "videos.feed.empty")
-	assert record.limiting_stage == "youtube_approved_and_fresh", "an expiry-emptied feed is never silent"
+	assert titles_of(http.get("/api/v1/videos/feed")) == ["Stale"]
 
 	counts = recheck(session, FakeYouTube({"ttttttttttt": good_item("ttttttttttt", title="Stale")}), 200)
 
 	assert counts["verified"] == 1
 	session.refresh(stale.review)
-	assert stale.review.status == "approved", "rechecking refreshes the timestamp; it does not re-approve"
+	assert stale.review.status == "approved", "rechecking refreshes verification metadata; it does not re-approve"
 	assert titles_of(http.get("/api/v1/videos/feed")) == ["Stale"]
 
 
@@ -238,8 +235,8 @@ def test_every_video_in_the_feed_can_be_played_and_every_hidden_one_cannot(api):
 	http, child, session = api
 	shown = add_youtube(session, title="Shown", duration_seconds=200).video
 	hidden = [
-		add_youtube(session, title="Stale", verified_hours_ago=300).video,
 		add_youtube(session, title="Pending", status="pending_review", is_published=True).video,
+		add_youtube(session, title="Quarantined", status="quarantined", is_published=True).video,
 		add_youtube(session, title="Teens", age_min=13, age_max=15).video,
 	]
 	assert titles_of(http.get("/api/v1/videos/feed")) == ["Shown"]

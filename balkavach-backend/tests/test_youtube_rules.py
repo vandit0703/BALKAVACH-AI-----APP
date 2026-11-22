@@ -504,7 +504,7 @@ def visible(session, now=None):
 	return {row[0] for row in rows}
 
 
-def test_feed_shows_only_approved_cleared_recently_verified_youtube_videos(stub_db):
+def test_feed_shows_approved_cleared_made_for_kids_youtube_videos_regardless_of_verification_age(stub_db):
 	now = datetime(2026, 10, 23, 12, tzinfo=timezone.utc)
 	fresh = (now - timedelta(hours=1)).replace(tzinfo=None)
 	stale = (now - timedelta(hours=settings.youtube_reverify_hours + 1)).replace(tzinfo=None)
@@ -537,7 +537,7 @@ def test_feed_shows_only_approved_cleared_recently_verified_youtube_videos(stub_
 		)
 	stub_db.add(StubVideo(id="no_review", video_source="youtube"))
 	stub_db.commit()
-	assert visible(stub_db, now) == {"hosted", "approved"}
+	assert visible(stub_db, now) == {"hosted", "approved", "stale", "never_verified"}
 
 
 def test_without_migration_0008_no_youtube_video_is_visible(stub_db, monkeypatch):

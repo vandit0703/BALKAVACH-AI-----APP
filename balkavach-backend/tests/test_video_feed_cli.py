@@ -40,11 +40,11 @@ def feed_titles(session, child):
 	return {v.title for v in eligible_feed(session, child, None, 50, 0, video_format="regular")}
 
 
-def test_the_recheck_job_restores_stale_approved_videos_and_exits_zero(feed_db, factory, monkeypatch, capsys):
+def test_the_recheck_job_refreshes_old_approved_videos_and_exits_zero(feed_db, factory, monkeypatch, capsys):
 	child = make_child(feed_db)
 	add_youtube(feed_db, title="Stale", verified_hours_ago=300, youtube_id="aaaaaaaaaaa")
 	add_youtube(feed_db, title="Older stale", verified_hours_ago=500, youtube_id="bbbbbbbbbbb")
-	assert feed_titles(feed_db, child) == set()
+	assert feed_titles(feed_db, child) == {"Stale", "Older stale"}
 	monkeypatch.setattr(
 		"app.integrations.youtube.get_youtube_client",
 		lambda: FakeYouTube(
@@ -99,7 +99,7 @@ def test_a_missing_api_key_fails_loudly_instead_of_silently_skipping(feed_db, fa
 	assert "youtube_not_configured" in capsys.readouterr().err
 
 
-def test_diagnostics_show_when_recheck_last_ran_and_last_failed(feed_db, factory, monkeypatch):
+def test_diagnostics_show_when_recheck_last_ran_and_old_verification_is_informational(feed_db, factory, monkeypatch):
 	add_youtube(feed_db, verified_hours_ago=300, youtube_id="fffffffffff")
 	before = diagnostics(feed_db)
 	assert before["last_recheck_run"] is None and before["approved_stale"] == 1
@@ -123,7 +123,7 @@ def test_diagnostics_show_when_recheck_last_ran_and_last_failed(feed_db, factory
 
 def test_feed_diagnose_is_read_only_and_names_the_cause(feed_db, factory, capsys):
 	child = make_child(feed_db)
-	add_youtube(feed_db, title="Stale", verified_hours_ago=300)
+	add_youtube(feed_db, title="Not approved", status="pending_review", is_published=True)
 	audit_rows = feed_db.query(AuditLog).count()
 	reviews = [(r.status, r.last_verified_at) for r in feed_db.query(YouTubeContentReview).all()]
 
@@ -131,9 +131,8 @@ def test_feed_diagnose_is_read_only_and_names_the_cause(feed_db, factory, capsys
 
 	report = json.loads(capsys.readouterr().out)
 	assert code == 0
-	assert report["feeds"]["regular"]["limiting_stage"] == "youtube_approved_and_fresh"
-	assert report["youtube"]["approved_stale"] == 1
-	assert any("youtube-recheck" in line for line in report["findings"])
+	assert report["feeds"]["regular"]["limiting_stage"] == "youtube_approved"
+	assert any("not approved, rights-cleared, made for kids" in line for line in report["findings"])
 	assert feed_db.query(AuditLog).count() == audit_rows
 	assert [(r.status, r.last_verified_at) for r in feed_db.query(YouTubeContentReview).all()] == reviews
 
@@ -178,8 +177,9 @@ def test_health_is_ok_when_there_is_nothing_to_verify(feed_db, factory, capsys):
 def test_health_fails_when_approved_videos_are_stale(feed_db, factory, capsys):
 	add_youtube(feed_db, verified_hours_ago=300)
 	code, report = _health(factory, capsys)
+	# Old verification age no longer hides feed videos, but lack of a completed recheck run is still unhealthy.
 	assert code == 3 and report["healthy"] is False
-	assert any("past the 72 h window" in problem for problem in report["problems"])
+	assert any("no completed recheck on record" in problem for problem in report["problems"])
 
 
 def test_health_fails_when_no_recheck_is_on_record_even_if_videos_are_fresh(feed_db, factory, capsys):

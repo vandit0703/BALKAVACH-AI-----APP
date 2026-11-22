@@ -65,8 +65,8 @@ def feed_conditions(
 		("content_rating", Video.content_rating.in_(["general", "educational"])),
 		("language", Video.language_code.in_(languages)),
 		("active_category", or_(Video.category_id.is_(None), VideoCategory.is_active.is_(True))),
-		# YouTube rows must be approved, rights-cleared, made for kids and re-verified recently.
-		("youtube_approved_and_fresh", youtube_visibility_clause(Video)),
+		# YouTube rows must be approved, rights-cleared, and made for kids. Availability is enforced by recheck state.
+		("youtube_approved", youtube_visibility_clause(Video)),
 		(
 			"not_a_duplicate",
 			or_(
@@ -121,7 +121,7 @@ def eligible_feed(
 				"videos.feed.empty event=videos.feed.empty limiting_stage=child_age "
 				"candidate_total=%d after_publication=%d after_moderation=%d "
 				"after_age_language=%d final_returned_count=0 publication_status_counts=%s "
-				"moderation_status_counts=%s youtube_id_counts=%s youtube_freshness_counts=%s stages=%s",
+				"moderation_status_counts=%s youtube_id_counts=%s youtube_verification_counts=%s stages=%s",
 				stages["diagnostic_counts"]["candidate_total"],
 				stages["diagnostic_counts"]["after_publication"],
 				stages["diagnostic_counts"]["after_moderation"],
@@ -129,7 +129,7 @@ def eligible_feed(
 				_count_summary(stages["diagnostic_counts"]["publication_status_counts"]),
 				_count_summary(stages["diagnostic_counts"]["moderation_status_counts"]),
 				_count_summary(stages["diagnostic_counts"]["youtube_id_counts"]),
-				_count_summary(stages["diagnostic_counts"]["youtube_freshness_counts"]),
+				_count_summary(stages["diagnostic_counts"].get("youtube_verification_counts", stages["diagnostic_counts"].get("youtube_freshness_counts", {}))),
 				_stage_summary(stages["stages"]),
 				extra={
 					"event": "videos.feed.empty",
@@ -195,7 +195,7 @@ def eligible_feed(
 			"videos.feed.empty event=videos.feed.empty limiting_stage=%s "
 			"candidate_total=%d after_publication=%d after_moderation=%d "
 			"after_age_language=%d final_returned_count=%d publication_status_counts=%s "
-			"moderation_status_counts=%s youtube_id_counts=%s youtube_freshness_counts=%s stages=%s",
+			"moderation_status_counts=%s youtube_id_counts=%s youtube_verification_counts=%s stages=%s",
 			stages["limiting_stage"],
 			stages["diagnostic_counts"]["candidate_total"],
 			stages["diagnostic_counts"]["after_publication"],
@@ -205,7 +205,7 @@ def eligible_feed(
 			_count_summary(stages["diagnostic_counts"]["publication_status_counts"]),
 			_count_summary(stages["diagnostic_counts"]["moderation_status_counts"]),
 			_count_summary(stages["diagnostic_counts"]["youtube_id_counts"]),
-			_count_summary(stages["diagnostic_counts"]["youtube_freshness_counts"]),
+			_count_summary(stages["diagnostic_counts"].get("youtube_verification_counts", stages["diagnostic_counts"].get("youtube_freshness_counts", {}))),
 			_stage_summary(stages["stages"]),
 			extra={
 				"event": "videos.feed.empty",

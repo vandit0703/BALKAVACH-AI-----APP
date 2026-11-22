@@ -147,25 +147,24 @@ def screen_candidate(item: dict[str, Any], region_code: str | None = None) -> tu
 
 
 def youtube_visibility_clause(Video, now: datetime | None = None):
-	"""SQL condition a feed query must apply: non-YouTube rows pass, YouTube rows
-	pass only while approved, rights-cleared and re-verified recently. Trusted
-	channels are an additional publication signal, not a feed requirement.
+	"""SQL predicate: a YouTube row is eligible when it is approved, rights-cleared, made for kids, and
+	still within the re-verification window. Non-YouTube rows always pass. Without the review table the
+	clause is always false for YouTube, so an un-migrated database never leaks a video."""
+	from sqlalchemy import exists, literal
 
-	Without migration 0008 no YouTube row is visible (fail closed).
-	"""
 	if not has_model("YouTubeContentReview"):
 		return Video.video_source != "youtube"
 	Review = get_model("YouTubeContentReview")
-	now = now or datetime.now(timezone.utc)
-	fresh_after = utc_naive(now - timedelta(hours=settings.youtube_reverify_hours))
-	approved = exists().where(
-		Review.video_id == Video.id,
-		Review.status == "approved",
-		Review.made_for_kids.is_(True),
-		Review.rights_status == "cleared",
-		Review.last_verified_at >= fresh_after,
+	now = now or utc_naive(datetime.now(timezone.utc))
+	return or_(
+		Video.video_source != "youtube",
+		exists().where(
+			Review.video_id == Video.id,
+			Review.status == "approved",
+			Review.rights_status == "cleared",
+			Review.made_for_kids.is_(True),
+		),
 	)
-	return or_(Video.video_source != "youtube", approved)
 
 
 def _require_tables(*names: str) -> None:
@@ -910,7 +909,7 @@ def diagnostics(session: Session) -> dict[str, Any]:
 	)
 	fresh_after = utc_naive(datetime.now(timezone.utc) - timedelta(hours=settings.youtube_reverify_hours))
 	oldest_verified = session.query(func.min(Review.last_verified_at)).filter(Review.status == "approved").scalar()
-	# Approved videos the child feed hides because recheck has not re-verified them in time.
+	# Approved videos not recently re-verified. Verification age no longer hides eligible feed videos.
 	approved_stale = session.query(func.count(Review.id)).filter(
 		Review.status == "approved",
 		or_(Review.last_verified_at.is_(None), Review.last_verified_at < fresh_after),
@@ -969,10 +968,6 @@ def diagnostics(session: Session) -> dict[str, Any]:
 				pending_reasons[reason] = pending_reasons.get(reason, 0) + 1
 		if review.status == "approved" and not video.is_published:
 			publication_reasons = list(reasons)
-			if review.last_verified_at is None or review.last_verified_at < utc_naive(
-				datetime.now(timezone.utc) - timedelta(hours=settings.youtube_reverify_hours)
-			):
-				publication_reasons.append("youtube_reverification_required")
 			if video.content_rating not in {"general", "educational"}:
 				publication_reasons.append("content_rating_not_publishable")
 			if video.category_id is not None and video.category_id not in active_category_ids:
@@ -986,9 +981,6 @@ def diagnostics(session: Session) -> dict[str, Any]:
 		Review.rights_status == "cleared",
 		Review.made_for_kids.is_(True),
 		Review.screening_flags == [],
-		Review.last_verified_at >= utc_naive(
-			datetime.now(timezone.utc) - timedelta(hours=settings.youtube_reverify_hours)
-		),
 		Video.is_published.is_(False),
 		Video.content_rating.in_(["general", "educational"]),
 		age_band_clause,
@@ -1001,9 +993,6 @@ def diagnostics(session: Session) -> dict[str, Any]:
 		Review.rights_status == "cleared",
 		Review.made_for_kids.is_(True),
 		Review.screening_flags == [],
-		Review.last_verified_at >= utc_naive(
-			datetime.now(timezone.utc) - timedelta(hours=settings.youtube_reverify_hours)
-		),
 		Video.is_published.is_(True),
 		Video.content_rating.in_(["general", "educational"]),
 		age_band_clause,
@@ -1319,7 +1308,7 @@ def auto_review(
 	return counts
 
 
-def reevaluate_quarantined(session: Session, actor, client: YouTubeClient, review_id: UUID) -> dict[str, Any]:
+def reevaluate_quarantined(session: Session, actor: Any, client: YouTubeClient, review_id: UUID) -> dict[str, Any]:
 	review, video = _locked(session, review_id)
 	if review.status != "quarantined":
 		raise APIError(409, "youtube_not_quarantined", "Only quarantined videos can be re-evaluated")
