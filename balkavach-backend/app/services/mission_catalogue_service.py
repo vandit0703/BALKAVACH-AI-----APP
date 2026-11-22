@@ -375,11 +375,16 @@ def apply_catalogue(
 	*,
 	publish: bool = False,
 	backfill_structured: bool = False,
+	publish_existing: bool = False,
 ) -> dict[str, Any]:
 	"""Create what is missing. Never updates legacy text and never deletes. The caller commits.
 
 	``backfill_structured`` (explicit, separate from ``publish``): on an existing variation whose text is identical to
-	the catalogue, fill only the structured columns that are still NULL. A variation an admin changed is never touched."""
+	the catalogue, fill only the structured columns that are still NULL. A variation an admin changed is never touched.
+
+	``publish`` publishes only templates this run created. ``publish_existing`` (explicit, separate) also publishes
+	templates that already exist unpublished, but only when every stored variation still equals the catalogue (no admin
+	edit) and the same instruction checks pass; an edited template is reported in ``publish_skipped_conflict``."""
 	problems = validate_catalogue(missions := list(missions))
 	if problems:
 		raise ValueError("catalogue is invalid: " + "; ".join(problems[:5]))
@@ -394,6 +399,8 @@ def apply_catalogue(
 		"structured_fields_backfilled": 0,
 		"published": 0,
 		"publish_blocked": [],
+		"published_existing": 0,
+		"publish_skipped_conflict": [],
 	}
 	has_columns = all(hasattr(Variation, field) for field in STRUCTURED_FIELDS)
 	if backfill_structured and not has_columns:
@@ -401,6 +408,7 @@ def apply_catalogue(
 	for mission in missions:
 		template = session.query(Template).filter(Template.slug == mission["slug"]).one_or_none()
 		created = template is None
+		conflicts_before = len(report["variations_differing"])
 		if created:
 			template = Template(**template_payload(mission), is_published=False)
 			session.add(template)
@@ -426,7 +434,10 @@ def apply_catalogue(
 								setattr(existing, field, payload[field])
 								report["structured_fields_backfilled"] += 1
 		session.flush()
-		if publish and created:
+		edited = len(report["variations_differing"]) > conflicts_before
+		if publish_existing and not created and not template.is_published and edited:
+			report["publish_skipped_conflict"].append(mission["slug"])
+		if (publish and created) or (publish_existing and not created and not template.is_published and not edited):
 			rows = session.query(Variation.age_band, Variation.locale).filter(Variation.template_id == template.id).all()
 			if has_complete_localized_variations(rows):
 				# The same checks as the admin publish endpoint: real steps, materials, a child-facing submission, safety...
@@ -435,7 +446,7 @@ def apply_catalogue(
 					report["publish_blocked"].append({"template": mission["slug"], "problems": sorted({p["code"] for p in problems})})
 				else:
 					template.is_published = True
-					report["published"] += 1
+					report["published" if created else "published_existing"] += 1
 	session.flush()
 	return report
 

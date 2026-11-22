@@ -52,11 +52,14 @@ def _render(fn: str) -> tuple[str, list]:
     return buffer.getvalue(), captured
 
 
-def test_single_head_and_0019_follows_0018():
+def test_single_head_and_0019_sits_between_0018_and_later_work():
     script = _script()
-    assert script.get_heads() == ["0019_mission_instruction_fields"]
+    heads = script.get_heads()
+    assert len(heads) == 1  # one head, however many migrations are added after 0019
     assert script.get_revision("0019_mission_instruction_fields").down_revision == "0018_mission_video_requirements"
     assert script.get_revision("0018_mission_video_requirements").down_revision == "0016_child_video_daily_allowance"
+    ancestors = {r.revision for r in script.walk_revisions(base="base", head=heads[0])}
+    assert "0019_mission_instruction_fields" in ancestors  # 0019 is on the path to the head
 
 
 def test_every_revision_is_reachable_with_one_root_and_fits_version_num():
@@ -71,7 +74,6 @@ def test_every_revision_is_reachable_with_one_root_and_fits_version_num():
 
 def test_the_new_revision_id_fits_a_default_varchar_32_alembic_version_column():
     assert len("0019_mission_instruction_fields") <= 32
-    assert _script().get_heads() == ["0019_mission_instruction_fields"]
 
 
 def test_upgrade_adds_four_nullable_columns_and_nothing_else():

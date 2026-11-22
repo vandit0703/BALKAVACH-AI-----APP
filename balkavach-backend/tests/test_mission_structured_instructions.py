@@ -131,11 +131,10 @@ def test_catalogue_audit_counts_match_the_source_files():
 	assert {loc: sum(c.values()) for loc, c in report["by_locale"].items()} == {"en": 126, "gu": 126, "hi": 126}
 	assert sum(report["classification"].values()) == 378
 	assert report["classification"][INCOMPLETE] == 0 and report["classification"][SAFETY_REVIEW] == 0
-	# Every variation is actionable (real steps), but none has the child-facing "what to submit" text yet: that is an
-	# essential publish blocker, so nothing is COMPLETE or publish-ready until it is authored.
-	assert report["actionable"] == 378 and report["submission_not_clear_to_child"] == 378
-	assert report["publish_ready"] == 0 and report["classification"][NEEDS_IMPROVEMENT] == 378
-	# Enrichment is reported but never decides the class.
+	# Every variation has real steps and its own child-facing "what to submit", so all 378 are publish-ready.
+	assert report["actionable"] == 378 and report["submission_not_clear_to_child"] == 0 and report["publish_ready"] == 378
+	# Only wording-length quality warnings (ages 4-6 steps) keep two rows from COMPLETE; enrichment never decides the class.
+	assert report["classification"][COMPLETE] == 376 and report["classification"][NEEDS_IMPROVEMENT] == 2
 	assert report["enrichment_missing"] == {"learning_objective": 378, "observation_guidance": 378}
 	assert report["needs_native_review"] == 252
 
