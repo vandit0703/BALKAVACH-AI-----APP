@@ -337,6 +337,7 @@ def _youtube_discover(session_factory, max_results: int) -> int:
 					client,
 					YouTubeDiscoverRequest(
 						topic=topic,
+						shorts=(topic == "teen_funny_shorts"),
 						region_code=settings.youtube_region_code,
 						max_results=max_results,
 					),

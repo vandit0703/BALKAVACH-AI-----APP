@@ -254,7 +254,9 @@ def _create_candidate(
 		item = {}
 	snippet = item.get("snippet") or {}
 	duration = parse_iso8601_duration((item.get("contentDetails") or {}).get("duration"))
-	age_band = auto_age_band(trusted_channel) or (4, 12)
+	age_band = auto_age_band(trusted_channel)
+	if age_band is None:
+		age_band = (9, 15) if discovery_topic == "teen_funny_shorts" else (4, 12)
 	status, flags = (
 		("unavailable", ["not_returned"])
 		if not item

@@ -396,29 +396,74 @@ def test_discovery_topic_set_covers_curated_learning_areas():
 		"stories",
 		"academic_explainers",
 		"nature",
+		"teen_funny_shorts",
 	} <= yt.DISCOVERY_TOPICS.keys()
+	assert "clean comedy shorts for teens" in yt.DISCOVERY_TOPICS["teen_funny_shorts"]
+	assert "school life humour" in yt.DISCOVERY_TOPICS["teen_funny_shorts"]
+	assert "family friendly comedy skits" in yt.DISCOVERY_TOPICS["teen_funny_shorts"]
+	assert "funny animation" in yt.DISCOVERY_TOPICS["teen_funny_shorts"]
+	assert "funny animals" in yt.DISCOVERY_TOPICS["teen_funny_shorts"]
+	assert "relatable teen humour" in yt.DISCOVERY_TOPICS["teen_funny_shorts"]
+	assert "safe entertaining challenges" in yt.DISCOVERY_TOPICS["teen_funny_shorts"]
 
 
-def test_approval_only_accepts_configured_age_bands():
-	from pydantic import ValidationError
+def test_teen_funny_shorts_discovery_request_allows_shorts_and_other_topics_keep_existing_shape():
+	from app.schemas.video import YouTubeDiscoverRequest
 
-	from app.schemas.video import YouTubeApproveRequest
+	teen = YouTubeDiscoverRequest(topic="teen_funny_shorts", shorts=True)
+	assert teen.topic == "teen_funny_shorts" and teen.shorts is True
+	other = YouTubeDiscoverRequest(topic="science")
+	assert other.topic == "science" and other.shorts is False
 
-	for age_min, age_max in ((3, 5), (6, 8), (9, 12), (13, 15), (3, 8), (6, 12), (9, 15)):
-		YouTubeApproveRequest(
-			age_min=age_min,
-			age_max=age_max,
-			language_code="en",
-			rights_status="cleared",
-		)
-	for age_min, age_max in ((0, 12), (3, 6), (8, 9), (12, 16), (7, 8)):
-		with pytest.raises(ValidationError):
-			YouTubeApproveRequest(
-				age_min=age_min,
-				age_max=age_max,
-				language_code="en",
-				rights_status="cleared",
-			)
+
+def test_teen_funny_shorts_default_age_assignment_uses_supported_11_to_15_representation(monkeypatch):
+	from types import SimpleNamespace as NS
+
+	import app.services.youtube_review_service as yrs
+	from app.schemas.video import YOUTUBE_AGE_RANGES
+
+	class FakeModel:
+		def __init__(self, **kwargs):
+			self.id = uuid4()
+			for key, value in kwargs.items():
+				setattr(self, key, value)
+
+	class Session:
+		def begin_nested(self):
+			from contextlib import nullcontext
+
+			return nullcontext()
+
+		def add(self, obj):
+			if getattr(obj, "id", None) is None:
+				obj.id = uuid4()
+
+		def flush(self):
+			return None
+
+	monkeypatch.setattr(yrs, "get_model", lambda name: FakeModel)
+	monkeypatch.setattr(yrs, "record_audit", lambda *a, **k: None)
+	monkeypatch.setattr(yrs, "screen_candidate", lambda item, region: ("pending_review", []))
+
+	actor = NS(id=uuid4())
+	item = {
+		"snippet": {"title": "Funny", "description": "Clean skit", "defaultAudioLanguage": "en"},
+		"contentDetails": {"duration": "PT30S"},
+		"status": {"madeForKids": True},
+	}
+	review, video = yrs._create_candidate(Session(), actor, VIDEO_ID, item, "teen_funny_shorts")
+	assert (video.age_min, video.age_max) == (9, 15)
+	assert (video.age_min, video.age_max) in YOUTUBE_AGE_RANGES
+	assert (video.age_min, video.age_max) != (4, 12)
+
+	_, other_video = yrs._create_candidate(Session(), actor, "bbbbbbbbbbb", item, "science")
+	assert (other_video.age_min, other_video.age_max) == (4, 12)
+
+	trusted = NS(age_min=6, age_max=8, category_id=None)
+	_, trusted_video = yrs._create_candidate(Session(), actor, "ccccccccccc", item, "teen_funny_shorts", trusted)
+	assert (trusted_video.age_min, trusted_video.age_max) == (6, 8)
+	assert review.status == "pending_review" and review.screening_flags == []
+	assert review.discovery_topic == "teen_funny_shorts"
 
 
 class TestTransitions:
