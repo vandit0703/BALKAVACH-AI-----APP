@@ -110,8 +110,10 @@ class _StreakCardState extends State<StreakCard>
         setState(() {
           _timerMinutesElapsed++;
           if (_localSecondsRemaining != null) {
-            _localSecondsRemaining =
-                (_localSecondsRemaining! - 60).clamp(0, 999999999);
+            _localSecondsRemaining = (_localSecondsRemaining! - 60).clamp(
+              0,
+              999999999,
+            );
           }
         });
       });
@@ -127,18 +129,18 @@ class _StreakCardState extends State<StreakCard>
   }
 
   String _stateEmoji(String state) => switch (state) {
-        'at_risk' => '⏳',
-        'broken' => '💔',
-        'recovered' || 'active' => '🔥',
-        _ => '🔥',
-      };
+    'at_risk' => '⏳',
+    'broken' => '💔',
+    'recovered' || 'active' => '🔥',
+    _ => '🔥',
+  };
 
   String _stateTitle(AppLocalizations l10n, String state) => switch (state) {
-        'at_risk' => l10n.streakAtRisk,
-        'broken' => l10n.streakBroken,
-        'recovered' => l10n.streakRecovered,
-        'active' || _ => l10n.streakActive,
-      };
+    'at_risk' => l10n.streakAtRisk,
+    'broken' => l10n.streakBroken,
+    'recovered' => l10n.streakRecovered,
+    'active' || _ => l10n.streakActive,
+  };
 
   String _motivationalMessage(AppLocalizations l10n, StreakInfo info) {
     if (info.streakState == 'broken') {
@@ -235,10 +237,7 @@ class _StreakCardState extends State<StreakCard>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          emoji,
-                          style: const TextStyle(fontSize: 16),
-                        ),
+                        Text(emoji, style: const TextStyle(fontSize: 16)),
                         const SizedBox(width: AppSpacing.xs),
                         Text(
                           title,
@@ -303,11 +302,7 @@ class _StreakCardState extends State<StreakCard>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.timer_outlined,
-                        size: 16,
-                        color: colors.error,
-                      ),
+                      Icon(Icons.timer_outlined, size: 16, color: colors.error),
                       const SizedBox(width: AppSpacing.xs),
                       Flexible(
                         child: Text(
@@ -356,10 +351,7 @@ class _StreakCardState extends State<StreakCard>
                         decoration: BoxDecoration(
                           color: colors.surface.withValues(alpha: 0.9),
                           borderRadius: AppRadius.hero,
-                          border: Border.all(
-                            color: colors.primary,
-                            width: 3,
-                          ),
+                          border: Border.all(color: colors.primary, width: 3),
                         ),
                         alignment: Alignment.center,
                         child: Column(
@@ -471,21 +463,17 @@ class _DayDot extends StatelessWidget {
           ),
           child: Center(
             child: isActive
-                ? const Icon(
-                    Icons.check_rounded,
-                    size: 18,
-                    color: Colors.white,
-                  )
+                ? const Icon(Icons.check_rounded, size: 18, color: Colors.white)
                 : (isToday
-                    ? Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: todayOutlineColor,
-                        ),
-                      )
-                    : null),
+                      ? Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: todayOutlineColor,
+                          ),
+                        )
+                      : null),
           ),
         ),
         const SizedBox(height: AppSpacing.xs),
@@ -493,7 +481,9 @@ class _DayDot extends StatelessWidget {
           dayLabel,
           style: context.text.labelSmall?.copyWith(
             fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
-            color: isToday ? todayOutlineColor : context.colors.onSurfaceVariant,
+            color: isToday
+                ? todayOutlineColor
+                : context.colors.onSurfaceVariant,
           ),
         ),
       ],

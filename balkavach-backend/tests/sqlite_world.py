@@ -129,6 +129,11 @@ class DailyMissionVariation(World):
 	safety_instructions: Mapped[str] = mapped_column(String, default="s")
 	completion_criteria: Mapped[str] = mapped_column(String, default="c")
 	variation_key: Mapped[str] = mapped_column(String, default="v1")
+	# Migration 0019 (nullable, additive)
+	learning_objective: Mapped[str | None] = mapped_column(String)
+	steps: Mapped[list | None] = mapped_column(JSON)
+	observation_guidance: Mapped[str | None] = mapped_column(String)
+	submission_requirements: Mapped[str | None] = mapped_column(String)
 
 	__table_args__ = (UniqueConstraint("template_id", "age_band", "locale", "variation_key", name="uq_daily_variation_version"),)
 
@@ -246,12 +251,13 @@ def world_session(monkeypatch) -> Session:
 	import app.services.streak_service as streaks
 	import app.api.v1.daily_missions as missions_api
 	import app.services.mission_catalogue_service as catalogue
+	import app.services.mission_audit_service as audit
 	import app.services.mission_rotation_service as rotation
 	import app.services.password_reset_service as resets
 	import app.services.session_service as sessions
 	import app.services.timezone_service as zones
 
-	for module in (missions, streaks, zones, sessions, resets, catalogue, missions_api, rotation, child_age):
+	for module in (missions, streaks, zones, sessions, resets, catalogue, missions_api, rotation, child_age, audit):
 		monkeypatch.setattr(module, "get_model", _get_model)
 	engine = create_engine("sqlite://")
 	World.metadata.create_all(engine)

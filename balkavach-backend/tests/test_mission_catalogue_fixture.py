@@ -20,5 +20,6 @@ def test_the_fixture_holds_all_126_variations_in_the_api_content_shape():
 	keys = {
 		"title", "description", "instructions", "required_materials", "duration_minutes", "safety_instructions",
 		"completion_criteria", "mission_type", "theme", "star_reward", "xp_reward", "is_surprise", "locale",
+		"learning_objective", "steps", "materials", "observation_guidance", "submission_requirements", "instruction_status",
 	}
 	assert all(set(entry["content"]) == keys for entry in entries)

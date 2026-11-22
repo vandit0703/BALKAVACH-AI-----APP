@@ -46,9 +46,9 @@ void main() {
     for (final channel in pushChannels) {
       expect(fcm, contains('"${channel.id}"'), reason: channel.id);
     }
-    final used = RegExp(r'"(balkavach_[a-z]+)"').allMatches(fcm).map(
-      (m) => m.group(1),
-    );
+    final used = RegExp(
+      r'"(balkavach_[a-z]+)"',
+    ).allMatches(fcm).map((m) => m.group(1));
     expect(pushChannels.map((c) => c.id), containsAll(used.toSet()));
   });
 }

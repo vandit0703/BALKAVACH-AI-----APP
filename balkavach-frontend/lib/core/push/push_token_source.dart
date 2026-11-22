@@ -77,15 +77,14 @@ class FirebasePushTokenSource implements PushTokenSource {
   Stream<String> get onTokenRefresh => _messaging.onTokenRefresh;
 
   @override
-  Stream<void> get onMessage => FirebaseMessaging.onMessage.asyncMap((
-    message,
-  ) async {
-    try {
-      await local?.showForeground(message);
-    } on Object {
-      // The banner is a courtesy; the app still refreshes its data.
-    }
-  });
+  Stream<void> get onMessage =>
+      FirebaseMessaging.onMessage.asyncMap((message) async {
+        try {
+          await local?.showForeground(message);
+        } on Object {
+          // The banner is a courtesy; the app still refreshes its data.
+        }
+      });
 
   @override
   Future<void> deleteToken() async {

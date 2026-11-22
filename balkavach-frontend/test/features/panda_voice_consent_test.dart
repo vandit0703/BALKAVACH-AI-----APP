@@ -63,7 +63,8 @@ Future<Harness> _pump(
   return h;
 }
 
-Finder get _switch => find.byKey(const Key('pandaConsent.switch.${Fx.childId}'));
+Finder get _switch =>
+    find.byKey(const Key('pandaConsent.switch.${Fx.childId}'));
 
 void main() {
   testWidgets('explains the speech service honestly before anything is on', (

@@ -302,17 +302,20 @@ void main() {
       expect(_video().isPlayableInApp, isTrue);
     });
 
-    test('an unmetered curated video never plays in the app (no free time)', () {
-      expect(_video(meteredVideoId: null).isPlayableInApp, isFalse);
-      expect(_video(meteredVideoId: null).playsInApp, isFalse);
-      final youtube = _video(
-        url: 'https://youtu.be/dQw4w9WgXcQ',
-        meteredVideoId: null,
-      );
-      expect(youtube.youtubeVideoId, 'dQw4w9WgXcQ');
-      expect(youtube.isYouTubeEmbeddable, isFalse);
-      expect(youtube.playsInApp, isFalse);
-    });
+    test(
+      'an unmetered curated video never plays in the app (no free time)',
+      () {
+        expect(_video(meteredVideoId: null).isPlayableInApp, isFalse);
+        expect(_video(meteredVideoId: null).playsInApp, isFalse);
+        final youtube = _video(
+          url: 'https://youtu.be/dQw4w9WgXcQ',
+          meteredVideoId: null,
+        );
+        expect(youtube.youtubeVideoId, 'dQw4w9WgXcQ');
+        expect(youtube.isYouTubeEmbeddable, isFalse);
+        expect(youtube.playsInApp, isFalse);
+      },
+    );
 
     test('a curated video reports progress on its metered catalogue video', () {
       final video = PlayableVideo.fromLearning(

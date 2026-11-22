@@ -5,6 +5,8 @@ import pytest
 from app import cli
 from tests.sqlite_world import DailyMissionTemplate, DailyMissionVariation, world_session  # noqa: F401  (fixture)
 
+pytestmark = pytest.mark.usefixtures("standin_submit")  # the catalogue has no child-facing submit text yet (see conftest)
+
 
 class _Factory:
 	"""A session factory whose sessions are the shared test session (so we can inspect what was written)."""

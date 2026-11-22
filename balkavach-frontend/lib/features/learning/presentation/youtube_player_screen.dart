@@ -382,6 +382,7 @@ class _YouTubePlayerScreenState extends ConsumerState<YouTubePlayerScreen>
   /// Progress reports kept failing: the embed is removed (so nothing plays)
   /// until the server answers again. Unverified playback is never free.
   bool _offline = false;
+
   /// The server requires play tickets and this build does not use them
   /// (409 `play_ticket_required`). Set together with [_offline] so every
   /// "stop playback" check applies; there is no retry, only an app update.

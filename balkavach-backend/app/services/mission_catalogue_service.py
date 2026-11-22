@@ -35,6 +35,7 @@ from app.content.daily_missions import (
 from app.db.base import get_model
 from app.schemas.daily_mission import DailyMissionTemplateCreate, DailyMissionVariationCreate
 from app.services.daily_mission_service import THEMES_BY_WEEKDAY, has_complete_localized_variations
+from app.services.mission_instructions import instruction_problems
 from app.services.mission_rotation_service import MIN_ELIGIBLE_PER_THEME
 
 MIN_MINUTES, MAX_MINUTES = 5, 15
@@ -255,8 +256,20 @@ def _validate_text(spot: str, locale: str, mission: dict[str, Any], age_band: st
 		if locale != "en" and not _SCRIPT[locale].search(step):
 			problems.append(f"{spot}: a step has no {locale} script")
 
+	for field in ("submit", "objective", "observe"):  # optional child-facing authored text
+		if field in text:
+			value = str(text[field] or "").strip()
+			if not value:
+				problems.append(f"{spot}: {field} is present but empty")
+			elif locale != "en" and not _SCRIPT[locale].search(value):
+				problems.append(f"{spot}: {field} has no {locale} script")
+			elif field == "submit" and re.match(r"^\s*(the\s+)?(child|student|kid|learner)\b", value, re.IGNORECASE):
+				problems.append(f"{spot}: submit is written about the child; tell the child directly")
+
 	# Children-facing text must not ask for unsafe things, purchases, permissions or pressure.
-	asked = " ".join([*steps, text.get("alt", ""), text.get("show", ""), text.get("parent_check", ""), *text.get("materials", [])])
+	asked = " ".join(
+		[*steps, text.get("alt", ""), text.get("show", ""), text.get("parent_check", ""), text.get("submit", ""), *text.get("materials", [])]
+	)
 	hit = _has(_UNSAFE[locale], asked, regex=locale == "en")
 	if hit:
 		problems.append(f"{spot}: unsafe or restricted term {hit!r} in the activity text")
@@ -280,8 +293,93 @@ def _validate_text(spot: str, locale: str, mission: dict[str, Any], age_band: st
 	return problems
 
 
-def apply_catalogue(session: Session, missions: Iterable[dict[str, Any]] = MISSIONS, *, publish: bool = False) -> dict[str, Any]:
-	"""Create what is missing. Never updates or deletes. The caller commits."""
+STRUCTURED_FIELDS = ("learning_objective", "steps", "observation_guidance", "submission_requirements")
+
+
+def _legacy_differs(existing: Any, payload: dict[str, Any]) -> bool:
+	"""True when a stored variation's pre-0019 text differs from the catalogue (an admin edited it, or the catalogue moved)."""
+	return any(
+		getattr(existing, field) != value
+		for field, value in payload.items()
+		if field != "variation_key" and field not in STRUCTURED_FIELDS
+	)
+
+
+def _find_variation(session: Session, Variation: Any, template_id: Any, age_band: str, locale: str) -> Any:
+	return (
+		session.query(Variation)
+		.filter(
+			Variation.template_id == template_id,
+			Variation.age_band == age_band,
+			Variation.locale == locale,
+			Variation.variation_key == CATALOGUE_VARIATION_KEY,
+		)
+		.one_or_none()
+	)
+
+
+def compare_catalogue(session: Session, missions: Iterable[dict[str, Any]] = MISSIONS) -> dict[str, Any]:
+	"""Read-only: how the database stands against the catalogue. Issues SELECTs only and never flushes.
+
+	``conflicts``: an existing variation whose text differs from the catalogue (left alone by every seeder mode).
+	``backfillable``: an existing variation identical to the catalogue whose structured columns are still empty.
+	``structured_differs``: structured content already stored that differs from the catalogue (admin-authored; left alone)."""
+	Template = get_model("DailyMissionTemplate")
+	Variation = get_model("DailyMissionVariation")
+	has_columns = all(hasattr(Variation, field) for field in STRUCTURED_FIELDS)
+	report: dict[str, Any] = {
+		"structured_columns_present": has_columns,
+		"templates_missing": [],
+		"variations_missing": 0,
+		"variations_identical": 0,
+		"conflicts": [],
+		"backfillable": [],
+		"structured_differs": [],
+		"published_placeholders": [],
+	}
+	for mission in missions:
+		template = session.query(Template).filter(Template.slug == mission["slug"]).one_or_none()
+		if template is None:
+			report["templates_missing"].append(mission["slug"])
+			report["variations_missing"] += len(AGE_BANDS) * len(LOCALES)
+			continue
+		for age_band in AGE_BANDS:
+			for locale in LOCALES:
+				payload = variation_payload(mission, age_band, locale)
+				existing = _find_variation(session, Variation, template.id, age_band, locale)
+				where = f"{mission['slug']}/{age_band}/{locale}"
+				if existing is None:
+					report["variations_missing"] += 1
+				elif _legacy_differs(existing, payload):
+					report["conflicts"].append(where)
+				elif not has_columns:
+					report["backfillable"].append(where)
+				else:
+					stored = {f: getattr(existing, f) for f in STRUCTURED_FIELDS}
+					if any(stored[f] is not None and payload[f] is not None and stored[f] != payload[f] for f in STRUCTURED_FIELDS):
+						report["structured_differs"].append(where)
+					elif any(stored[f] is None and payload[f] is not None for f in STRUCTURED_FIELDS):
+						report["backfillable"].append(where)
+					else:
+						report["variations_identical"] += 1
+	for slug in _PLACEHOLDER_SLUGS:
+		template = session.query(Template).filter(Template.slug == slug).one_or_none()
+		if template is not None and template.is_published:
+			report["published_placeholders"].append(slug)
+	return report
+
+
+def apply_catalogue(
+	session: Session,
+	missions: Iterable[dict[str, Any]] = MISSIONS,
+	*,
+	publish: bool = False,
+	backfill_structured: bool = False,
+) -> dict[str, Any]:
+	"""Create what is missing. Never updates legacy text and never deletes. The caller commits.
+
+	``backfill_structured`` (explicit, separate from ``publish``): on an existing variation whose text is identical to
+	the catalogue, fill only the structured columns that are still NULL. A variation an admin changed is never touched."""
 	problems = validate_catalogue(missions := list(missions))
 	if problems:
 		raise ValueError("catalogue is invalid: " + "; ".join(problems[:5]))
@@ -293,8 +391,13 @@ def apply_catalogue(session: Session, missions: Iterable[dict[str, Any]] = MISSI
 		"variations_created": 0,
 		"variations_existing": 0,
 		"variations_differing": [],
+		"structured_fields_backfilled": 0,
 		"published": 0,
+		"publish_blocked": [],
 	}
+	has_columns = all(hasattr(Variation, field) for field in STRUCTURED_FIELDS)
+	if backfill_structured and not has_columns:
+		raise ValueError("daily_mission_variations has no structured columns: apply migration 0019 first")
 	for mission in missions:
 		template = session.query(Template).filter(Template.slug == mission["slug"]).one_or_none()
 		created = template is None
@@ -308,29 +411,31 @@ def apply_catalogue(session: Session, missions: Iterable[dict[str, Any]] = MISSI
 		for age_band in AGE_BANDS:
 			for locale in LOCALES:
 				payload = variation_payload(mission, age_band, locale)
-				existing = (
-					session.query(Variation)
-					.filter(
-						Variation.template_id == template.id,
-						Variation.age_band == age_band,
-						Variation.locale == locale,
-						Variation.variation_key == CATALOGUE_VARIATION_KEY,
-					)
-					.one_or_none()
-				)
+				existing = _find_variation(session, Variation, template.id, age_band, locale)
 				if existing is None:
-					session.add(Variation(template_id=template.id, **payload))
+					row_values = payload if has_columns else {k: v for k, v in payload.items() if k not in STRUCTURED_FIELDS}
+					session.add(Variation(template_id=template.id, **row_values))
 					report["variations_created"] += 1
 				else:
 					report["variations_existing"] += 1
-					if any(getattr(existing, field) != value for field, value in payload.items() if field != "variation_key"):
+					if _legacy_differs(existing, payload):
 						report["variations_differing"].append(f"{mission['slug']}/{age_band}/{locale}")
+					elif backfill_structured:
+						for field in STRUCTURED_FIELDS:
+							if getattr(existing, field) is None and payload[field] is not None:
+								setattr(existing, field, payload[field])
+								report["structured_fields_backfilled"] += 1
 		session.flush()
 		if publish and created:
 			rows = session.query(Variation.age_band, Variation.locale).filter(Variation.template_id == template.id).all()
 			if has_complete_localized_variations(rows):
-				template.is_published = True
-				report["published"] += 1
+				# The same checks as the admin publish endpoint: real steps, materials, a child-facing submission, safety...
+				problems = instruction_problems(session.query(Variation).filter(Variation.template_id == template.id).all())
+				if problems:
+					report["publish_blocked"].append({"template": mission["slug"], "problems": sorted({p["code"] for p in problems})})
+				else:
+					template.is_published = True
+					report["published"] += 1
 	session.flush()
 	return report
 

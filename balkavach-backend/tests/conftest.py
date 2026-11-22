@@ -90,3 +90,23 @@ def api(isolated_test_session, monkeypatch):
             yield ApiHarness(client, isolated_test_session)
     finally:
         app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.fixture
+def standin_submit(monkeypatch):
+    """Test-only stand-in for the child-facing 'what to submit' text.
+
+    The catalogue authors have not written ``submit`` yet, so the real catalogue is (correctly) not publishable. Tests
+    that exercise rotation, eligibility or publishing need published missions, so they use the real catalogue plus the
+    mission's last step as a stand-in submission. Never used by the audit or seeder-safety tests."""
+    import app.services.mission_catalogue_service as catalogue
+
+    original = catalogue.variation_payload
+
+    def with_submit(mission, age_band, locale):
+        payload = original(mission, age_band, locale)
+        if not payload.get("submission_requirements"):
+            payload["submission_requirements"] = payload["steps"][-1]
+        return payload
+
+    monkeypatch.setattr(catalogue, "variation_payload", with_submit)

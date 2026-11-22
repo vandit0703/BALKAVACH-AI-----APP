@@ -68,10 +68,7 @@ void main() {
   testWidgets('ShieldLogo paints and is labelled only when asked', (
     tester,
   ) async {
-    await _pump(
-      tester,
-      const ShieldLogo(size: 80, semanticLabel: 'BALKAVACH'),
-    );
+    await _pump(tester, const ShieldLogo(size: 80, semanticLabel: 'BALKAVACH'));
     expect(find.bySemanticsLabel('BALKAVACH'), findsOneWidget);
     expect(tester.getSize(find.byType(ShieldLogo)), const Size(80, 80));
   });

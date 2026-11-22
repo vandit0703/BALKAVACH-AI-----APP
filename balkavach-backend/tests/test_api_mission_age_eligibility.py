@@ -1,3 +1,4 @@
+import pytest
 """HTTP-level: a child never gets, opens or completes a daily mission made for another age group.
 
 Isolated PostgreSQL test database only (``TEST_DATABASE_URL``; skipped without it, see ``tests/conftest.py``).
@@ -6,6 +7,8 @@ The same rules are proven on SQLite with the real catalogue in ``tests/test_chil
 
 from datetime import date, timedelta
 
+
+pytestmark = pytest.mark.usefixtures("standin_submit")  # the catalogue has no child-facing submit text yet (see conftest)
 from app.services.mission_catalogue_service import apply_catalogue
 
 

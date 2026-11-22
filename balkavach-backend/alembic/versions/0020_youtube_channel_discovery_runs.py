@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0018_youtube_channel_discovery_runs"
-down_revision = "0019_trusted_channel_upload_discovery"
+revision = "0020_youtube_channel_discovery_runs"
+down_revision = "0019_mission_instruction_fields"
 branch_labels = None
 depends_on = None
 

@@ -586,7 +586,9 @@ def _catalogue_missions():
 	return list(MISSIONS)
 
 
-def _seed_daily_missions(session_factory, *, apply: bool, publish: bool, retire: bool) -> int:
+def _seed_daily_missions(
+	session_factory, *, apply: bool, publish: bool, retire: bool, backfill_structured: bool = False, compare_db: bool = False
+) -> int:
 	"""Validate the localized catalogue and, only with ``apply``, add what is missing (never edits or deletes)."""
 	from app.services.mission_catalogue_service import (
 		apply_catalogue,
@@ -604,12 +606,14 @@ def _seed_daily_missions(session_factory, *, apply: bool, publish: bool, retire:
 		return 1
 	summary = catalogue_summary(missions)
 	print(f"Catalogue valid: {summary['templates']} templates, {summary['variations']} variations (en/gu/hi x 3 age bands).")
+	if compare_db and not apply:
+		return _compare_daily_missions(session_factory, missions)
 	if not apply:
-		print("Dry run: nothing was written. Re-run with --apply to add missing rows (unpublished unless --publish).")
+		print("Dry run: nothing was written (no database was contacted). Add --compare-db for a read-only comparison, or --apply to add missing rows (unpublished unless --publish).")
 		return 0
 	try:
 		with session_factory() as session:
-			report = apply_catalogue(session, missions, publish=publish)
+			report = apply_catalogue(session, missions, publish=publish, backfill_structured=backfill_structured)
 			if retire:
 				retired = retire_placeholders(session)
 				report["unpublished"] = len(retired["unpublished"])
@@ -619,9 +623,62 @@ def _seed_daily_missions(session_factory, *, apply: bool, publish: bool, retire:
 		print("Database operation failed; nothing was committed.", file=sys.stderr)
 		return 2
 	differing = report.pop("variations_differing")
+	blocked = report.pop("publish_blocked", [])
+	if blocked:
+		print(f"{len(blocked)} template(s) NOT published (instruction checks failed), e.g. {blocked[0]['template']}: {', '.join(blocked[0]['problems'])}")
 	print(", ".join(f"{key}={value}" for key, value in report.items()))
 	if differing:
 		print(f"{len(differing)} existing variations differ from the catalogue and were left unchanged: {', '.join(differing[:5])}")
+	return 0
+
+
+def _compare_daily_missions(session_factory, missions) -> int:
+	"""Read-only: SELECTs only, then rollback. Reports conflicts, backfillable rows and published placeholders."""
+	from app.services.mission_catalogue_service import compare_catalogue
+
+	try:
+		with session_factory() as session:
+			try:
+				report = compare_catalogue(session, missions)
+			finally:
+				session.rollback()
+	except SQLAlchemyError:
+		print("Database read failed.", file=sys.stderr)
+		return 2
+	print(
+		f"structured_columns_present={report['structured_columns_present']}, templates_missing={len(report['templates_missing'])}, "
+		f"variations_missing={report['variations_missing']}, identical={report['variations_identical']}, "
+		f"backfillable={len(report['backfillable'])}, conflicts={len(report['conflicts'])}, "
+		f"structured_differs={len(report['structured_differs'])}, published_placeholders={len(report['published_placeholders'])}"
+	)
+	for key in ("conflicts", "structured_differs", "published_placeholders"):
+		if report[key]:
+			print(f"{key}: {', '.join(report[key][:8])}{' ...' if len(report[key]) > 8 else ''}")
+	return 0
+
+
+def _audit_daily_missions(session_factory, *, database: bool, as_json: bool) -> int:
+	"""Read-only quality audit of the catalogue source and, with --database, of the stored variations."""
+	import json
+
+	from app.services.mission_audit_service import audit_catalogue, audit_database, format_report
+
+	if database:
+		try:
+			with session_factory() as session:
+				try:
+					report = audit_database(session)
+				finally:
+					session.rollback()
+		except SQLAlchemyError:
+			print("Database read failed.", file=sys.stderr)
+			return 2
+	else:
+		report = audit_catalogue(_catalogue_missions())
+	if as_json:
+		print(json.dumps({k: v for k, v in report.items() if k != "rows"} | {"rows": report["rows"]}, ensure_ascii=False, indent=1))
+	else:
+		print(format_report(report))
 	return 0
 
 
@@ -680,7 +737,33 @@ def main(argv: list[str] | None = None) -> int:
 		action="store_true",
 		help="Unpublish the original placeholder templates that were never edited (needs --apply; deletes nothing)",
 	)
+	seed.add_argument(
+		"--backfill-structured",
+		action="store_true",
+		help="On existing variations identical to the catalogue, fill only still-empty structured columns (needs --apply and migration 0019)",
+	)
+	seed.add_argument(
+		"--compare-db",
+		action="store_true",
+		help="Dry run that also reads the configured database (SELECT only) and reports conflicts; cannot be combined with --apply",
+	)
+	audit = commands.add_parser(
+		"audit-daily-missions",
+		help="Read-only: classify every mission variation COMPLETE / NEEDS IMPROVEMENT / INCOMPLETE / SAFETY REVIEW",
+	)
+	audit.add_argument("--database", action="store_true", help="Audit the stored rows (SELECT only) instead of the catalogue source")
+	audit.add_argument("--json", action="store_true", help="Print the full per-variation report as JSON")
 	args = parser.parse_args(argv)
+
+	if args.command == "audit-daily-missions":
+		factory = None
+		if args.database:
+			from app.db.session import SessionLocal as factory
+
+			if factory is None:
+				print("DATABASE_URL is not configured", file=sys.stderr)
+				return 2
+		return _audit_daily_missions(factory, database=args.database, as_json=args.json)
 
 	if args.command == "daily-missions-notify":
 		from app.db.session import SessionLocal as notify_factory
@@ -691,17 +774,24 @@ def main(argv: list[str] | None = None) -> int:
 		return _daily_missions_notify(notify_factory, from_hour=args.from_hour, to_hour=args.to_hour)
 
 	if args.command == "seed-daily-missions":
-		if (args.publish or args.retire_placeholders) and not args.apply:
-			parser.error("--publish and --retire-placeholders need --apply")
+		if (args.publish or args.retire_placeholders or args.backfill_structured) and not args.apply:
+			parser.error("--publish, --retire-placeholders and --backfill-structured need --apply")
+		if args.compare_db and args.apply:
+			parser.error("--compare-db is read-only and cannot be combined with --apply")
 		factory = None
-		if args.apply:
+		if args.apply or args.compare_db:
 			from app.db.session import SessionLocal as factory
 
 			if factory is None:
 				print("DATABASE_URL is not configured", file=sys.stderr)
 				return 2
 		return _seed_daily_missions(
-			factory, apply=args.apply, publish=args.publish, retire=args.retire_placeholders
+			factory,
+			apply=args.apply,
+			publish=args.publish,
+			retire=args.retire_placeholders,
+			backfill_structured=args.backfill_structured,
+			compare_db=args.compare_db,
 		)
 
 	from app.db.session import SessionLocal

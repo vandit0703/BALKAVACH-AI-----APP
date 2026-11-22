@@ -77,7 +77,9 @@ Future<void> _loadFonts() async {
     final loader = FontLoader(family);
     for (final f in files) {
       loader.addFont(
-        Future.value(ByteData.sublistView(File('assets/fonts/$f').readAsBytesSync())),
+        Future.value(
+          ByteData.sublistView(File('assets/fonts/$f').readAsBytesSync()),
+        ),
       );
     }
     await loader.load();
@@ -158,50 +160,54 @@ Future<Harness> _scenario({required bool withData}) async {
       _cat(_catHelp, 'Help', 'volunteer'),
       _cat(_catCreate, 'Create', 'palette'),
     ])
-    ..reply('GET', '/api/v1/tasks', _standard([
-      Fx.task(
-        id: _t(1),
-        title: 'Read a Storybook',
-        description:
-            'Read one story and tell us your favourite part.\n\n'
-            '1. Pick a storybook you like.\n'
-            '2. Read it out loud, or with a grown-up.\n'
-            '3. Draw your favourite part.\n'
-            'Another way: listen to the story and say your favourite part.\n\n'
-            'A drawing of the favourite part.\n'
-            'Parent check: ask why that part was the best.',
-        categoryId: _catLearn,
-        stars: 10,
-      ),
-      Fx.task(
-        id: _t(2),
-        title: 'Play Outdoors or Yoga',
-        description: 'Move your body for ten minutes outside.',
-        categoryId: _catMove,
-        stars: 10,
-      ),
-      Fx.task(
-        id: _t(3),
-        title: 'Help Clean Your Study Table',
-        description: 'Tidy up the books and wipe the desk.',
-        categoryId: _catHelp,
-        stars: 10,
-      ),
-      Fx.task(
-        id: _t(4),
-        title: 'Draw Something Creative',
-        description: 'Draw anything you like and show a grown-up.',
-        categoryId: _catCreate,
-        stars: 10,
-      ),
-      Fx.task(
-        id: _t(5),
-        title: 'Water the Plants',
-        description: 'Give each plant a little water.',
-        categoryId: _catHelp,
-        stars: 10,
-      ),
-    ]))
+    ..reply(
+      'GET',
+      '/api/v1/tasks',
+      _standard([
+        Fx.task(
+          id: _t(1),
+          title: 'Read a Storybook',
+          description:
+              'Read one story and tell us your favourite part.\n\n'
+              '1. Pick a storybook you like.\n'
+              '2. Read it out loud, or with a grown-up.\n'
+              '3. Draw your favourite part.\n'
+              'Another way: listen to the story and say your favourite part.\n\n'
+              'A drawing of the favourite part.\n'
+              'Parent check: ask why that part was the best.',
+          categoryId: _catLearn,
+          stars: 10,
+        ),
+        Fx.task(
+          id: _t(2),
+          title: 'Play Outdoors or Yoga',
+          description: 'Move your body for ten minutes outside.',
+          categoryId: _catMove,
+          stars: 10,
+        ),
+        Fx.task(
+          id: _t(3),
+          title: 'Help Clean Your Study Table',
+          description: 'Tidy up the books and wipe the desk.',
+          categoryId: _catHelp,
+          stars: 10,
+        ),
+        Fx.task(
+          id: _t(4),
+          title: 'Draw Something Creative',
+          description: 'Draw anything you like and show a grown-up.',
+          categoryId: _catCreate,
+          stars: 10,
+        ),
+        Fx.task(
+          id: _t(5),
+          title: 'Water the Plants',
+          description: 'Give each plant a little water.',
+          categoryId: _catHelp,
+          stars: 10,
+        ),
+      ]),
+    )
     ..reply('GET', '/api/v1/tasks/submissions/mine', [
       {
         ...Fx.submission(
@@ -227,13 +233,18 @@ Future<Harness> _scenario({required bool withData}) async {
       'GET',
       '/api/v1/progress/children/${Fx.childId}',
       Fx.progress(
-        activityDays: [Fx.activityDay('2026-10-12', tasks: 1, stars: 10, xp: 15)],
+        activityDays: [
+          Fx.activityDay('2026-10-12', tasks: 1, stars: 10, xp: 15),
+        ],
       ),
     )
     ..reply('GET', '/api/v1/daily-missions/unfinished', [
       _assignment(
         '99999999-9999-4999-8999-0000000000a1',
-        _content('Sound Map Mystery', 'Listen in two places and draw a sound map.'),
+        _content(
+          'Sound Map Mystery',
+          'Listen in two places and draw a sound map.',
+        ),
         status: 'rejected',
         taskId: _t(2),
         date: '2026-10-10',
@@ -301,10 +312,7 @@ void main() {
     await pumpScreen(
       tester,
       const RepaintBoundary(
-        child: ChildShell(
-          location: '/child/missions',
-          child: MissionsScreen(),
-        ),
+        child: ChildShell(location: '/child/missions', child: MissionsScreen()),
       ),
       overrides: h.overrides,
       size: size,
@@ -365,9 +373,18 @@ void main() {
   }
 
   testWidgets('detail new', (t) async => detail(t, 'detail_new', _t(1)));
-  testWidgets('detail pending', (t) async => detail(t, 'detail_pending', _t(3)));
-  testWidgets('detail approved', (t) async => detail(t, 'detail_approved', _t(5)));
-  testWidgets('detail rejected', (t) async => detail(t, 'detail_rejected', _t(2)));
+  testWidgets(
+    'detail pending',
+    (t) async => detail(t, 'detail_pending', _t(3)),
+  );
+  testWidgets(
+    'detail approved',
+    (t) async => detail(t, 'detail_approved', _t(5)),
+  );
+  testWidgets(
+    'detail rejected',
+    (t) async => detail(t, 'detail_rejected', _t(2)),
+  );
 }
 
 /// Tasks as the backend now serves them: every mission pays 10 stars / 15 XP.

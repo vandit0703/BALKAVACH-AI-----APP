@@ -9,14 +9,59 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/async/refresh_quietly.dart';
 import '../../../shared/models/app_assets.dart';
+import '../../../shared/platform/text_sharer.dart';
 import '../../../shared/widgets/adaptive_wrap.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/gamification.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../../authentication/presentation/session_controller.dart';
 import '../../missions/presentation/mission_providers.dart';
 import '../../progress/data/progress_repository.dart';
 import '../data/rewards_repository.dart';
+
+Future<void> _shareProgress(
+  BuildContext context,
+  WidgetRef ref,
+  ChildProgress progress,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final session = ref.read(sessionControllerProvider).value;
+  final name = session?.user.fullName.trim() ?? '';
+  final displayName = name.isNotEmpty ? name : 'Champion';
+
+  final subject = l10n.rewardsShareSubject(displayName);
+  final text = l10n.rewardsShareText(
+    displayName,
+    progress.starBalance,
+    progress.currentStreak,
+    progress.badges.length,
+  );
+
+  final opened = await ref
+      .read(textSharerProvider)
+      .share(text, subject: subject);
+  if (opened || !context.mounted) return;
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(l10n.reportsShareFailed)));
+}
+
+Future<void> _shareBadge(
+  BuildContext context,
+  WidgetRef ref,
+  EarnedBadge badge,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final text = l10n.rewardsShareBadgeText(badge.name);
+  final opened = await ref
+      .read(textSharerProvider)
+      .share(text, subject: l10n.rewardsShareAction);
+  if (opened || !context.mounted) return;
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(l10n.reportsShareFailed)));
+}
 
 /// Child Rewards & Achievements (Stitch `child_rewards_achievements`).
 ///
@@ -66,13 +111,13 @@ class RewardsScreen extends ConsumerWidget {
   }
 }
 
-class _VaultCard extends StatelessWidget {
+class _VaultCard extends ConsumerWidget {
   const _VaultCard({required this.progress});
 
   final ChildProgress progress;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final colors = context.colors;
     final dpr = MediaQuery.devicePixelRatioOf(context);
@@ -91,14 +136,45 @@ class _VaultCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: AppSpacing.md,
         children: [
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: EyebrowPill(
-              icon: Icons.stars_rounded,
-              label: l10n.rewardsVault,
-              background: onVault.withValues(alpha: 0.18),
-              foreground: onVault,
-            ),
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            children: [
+              EyebrowPill(
+                icon: Icons.stars_rounded,
+                label: l10n.rewardsVault,
+                background: onVault.withValues(alpha: 0.18),
+                foreground: onVault,
+              ),
+              Consumer(
+                builder: (context, ref, _) => FilledButton.icon(
+                  key: const Key('rewards.share'),
+                  onPressed: () => _shareProgress(context, ref, progress),
+                  icon: const Icon(Icons.share_rounded, size: 18),
+                  label: Text(l10n.rewardsShareAction),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: colors.primary,
+                    minimumSize: const Size(48, 48),
+                    tapTargetSize: MaterialTapTargetSize.padded,
+                    textStyle: context.text.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                    elevation: 1,
+                  ),
+                ),
+              ),
+            ],
           ),
           Row(
             children: [
@@ -670,11 +746,25 @@ class BadgeTile extends StatelessWidget {
         children: [
           PositionedDirectional(
             top: 0,
-            end: 0,
+            start: 0,
             child: Icon(Icons.verified_rounded, color: accent, size: 18),
+          ),
+          // Share button top-right
+          PositionedDirectional(
+            top: -4,
+            end: -4,
+            child: Consumer(
+              builder: (context, ref, _) => IconButton(
+                icon: Icon(Icons.share_rounded, size: 20, color: accent),
+                tooltip: l10n.rewardsShareAction,
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                onPressed: () => _shareBadge(context, ref, badge),
+              ),
+            ),
           ),
           Column(
             children: [
+              const SizedBox(height: 4),
               CircleAvatar(
                 radius: 28,
                 backgroundColor: tint,

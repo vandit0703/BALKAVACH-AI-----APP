@@ -176,6 +176,16 @@
   "missionDue": "છેલ્લી તારીખ {date}",
   "missionDetailTitle": "મિશનની વિગતો",
   "missionWhatToDo": "શું કરવાનું છે",
+  "missionGuideLearn": "તમે શું શીખશો",
+  "missionGuideNeed": "તમને શું જોઈશે",
+  "missionGuideTime": "કેટલો સમય લાગશે",
+  "missionGuideTimeValue": "લગભગ {minutes} મિનિટ",
+  "missionGuideSteps": "પગલાં",
+  "missionGuideObserve": "શું જોવાનું છે",
+  "missionGuideSubmit": "શું જમા કરવાનું છે",
+  "missionGuideSafety": "સલામતી",
+  "missionGuideIncompleteTitle": "આ મિશનની સૂચનાઓ હજી તૈયાર નથી",
+  "missionGuideIncompleteBody": "કોઈ ભરોસાપાત્ર મોટા સાથે મળીને જુઓ, અથવા બીજું મિશન પસંદ કરો.",
   "missionNoDescription": "માતા-પિતાએ વધારાનાં પગલાં ઉમેર્યાં નથી. તમારું શ્રેષ્ઠ કરો અને તેમને જણાવો!",
   "missionEarn": "આ મિશન પૂરું કરીને {stars} સ્ટાર કમાઓ.",
   "missionWaitingButton": "મંજૂરીની રાહ",
@@ -275,7 +285,7 @@
   "reportsVerifiedBody": "બધા આંકડા ફક્ત માતા-પિતાએ મંજૂર કરેલા મિશન પર આધારિત છે.",
   "reportsCopySummary": "સાપ્તાહિક સારાંશ કૉપિ કરો",
   "reportsSummaryCopied": "સાપ્તાહિક સારાંશ કૉપિ થયો",
-  "reportsSummaryText": "{name}, {range}: {missions} મિશન મંજૂર, {stars} સ્ટાર અને {xp} XP મેળવ્યા, {streak} દિવસની સ્ટ્રીક.",
+  "reportsSummaryText": "🌟 *BALKAVACH સાપ્તાહિક પ્રગતિ અહેવાલ* 🌟\n👤 *બાળક:* {name}\n📅 *સમયગાળો:* {range}\n\n━━━━━━━━━━━━━━━━━━━━━\n✅ *આ સપ્તાહની સિદ્ધિઓ:*\n• {missions} મિશન મંજૂર\n• {stars} સ્ટાર અને {xp} XP મેળવ્યા\n• {streak} દિવસની સ્ટ્રીક!\n━━━━━━━━━━━━━━━━━━━━━\n\n🛡️ સુરક્ષિત બાળપણ, સ્માર્ટ ભવિષ્ય - BALKAVACH",
   "badgesTitle": "બેજ અને ટ્રોફી",
   "badgesUnlocked": "{count} ખુલ્યા",
   "badgesEmpty": "પહેલો બેજ ખોલવા માટે મિશન પૂરા કરો!",
@@ -476,6 +486,28 @@
   "reportsPendingNote": "{count, plural, =1{1 મિશન તમારી સમીક્ષાની રાહ જોઈ રહ્યું છે} other{{count} મિશન તમારી સમીક્ષાની રાહ જોઈ રહ્યા છે}}",
   "reportsRetryNote": "{count, plural, =1{1 મિશન ફરી કરવાનું છે} other{{count} મિશન ફરી કરવાના છે}}",
   "reportsTimezoneNote": "દિવસો {zone} સમય મુજબ છે.",
+  "rewardsShareAction": "શેર કરો",
+  "rewardsShareSubject": "{name} નો BALKAVACH સિદ્ધિ અહેવાલ ⭐",
+  "@rewardsShareSubject": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "rewardsShareText": "🌟 *{name} BALKAVACH પર ઉત્કૃષ્ટ કામ કરી રહ્યા છે!*\n\n━━━━━━━━━━━━━━━━━━━━━\n⭐  *તારા:*  {stars} તારા\n🔥  *સ્ટ્રીક:*  {streak} દિવસ સળંગ!\n🏆  *બેજ:*  {badges} સિદ્ધિ મળી\n━━━━━━━━━━━━━━━━━━━━━\n\n{name} BALKAVACH પર શીખી રહ્યા છે અને ઇનામ કમાઈ રહ્યા છે! 📚✨",
+  "@rewardsShareText": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "stars": { "type": "int" },
+      "streak": { "type": "int" },
+      "badges": { "type": "int" }
+    }
+  },
+  "rewardsShareBadgeText": "🏆 *BALKAVACH પર સિદ્ધિ મળી!*\n\n🎖️  *\"{badge}\"*\n\nમેં BALKAVACH પર આ બેજ કમાયો! 📚⭐",
+  "@rewardsShareBadgeText": {
+    "placeholders": {
+      "badge": { "type": "String" }
+    }
+  },
   "reportsShare": "પ્રગતિ શેર કરો",
   "reportsShareSubject": "{name} ની સાપ્તાહિક પ્રગતિ",
   "reportsShareFailed": "શેર ખુલી શક્યું નહીં. તેના બદલે કૉપિ કરી જુઓ.",

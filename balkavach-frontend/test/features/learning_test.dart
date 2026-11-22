@@ -296,10 +296,7 @@ void main() {
       await pump(tester, _item(type: 'video', url: null, metered: 'cat-1'));
       expect(find.byKey(const Key('learn.play')), findsNothing);
       expect(find.byKey(const Key('learn.open')), findsNothing);
-      expect(
-        find.textContaining('used today’s video time'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('used today’s video time'), findsOneWidget);
     });
 
     testWidgets('an insecure link is never offered', (tester) async {

@@ -28,27 +28,25 @@ class StreakScreen extends ConsumerWidget {
     final today = ref.watch(clockProvider)();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.streakTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.streakTitle)),
       body: switch ((streakAsync, progressAsync)) {
         (AsyncError(:final error), _) => ErrorView(
-            error: error,
-            onRetry: () {
-              ref.invalidate(streakInfoProvider(childId));
-              ref.invalidate(childProgressProvider(childId));
-            },
-          ),
+          error: error,
+          onRetry: () {
+            ref.invalidate(streakInfoProvider(childId));
+            ref.invalidate(childProgressProvider(childId));
+          },
+        ),
         (_, AsyncError(:final error)) => ErrorView(
-            error: error,
-            onRetry: () {
-              ref.invalidate(streakInfoProvider(childId));
-              ref.invalidate(childProgressProvider(childId));
-            },
-          ),
+          error: error,
+          onRetry: () {
+            ref.invalidate(streakInfoProvider(childId));
+            ref.invalidate(childProgressProvider(childId));
+          },
+        ),
         (
           AsyncData(value: final StreakInfo streak),
-          AsyncData(value: final ChildProgress progress)
+          AsyncData(value: final ChildProgress progress),
         ) =>
           RefreshIndicator(
             onRefresh: () async {
@@ -156,15 +154,17 @@ class _StreakWeeklyActivityCard extends StatelessWidget {
                           child: FractionallySizedBox(
                             heightFactor: maxCount == 0
                                 ? 0.08
-                                : (day.completedTasks / maxCount)
-                                    .clamp(0.08, 1.0),
+                                : (day.completedTasks / maxCount).clamp(
+                                    0.08,
+                                    1.0,
+                                  ),
                             child: DecoratedBox(
                               decoration: BoxDecoration(
                                 color: day == best
                                     ? colors.secondary
                                     : (day.completedTasks > 0
-                                        ? colors.primary
-                                        : colors.surfaceContainerHigh),
+                                          ? colors.primary
+                                          : colors.surfaceContainerHigh),
                                 borderRadius: BorderRadius.circular(
                                   AppRadius.pill,
                                 ),

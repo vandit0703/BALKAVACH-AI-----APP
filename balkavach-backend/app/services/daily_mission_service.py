@@ -16,6 +16,7 @@ from app.services.child_age import (
     child_age_band_or_none,
     ensure_assignment_eligible,
 )
+from app.services.mission_instructions import instruction_status, structured_content
 from app.services.mission_rewards import MISSION_STAR_REWARD, MISSION_XP_REWARD
 from app.services.mission_rotation_service import POLICY, Candidate, load_child_history, rank_candidates
 from app.services.mission_titles import child_facing_title
@@ -64,6 +65,11 @@ def _snapshot(template, variation) -> dict[str, Any]:
         "is_surprise": bool(template.is_surprise),
         "mystery_bonus": template.mystery_bonus,
         "locale": variation.locale,
+        # Structured instructions. getattr: the columns exist only after migration 0019 is applied.
+        "learning_objective": getattr(variation, "learning_objective", None),
+        "steps": getattr(variation, "steps", None),
+        "observation_guidance": getattr(variation, "observation_guidance", None),
+        "submission_requirements": getattr(variation, "submission_requirements", None),
     }
 
 
@@ -80,6 +86,15 @@ def public_assignment(row) -> dict[str, Any]:
         # with (history is shown as recorded).
         content["star_reward"] = MISSION_STAR_REWARD
         content["xp_reward"] = MISSION_XP_REWARD
+    structured = structured_content(content)  # old snapshots: steps are extracted from the numbered lines
+    content.update(
+        learning_objective=structured["learning_objective"],
+        steps=structured["steps"],
+        materials=structured["materials"],
+        observation_guidance=structured["observation_guidance"],
+        submission_requirements=structured["submission_requirements"],
+        instruction_status=instruction_status(structured),
+    )
     return {
         "id": row.id,
         "local_date": row.local_date,

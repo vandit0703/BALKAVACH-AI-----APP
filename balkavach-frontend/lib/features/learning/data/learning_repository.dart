@@ -140,10 +140,7 @@ class LearningItem {
   /// Today the server meters only YouTube links (through a catalogue video),
   /// so this is false in practice: unmetered video would be free video time.
   bool get isPlayableInApp =>
-      _isFreeCuratedVideo &&
-      isMetered &&
-      openableUri != null &&
-      !isYouTubeLink;
+      _isFreeCuratedVideo && isMetered && openableUri != null && !isYouTubeLink;
 
   /// Whether this item is a curated YouTube video the official embedded
   /// player can show inside the app. Only metered items qualify.

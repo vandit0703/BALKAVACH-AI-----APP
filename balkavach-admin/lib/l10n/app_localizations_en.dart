@@ -770,6 +770,132 @@ class AppLocalizationsEn extends AppLocalizations {
       'Preview (what the child and the reviewing parent see)';
 
   @override
+  String get missionEditEdit => 'Edit this version';
+
+  @override
+  String get missionEditTitle => 'Edit mission version';
+
+  @override
+  String get missionEditObjective => 'What the child will learn';
+
+  @override
+  String get missionEditSteps => 'Steps';
+
+  @override
+  String get missionEditAddStep => 'Add step';
+
+  @override
+  String missionEditStepN(int number) {
+    return 'Step $number';
+  }
+
+  @override
+  String get missionEditMoveUp => 'Move up';
+
+  @override
+  String get missionEditMoveDown => 'Move down';
+
+  @override
+  String get missionEditRemove => 'Remove';
+
+  @override
+  String get missionEditMaterials => 'Materials';
+
+  @override
+  String get missionEditAddMaterial => 'Add material';
+
+  @override
+  String get missionEditNothingNeeded => 'Nothing needed';
+
+  @override
+  String get missionEditMinutes => 'Minutes';
+
+  @override
+  String get missionEditObserve => 'What to observe';
+
+  @override
+  String get missionEditSubmit => 'What the child must submit';
+
+  @override
+  String get missionEditSafety => 'Safety guidance';
+
+  @override
+  String get missionEditCompletion =>
+      'Completion criteria (what the reviewer checks)';
+
+  @override
+  String get missionEditCheck => 'Check and preview';
+
+  @override
+  String get missionEditPreview => 'What the child will see';
+
+  @override
+  String get missionEditErrors => 'Fix before publishing';
+
+  @override
+  String get missionEditWarnings => 'Could be better';
+
+  @override
+  String get missionEditReady => 'This version can be published.';
+
+  @override
+  String get missionEditUnpublishNote =>
+      'Saving unpublishes this mission until you publish it again.';
+
+  @override
+  String get missionEditSave => 'Save';
+
+  @override
+  String get missionEditSaved => 'Saved';
+
+  @override
+  String get missionPublishBlockedTitle => 'Publishing blocked';
+
+  @override
+  String get errorTemplateInstructionsIncomplete =>
+      'This mission cannot be published yet: some versions have no real steps or no submission requirement. Open View versions to see what to fix.';
+
+  @override
+  String get errorPublishedEditInvalid =>
+      'This edit would leave a published mission incomplete, so it was not saved. Fix the problems below, or unpublish the mission first.';
+
+  @override
+  String get missionIssueStepsMissing => 'No numbered steps';
+
+  @override
+  String get missionIssueStepsTooFew => 'At least two steps are needed';
+
+  @override
+  String get missionIssueStepsMalformed => 'A step is empty';
+
+  @override
+  String get missionIssuePlaceholder =>
+      'Generic placeholder text, not real instructions';
+
+  @override
+  String get missionIssueMaterials =>
+      'Materials not stated (write “Nothing needed” if none)';
+
+  @override
+  String get missionIssueSubmission => 'What to submit is missing';
+
+  @override
+  String get missionIssueSafety => 'Safety guidance is missing';
+
+  @override
+  String get missionIssueCompletion => 'Completion criteria are missing';
+
+  @override
+  String get missionIssueBandsIdentical =>
+      'Two age groups share the same steps';
+
+  @override
+  String get missionIssueObjective => 'No “what you will learn” sentence';
+
+  @override
+  String get missionIssueObservation => 'No “what to observe” guidance';
+
+  @override
   String get missionCatalogVersionMissing => 'Missing';
 
   @override

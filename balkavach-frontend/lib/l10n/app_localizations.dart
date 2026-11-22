@@ -1156,6 +1156,66 @@ abstract class AppLocalizations {
   /// **'What to do'**
   String get missionWhatToDo;
 
+  /// No description provided for @missionGuideLearn.
+  ///
+  /// In en, this message translates to:
+  /// **'What you will learn'**
+  String get missionGuideLearn;
+
+  /// No description provided for @missionGuideNeed.
+  ///
+  /// In en, this message translates to:
+  /// **'What you need'**
+  String get missionGuideNeed;
+
+  /// No description provided for @missionGuideTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time needed'**
+  String get missionGuideTime;
+
+  /// No description provided for @missionGuideTimeValue.
+  ///
+  /// In en, this message translates to:
+  /// **'About {minutes} minutes'**
+  String missionGuideTimeValue(int minutes);
+
+  /// No description provided for @missionGuideSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'Steps'**
+  String get missionGuideSteps;
+
+  /// No description provided for @missionGuideObserve.
+  ///
+  /// In en, this message translates to:
+  /// **'What to observe'**
+  String get missionGuideObserve;
+
+  /// No description provided for @missionGuideSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'What to submit'**
+  String get missionGuideSubmit;
+
+  /// No description provided for @missionGuideSafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety'**
+  String get missionGuideSafety;
+
+  /// No description provided for @missionGuideIncompleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'These instructions are not ready yet'**
+  String get missionGuideIncompleteTitle;
+
+  /// No description provided for @missionGuideIncompleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a trusted grown-up to look at this mission with you, or choose a different mission.'**
+  String get missionGuideIncompleteBody;
+
   /// No description provided for @missionNoDescription.
   ///
   /// In en, this message translates to:
@@ -1758,7 +1818,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsSummaryText.
   ///
   /// In en, this message translates to:
-  /// **'{name}, {range}: {missions} missions approved, {stars} stars and {xp} XP earned, {streak}-day streak.'**
+  /// **'🌟 *BALKAVACH Weekly Progress Report* 🌟\n👤 *Child:* {name}\n📅 *Period:* {range}\n\n━━━━━━━━━━━━━━━━━━━━━\n✅ *Achievements This Week:*\n• {missions} missions approved\n• {stars} stars and {xp} XP earned\n• {streak}-day streak maintained!\n━━━━━━━━━━━━━━━━━━━━━\n\n🛡️ Safe childhood, smart digital future with BALKAVACH.'**
   String reportsSummaryText(
     String name,
     String range,
@@ -2949,6 +3009,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Days follow {zone} time.'**
   String reportsTimezoneNote(String zone);
+
+  /// No description provided for @rewardsShareAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get rewardsShareAction;
+
+  /// No description provided for @rewardsShareSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s BALKAVACH Achievement Report ⭐'**
+  String rewardsShareSubject(String name);
+
+  /// No description provided for @rewardsShareText.
+  ///
+  /// In en, this message translates to:
+  /// **'🌟 *{name} is thriving on BALKAVACH!*\n\n━━━━━━━━━━━━━━━━━━━━━\n⭐  *Star Balance:*  {stars} stars\n🔥  *Current Streak:*  {streak} days in a row!\n🏆  *Badges Earned:*  {badges} achievements unlocked\n━━━━━━━━━━━━━━━━━━━━━\n\n{name} is learning, growing and earning rewards on BALKAVACH — the safe, ad-free kids learning app! 📚✨'**
+  String rewardsShareText(String name, int stars, int streak, int badges);
+
+  /// No description provided for @rewardsShareBadgeText.
+  ///
+  /// In en, this message translates to:
+  /// **'🏆 *Achievement Unlocked on BALKAVACH!*\n\n🎖️  *\"{badge}\"*\n\nI earned this badge on BALKAVACH — the safe, ad-free kids learning app! 📚⭐'**
+  String rewardsShareBadgeText(String badge);
 
   /// No description provided for @reportsShare.
   ///
