@@ -1,7 +1,7 @@
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -25,6 +25,8 @@ from app.schemas.task import (
 )
 from app.schemas.video import VideoFeedItem
 from app.services.child_age import child_age_band_or_none, ineligible_daily_task_ids
+from app.services.daily_mission_service import localized_task_fields
+from app.services.display_locale import resolve_display_locale
 from app.services.ledger_service import awarded_by_submission
 from app.services.mission_video_service import (
 	get_mission_video_progress,
@@ -62,6 +64,7 @@ def list_categories(
 
 @router.get("/presets", response_model=list[PresetTaskPublic])
 def list_presets(
+	request: Request,
 	language: str | None = Query(default=None, min_length=2, max_length=10),
 	category_id: UUID | None = None,
 	limit: int = Query(default=100, ge=1, le=200),
@@ -69,10 +72,10 @@ def list_presets(
 	parent=Depends(require_parent),
 	session: Session = Depends(get_db),
 ) -> list[PresetTaskPublic]:
-	"""Active preset missions in the parent's language first, then English."""
+	"""Active preset missions in the selected/requested language first, then English."""
 	PresetTask = get_model("PresetTask")
 	TaskCategory = get_model("TaskCategory")
-	chosen = language or parent.preferred_language or "en"
+	chosen = language or resolve_display_locale(request, parent)
 	languages = [chosen] if chosen == "en" else [chosen, "en"]
 	query = (
 		session.query(PresetTask, TaskCategory.name)
@@ -163,6 +166,7 @@ def create_task(
 
 @router.get("", response_model=list[TaskPublic])
 def list_tasks(
+	request: Request,
 	family_id: UUID | None = None,
 	limit: int = Query(default=50, ge=1, le=100),
 	offset: int = Query(default=0, ge=0),
@@ -171,6 +175,7 @@ def list_tasks(
 ) -> list[TaskPublic]:
 	Task = get_model("Task")
 	query = session.query(Task).filter(Task.is_active.is_(True))
+	child = None
 	if user.role == "parent":
 		FamilyMember = get_model("FamilyMember")
 		family_ids = session.query(FamilyMember.family_id).filter(
@@ -198,7 +203,16 @@ def list_tasks(
 	else:
 		raise HTTPException(status_code=403, detail="Task access denied")
 	tasks = query.order_by(Task.created_at.desc(), Task.id).offset(offset).limit(limit).all()
-	return [TaskPublic.model_validate(task) for task in tasks]
+	display_locale = resolve_display_locale(request, user)
+	overrides = localized_task_fields(session, tasks, display_locale)
+	result: list[TaskPublic] = []
+	for task in tasks:
+		item = TaskPublic.model_validate(task)
+		override = overrides.get(task.id)
+		if override:
+			item = item.model_copy(update=override)
+		result.append(item)
+	return result
 
 
 @router.patch("/{task_id}", response_model=TaskPublic)

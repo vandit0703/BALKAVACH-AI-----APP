@@ -95,18 +95,23 @@ class MissionsRepository {
 
   /// `GET /api/v1/tasks/presets` (parent): the idea library, in the parent's
   /// language first. Empty on a server that predates it.
-  Future<List<MissionPreset>> listPresets() => guardApi(() async {
+  Future<List<MissionPreset>> listPresets({String? languageCode}) async {
     try {
       final response = await _dio.get<List<dynamic>>(
         '/api/v1/tasks/presets',
-        queryParameters: {'limit': 100},
+        queryParameters: {
+          'limit': 100,
+          if (languageCode != null && languageCode.isNotEmpty)
+            'language': languageCode,
+        },
       );
       return parseJsonList(response.data, MissionPreset.fromJson);
-    } on DioException catch (error) {
-      if (error.response?.statusCode == 404) return const <MissionPreset>[];
-      rethrow;
+    } on DioException catch (e) {
+      // The presets endpoint is optional in early environments.
+      if (e.response?.statusCode == 404) return const [];
+      throw mapDioException(e);
     }
-  });
+  }
 
   /// `POST /api/v1/tasks` (parent).
   Future<Mission> createMission(NewMission input) => guardApi(() async {

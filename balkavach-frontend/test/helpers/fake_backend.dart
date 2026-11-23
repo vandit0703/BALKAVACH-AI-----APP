@@ -92,10 +92,15 @@ class FakeBackend implements HttpClientAdapter {
 
 /// Dio wired like production (auth + logging interceptors) but without
 /// timeouts, so tests leave no pending timers.
-Dio createTestDio(FakeBackend backend, AccessTokenStore tokens) {
+Dio createTestDio(
+  FakeBackend backend,
+  AccessTokenStore tokens, {
+  String Function()? languageCode,
+}) {
   final dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
   dio.httpClientAdapter = backend;
   dio.interceptors.addAll([
+    LocaleInterceptor(languageCode ?? () => 'en'),
     AuthInterceptor(tokens, retryClient: dio),
     RedactingLogInterceptor(sink: (_) {}),
   ]);

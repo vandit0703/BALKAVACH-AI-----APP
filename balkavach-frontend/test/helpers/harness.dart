@@ -72,7 +72,11 @@ class Harness {
     appPreferencesProvider.overrideWithValue(prefs),
     sessionStorageProvider.overrideWithValue(storage),
     apiDioProvider.overrideWith(
-      (ref) => createTestDio(backend, ref.watch(accessTokenStoreProvider)),
+      (ref) => createTestDio(
+        backend,
+        ref.watch(accessTokenStoreProvider),
+        languageCode: () => ref.read(appPreferencesProvider).languageCode ?? 'en',
+      ),
     ),
   ];
 

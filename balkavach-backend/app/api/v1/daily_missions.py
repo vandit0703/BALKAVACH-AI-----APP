@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -20,6 +20,7 @@ from app.schemas.daily_mission import (
     WeeklyMissionSummary,
 )
 from app.schemas.task import TaskSubmissionCreate
+from app.services.display_locale import resolve_display_locale
 from app.services.mission_catalogue_service import assignment_counts, catalogue_health, missing_combinations
 from app.services.mission_instructions import (
     AGE_BANDS,
@@ -58,29 +59,37 @@ def _commit(session: Session):
         raise APIError(409, "daily_mission_conflict", "The daily mission changed; please retry") from error
 
 
+def _child_display_locale(request: Request, session: Session, child) -> str:
+    User = get_model("User")
+    user = session.get(User, getattr(child, "user_id", None))
+    return resolve_display_locale(request, user)
+
+
 @router.get("/today", response_model=DailyMissionChoicesPublic)
-def today_choices(child=Depends(require_child), session: Session = Depends(get_db)):
+def today_choices(request: Request, child=Depends(require_child), session: Session = Depends(get_db)):
     local_date, age_band, rows = ensure_daily_choices(session, child)
     session.commit()
+    display_locale = _child_display_locale(request, session, child)
     selected = next((row.id for row in rows if row.status in {"selected", "in_progress", "pending_parent_approval", "approved", "rejected"}), None)
     return DailyMissionChoicesPublic(
         local_date=local_date,
         timezone=family_timezone_name(session, child.family_id),
         age_band=age_band,
         selected_assignment_id=selected,
-        choices=[DailyMissionAssignmentPublic(**_public(row)) for row in rows],
+        choices=[DailyMissionAssignmentPublic(**_public(row, session=session, display_locale=display_locale)) for row in rows],
     )
 
 
 @router.post("/{assignment_id}/select", response_model=DailyMissionAssignmentPublic)
-def select_today_mission(assignment_id: UUID, child=Depends(require_child), session: Session = Depends(get_db)):
+def select_today_mission(assignment_id: UUID, request: Request, child=Depends(require_child), session: Session = Depends(get_db)):
     row = select_assignment(session, child, assignment_id)
     _commit(session)
-    return DailyMissionAssignmentPublic(**_public(row))
+    display_locale = _child_display_locale(request, session, child)
+    return DailyMissionAssignmentPublic(**_public(row, session=session, display_locale=display_locale))
 
 
 @router.get("/active", response_model=DailyMissionAssignmentPublic | None)
-def active_mission(child=Depends(require_child), session: Session = Depends(get_db)):
+def active_mission(request: Request, child=Depends(require_child), session: Session = Depends(get_db)):
     Assignment = get_model("DailyMissionAssignment")
     age_band = child_age_band_or_none(session, child)
     if age_band is None:
@@ -96,21 +105,24 @@ def active_mission(child=Depends(require_child), session: Session = Depends(get_
         .order_by(Assignment.local_date.desc())
         .first()
     )
-    return DailyMissionAssignmentPublic(**_public(row)) if row else None
+    display_locale = _child_display_locale(request, session, child)
+    return DailyMissionAssignmentPublic(**_public(row, session=session, display_locale=display_locale)) if row else None
 
 
 @router.get("/unfinished", response_model=list[DailyMissionAssignmentPublic])
-def unfinished_missions(child=Depends(require_child), session: Session = Depends(get_db)):
+def unfinished_missions(request: Request, child=Depends(require_child), session: Session = Depends(get_db)):
     """Missions the child chose on an earlier day and has not finished. Read-only: reopening one is the same
     Task and submission flow as today's mission, so nothing is duplicated or reset."""
-    return [DailyMissionAssignmentPublic(**_public(row)) for row in unfinished_assignments(session, child)]
+    display_locale = _child_display_locale(request, session, child)
+    return [DailyMissionAssignmentPublic(**_public(row, session=session, display_locale=display_locale)) for row in unfinished_assignments(session, child)]
 
 
 @router.post("/{assignment_id}/start", response_model=DailyMissionAssignmentPublic)
-def start_today_mission(assignment_id: UUID, child=Depends(require_child), session: Session = Depends(get_db)):
+def start_today_mission(assignment_id: UUID, request: Request, child=Depends(require_child), session: Session = Depends(get_db)):
     row = start_assignment(session, child, assignment_id)
     _commit(session)
-    return DailyMissionAssignmentPublic(**_public(row))
+    display_locale = _child_display_locale(request, session, child)
+    return DailyMissionAssignmentPublic(**_public(row, session=session, display_locale=display_locale))
 
 
 @router.post("/{assignment_id}/submit", response_model=DailyMissionSubmitPublic)
@@ -132,14 +144,16 @@ def submit_today_mission(
 
 
 @router.post("/{assignment_id}/skip", response_model=list[DailyMissionAssignmentPublic])
-def skip_today_mission(assignment_id: UUID, child=Depends(require_child), session: Session = Depends(get_db)):
+def skip_today_mission(assignment_id: UUID, request: Request, child=Depends(require_child), session: Session = Depends(get_db)):
     _, choices = skip_assignment(session, child, assignment_id)
     _commit(session)
-    return [DailyMissionAssignmentPublic(**_public(row)) for row in choices]
+    display_locale = _child_display_locale(request, session, child)
+    return [DailyMissionAssignmentPublic(**_public(row, session=session, display_locale=display_locale)) for row in choices]
 
 
 @router.get("/history", response_model=DailyMissionHistoryPublic)
 def mission_history(
+    request: Request,
     limit: int = Query(default=30, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     child=Depends(require_child),
@@ -154,7 +168,8 @@ def mission_history(
         .limit(limit)
         .all()
     )
-    return DailyMissionHistoryPublic(items=[DailyMissionAssignmentPublic(**_public(row)) for row in rows], limit=limit, offset=offset)
+    display_locale = _child_display_locale(request, session, child)
+    return DailyMissionHistoryPublic(items=[DailyMissionAssignmentPublic(**_public(row, session=session, display_locale=display_locale)) for row in rows], limit=limit, offset=offset)
 
 
 @router.get("/weekly", response_model=WeeklyMissionSummary)

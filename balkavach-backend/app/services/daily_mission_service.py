@@ -73,12 +73,80 @@ def _snapshot(template, variation) -> dict[str, Any]:
     }
 
 
-def public_assignment(row) -> dict[str, Any]:
+def _display_content_from_variation(row, variation) -> dict[str, Any]:
+    """Localized display content from a variation, without mutating the stored snapshot."""
+    snapshot = dict(row.snapshot or {})
+    return {
+        "title": variation.title,
+        "description": variation.description,
+        "instructions": variation.instructions,
+        "required_materials": variation.required_materials or [],
+        "duration_minutes": variation.duration_minutes,
+        "safety_instructions": variation.safety_instructions,
+        "completion_criteria": variation.completion_criteria,
+        "mission_type": snapshot.get("mission_type"),
+        "theme": snapshot.get("theme"),
+        "star_reward": snapshot.get("star_reward", MISSION_STAR_REWARD),
+        "xp_reward": snapshot.get("xp_reward", MISSION_XP_REWARD),
+        "is_surprise": snapshot.get("is_surprise", False),
+        "mystery_bonus": snapshot.get("mystery_bonus"),
+        "locale": variation.locale,
+        "learning_objective": getattr(variation, "learning_objective", None),
+        "steps": getattr(variation, "steps", None),
+        "observation_guidance": getattr(variation, "observation_guidance", None),
+        "submission_requirements": getattr(variation, "submission_requirements", None),
+    }
+
+
+def _localized_display_content(session: Session | None, row, display_locale: str | None) -> dict[str, Any] | None:
+    if session is None or not display_locale:
+        return None
+    template_id = getattr(row, "template_id", None)
+    age_band = getattr(row, "age_band", None)
+    if template_id is None or age_band is None:
+        return None
+    Variation = get_model("DailyMissionVariation")
+    requested = (
+        session.query(Variation)
+        .filter(
+            Variation.template_id == template_id,
+            Variation.age_band == age_band,
+            Variation.locale == display_locale,
+        )
+        .first()
+    )
+    if requested is not None:
+        return _display_content_from_variation(row, requested)
+    snapshot = row.snapshot or {}
+    snapshot_locale = snapshot.get("locale") if isinstance(snapshot, dict) else None
+    # If a translation for the requested locale does not exist, fall back truthfully
+    # (prefer English content if available, else keep the original snapshot).
+    if display_locale != "en":
+        english = (
+            session.query(Variation)
+            .filter(
+                Variation.template_id == template_id,
+                Variation.age_band == age_band,
+                Variation.locale == "en",
+            )
+            .first()
+        )
+        if english is not None and snapshot_locale != display_locale:
+            return _display_content_from_variation(row, english)
+    return None
+
+
+def public_assignment(row, *, session: Session | None = None, display_locale: str | None = None) -> dict[str, Any]:
     """An assignment as the child API shows it.
 
     The title is shown without the age range some titles carry ("... (4 to 6)"); ``age_band`` and the stored
     snapshot are unchanged, so eligibility and history keep their metadata."""
-    content = dict(row.snapshot or {})
+    content = _localized_display_content(session, row, display_locale)
+    if content is None:
+        content = dict(row.snapshot or {})
+    else:
+        # Preserve original mission content/snapshot in DB; only display is localized.
+        content = dict(content)
     if isinstance(content.get("title"), str):
         content["title"] = child_facing_title(content["title"])
     if row.status != "approved":
@@ -457,3 +525,79 @@ def weekly_summary(session: Session, child, now_utc: datetime | None = None):
         "skipped_count": sum(row.status == "skipped" for row in rows),
         "daily_status": {day.isoformat(): _day_status([row for row in rows if row.local_date == day]) for day in {row.local_date for row in rows}},
     }
+
+
+def _localized_variation(session: Session, template_id, age_band: str, display_locale: str):
+    Variation = get_model("DailyMissionVariation")
+    requested = (
+        session.query(Variation)
+        .filter(
+            Variation.template_id == template_id,
+            Variation.age_band == age_band,
+            Variation.locale == display_locale,
+        )
+        .first()
+    )
+    if requested is not None:
+        return requested
+    if display_locale != "en":
+        return (
+            session.query(Variation)
+            .filter(
+                Variation.template_id == template_id,
+                Variation.age_band == age_band,
+                Variation.locale == "en",
+            )
+            .first()
+        )
+    return None
+
+
+def localized_task_fields(session: Session, tasks, display_locale: str | None) -> dict[UUID, dict[str, str]]:
+    """Read-only localized title/description for tasks created from daily missions.
+
+    Returns a mapping of task_id -> {title, description}. Stored Task rows and
+    assignment snapshots are never modified.
+    """
+    if not display_locale or not tasks:
+        return {}
+    task_ids = [getattr(task, "id", None) for task in tasks]
+    task_ids = [task_id for task_id in task_ids if task_id is not None]
+    if not task_ids:
+        return {}
+    Assignment = get_model("DailyMissionAssignment")
+    rows = (
+        session.query(Assignment)
+        .filter(Assignment.task_id.in_(task_ids))
+        .order_by(Assignment.created_at.desc())
+        .all()
+    )
+    by_task: dict[UUID, Any] = {}
+    for row in rows:
+        if row.task_id is None or row.task_id in by_task:
+            continue
+        if getattr(row, "is_current", True) is False:
+            continue
+        by_task[row.task_id] = row
+    result: dict[UUID, dict[str, str]] = {}
+    for task_id, assignment in by_task.items():
+        template_id = getattr(assignment, "template_id", None)
+        age_band = getattr(assignment, "age_band", None)
+        if template_id is None or age_band is None:
+            continue
+        variation = _localized_variation(session, template_id, age_band, display_locale)
+        content_source = variation if variation is not None else (assignment.snapshot or {})
+        content = {
+            "title": getattr(content_source, "title", None) if variation is not None else content_source.get("title"),
+            "description": getattr(content_source, "description", None) if variation is not None else content_source.get("description"),
+            "instructions": getattr(content_source, "instructions", None) if variation is not None else content_source.get("instructions"),
+            "completion_criteria": getattr(content_source, "completion_criteria", None) if variation is not None else content_source.get("completion_criteria"),
+        }
+        title = content.get("title")
+        if not isinstance(title, str) or not title:
+            continue
+        result[task_id] = {
+            "title": child_facing_title(title),
+            "description": task_description(content),
+        }
+    return result

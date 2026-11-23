@@ -5,6 +5,7 @@ import '../../../core/errors/api_exception.dart';
 import '../../../core/storage/app_preferences.dart';
 import '../../../shared/media/photo_picker.dart';
 import '../../authentication/presentation/session_controller.dart';
+import '../../onboarding/presentation/onboarding_controller.dart';
 import '../data/missions_repository.dart';
 import '../domain/daily_mission_models.dart';
 import '../domain/mission_models.dart';
@@ -18,6 +19,8 @@ final activeChildIdProvider = Provider<String?>((ref) {
 
 final taskCategoriesProvider = FutureProvider<List<TaskCategory>>((ref) {
   ref.watch(sessionUserIdProvider);
+  // Language-dependent mission surfaces must refresh on locale changes.
+  ref.watch(appLocaleProvider);
   return ref.watch(missionsRepositoryProvider).listCategories();
 });
 
@@ -27,6 +30,8 @@ final childMissionsProvider = FutureProvider<List<Mission>>((ref) {
   // child session there is nothing to fetch (and no token to send).
   final childId = ref.watch(activeChildIdProvider);
   if (childId == null) return const <Mission>[];
+  // Language-dependent mission content must refresh immediately on locale changes.
+  ref.watch(appLocaleProvider);
   return ref.watch(missionsRepositoryProvider).listMissions();
 });
 
@@ -37,6 +42,8 @@ final dailyMissionChoicesProvider = FutureProvider<DailyMissionChoices>((
   ref,
 ) async {
   ref.watch(activeChildIdProvider);
+  // Include locale in the effective cache key and refetch on language changes.
+  ref.watch(appLocaleProvider);
   final today = await ref.watch(missionsRepositoryProvider).getDailyChoices();
   return DailyMissionChoices(
     localDate: today.localDate,
@@ -58,6 +65,8 @@ final unfinishedMissionsProvider = FutureProvider<List<DailyMissionAssignment>>(
   (ref) async {
     final childId = ref.watch(activeChildIdProvider);
     if (childId == null) return const [];
+    // Language-dependent mission content must refresh immediately on locale changes.
+    ref.watch(appLocaleProvider);
     final List<DailyMissionAssignment> older;
     try {
       older = await ref
@@ -291,8 +300,11 @@ final childMissionProvider = FutureProvider.family<Mission?, String>((
 /// blocks creating a mission by hand.
 final missionPresetsProvider = FutureProvider<List<MissionPreset>>((ref) async {
   ref.watch(sessionUserIdProvider);
+  final languageCode = ref.watch(appLocaleProvider).languageCode;
   try {
-    return await ref.watch(missionsRepositoryProvider).listPresets();
+    return await ref
+        .watch(missionsRepositoryProvider)
+        .listPresets(languageCode: languageCode);
   } on ApiException {
     return const [];
   }

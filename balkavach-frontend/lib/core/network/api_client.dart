@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/app_config.dart';
+import '../storage/app_preferences.dart';
 import 'access_token_store.dart';
 import 'interceptors.dart';
 
@@ -14,6 +15,7 @@ const kReceiveTimeout = Duration(seconds: 45);
 Dio createApiDio({
   required AppConfig config,
   required AccessTokenStore tokens,
+  String Function()? languageCode,
 }) {
   final dio = Dio(
     BaseOptions(
@@ -26,7 +28,9 @@ Dio createApiDio({
       headers: const {'Accept': 'application/json'},
     ),
   );
+  final localeCode = languageCode ?? () => 'en';
   dio.interceptors.addAll([
+    LocaleInterceptor(localeCode),
     AuthInterceptor(tokens, retryClient: dio),
     RedactingLogInterceptor(),
   ]);
@@ -39,6 +43,7 @@ final apiDioProvider = Provider<Dio>((ref) {
   final dio = createApiDio(
     config: ref.watch(appConfigProvider),
     tokens: ref.watch(accessTokenStoreProvider),
+    languageCode: () => ref.read(appPreferencesProvider).languageCode ?? 'en',
   );
   ref.onDispose(dio.close);
   return dio;

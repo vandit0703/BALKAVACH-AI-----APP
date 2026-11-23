@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../missions/presentation/child_home_screen.dart';
 import '../../onboarding/presentation/onboarding_controller.dart';
+import '../../settings/presentation/settings_providers.dart';
 
 /// Child Profile: the dashboard that used to be Home.
 ///
@@ -60,11 +61,18 @@ class _LanguageCard extends ConsumerWidget {
                   key: Key('profile.language.$code'),
                   label: Text(label),
                   selected: current == code,
-                  onSelected: (selected) {
-                    if (!selected) return;
-                    ref
+                  onSelected: (selected) async {
+                    if (!selected || code == current) return;
+                    await ref
                         .read(onboardingControllerProvider.notifier)
                         .chooseLanguage(code);
+                    // Best-effort account sync; request headers/local state keep
+                    // the selected language effective immediately.
+                    try {
+                      await ref
+                          .read(userSettingsProvider.notifier)
+                          .save(languageCode: code);
+                    } catch (_) {}
                   },
                 ),
             ],

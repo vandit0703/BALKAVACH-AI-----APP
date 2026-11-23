@@ -22,38 +22,78 @@ export 'shorts_feed.dart' show ShortsFeed, ShortsFeedScreen;
 /// Server-approved videos for the signed-in child, in two tabs: longer
 /// learning videos and short ones. Only what `GET /videos/feed` and
 /// `GET /videos/shorts` return is shown; the app adds nothing of its own.
-class VideoFeedScreen extends StatelessWidget {
+class VideoFeedScreen extends StatefulWidget {
   const VideoFeedScreen({super.key});
+
+  @override
+  State<VideoFeedScreen> createState() => _VideoFeedScreenState();
+}
+
+class _VideoFeedScreenState extends State<VideoFeedScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.videoFeedTitle),
-          bottom: TabBar(
-            tabs: [
-              Tab(
-                key: const Key('videos.tab.learn'),
-                text: l10n.videoFeedLearnTab,
-              ),
-              Tab(
-                key: const Key('videos.tab.shorts'),
-                text: l10n.videoFeedShortsTab,
-              ),
-            ],
-          ),
-        ),
-        body: const TabBarView(
-          children: [
-            _FeedTab(kind: VideoFeedKind.learn),
-            ShortsFeed(),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.videoFeedTitle),
+        bottom: TabBar(
+          controller: _tabs,
+          tabs: [
+            Tab(
+              key: const Key('videos.tab.learn'),
+              text: l10n.videoFeedLearnTab,
+            ),
+            Tab(
+              key: const Key('videos.tab.shorts'),
+              text: l10n.videoFeedShortsTab,
+            ),
           ],
         ),
       ),
+      body: TabBarView(
+        controller: _tabs,
+        children: const [
+          _FeedTab(kind: VideoFeedKind.learn),
+          _KeepAlive(child: ShortsFeed()),
+        ],
+      ),
     );
+  }
+}
+
+class _KeepAlive extends StatefulWidget {
+  const _KeepAlive({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_KeepAlive> createState() => _KeepAliveState();
+}
+
+class _KeepAliveState extends State<_KeepAlive>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }
 

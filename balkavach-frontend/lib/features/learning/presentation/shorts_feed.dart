@@ -54,6 +54,7 @@ class ShortsFeedScreen extends StatelessWidget {
       child: ShortsFeed(
         launch: launch,
         showMissionsAction: true,
+        manageSystemUi: true,
         onBack: () => Navigator.of(context).maybePop(),
       ),
     ),
@@ -67,12 +68,17 @@ class ShortsFeed extends ConsumerStatefulWidget {
   const ShortsFeed({
     this.launch = const ShortsLaunch(),
     this.showMissionsAction = false,
+    this.manageSystemUi = false,
     this.onBack,
     super.key,
   });
 
   final ShortsLaunch launch;
   final bool showMissionsAction;
+
+  /// When true, this feed owns portrait-only system UI/orientation while mounted.
+  /// Full-screen Shorts enables this; embedded uses (e.g. tabs) must not.
+  final bool manageSystemUi;
 
   /// Shows a back button in the top bar when set.
   final VoidCallback? onBack;
@@ -91,12 +97,14 @@ class _ShortsFeedState extends ConsumerState<ShortsFeed> {
   @override
   void initState() {
     super.initState();
-    unawaited(
-      SystemChrome.setPreferredOrientations(const [
-        DeviceOrientation.portraitUp,
-        DeviceOrientation.portraitDown,
-      ]),
-    );
+    if (widget.manageSystemUi) {
+      unawaited(
+        SystemChrome.setPreferredOrientations(const [
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ]),
+      );
+    }
     final launch = widget.launch;
     _pager = VideoFeedPager(
       ref.read(videoFeedRepositoryProvider),
@@ -129,9 +137,10 @@ class _ShortsFeedState extends ConsumerState<ShortsFeed> {
 
   @override
   void dispose() {
-    // Shorts are portrait only while they are open; give the phone back its
-    // normal rotation (the rest of the app is never locked).
-    unawaited(SystemChrome.setPreferredOrientations(const []));
+    if (widget.manageSystemUi) {
+      // give the phone back its normal rotation
+      unawaited(SystemChrome.setPreferredOrientations(const []));
+    }
     _pager
       ..removeListener(_changed)
       ..dispose();

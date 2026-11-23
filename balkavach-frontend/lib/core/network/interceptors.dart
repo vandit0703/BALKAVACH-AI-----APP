@@ -17,6 +17,24 @@ bool _isVideoFeedPath(String path) =>
     path.endsWith('/api/v1/videos/feed') ||
     path.endsWith('/api/v1/videos/shorts');
 
+/// Adds the current app language so localized, language-dependent content can be
+/// resolved per request without relying on a best-effort server preference sync.
+class LocaleInterceptor extends Interceptor {
+  LocaleInterceptor(this._languageCode);
+
+  final String Function() _languageCode;
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final code = _languageCode().trim();
+    if (code.isNotEmpty) {
+      options.headers.putIfAbsent('Accept-Language', () => code);
+      options.headers.putIfAbsent('X-App-Language', () => code);
+    }
+    handler.next(options);
+  }
+}
+
 /// Adds `Authorization: Bearer` from [AccessTokenStore]. On a 401 for an
 /// authenticated request it renews the session once and replays the request;
 /// only if the session cannot be renewed is the user reported as signed out.
