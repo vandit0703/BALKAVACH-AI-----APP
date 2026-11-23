@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -293,6 +294,7 @@ class VideoFeedRepository {
     required int limit,
     required int offset,
     String? categoryId,
+    String? seed,
   }) => guardApi(() async {
     final response = await _dio.get<List<dynamic>>(
       kind.path,
@@ -300,6 +302,7 @@ class VideoFeedRepository {
         'limit': limit,
         'offset': offset,
         'category_id': ?categoryId,
+        'seed': ?seed,
       },
     );
     if (kDebugMode) {
@@ -506,10 +509,11 @@ class VideoFeedPager extends ChangeNotifier {
     this.kind, {
     this.pageSize = 20,
     this.categoryId,
+    String? seed,
     List<FeedVideo> initialItems = const [],
     int? initialOffset,
     bool initialDone = false,
-  }) {
+  }) : _seed = seed ?? _newSeed() {
     // Seeded from a list the caller already loaded (Home's Shorts row), so
     // opening the full-screen feed does not fetch the same page again.
     for (final video in initialItems) {
@@ -519,12 +523,19 @@ class VideoFeedPager extends ChangeNotifier {
     if (initialItems.isNotEmpty && initialDone) _status = PagerStatus.done;
   }
 
+  static final Random _seedRandom = Random();
+
+  static String _newSeed() =>
+      '${DateTime.now().microsecondsSinceEpoch}-${_seedRandom.nextInt(1 << 32)}';
+
   final VideoFeedRepository _repository;
   final VideoFeedKind kind;
   final int pageSize;
 
   /// Server-side category filter (`category_id`); null for every category.
   final String? categoryId;
+
+  String _seed;
 
   final List<FeedVideo> _items = [];
   final Set<String> _seen = {};
@@ -542,6 +553,9 @@ class VideoFeedPager extends ChangeNotifier {
 
   /// Server offset of the next page.
   int get nextOffset => _offset;
+
+  /// Stable ordering seed for this feed session.
+  String get seed => _seed;
 
   /// True before the first page has arrived.
   bool get isInitial => _items.isEmpty && _offset == 0;
@@ -571,6 +585,7 @@ class VideoFeedPager extends ChangeNotifier {
         limit: pageSize,
         offset: requestOffset,
         categoryId: categoryId,
+        seed: _seed,
       );
       if (_disposed || generation != _generation) {
         _trace('discard stale response generation=$generation');
@@ -631,6 +646,9 @@ class VideoFeedPager extends ChangeNotifier {
     final generation = ++_generation;
     _error = null;
     _retryRefresh = true;
+    // New session seed on explicit refresh/open-style reload so users can see a
+    // different rotation while each paginated sequence remains stable.
+    _seed = _newSeed();
     _trace('refresh generation=$generation visible_ids=${_ids(_items)}');
     return _requestPage(generation: generation, replace: true);
   }

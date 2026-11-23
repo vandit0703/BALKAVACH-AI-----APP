@@ -70,6 +70,7 @@ class _FakeRepository implements VideoFeedRepository {
     required int limit,
     required int offset,
     String? categoryId,
+    String? seed,
   }) async {
     offsets.add(offset);
     if (errors.containsKey(offset)) throw errors[offset]!;
@@ -162,6 +163,7 @@ class _ControlledRepository extends _FakeRepository {
     required int limit,
     required int offset,
     String? categoryId,
+    String? seed,
   }) {
     offsets.add(offset);
     final response = Completer<List<FeedVideo>>();

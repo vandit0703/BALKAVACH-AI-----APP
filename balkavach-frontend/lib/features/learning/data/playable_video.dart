@@ -219,6 +219,7 @@ class ShortsLaunch {
     this.initialIndex = 0,
     this.nextOffset,
     this.exhausted = false,
+    this.seed,
   });
 
   /// Shorts the caller already loaded, so the feed opens without a spinner.
@@ -230,6 +231,10 @@ class ShortsLaunch {
 
   /// The server has nothing after [initialVideos].
   final bool exhausted;
+
+  /// Feed-session ordering seed used for [initialVideos]; subsequent pages must
+  /// reuse it so offset pagination stays consistent and duplicate-free.
+  final String? seed;
 }
 
 /// Arguments for the regular video player route.

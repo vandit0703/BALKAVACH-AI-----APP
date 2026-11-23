@@ -168,12 +168,15 @@ def video_feed(
 	category_id: UUID | None = None,
 	limit: int = Query(default=20, ge=1, le=50),
 	offset: int = Query(default=0, ge=0, le=10_000),
+	seed: str | None = Query(default=None, max_length=64),
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoFeedItem]:
 	# Regular videos only: Shorts (1-60 s) have their own feed, so no video
 	# appears in both.
-	videos = eligible_feed(session, child, category_id, limit, offset, video_format="regular")
+	videos = eligible_feed(
+		session, child, category_id, limit, offset, video_format="regular", seed=seed
+	)
 	return _feed_page(session, child, videos, _allowance_exhausted(session, child))
 
 
@@ -182,10 +185,13 @@ def video_shorts(
 	category_id: UUID | None = None,
 	limit: int = Query(default=20, ge=1, le=50),
 	offset: int = Query(default=0, ge=0, le=10_000),
+	seed: str | None = Query(default=None, max_length=64),
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> list[VideoFeedItem]:
-	videos = eligible_feed(session, child, category_id, limit, offset, video_format="short")
+	videos = eligible_feed(
+		session, child, category_id, limit, offset, video_format="short", seed=seed
+	)
 	return _feed_page(session, child, videos, _allowance_exhausted(session, child))
 
 

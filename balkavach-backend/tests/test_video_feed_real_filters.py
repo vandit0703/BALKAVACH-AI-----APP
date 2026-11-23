@@ -198,7 +198,9 @@ def test_pagination_returns_every_eligible_video_exactly_once(feed_db):
 	seen = []
 	for offset in (0, 3, 6, 9):
 		seen += [v.title for v in eligible_feed(feed_db, child, None, 3, offset, video_format="regular")]
-	assert seen == [f"V{i}" for i in range(7)]
+	assert len(seen) == 7
+	assert len(set(seen)) == 7
+	assert set(seen) == {f"V{i}" for i in range(7)}
 
 
 # ---- diagnostics explain the same rules ------------------------------------------------------------------------

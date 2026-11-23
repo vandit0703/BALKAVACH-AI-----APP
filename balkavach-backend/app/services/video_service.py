@@ -1,10 +1,11 @@
+import hashlib
 import logging
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import case, exists, or_
+from sqlalchemy import String, case, cast, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, aliased
 
@@ -40,6 +41,10 @@ def child_age(child) -> int | None:
 def feed_languages(preferred_language: str) -> list[str]:
 	"""Languages a child may see: their own, plus English."""
 	return [preferred_language] if preferred_language == "en" else [preferred_language, "en"]
+
+
+def _rotation_rank(seed: str, video_id: UUID) -> str:
+    return hashlib.md5(f"{seed}:{video_id}".encode("utf-8")).hexdigest()
 
 
 def feed_conditions(
@@ -95,6 +100,7 @@ def eligible_feed(
 	limit: int,
 	offset: int,
 	video_format: Literal["short", "regular"] | None = None,
+	seed: str | None = None,
 ):
 	"""Videos this child may see. ``video_format`` splits the two feeds with the
 	single rule in ``video_classification``: every eligible video is in exactly
@@ -156,16 +162,16 @@ def eligible_feed(
 	query = session.query(Video).outerjoin(VideoCategory, VideoCategory.id == Video.category_id).filter(
 		*[clause for _, clause in conditions]
 	)
-	order = [
-		case((Video.language_code == user.preferred_language, 0), else_=1),
+	rotation_seed = (seed or "").strip() or f"{child.id}:{date.today().isoformat()}"
+	preferred_rank = case((Video.language_code == user.preferred_language, 0), else_=1)
+	base_order = [
+		preferred_rank,
 		Video.display_order,
 		Video.published_at.desc().nullslast(),
 		Video.id,
 	]
 	if has_model("ChildVideoWatchHistory"):
 		WatchHistory = get_model("ChildVideoWatchHistory")
-		# Unwatched first, then videos in progress, then finished ones. Finished videos are never
-		# hidden: rewatching an eligible video needs no parent approval (the allowance still caps time).
 		partially_watched = exists().where(
 			WatchHistory.child_id == child.id,
 			WatchHistory.video_id == Video.id,
@@ -177,8 +183,57 @@ def eligible_feed(
 			WatchHistory.video_id == Video.id,
 			WatchHistory.is_completed.is_(True),
 		)
-		order.insert(0, case((finished, 2), (partially_watched, 1), else_=0))
-	result = query.order_by(*order).offset(offset).limit(limit).all()
+		finished_last_watched = (
+			select(func.max(WatchHistory.last_watched_at))
+			.where(
+				WatchHistory.child_id == child.id,
+				WatchHistory.video_id == Video.id,
+				WatchHistory.is_completed.is_(True),
+			)
+			.scalar_subquery()
+		)
+		watch_bucket = case((finished, 2), (partially_watched, 1), else_=0)
+		rows = query.add_columns(watch_bucket.label("watch_bucket"), finished_last_watched.label("finished_last_watched")).order_by(
+			watch_bucket,
+			case((watch_bucket == 2, finished_last_watched)).asc().nullsfirst(),
+			*base_order,
+		).all()
+		ranked = []
+		for video, bucket, finished_at in rows:
+			bucket_value = int(bucket or 0)
+			# Unseen/in-progress rotate per feed session; finished return gradually
+			# by oldest last-watched time, with deterministic per-seed tiebreaks.
+			if bucket_value == 2:
+				recency_key = finished_at.isoformat(sep=" ", timespec="microseconds") if finished_at else ""
+				rotation = recency_key
+			else:
+				rotation = _rotation_rank(rotation_seed, video.id)
+			ranked.append((bucket_value, recency_key if bucket_value == 2 else "", rotation, video))
+		ranked.sort(
+			key=lambda row: (
+				row[0],
+				row[1],
+				0 if user.preferred_language == row[3].language_code else 1,
+				row[2],
+				getattr(row[3], "display_order", 0) or 0,
+				(
+					(1, 0.0)
+					if getattr(row[3], "published_at", None) is None
+					else (
+						0,
+						-(
+							getattr(row[3], "published_at").replace(tzinfo=timezone.utc)
+							if getattr(row[3], "published_at").tzinfo is None
+							else getattr(row[3], "published_at")
+						).timestamp(),
+					)
+				),
+				str(row[3].id),
+			)
+		)
+		result = [video for *_prefix, video in ranked][offset : offset + limit]
+	else:
+		result = query.order_by(*base_order).offset(offset).limit(limit).all()
 	if not result and offset == 0:
 		# The first page of a feed is empty: say which rule removed the last candidates.
 		from app.services.video_feed_diagnostics import funnel
