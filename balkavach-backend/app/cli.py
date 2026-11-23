@@ -587,7 +587,8 @@ def _catalogue_missions():
 
 
 def _seed_daily_missions(
-	session_factory, *, apply: bool, publish: bool, retire: bool, backfill_structured: bool = False, compare_db: bool = False
+	session_factory, *, apply: bool, publish: bool, retire: bool, backfill_structured: bool = False, compare_db: bool = False,
+	publish_existing: bool = False
 ) -> int:
 	"""Validate the localized catalogue and, only with ``apply``, add what is missing (never edits or deletes)."""
 	from app.services.mission_catalogue_service import (
@@ -613,7 +614,9 @@ def _seed_daily_missions(
 		return 0
 	try:
 		with session_factory() as session:
-			report = apply_catalogue(session, missions, publish=publish, backfill_structured=backfill_structured)
+			report = apply_catalogue(
+				session, missions, publish=publish, backfill_structured=backfill_structured, publish_existing=publish_existing
+			)
 			if retire:
 				retired = retire_placeholders(session)
 				report["unpublished"] = len(retired["unpublished"])
@@ -623,6 +626,9 @@ def _seed_daily_missions(
 		print("Database operation failed; nothing was committed.", file=sys.stderr)
 		return 2
 	differing = report.pop("variations_differing")
+	skipped = report.pop("publish_skipped_conflict", [])
+	if skipped:
+		print(f"{len(skipped)} existing template(s) NOT published because an admin edited them: {', '.join(skipped[:5])}")
 	blocked = report.pop("publish_blocked", [])
 	if blocked:
 		print(f"{len(blocked)} template(s) NOT published (instruction checks failed), e.g. {blocked[0]['template']}: {', '.join(blocked[0]['problems'])}")
@@ -743,6 +749,11 @@ def main(argv: list[str] | None = None) -> int:
 		help="On existing variations identical to the catalogue, fill only still-empty structured columns (needs --apply and migration 0019)",
 	)
 	seed.add_argument(
+		"--publish-existing",
+		action="store_true",
+		help="Also publish catalogue templates that already exist unpublished and are unedited and valid (needs --apply)",
+	)
+	seed.add_argument(
 		"--compare-db",
 		action="store_true",
 		help="Dry run that also reads the configured database (SELECT only) and reports conflicts; cannot be combined with --apply",
@@ -774,8 +785,8 @@ def main(argv: list[str] | None = None) -> int:
 		return _daily_missions_notify(notify_factory, from_hour=args.from_hour, to_hour=args.to_hour)
 
 	if args.command == "seed-daily-missions":
-		if (args.publish or args.retire_placeholders or args.backfill_structured) and not args.apply:
-			parser.error("--publish, --retire-placeholders and --backfill-structured need --apply")
+		if (args.publish or args.retire_placeholders or args.backfill_structured or args.publish_existing) and not args.apply:
+			parser.error("--publish, --publish-existing, --retire-placeholders and --backfill-structured need --apply")
 		if args.compare_db and args.apply:
 			parser.error("--compare-db is read-only and cannot be combined with --apply")
 		factory = None
@@ -792,6 +803,7 @@ def main(argv: list[str] | None = None) -> int:
 			retire=args.retire_placeholders,
 			backfill_structured=args.backfill_structured,
 			compare_db=args.compare_db,
+			publish_existing=args.publish_existing,
 		)
 
 	from app.db.session import SessionLocal

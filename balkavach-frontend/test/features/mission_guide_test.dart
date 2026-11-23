@@ -82,9 +82,8 @@ void main() {
         expect(c.instructionsReady, isTrue, reason: '${e['slug']}');
         expect(c.steps.length, greaterThanOrEqualTo(3));
         expect(c.materials, isNotEmpty);
-        // Reviewer-facing text is never handed to the child: until a child-facing
-        // "what to submit" is authored the field is null and the section is omitted.
-        expect(c.submissionRequirements, isNull);
+        // The child-facing "what to submit" is authored for every version.
+        expect(c.submissionRequirements, isNotNull);
       }
     });
 
@@ -164,7 +163,6 @@ void main() {
       await _pump(tester, _content('cat1_monday_sound_detective', '4_6', 'en'));
       expect(find.text('What you will learn'), findsNothing);
       expect(find.text('What to observe'), findsNothing);
-      expect(find.text('What to submit'), findsNothing);
       expect(find.text('Steps'), findsOneWidget);
     });
 

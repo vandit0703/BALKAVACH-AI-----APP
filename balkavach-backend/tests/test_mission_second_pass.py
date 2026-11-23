@@ -104,12 +104,12 @@ def test_a_submission_written_about_the_child_is_not_clear_to_the_child():
     assert result["publish_ready"] is True  # it is a quality problem, not a safety/essential blocker
 
 
-def test_the_catalogue_no_longer_hands_reviewer_text_to_children():
+def test_the_catalogue_gives_children_their_own_text_and_reviewers_theirs():
     mission = MISSIONS[0]
     payload = variation_payload(mission, "4_6", "en")
-    assert payload["submission_requirements"] is None  # `show` is reviewer-facing
-    show = mission["ages"]["4_6"]["locales"]["en"]["show"]
-    assert show in payload["completion_criteria"]  # the reviewer still gets it, with the parent check
+    text = mission["ages"]["4_6"]["locales"]["en"]
+    assert payload["submission_requirements"] == text["submit"] != text["show"]  # `show` is reviewer-facing, not copied
+    assert text["show"] in payload["completion_criteria"]  # the reviewer still gets it, with the parent check
 
 
 def _authored(mission):
@@ -140,12 +140,14 @@ def test_validate_catalogue_rejects_reviewer_voiced_or_wrong_script_submit_text(
 # ---- seeder: publish uses the same checks; idempotent; conflicts ----------------------------------------------------------------
 
 
-def test_seeder_publish_is_blocked_by_instruction_checks_not_just_completeness(world_session):
-    report = apply_catalogue(world_session, publish=True)
+def test_seeder_publish_runs_the_instruction_checks_and_blocks_a_template_that_fails(world_session):
+    missions = copy.deepcopy(list(MISSIONS))
+    del missions[3]["ages"]["7_10"]["locales"]["hi"]["submit"]  # one variation loses its child-facing submission
+    report = apply_catalogue(world_session, missions, publish=True)
     world_session.commit()
-    assert report["published"] == 0 and len(report["publish_blocked"]) == 42
-    assert all("submission_missing" in b["problems"] for b in report["publish_blocked"])
-    assert world_session.query(DailyMissionTemplate).filter_by(is_published=True).count() == 0
+    assert report["published"] == 41
+    assert [(b["template"], b["problems"]) for b in report["publish_blocked"]] == [(MISSIONS[3]["slug"], ["submission_missing"])]
+    assert world_session.query(DailyMissionTemplate).filter_by(is_published=True).count() == 41
 
 
 def test_seeder_publishes_when_the_content_is_actually_ready(world_session):
@@ -290,3 +292,83 @@ def test_fixing_the_last_problem_of_a_published_mission_keeps_it_published(world
     update_daily_variation(template.id, row.id, DailyMissionVariationUpdate(steps=["Fixed first step.", "Fixed second step."]), admin=None, session=world_session)
     world_session.refresh(template)
     assert template.is_published is True
+
+
+# ---- publishing templates that already exist -------------------------------------------------------------------------------------
+
+
+def test_publish_existing_publishes_unedited_valid_templates_once_and_only_when_asked(world_session):
+    apply_catalogue(world_session)  # creates 42 unpublished templates
+    world_session.commit()
+    assert apply_catalogue(world_session)["published_existing"] == 0  # not without the flag
+    assert world_session.query(DailyMissionTemplate).filter_by(is_published=True).count() == 0
+    first = apply_catalogue(world_session, publish_existing=True)
+    world_session.commit()
+    assert first["published_existing"] == 42 and first["published"] == 0 and first["publish_blocked"] == []
+    assert world_session.query(DailyMissionTemplate).filter_by(is_published=True).count() == 42
+    again = apply_catalogue(world_session, publish_existing=True)
+    assert again["published_existing"] == 0 and again["templates_created"] == 0
+
+
+def test_publish_existing_skips_a_template_an_admin_edited_and_blocks_an_invalid_one(world_session):
+    apply_catalogue(world_session)
+    first, second = (world_session.query(DailyMissionTemplate).filter_by(slug=m["slug"]).one() for m in MISSIONS[:2])
+    edited = world_session.query(DailyMissionVariation).filter_by(template_id=first.id, age_band="4_6", locale="en").one()
+    edited.title = "Renamed by an admin"
+    broken = world_session.query(DailyMissionVariation).filter_by(template_id=second.id, age_band="7_10", locale="gu").one()
+    broken.steps = []  # structured field emptied, legacy text still equal to the catalogue
+    world_session.commit()
+    report = apply_catalogue(world_session, publish_existing=True)
+    world_session.commit()
+    assert report["publish_skipped_conflict"] == [MISSIONS[0]["slug"]]
+    assert [b["template"] for b in report["publish_blocked"]] == [MISSIONS[1]["slug"]]
+    assert report["published_existing"] == 40
+    world_session.refresh(first)
+    world_session.refresh(second)
+    assert first.is_published is False and second.is_published is False
+    assert world_session.get(DailyMissionVariation, edited.id).title == "Renamed by an admin"
+
+
+def test_publish_existing_never_unpublishes_or_touches_published_templates(world_session):
+    apply_catalogue(world_session, publish=True)
+    world_session.commit()
+    before = {r.id: (r.title, r.steps) for r in world_session.query(DailyMissionVariation).all()}
+    report = apply_catalogue(world_session, publish_existing=True, backfill_structured=True)
+    world_session.commit()
+    assert report["published_existing"] == 0 and report["structured_fields_backfilled"] == 0
+    assert {r.id: (r.title, r.steps) for r in world_session.query(DailyMissionVariation).all()} == before
+    assert world_session.query(DailyMissionTemplate).filter_by(is_published=True).count() == 42
+
+
+# ---- what the child API returns for the published catalogue ---------------------------------------------------------------------
+
+_BIRTHS = [(date(2021, 3, 1), "4_6"), (date(2017, 5, 1), "7_10"), (date(2012, 5, 1), "11_15")]
+_GENERIC = ("learning adventure for ages", "Try the steps, notice", "Complete the steps and share")
+
+
+@pytest.mark.parametrize("birth, band", _BIRTHS)
+@pytest.mark.parametrize("language", LOCALES)
+def test_published_catalogue_reaches_the_child_api_complete_and_without_placeholders(world_session, birth, band, language):
+    from datetime import datetime, timezone
+
+    from app.schemas.daily_mission import DailyMissionAssignmentPublic
+    from app.services.daily_mission_service import ensure_daily_choices
+    from tests.sqlite_world import make_family
+
+    apply_catalogue(world_session, publish=True)
+    world_session.commit()
+    child = make_family(world_session, birth=birth, language=language)
+    _, age_band, choices = ensure_daily_choices(world_session, child, datetime(2026, 11, 18, 9, 0, tzinfo=timezone.utc))
+    assert age_band == band and len(choices) == 3
+    for choice in choices:
+        content = DailyMissionAssignmentPublic(**public_assignment(choice)).content
+        mission = next(m for m in MISSIONS if m["slug"] == world_session.get(DailyMissionTemplate, choice.template_id).slug)
+        text = mission["ages"][band]["locales"][language]
+        assert content.instruction_status == "ready" and content.locale == language
+        assert content.steps == text["steps"] and content.materials == text["materials"]
+        assert content.submission_requirements == text["submit"] != text["show"]
+        assert content.duration_minutes > 0 and content.safety_instructions == text["safety"]
+        assert text["show"] in content.completion_criteria  # the reviewer's text is still there, separately
+        assert (content.star_reward, content.xp_reward) == (10, 15)
+        everything = " ".join([content.title, content.description, content.instructions, content.completion_criteria, *content.steps])
+        assert not any(g.lower() in everything.lower() for g in _GENERIC)

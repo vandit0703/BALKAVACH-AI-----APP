@@ -121,6 +121,28 @@ MISSIONS: tuple[dict[str, Any], ...] = (
 )
 
 
+# Child-facing "what to submit" text, authored separately from the mission files (see submit_a/b/c). Attached to the
+# matching ``text`` blocks here so ``variation_payload``, the validator, the seeder and the audit all see ``submit``.
+# A mission without an entry keeps no ``submit`` and is reported as missing; nothing is filled in on its behalf.
+from app.content.daily_missions.submit_a import SUBMIT as _SUBMIT_A  # noqa: E402
+from app.content.daily_missions.submit_b import SUBMIT as _SUBMIT_B  # noqa: E402
+from app.content.daily_missions.submit_c import SUBMIT as _SUBMIT_C  # noqa: E402
+
+SUBMIT_TEXT: dict[str, dict[str, dict[str, str]]] = {**_SUBMIT_A, **_SUBMIT_B, **_SUBMIT_C}
+
+
+def _attach_submit(missions: tuple[dict[str, Any], ...]) -> None:
+	for mission in missions:
+		for age_band, age in mission["ages"].items():
+			for locale, text in age["locales"].items():
+				written = SUBMIT_TEXT.get(mission["slug"], {}).get(age_band, {}).get(locale)
+				if written and "submit" not in text:
+					text["submit"] = written
+
+
+_attach_submit(MISSIONS)
+
+
 def instructions_text(locale: str, text: dict[str, Any]) -> str:
 	steps = "\n".join(f"{number}. {step}" for number, step in enumerate(text["steps"], start=1))
 	return f"{steps}\n{LABELS['another_way'][locale]} {text['alt']}"

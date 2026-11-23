@@ -31,7 +31,7 @@
     "Your ears and a quiet spot at home"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Listen carefully and tell a grown-up three different sounds you heard.",
    "instruction_status": "ready"
   }
  },
@@ -67,7 +67,7 @@
     "તમારા કાન અને ઘરનો એક શાંત ખૂણો"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ધ્યાનથી સાંભળો અને કોઈ મોટાને ત્રણ જુદા જુદા અવાજ કહો.",
    "instruction_status": "ready"
   }
  },
@@ -103,7 +103,7 @@
     "तुम्हारे कान और घर का एक शांत कोना"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ध्यान से सुनो और किसी बड़े को तीन अलग-अलग आवाज़ें बताओ।",
    "instruction_status": "ready"
   }
  },
@@ -142,7 +142,7 @@
     "A closed tin or box with a little rice inside (for the grown-up)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your sound map or list with at least 5 sounds. Tell them your guess for the mystery sound and the clue that helped you.",
    "instruction_status": "ready"
   }
  },
@@ -181,7 +181,7 @@
     "થોડા ચોખા ભરેલો બંધ ડબ્બો (મોટા માટે)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને ઓછામાં ઓછા 5 અવાજ સાથેનો તમારો નકશો કે યાદી બતાવો. રહસ્યમય અવાજનો તમારો અંદાજ અને જે સંકેતથી મદદ મળી તે કહો.",
    "instruction_status": "ready"
   }
  },
@@ -220,7 +220,7 @@
     "थोड़े चावल वाला बंद डिब्बा (बड़े के लिए)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को कम से कम 5 आवाज़ों वाला अपना नक्शा या सूची दिखाओ। रहस्यमयी आवाज़ का अपना अनुमान और वह सुराग बताओ जिसने तुम्हारी मदद की।",
    "instruction_status": "ready"
   }
  },
@@ -259,7 +259,7 @@
     "A clock or kitchen timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Share your table for the three places: the sounds sorted by type, a loudness score from 1 to 5 and how you felt. Add two sentences comparing your quietest and busiest place.",
    "instruction_status": "ready"
   }
  },
@@ -298,7 +298,7 @@
     "ઘડિયાળ અથવા રસોડાનું ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ત્રણ જગ્યાનું તમારું કોષ્ટક બતાવો: પ્રકાર પ્રમાણે ગોઠવેલા અવાજ, 1 થી 5 સુધી તીવ્રતાનો ગુણ અને તમને કેવું લાગ્યું. સૌથી શાંત અને સૌથી વ્યસ્ત જગ્યાની સરખામણીનાં બે વાક્ય પણ લખો.",
    "instruction_status": "ready"
   }
  },
@@ -337,7 +337,7 @@
     "घड़ी या रसोई का टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "तीन जगहों की अपनी तालिका दिखाओ: प्रकार के अनुसार छाँटी आवाज़ें, 1 से 5 तक तेज़ी का अंक और तुमने कैसा महसूस किया। सबसे शांत और सबसे व्यस्त जगह की तुलना के दो वाक्य भी लिखो।",
    "instruction_status": "ready"
   }
  },
@@ -375,7 +375,7 @@
     "A cloth or towel to cover them"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a grown-up the names of the three things that were hidden under the cloth.",
    "instruction_status": "ready"
   }
  },
@@ -413,7 +413,7 @@
     "ઢાંકવા માટે કપડું કે ટુવાલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને કપડાં નીચે છુપાવેલી ત્રણે વસ્તુઓનાં નામ કહો.",
    "instruction_status": "ready"
   }
  },
@@ -451,7 +451,7 @@
     "ढकने के लिए कपड़ा या तौलिया"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को कपड़े के नीचे छिपी तीनों चीज़ों के नाम बताओ।",
    "instruction_status": "ready"
   }
  },
@@ -492,7 +492,7 @@
     "Paper and pencil (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your two lists of what you remembered, the first try and the second try, and tell a grown-up which trick you used.",
    "instruction_status": "ready"
   }
  },
@@ -533,7 +533,7 @@
     "કાગળ અને પેન્સિલ (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "જે યાદ રહ્યું તેની તમારી બંને યાદી, પહેલો પ્રયાસ અને બીજો પ્રયાસ, બતાવો અને કોઈ મોટાને કહો કે તમે કઈ યુક્તિ વાપરી.",
    "instruction_status": "ready"
   }
  },
@@ -574,7 +574,7 @@
     "कागज़ और पेंसिल (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "जो याद रहा उसकी अपनी दोनों सूचियाँ, पहली कोशिश और दूसरी कोशिश, दिखाओ और किसी बड़े को बताओ कि तुमने कौन-सी तरकीब अपनाई।",
    "instruction_status": "ready"
   }
  },
@@ -616,7 +616,7 @@
     "Paper and pencil (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Describe the covered arrangement out loud or show your drawn plan. Tell a family member what changed in the second round and which memory strategy helped you most.",
    "instruction_status": "ready"
   }
  },
@@ -658,7 +658,7 @@
     "કાગળ અને પેન્સિલ (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ઢાંકેલી ગોઠવણીનું મોઢે વર્ણન કરો કે તમારો દોરેલો નકશો બતાવો. પરિવારના કોઈ સભ્યને કહો કે બીજા રાઉન્ડમાં શું બદલાયું અને યાદ રાખવાની કઈ રીત સૌથી વધુ કામ લાગી.",
    "instruction_status": "ready"
   }
  },
@@ -700,7 +700,7 @@
     "कागज़ और पेंसिल (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ढकी हुई सजावट का मुँह से वर्णन करो या अपना बनाया नक्शा दिखाओ। परिवार के किसी सदस्य को बताओ कि दूसरे दौर में क्या बदला और कौन-सी याद रखने की तरकीब सबसे ज़्यादा काम आई।",
    "instruction_status": "ready"
   }
  },
@@ -736,7 +736,7 @@
     "Three toys or safe things from home"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a grown-up your story about the three toys, with a beginning, a middle and an ending.",
    "instruction_status": "ready"
   }
  },
@@ -772,7 +772,7 @@
     "ઘરનાં ત્રણ રમકડાં કે સુરક્ષિત વસ્તુઓ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને ત્રણ રમકડાંની તમારી વાર્તા કહો, જેમાં શરૂઆત, વચ્ચેનો ભાગ અને અંત હોય.",
    "instruction_status": "ready"
   }
  },
@@ -808,7 +808,7 @@
     "घर के तीन खिलौने या सुरक्षित चीज़ें"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को तीन खिलौनों की अपनी कहानी सुनाओ, जिसमें शुरुआत, बीच और अंत हो।",
    "instruction_status": "ready"
   }
  },
@@ -847,7 +847,7 @@
     "Pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell or write your story of about five sentences with a title and a surprise at the end. Read it to a grown-up.",
    "instruction_status": "ready"
   }
  },
@@ -886,7 +886,7 @@
     "પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "લગભગ પાંચ વાક્યની તમારી વાર્તા કહો કે લખો, જેનું એક શીર્ષક હોય અને અંતે કોઈ નવાઈ હોય. તે કોઈ મોટાને વાંચી સંભળાવો.",
    "instruction_status": "ready"
   }
  },
@@ -925,7 +925,7 @@
     "पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "लगभग पाँच वाक्यों की अपनी कहानी सुनाओ या लिखो, जिसका एक शीर्षक हो और अंत में कोई अचरज हो। उसे किसी बड़े को पढ़कर सुनाओ।",
    "instruction_status": "ready"
   }
  },
@@ -964,7 +964,7 @@
     "One ordinary object from home"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Share your story of about 120 to 150 words told by the object, with its problem and an ending that changes something. Tell a family member the one sentence you improved.",
    "instruction_status": "ready"
   }
  },
@@ -1003,7 +1003,7 @@
     "ઘરની એક સામાન્ય વસ્તુ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "વસ્તુના મોઢે કહેવાયેલી લગભગ 120 થી 150 શબ્દોની તમારી વાર્તા બતાવો કે સંભળાવો, જેમાં તેની કોઈ સમસ્યા હોય અને એવો અંત હોય જે કંઈક બદલી નાખે. પરિવારના કોઈ સભ્યને તમે સુધારેલું એક વાક્ય કહો.",
    "instruction_status": "ready"
   }
  },
@@ -1042,7 +1042,7 @@
     "घर की एक आम चीज़"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "वस्तु की ज़ुबानी लगभग 120 से 150 शब्दों की अपनी कहानी दिखाओ या सुनाओ, जिसमें उसकी कोई समस्या हो और ऐसा अंत हो जो कुछ बदल दे। परिवार के किसी सदस्य को वह एक वाक्य बताओ जो तुमने बेहतर किया।",
    "instruction_status": "ready"
   }
  },
@@ -1083,7 +1083,7 @@
     "Tape (a grown-up helps)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your paper tower. If it fell, tell them what you changed to try again.",
    "instruction_status": "ready"
   }
  },
@@ -1124,7 +1124,7 @@
     "ટેપ (મોટા મદદ કરે)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને તમારો કાગળનો મિનારો બતાવો. જો તે પડી ગયો હોય તો ફરી પ્રયાસ કરવા તમે શું બદલ્યું તે કહો.",
    "instruction_status": "ready"
   }
  },
@@ -1165,7 +1165,7 @@
     "टेप (बड़ा मदद करे)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को अपनी कागज़ की मीनार दिखाओ। अगर वह गिर गई, तो बताओ कि दोबारा कोशिश करने के लिए तुमने क्या बदला।",
    "instruction_status": "ready"
   }
  },
@@ -1208,7 +1208,7 @@
     "Tape (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your bridges and tell them which of the three or more designs held the most, and why you think so.",
    "instruction_status": "ready"
   }
  },
@@ -1251,7 +1251,7 @@
     "ટેપ (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને તમારા પુલ બતાવો અને કહો કે ત્રણ કે વધુ બનાવટમાંથી કઈ સૌથી વધુ વજન ઝીલી શકી અને તમને એવું કેમ લાગે છે.",
    "instruction_status": "ready"
   }
  },
@@ -1294,7 +1294,7 @@
     "टेप (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को अपने पुल दिखाओ और बताओ कि तीन या ज़्यादा बनावटों में से कौन-सी सबसे ज़्यादा वज़न सह पाई और तुम्हें ऐसा क्यों लगता है।",
    "instruction_status": "ready"
   }
  },
@@ -1337,7 +1337,7 @@
     "A ruler or a book of known height"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Share your two sketches, your tower and its height, and your written list of what you changed and what happened. Tell a family member which shapes or folds made it stronger.",
    "instruction_status": "ready"
   }
  },
@@ -1380,7 +1380,7 @@
     "ફૂટપટ્ટી કે જાણીતી ઊંચાઈનું પુસ્તક"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારા બંને સ્કેચ, તમારો મિનારો અને તેની ઊંચાઈ, અને તમે શું બદલ્યું તથા શું થયું તેની લખેલી યાદી બતાવો. પરિવારના કોઈ સભ્યને કહો કે કયા આકાર કે ગડીઓથી તે વધુ મજબૂત બન્યો.",
    "instruction_status": "ready"
   }
  },
@@ -1423,7 +1423,7 @@
     "स्केल या जानी हुई ऊँचाई की किताब"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपने दोनों रेखाचित्र, अपनी मीनार और उसकी ऊँचाई, और तुमने क्या बदला व क्या हुआ इसकी लिखी सूची दिखाओ। परिवार के किसी सदस्य को बताओ कि कौन-से आकार या मोड़ों से वह मज़बूत बनी।",
    "instruction_status": "ready"
   }
  },
@@ -1459,7 +1459,7 @@
     "Paper and crayons or a pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Point to the face that is most like how you feel and tell a grown-up its name. Then show them your three calm breaths.",
    "instruction_status": "ready"
   }
  },
@@ -1495,7 +1495,7 @@
     "કાગળ અને ક્રેયોન કે પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી લાગણી સાથે મળતા ચહેરા પર આંગળી મૂકો અને કોઈ મોટાને તેનું નામ કહો. પછી તેમને તમારા ત્રણ શાંત શ્વાસ કરીને બતાવો.",
    "instruction_status": "ready"
   }
  },
@@ -1531,7 +1531,7 @@
     "कागज़ और क्रेयॉन या पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "जो चेहरा तुम्हारी भावना से मिलता है उस पर उँगली रखो और किसी बड़े को उसका नाम बताओ। फिर उन्हें अपनी तीन शांत साँसें करके दिखाओ।",
    "instruction_status": "ready"
   }
  },
@@ -1570,7 +1570,7 @@
     "A clock or timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a grown-up your feeling word, how strong it was before and after your calming idea, and what helped. You can keep the reason private.",
    "instruction_status": "ready"
   }
  },
@@ -1609,7 +1609,7 @@
     "ઘડિયાળ કે ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને તમારી લાગણીનો શબ્દ કહો, શાંત થવાના ઉપાય પહેલાં અને પછી તે કેટલી તીવ્ર હતી, અને શું કામ લાગ્યું. કારણ તમે તમારી પાસે રાખી શકો છો.",
    "instruction_status": "ready"
   }
  },
@@ -1648,7 +1648,7 @@
     "घड़ी या टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को अपनी भावना का शब्द बताओ, शांत करने वाले उपाय से पहले और बाद में वह कितनी तेज़ थी, और क्या काम आया। कारण तुम अपने तक रख सकते हो।",
    "instruction_status": "ready"
   }
  },
@@ -1688,7 +1688,7 @@
     "A clock or timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a trusted grown-up the exact feeling word you found, the calming strategy you tried and whether it helped. Your case file stays private unless you choose to share it.",
    "instruction_status": "ready"
   }
  },
@@ -1728,7 +1728,7 @@
     "ઘડિયાળ કે ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ ભરોસાપાત્ર મોટાને તમને મળેલો ચોક્કસ લાગણીનો શબ્દ, તમે અજમાવેલી શાંત થવાની રીત અને તેનાથી મદદ મળી કે નહીં તે કહો. તમારી કેસ ફાઇલ ખાનગી રહેશે, જ્યાં સુધી તમે પોતે તે બતાવવા ન ઇચ્છો.",
    "instruction_status": "ready"
   }
  },
@@ -1768,7 +1768,7 @@
     "घड़ी या टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी भरोसेमंद बड़े को वह सही भावना-शब्द बताओ जो तुमने ढूँढा, तुमने कौन-सी शांत करने की तरकीब आज़माई और उससे मदद मिली या नहीं। तुम्हारी केस फ़ाइल निजी रहेगी, जब तक तुम खुद उसे दिखाना न चाहो।",
    "instruction_status": "ready"
   }
  },
@@ -1806,7 +1806,7 @@
     "A soft cushion to tap (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Clap the three-beat pattern back to a grown-up, make up a beat of your own, and freeze like a statue when they say 'Freeze!'.",
    "instruction_status": "ready"
   }
  },
@@ -1844,7 +1844,7 @@
     "થાપ મારવા માટે નરમ ઓશીકું (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાની ત્રણ તાળીની લય પાછી વગાડો, તમારી પોતાની એક લય બનાવો, અને તેઓ 'ફ્રીઝ!' કહે ત્યારે મૂર્તિની જેમ સ્થિર થઈ જાઓ.",
    "instruction_status": "ready"
   }
  },
@@ -1882,7 +1882,7 @@
     "थपकी के लिए नरम तकिया (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े की तीन ताली की लय वापस बजाओ, अपनी एक लय बनाओ, और जब वे 'फ़्रीज़!' कहें तो मूर्ति की तरह रुक जाओ।",
    "instruction_status": "ready"
   }
  },
@@ -1921,7 +1921,7 @@
     "Paper and pencil for the symbols (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Play your 4-beat pattern and the 8-beat rhythm you made with a grown-up, twice each. Tell them what was hardest and what you did about it.",
    "instruction_status": "ready"
   }
  },
@@ -1960,7 +1960,7 @@
     "ચિહ્નો લખવા માટે કાગળ અને પેન્સિલ (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી 4 તાલની લય અને કોઈ મોટા સાથે બનાવેલી 8 તાલની લય, બંને બે-બે વાર વગાડો. તેમને કહો કે સૌથી અઘરું શું હતું અને તમે શું કર્યું.",
    "instruction_status": "ready"
   }
  },
@@ -1999,7 +1999,7 @@
     "चिह्न लिखने के लिए कागज़ और पेंसिल (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपनी 4 ताल की लय और किसी बड़े के साथ बनाई 8 ताल की लय, दोनों दो-दो बार बजाओ। उन्हें बताओ कि सबसे मुश्किल क्या था और तुमने क्या किया।",
    "instruction_status": "ready"
   }
  },
@@ -2041,7 +2041,7 @@
     "Paper and pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Play your written 16-beat rhythm from memory twice, then play your changed version. Tell a family member what helped you keep your place.",
    "instruction_status": "ready"
   }
  },
@@ -2083,7 +2083,7 @@
     "કાગળ અને પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી લખેલી 16 તાલની લય યાદથી બે વાર વગાડો, પછી તમારું બદલેલું રૂપ વગાડો. પરિવારના કોઈ સભ્યને કહો કે તમારી જગ્યા યાદ રાખવામાં શું કામ લાગ્યું.",
    "instruction_status": "ready"
   }
  },
@@ -2125,7 +2125,7 @@
     "कागज़ और पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपनी लिखी 16 ताल की लय याद से दो बार बजाओ, फिर अपना बदला हुआ रूप बजाओ। परिवार के किसी सदस्य को बताओ कि अपनी जगह याद रखने में क्या काम आया।",
    "instruction_status": "ready"
   }
  },
@@ -2161,7 +2161,7 @@
     "Paper and crayons or a pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your drawing of your invention and tell them its name and how it helps. Then do one tidy-up job at home.",
    "instruction_status": "ready"
   }
  },
@@ -2197,7 +2197,7 @@
     "કાગળ અને ક્રેયોન કે પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને તમારી શોધનું ચિત્ર બતાવો અને તેનું નામ તથા તે કેવી રીતે મદદ કરે છે તે કહો. પછી ઘરમાં એક સાફસફાઈનું કામ કરો.",
    "instruction_status": "ready"
   }
  },
@@ -2233,7 +2233,7 @@
     "कागज़ और क्रेयॉन या पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को अपने आविष्कार का चित्र दिखाओ और उसका नाम व वह कैसे मदद करता है, यह बताओ। फिर घर में एक सफ़ाई-सजावट का काम करो।",
    "instruction_status": "ready"
   }
  },
@@ -2274,7 +2274,7 @@
     "Tape (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your labelled plan with at least three parts and your small model. Tell a grown-up what problem it solves and who it helps.",
    "instruction_status": "ready"
   }
  },
@@ -2315,7 +2315,7 @@
     "ટેપ (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ઓછામાં ઓછા ત્રણ ભાગ પર નામ લખેલો તમારો નકશો અને તમારું નાનું મોડેલ બતાવો. કોઈ મોટાને કહો કે તે કઈ સમસ્યા ઉકેલે છે અને કોને મદદ કરે છે.",
    "instruction_status": "ready"
   }
  },
@@ -2356,7 +2356,7 @@
     "टेप (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "कम से कम तीन हिस्सों पर नाम लिखा अपना नक्शा और अपना छोटा मॉडल दिखाओ। किसी बड़े को बताओ कि वह कौन-सी समस्या सुलझाता है और किसकी मदद करता है।",
    "instruction_status": "ready"
   }
  },
@@ -2396,7 +2396,7 @@
     "Things you already have at home (optional, for a model)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Present your idea to a family member in 1 minute: your two sketches, why you chose one, your model or one-page plan, who it helps and what could go wrong. Tell them the small step you took today.",
    "instruction_status": "ready"
   }
  },
@@ -2436,7 +2436,7 @@
     "ઘરમાં પહેલેથી હોય તેવી સામગ્રી (નમૂના માટે, વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "પરિવારના કોઈ સભ્યને 1 મિનિટમાં તમારો વિચાર રજૂ કરો: તમારા બંને સ્કેચ, તમે એકને કેમ પસંદ કર્યો, તમારું મોડેલ કે એક પાનાની યોજના, તે કોને મદદ કરે છે અને શું ખોટું પડી શકે. આજે તમે લીધેલું નાનું પગલું પણ કહો.",
    "instruction_status": "ready"
   }
  },
@@ -2476,7 +2476,7 @@
     "घर में पहले से मौजूद सामग्री (नमूने के लिए, वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "परिवार के किसी सदस्य को 1 मिनट में अपना विचार बताओ: तुम्हारे दोनों रेखाचित्र, तुमने एक को क्यों चुना, तुम्हारा मॉडल या एक पन्ने की योजना, वह किसकी मदद करता है और क्या गड़बड़ हो सकती है। आज जो छोटा कदम उठाया, वह भी बताओ।",
    "instruction_status": "ready"
   }
  },
@@ -2512,7 +2512,7 @@
     "Your eyes and a room at home"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a grown-up the names of three round things you found and one colour for each.",
    "instruction_status": "ready"
   }
  },
@@ -2548,7 +2548,7 @@
     "તમારી આંખો અને ઘરનો એક રૂમ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને તમને મળેલી ત્રણ ગોળ વસ્તુઓનાં નામ અને દરેકનો એક રંગ કહો.",
    "instruction_status": "ready"
   }
  },
@@ -2584,7 +2584,7 @@
     "तुम्हारी आँखें और घर का एक कमरा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को अपनी ढूँढी तीन गोल चीज़ों के नाम और हर एक का एक रंग बताओ।",
    "instruction_status": "ready"
   }
  },
@@ -2623,7 +2623,7 @@
     "Paper and pencil (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Describe your hidden object to a grown-up using 5 different details, without saying its name, and let them guess it.",
    "instruction_status": "ready"
   }
  },
@@ -2662,7 +2662,7 @@
     "કાગળ અને પેન્સિલ (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી છુપાવેલી વસ્તુનું વર્ણન કોઈ મોટાને 5 જુદી વિગતોથી કરો, તેનું નામ બોલ્યા વિના, અને તેમને અંદાજ લગાવવા દો.",
    "instruction_status": "ready"
   }
  },
@@ -2701,7 +2701,7 @@
     "कागज़ और पेंसिल (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपनी छिपाई हुई चीज़ का वर्णन किसी बड़े को 5 अलग बातों से करो, उसका नाम बोले बिना, और उन्हें अंदाज़ा लगाने दो।",
    "instruction_status": "ready"
   }
  },
@@ -2743,7 +2743,7 @@
     "A clock or timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your first drawing and your improved drawing, with the list of 3 things you missed. Tell a family member one thing you now notice that you never noticed before.",
    "instruction_status": "ready"
   }
  },
@@ -2785,7 +2785,7 @@
     "ઘડિયાળ કે ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારું પહેલું ચિત્ર અને સુધારેલું ચિત્ર બતાવો, સાથે તમારાથી રહી ગયેલી 3 બાબતોની યાદી. પરિવારના કોઈ સભ્યને કહો કે હવે તમને એવી કઈ વાત દેખાય છે જે પહેલાં ક્યારેય દેખાઈ નહોતી.",
    "instruction_status": "ready"
   }
  },
@@ -2827,7 +2827,7 @@
     "घड़ी या टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना पहला चित्र और सुधारा हुआ चित्र दिखाओ, साथ में उन 3 बातों की सूची जो तुमसे छूट गई थीं। परिवार के किसी सदस्य को बताओ कि अब तुम्हें कौन-सी ऐसी बात दिखती है जो पहले कभी नहीं दिखी थी।",
    "instruction_status": "ready"
   }
  },
@@ -2863,7 +2863,7 @@
     "Your voice and a grown-up to play with"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Say the three picnic things back to a grown-up in the same order.",
    "instruction_status": "ready"
   }
  },
@@ -2899,7 +2899,7 @@
     "તમારો અવાજ અને રમવા માટે કોઈ મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "પિકનિકની ત્રણે વસ્તુઓ કોઈ મોટાને એ જ ક્રમમાં બોલી સંભળાવો.",
    "instruction_status": "ready"
   }
  },
@@ -2935,7 +2935,7 @@
     "तुम्हारी आवाज़ और खेलने के लिए कोई बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "पिकनिक की तीनों चीज़ें किसी बड़े को उसी क्रम में दोहराकर सुनाओ।",
    "instruction_status": "ready"
   }
  },
@@ -2974,7 +2974,7 @@
     "Paper and pencil (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Say the whole picnic list of 6 items in the right order, and tell a grown-up which trick you tried and whether it helped.",
    "instruction_status": "ready"
   }
  },
@@ -3013,7 +3013,7 @@
     "કાગળ અને પેન્સિલ (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "પિકનિકની 6 વસ્તુઓની આખી યાદી સાચા ક્રમમાં બોલો, અને કોઈ મોટાને કહો કે તમે કઈ યુક્તિ અજમાવી અને તેનાથી મદદ મળી કે નહીં.",
    "instruction_status": "ready"
   }
  },
@@ -3052,7 +3052,7 @@
     "कागज़ और पेंसिल (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "पिकनिक की 6 चीज़ों की पूरी सूची सही क्रम में बोलो, और किसी बड़े को बताओ कि तुमने कौन-सी तरकीब आज़माई और उससे मदद मिली या नहीं।",
    "instruction_status": "ready"
   }
  },
@@ -3093,7 +3093,7 @@
     "A clock or timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Say your 8-item chain forwards and then backwards, and write it from memory. Tell a grown-up which memory strategy helped most and why.",
    "instruction_status": "ready"
   }
  },
@@ -3134,7 +3134,7 @@
     "ઘડિયાળ કે ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી 8 વસ્તુઓની કડી પહેલાં આગળથી અને પછી પાછળથી બોલો, અને યાદથી લખો. કોઈ મોટાને કહો કે યાદ રાખવાની કઈ રીત સૌથી વધુ કામ લાગી અને કેમ.",
    "instruction_status": "ready"
   }
  },
@@ -3175,7 +3175,7 @@
     "घड़ी या टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपनी 8 चीज़ों की कड़ी पहले आगे से और फिर पीछे से बोलो, और उसे याद से लिखो। किसी बड़े को बताओ कि याद रखने की कौन-सी तरकीब सबसे ज़्यादा काम आई और क्यों।",
    "instruction_status": "ready"
   }
  },
@@ -3211,7 +3211,7 @@
     "A room at home and a grown-up to play with"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Give a grown-up three clues about one thing in the room: its colour, its size and what it is used for. Then listen to their three clues.",
    "instruction_status": "ready"
   }
  },
@@ -3247,7 +3247,7 @@
     "ઘરનો એક રૂમ અને રમવા માટે કોઈ મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ઓરડાની કોઈ એક વસ્તુ વિશે કોઈ મોટાને ત્રણ સંકેત આપો: તેનો રંગ, તેનું કદ અને તે શેના કામમાં આવે છે. પછી તેમના ત્રણ સંકેત સાંભળો.",
    "instruction_status": "ready"
   }
  },
@@ -3283,7 +3283,7 @@
     "घर का एक कमरा और खेलने के लिए कोई बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "कमरे की किसी एक चीज़ के बारे में किसी बड़े को तीन सुराग दो: उसका रंग, उसका आकार और वह किस काम आती है। फिर उनके तीन सुराग सुनो।",
    "instruction_status": "ready"
   }
  },
@@ -3322,7 +3322,7 @@
     "One safe object at home to write about"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Read your riddle with its 4 clues, its title and the answer line to a grown-up, and let them guess after each clue.",
    "instruction_status": "ready"
   }
  },
@@ -3361,7 +3361,7 @@
     "લખવા માટે ઘરની એક સુરક્ષિત વસ્તુ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી 4 સંકેતવાળી કોયડો, તેનું શીર્ષક અને જવાબની લીટી કોઈ મોટાને વાંચી સંભળાવો, અને દરેક સંકેત પછી તેમને અંદાજ લગાવવા દો.",
    "instruction_status": "ready"
   }
  },
@@ -3400,7 +3400,7 @@
     "लिखने के लिए घर की एक सुरक्षित चीज़"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपनी 4 सुराग वाली पहेली, उसका शीर्षक और उत्तर वाली पंक्ति किसी बड़े को पढ़कर सुनाओ, और हर सुराग के बाद उन्हें अंदाज़ा लगाने दो।",
    "instruction_status": "ready"
   }
  },
@@ -3441,7 +3441,7 @@
     "A clock or timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Give your 1-minute talk to a family member without reading from your notes. Then tell them the one part you improved after their feedback.",
    "instruction_status": "ready"
   }
  },
@@ -3482,7 +3482,7 @@
     "ઘડિયાળ કે ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "પરિવારના કોઈ સભ્યને તમારી 1 મિનિટની વાત નોંધ જોયા વિના સંભળાવો. પછી કહો કે તેમના અભિપ્રાય પછી તમે કયો એક ભાગ સુધાર્યો.",
    "instruction_status": "ready"
   }
  },
@@ -3523,7 +3523,7 @@
     "घड़ी या टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "परिवार के किसी सदस्य को अपनी 1 मिनट की बात नोट्स देखे बिना सुनाओ। फिर बताओ कि उनकी राय के बाद तुमने कौन-सा एक हिस्सा बेहतर किया।",
    "instruction_status": "ready"
   }
  },
@@ -3559,7 +3559,7 @@
     "One sheet of used paper"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Glide your paper plane two times, change one thing, and tell a grown-up which way flew farther.",
    "instruction_status": "ready"
   }
  },
@@ -3595,7 +3595,7 @@
     "વપરાયેલા કાગળની એક શીટ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારું કાગળનું વિમાન બે વાર ઉડાડો, એક વસ્તુ બદલો, અને કોઈ મોટાને કહો કે કયો રસ્તો વધુ દૂર ગયો.",
    "instruction_status": "ready"
   }
  },
@@ -3631,7 +3631,7 @@
     "इस्तेमाल किए हुए कागज़ की एक शीट"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना कागज़ का जहाज़ दो बार उड़ाओ, एक चीज़ बदलो, और किसी बड़े को बताओ कि कौन-सा तरीका ज़्यादा दूर गया।",
    "instruction_status": "ready"
   }
  },
@@ -3672,7 +3672,7 @@
     "An open indoor space"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your table with the 3 planes and their 3 distances each. Tell a grown-up which plane went farthest in total and which fold you would change next.",
    "instruction_status": "ready"
   }
  },
@@ -3713,7 +3713,7 @@
     "ઘરની અંદરની ખુલ્લી જગ્યા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "3 વિમાનો અને દરેકના 3 અંતર સાથેનું તમારું કોષ્ટક બતાવો. કોઈ મોટાને કહો કે કુલ મળીને કયું વિમાન સૌથી દૂર ગયું અને આગળ તમે કઈ ગડી બદલશો.",
    "instruction_status": "ready"
   }
  },
@@ -3754,7 +3754,7 @@
     "घर के अंदर की खुली जगह"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "3 जहाज़ों और हर एक की 3 दूरियों वाली अपनी तालिका दिखाओ। किसी बड़े को बताओ कि कुल मिलाकर कौन-सा जहाज़ सबसे दूर गया और अगली बार तुम कौन-सा मोड़ बदलोगे।",
    "instruction_status": "ready"
   }
  },
@@ -3797,7 +3797,7 @@
     "An open indoor space"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Share your question and guess, your table of 10 measured flights with the averages, and your 2 sentences about what the results show and what could have made the test unfair.",
    "instruction_status": "ready"
   }
  },
@@ -3840,7 +3840,7 @@
     "ઘરની અંદરની ખુલ્લી જગ્યા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારો પ્રશ્ન અને અંદાજ, 10 માપેલી ઉડાનોનું કોષ્ટક સરેરાશ સાથે, અને પરિણામ શું બતાવે છે તથા કસોટી કઈ બાબતથી અયોગ્ય બની શકી હોત તે વિશે તમારાં 2 વાક્ય બતાવો.",
    "instruction_status": "ready"
   }
  },
@@ -3883,7 +3883,7 @@
     "घर के अंदर की खुली जगह"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना सवाल और अनुमान, 10 नापी हुई उड़ानों की तालिका औसत के साथ, और परिणाम क्या दिखाते हैं तथा परीक्षण किस वजह से अनुचित हो सकता था, इस पर अपने 2 वाक्य दिखाओ।",
    "instruction_status": "ready"
   }
  },
@@ -3919,7 +3919,7 @@
     "Paper and crayons or a pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your card for a kind person and tell them one kind thing that person does for you.",
    "instruction_status": "ready"
   }
  },
@@ -3955,7 +3955,7 @@
     "કાગળ અને ક્રેયોન કે પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને દયાળુ વ્યક્તિ માટે બનાવેલું તમારું કાર્ડ બતાવો અને કહો કે તે વ્યક્તિ તમારા માટે કઈ એક સારી વાત કરે છે.",
    "instruction_status": "ready"
   }
  },
@@ -3991,7 +3991,7 @@
     "कागज़ और क्रेयॉन या पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को किसी अच्छे इंसान के लिए बनाया अपना कार्ड दिखाओ और बताओ कि वह इंसान तुम्हारे लिए कौन-सी एक अच्छी बात करता है।",
    "instruction_status": "ready"
   }
  },
@@ -4028,7 +4028,7 @@
     "Paper and pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your list or drawings of 3 kind things you noticed, tell a grown-up who you thanked, and tell them the one kind thing you did yourself.",
    "instruction_status": "ready"
   }
  },
@@ -4065,7 +4065,7 @@
     "કાગળ અને પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમે જોયેલી 3 સારી બાબતોની યાદી કે ચિત્રો બતાવો, કોઈ મોટાને કહો કે તમે કોનો આભાર માન્યો, અને તમે જાતે કરેલી એક સારી વાત કહો.",
    "instruction_status": "ready"
   }
  },
@@ -4102,7 +4102,7 @@
     "कागज़ और पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "तुमने जो 3 अच्छी बातें देखीं उनकी सूची या चित्र दिखाओ, किसी बड़े को बताओ कि तुमने किसे धन्यवाद कहा, और अपनी की हुई एक अच्छी बात बताओ।",
    "instruction_status": "ready"
   }
  },
@@ -4142,7 +4142,7 @@
     "A quiet place to think"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a trusted grown-up how it felt to look at both sides of the moment, and whether you decided to say your respectful sentence. Your notes stay private unless you choose to share them.",
    "instruction_status": "ready"
   }
  },
@@ -4182,7 +4182,7 @@
     "વિચારવા માટે શાંત જગ્યા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ ભરોસાપાત્ર મોટાને કહો કે તે પળને બંને બાજુથી જોવાનું કેવું લાગ્યું, અને તમે તમારું આદરભર્યું વાક્ય કહેવાનું નક્કી કર્યું કે નહીં. તમારી નોંધ ખાનગી રહેશે, જ્યાં સુધી તમે પોતે તે બતાવવા ન ઇચ્છો.",
    "instruction_status": "ready"
   }
  },
@@ -4222,7 +4222,7 @@
     "सोचने के लिए शांत जगह"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी भरोसेमंद बड़े को बताओ कि उस पल को दोनों तरफ़ से देखना कैसा लगा, और क्या तुमने अपना आदर भरा वाक्य कहने का फ़ैसला किया। तुम्हारे नोट्स निजी रहेंगे, जब तक तुम खुद उन्हें दिखाना न चाहो।",
    "instruction_status": "ready"
   }
  },
@@ -4260,7 +4260,7 @@
     "A grown-up to play with"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Copy a grown-up's slow moves like a mirror, stop when they say 'stop', and lead 3 slow moves of your own for them to copy.",
    "instruction_status": "ready"
   }
  },
@@ -4298,7 +4298,7 @@
     "રમવા માટે કોઈ મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાની ધીમી હલનચલન અરીસાની જેમ દોહરાવો, તેઓ 'અટકો' કહે ત્યારે અટકી જાઓ, અને તમારી 3 ધીમી હલનચલન બતાવો જે તેઓ દોહરાવે.",
    "instruction_status": "ready"
   }
  },
@@ -4336,7 +4336,7 @@
     "खेलने के लिए कोई बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े की धीमी हरकतें शीशे की तरह दोहराओ, वे 'रुको' कहें तो रुक जाओ, और अपनी 3 धीमी हरकतें दिखाओ जिन्हें वे दोहराएँ।",
    "instruction_status": "ready"
   }
  },
@@ -4375,7 +4375,7 @@
     "A grown-up to teach"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Do your named 4-move dance 4 times to a steady beat and teach it to a grown-up. Tell them which move was hardest to remember and what helped.",
    "instruction_status": "ready"
   }
  },
@@ -4414,7 +4414,7 @@
     "શીખવવા માટે કોઈ મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારા નામ આપેલા 4 પગલાંવાળો નાચ એકસરખી તાલ પર 4 વાર કરો અને કોઈ મોટાને શીખવો. તેમને કહો કે કયું પગલું યાદ રાખવું સૌથી અઘરું હતું અને શું કામ લાગ્યું.",
    "instruction_status": "ready"
   }
  },
@@ -4453,7 +4453,7 @@
     "सिखाने के लिए कोई बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपने नाम दिए 4 कदमों वाला नाच एक समान ताल पर 4 बार करो और किसी बड़े को सिखाओ। उन्हें बताओ कि कौन-सा कदम याद रखना सबसे मुश्किल था और क्या काम आया।",
    "instruction_status": "ready"
   }
  },
@@ -4494,7 +4494,7 @@
     "A family member to teach"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your written or sketched 8-move routine and teach it to a family member in about 3 minutes. Tell them which instruction you improved after their feedback.",
    "instruction_status": "ready"
   }
  },
@@ -4535,7 +4535,7 @@
     "શીખવવા માટે પરિવારના કોઈ સભ્ય"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી લખેલી કે દોરેલી 8 હલનચલનની દિનચર્યા બતાવો અને પરિવારના કોઈ સભ્યને લગભગ 3 મિનિટમાં શીખવો. તેમને કહો કે તેમના અભિપ્રાય પછી તમે કઈ સૂચના સુધારી.",
    "instruction_status": "ready"
   }
  },
@@ -4576,7 +4576,7 @@
     "सिखाने के लिए परिवार का कोई सदस्य"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपनी लिखी या बनाई 8 हरकतों की दिनचर्या दिखाओ और परिवार के किसी सदस्य को लगभग 3 मिनट में सिखाओ। उन्हें बताओ कि उनकी राय के बाद तुमने कौन-सा निर्देश बेहतर किया।",
    "instruction_status": "ready"
   }
  },
@@ -4612,7 +4612,7 @@
     "Things at home that belong to you, like toys or shoes"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Do your small helper job, then tell a grown-up one thing that looks better now and how the job helps your family.",
    "instruction_status": "ready"
   }
  },
@@ -4648,7 +4648,7 @@
     "ઘરની તમારી પોતાની વસ્તુઓ, જેમ કે રમકડાં કે ચંપલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારું નાનું મદદનું કામ કરો, પછી કોઈ મોટાને કહો કે હવે શું સારું દેખાય છે અને આ કામ તમારા પરિવારને કેવી રીતે મદદ કરે છે.",
    "instruction_status": "ready"
   }
  },
@@ -4684,7 +4684,7 @@
     "घर की तुम्हारी अपनी चीज़ें, जैसे खिलौने या चप्पलें"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना छोटा मददगार काम करो, फिर किसी बड़े को बताओ कि अब क्या बेहतर दिखता है और यह काम तुम्हारे परिवार की कैसे मदद करता है।",
    "instruction_status": "ready"
   }
  },
@@ -4723,7 +4723,7 @@
     "Scrap paper and a pencil for labels"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show the space you sorted into 3 labelled groups and your before-and-after drawing or list. Tell a grown-up one thing to reuse or pass on.",
    "instruction_status": "ready"
   }
  },
@@ -4762,7 +4762,7 @@
     "નામપત્ર માટે વધારાનો કાગળ અને પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "જે જગ્યા તમે 3 નામવાળા જૂથમાં ગોઠવી તે અને તમારું પહેલાં-પછીનું ચિત્ર કે યાદી બતાવો. કોઈ મોટાને ફરી વાપરવા કે બીજાને આપવા જેવી એક વસ્તુ કહો.",
    "instruction_status": "ready"
   }
  },
@@ -4801,7 +4801,7 @@
     "नाम-पत्र के लिए बेकार कागज़ और पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "जो जगह तुमने 3 नाम लगे समूहों में छाँटी वह और अपना पहले-बाद का चित्र या सूची दिखाओ। किसी बड़े को दोबारा काम आने वाली या किसी को देने वाली एक चीज़ बताओ।",
    "instruction_status": "ready"
   }
  },
@@ -4840,7 +4840,7 @@
     "A calendar or a hand-drawn week chart"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your week chart with a goal that says how many days and how long, your plan with a fix for each problem, the first day ticked, and the day you chose to review it with your family.",
    "instruction_status": "ready"
   }
  },
@@ -4879,7 +4879,7 @@
     "કેલેન્ડર અથવા હાથે દોરેલો સપ્તાહ ચાર્ટ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારો અઠવાડિયાનો ચાર્ટ બતાવો, જેમાં કેટલા દિવસ અને કેટલો સમય તેવો લક્ષ્ય હોય, દરેક સમસ્યાના ઉકેલવાળી યોજના હોય, પહેલો દિવસ ટિક કરેલો હોય, અને પરિવાર સાથે તેની સમીક્ષા કરવાનો દિવસ લખેલો હોય.",
    "instruction_status": "ready"
   }
  },
@@ -4918,7 +4918,7 @@
     "कैलेंडर या हाथ से बनाया हफ़्ते का चार्ट"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना सप्ताह का चार्ट दिखाओ, जिसमें लक्ष्य हो कि कितने दिन और कितनी देर, हर समस्या के हल वाली योजना हो, पहला दिन टिक किया हुआ हो, और वह दिन लिखा हो जब तुम परिवार के साथ इसकी समीक्षा करोगे।",
    "instruction_status": "ready"
   }
  },
@@ -4958,7 +4958,7 @@
     "A plastic tub or box"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a grown-up three times if a sound is loud or soft. Then make one soft sound and one loud sound for them.",
    "instruction_status": "ready"
   }
  },
@@ -4998,7 +4998,7 @@
     "પ્લાસ્ટિકનો ડબ્બો કે બોક્સ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ત્રણ વાર કોઈ મોટાને કહો કે સાંભળેલો અવાજ મોટો છે કે ધીમો. પછી તેમના માટે એક ધીમો અને એક મોટો અવાજ કરી બતાવો.",
    "instruction_status": "ready"
   }
  },
@@ -5038,7 +5038,7 @@
     "प्लास्टिक का डिब्बा या बॉक्स"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "तीन बार किसी बड़े को बताओ कि सुनी हुई आवाज़ तेज़ है या धीमी। फिर उनके लिए एक धीमी और एक तेज़ आवाज़ करके दिखाओ।",
    "instruction_status": "ready"
   }
  },
@@ -5077,7 +5077,7 @@
     "A spoon"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your five things in a line from the softest sound to the loudest. Tell them one reason a sound was louder or softer.",
    "instruction_status": "ready"
   }
  },
@@ -5116,7 +5116,7 @@
     "એક ચમચી"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને તમારી પાંચ વસ્તુઓ સૌથી ધીમા અવાજથી સૌથી મોટા અવાજ સુધી હરોળમાં બતાવો. કહો કે કોઈ અવાજ મોટો કે ધીમો કેમ હતો.",
    "instruction_status": "ready"
   }
  },
@@ -5155,7 +5155,7 @@
     "एक चम्मच"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को अपनी पाँच चीज़ें सबसे धीमी आवाज़ से सबसे तेज़ आवाज़ तक कतार में सजाकर दिखाओ। बताओ कि कोई आवाज़ तेज़ या धीमी क्यों थी।",
    "instruction_status": "ready"
   }
  },
@@ -5199,7 +5199,7 @@
     "Paper and pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Share your written prediction, your table of the four cups from the lowest sound to the highest, and your one-sentence explanation. Tell us what your extra test showed.",
    "instruction_status": "ready"
   }
  },
@@ -5243,7 +5243,7 @@
     "કાગળ અને પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારો લખેલો અંદાજ, ચારે કપની સૌથી નીચા અવાજથી સૌથી ઊંચા અવાજ સુધીનું કોષ્ટક અને તમારું એક વાક્યનું સમજૂતી બતાવો. કહો કે તમારી વધારાની કસોટીએ શું બતાવ્યું.",
    "instruction_status": "ready"
   }
  },
@@ -5287,7 +5287,7 @@
     "कागज़ और पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना लिखा अनुमान, चारों कपों की सबसे नीची से सबसे ऊँची आवाज़ तक की तालिका, और अपना एक वाक्य का स्पष्टीकरण दिखाओ। बताओ कि तुम्हारे एक और परीक्षण ने क्या दिखाया।",
    "instruction_status": "ready"
   }
  },
@@ -5325,7 +5325,7 @@
     "A cushion"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Make the same two sounds in the same order as the grown-up. Then make two sounds in an order of your own for them to copy.",
    "instruction_status": "ready"
   }
  },
@@ -5363,7 +5363,7 @@
     "એક ગાદી"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "મોટાની જેમ એ જ બે અવાજ એ જ ક્રમમાં કરો. પછી તેમને દોહરાવવા માટે તમારા પોતાના ક્રમમાં બે અવાજ કરો.",
    "instruction_status": "ready"
   }
  },
@@ -5401,7 +5401,7 @@
     "एक गद्दी"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "बड़े की तरह वही दो आवाज़ें उसी क्रम में करो। फिर उनके दोहराने के लिए अपने बनाए क्रम में दो आवाज़ें करो।",
    "instruction_status": "ready"
   }
  },
@@ -5440,7 +5440,7 @@
     "Paper and pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show the strip of pictures you drew for the four sounds, in order. Then make the four sounds again in that order.",
    "instruction_status": "ready"
   }
  },
@@ -5479,7 +5479,7 @@
     "કાગળ અને પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ચાર અવાજ માટે દોરેલી ચિત્ર-પટ્ટી ક્રમ પ્રમાણે બતાવો. પછી ચારે અવાજ એ જ ક્રમમાં ફરી કરો.",
    "instruction_status": "ready"
   }
  },
@@ -5518,7 +5518,7 @@
     "कागज़ और पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "चार आवाज़ों के लिए बनाई चित्र-पट्टी क्रम से दिखाओ। फिर चारों आवाज़ें उसी क्रम में दोबारा करो।",
    "instruction_status": "ready"
   }
  },
@@ -5560,7 +5560,7 @@
     "A family member to play your score"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Give your written sound score to a family member to play. Then show the part of the score you improved after seeing which symbol was hardest to read.",
    "instruction_status": "ready"
   }
  },
@@ -5602,7 +5602,7 @@
     "તમારો સ્કોર વગાડવા માટે પરિવારનો એક સભ્ય"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારો લખેલો અવાજ-સ્કોર પરિવારના કોઈ સભ્યને વગાડવા આપો. પછી બતાવો કે કયું ચિહ્ન વાંચવું સૌથી અઘરું હતું તે જોઈને તમે સ્કોરનો કયો ભાગ સુધાર્યો.",
    "instruction_status": "ready"
   }
  },
@@ -5644,7 +5644,7 @@
     "तुम्हारा स्कोर बजाने के लिए परिवार का एक सदस्य"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना लिखा ध्वनि-अंकन परिवार के किसी सदस्य को बजाने के लिए दो। फिर दिखाओ कि स्कोर का कौन-सा हिस्सा तुमने सुधारा, जब देखा कि कौन-सा चिह्न पढ़ना सबसे मुश्किल था।",
    "instruction_status": "ready"
   }
  },
@@ -5682,7 +5682,7 @@
     "A plastic cup"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "With your eyes closed, point to where each sound comes from: left, right and in front. Then open your eyes and check.",
    "instruction_status": "ready"
   }
  },
@@ -5720,7 +5720,7 @@
     "પ્લાસ્ટિકનો કપ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "આંખો બંધ કરીને આંગળીથી બતાવો કે દરેક અવાજ ક્યાંથી આવે છે: ડાબે, જમણે અને સામે. પછી આંખો ખોલીને ચકાસો.",
    "instruction_status": "ready"
   }
  },
@@ -5758,7 +5758,7 @@
     "प्लास्टिक का कप"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "आँखें बंद करके उँगली से बताओ कि हर आवाज़ कहाँ से आ रही है: बाएँ, दाएँ और सामने। फिर आँखें खोलकर जाँचो।",
    "instruction_status": "ready"
   }
  },
@@ -5799,7 +5799,7 @@
     "A chair"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a grown-up where each of the six sounds came from. Say why some places were harder to tell than others.",
    "instruction_status": "ready"
   }
  },
@@ -5840,7 +5840,7 @@
     "એક ખુરશી"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને કહો કે છમાંથી દરેક અવાજ ક્યાંથી આવ્યો હતો. એ પણ કહો કે કેટલીક જગ્યાઓ ઓળખવી વધુ અઘરી કેમ હતી.",
    "instruction_status": "ready"
   }
  },
@@ -5881,7 +5881,7 @@
     "एक कुर्सी"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को बताओ कि छह में से हर आवाज़ कहाँ से आई थी। यह भी बताओ कि कुछ जगहें पहचानना ज़्यादा मुश्किल क्यों था।",
    "instruction_status": "ready"
   }
  },
@@ -5925,7 +5925,7 @@
     "A family member to help"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Share your prediction, your table of ratings for each barrier tested twice, and your ranking. Explain in two or three sentences what soft and hard materials seem to do to a sound.",
    "instruction_status": "ready"
   }
  },
@@ -5969,7 +5969,7 @@
     "મદદ કરવા માટે પરિવારનો એક સભ્ય"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારો અંદાજ, દરેક અવરોધની બે વાર કસોટીના ગુણવાળું કોષ્ટક અને તમારો ક્રમ બતાવો. બે-ત્રણ વાક્યમાં સમજાવો કે નરમ અને કઠણ વસ્તુઓ અવાજ સાથે શું કરતી લાગે છે.",
    "instruction_status": "ready"
   }
  },
@@ -6013,7 +6013,7 @@
     "मदद के लिए परिवार का एक सदस्य"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना अनुमान, हर रुकावट की दो बार जाँच की रेटिंग वाली तालिका, और अपनी क्रम-सूची दिखाओ। दो-तीन वाक्यों में समझाओ कि नरम और सख़्त चीज़ें आवाज़ के साथ क्या करती दिखती हैं।",
    "instruction_status": "ready"
   }
  },
@@ -6049,7 +6049,7 @@
     "Your ears and a quiet room at home"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a grown-up a sound word for each of three different sounds you heard, like 'tick-tock' or 'drip-drip'.",
    "instruction_status": "ready"
   }
  },
@@ -6085,7 +6085,7 @@
     "તમારા કાન અને ઘરનો એક શાંત રૂમ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને તમે સાંભળેલા ત્રણ જુદા અવાજમાંથી દરેક માટે એક અવાજ-શબ્દ કહો, જેમ કે 'ટિક-ટોક' કે 'ટપ-ટપ'.",
    "instruction_status": "ready"
   }
  },
@@ -6121,7 +6121,7 @@
     "तुम्हारे कान और घर का एक शांत कमरा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को अपनी सुनी तीन अलग आवाज़ों में से हर एक के लिए एक आवाज़-शब्द बताओ, जैसे 'टिक-टॉक' या 'टप-टप'।",
    "instruction_status": "ready"
   }
  },
@@ -6160,7 +6160,7 @@
     "A walk around your home"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your list of six sounds with a sound word, a describing word and what made each one. Tell a grown-up your favourite word and why it fits.",
    "instruction_status": "ready"
   }
  },
@@ -6199,7 +6199,7 @@
     "ઘરમાં એક આંટો"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "છ અવાજની તમારી યાદી બતાવો, જેમાં દરેક માટે અવાજ-શબ્દ, વર્ણન કરતો શબ્દ અને તે શેનાથી થયો તે હોય. કોઈ મોટાને તમારો મનપસંદ શબ્દ કહો અને તે કેમ બંધબેસતો છે તે પણ.",
    "instruction_status": "ready"
   }
  },
@@ -6238,7 +6238,7 @@
     "घर में एक चक्कर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "छह आवाज़ों की अपनी सूची दिखाओ, जिसमें हर एक के लिए आवाज़-शब्द, वर्णन करने वाला शब्द और आवाज़ का स्रोत हो। किसी बड़े को अपना पसंदीदा शब्द बताओ और यह भी कि वह क्यों ठीक बैठता है।",
    "instruction_status": "ready"
   }
  },
@@ -6278,7 +6278,7 @@
     "A family member to listen and guess"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Read your six sentences to a family member and let them guess the event and each object. Show the sentence you rewrote, and tell them how the same event could sound calm or rushed.",
    "instruction_status": "ready"
   }
  },
@@ -6318,7 +6318,7 @@
     "સાંભળવા અને અંદાજ લગાવવા માટે પરિવારનો એક સભ્ય"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારાં છ વાક્ય પરિવારના કોઈ સભ્યને વાંચી સંભળાવો અને તેમને પ્રસંગ તથા દરેક વસ્તુનો અંદાજ લગાવવા દો. તમે ફરી લખેલું વાક્ય બતાવો, અને કહો કે એ જ પ્રસંગ શાંત કે દોડધામવાળો કેવી રીતે લાગી શકે.",
    "instruction_status": "ready"
   }
  },
@@ -6358,7 +6358,7 @@
     "सुनने और अनुमान लगाने के लिए परिवार का एक सदस्य"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपने छह वाक्य परिवार के किसी सदस्य को पढ़कर सुनाओ और उन्हें घटना और हर चीज़ का अंदाज़ा लगाने दो। वह वाक्य दिखाओ जो तुमने दोबारा लिखा, और बताओ कि वही घटना शांत या भागदौड़ भरी कैसे लग सकती है।",
    "instruction_status": "ready"
   }
  },
@@ -6394,7 +6394,7 @@
     "A picture book with simple pictures"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "After the book is closed, tell a grown-up three things that were in the picture you looked at.",
    "instruction_status": "ready"
   }
  },
@@ -6430,7 +6430,7 @@
     "સાદાં ચિત્રોવાળું ચિત્રપુસ્તક"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "પુસ્તક બંધ થયા પછી, તમે જોયેલા ચિત્રમાં જે ત્રણ વસ્તુઓ હતી તે કોઈ મોટાને કહો.",
    "instruction_status": "ready"
   }
  },
@@ -6466,7 +6466,7 @@
     "सादी तस्वीरों वाली चित्र-पुस्तक"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किताब बंद होने के बाद, तुमने जो चित्र देखा था उसमें मौजूद तीन चीज़ें किसी बड़े को बताओ।",
    "instruction_status": "ready"
   }
  },
@@ -6505,7 +6505,7 @@
     "Paper, a pencil and a second coloured pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your drawing from memory, with the fixes you made in a second colour. Tell a grown-up which things were easy to remember and why.",
    "instruction_status": "ready"
   }
  },
@@ -6544,7 +6544,7 @@
     "કાગળ, પેન્સિલ અને બીજી રંગીન પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "યાદથી દોરેલું તમારું ચિત્ર બતાવો, બીજા રંગથી કરેલા સુધારા સાથે. કોઈ મોટાને કહો કે કઈ વસ્તુઓ યાદ રાખવી સહેલી હતી અને કેમ.",
    "instruction_status": "ready"
   }
  },
@@ -6583,7 +6583,7 @@
     "कागज़, पेंसिल और दूसरी रंगीन पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "याद से बनाया अपना चित्र दिखाओ, दूसरे रंग से किए सुधारों के साथ। किसी बड़े को बताओ कि कौन-सी चीज़ें याद रखना आसान था और क्यों।",
    "instruction_status": "ready"
   }
  },
@@ -6625,7 +6625,7 @@
     "A clock or timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your two floor plans drawn from memory and what each one missed. Write one sentence saying whether your memory strategy helped.",
    "instruction_status": "ready"
   }
  },
@@ -6667,7 +6667,7 @@
     "ઘડિયાળ કે ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "યાદથી દોરેલા તમારા બંને નકશા બતાવો અને દરેકમાં શું રહી ગયું તે પણ. એક વાક્ય લખો કે તમારી યાદ રાખવાની રીત કામ લાગી કે નહીં.",
    "instruction_status": "ready"
   }
  },
@@ -6709,7 +6709,7 @@
     "घड़ी या टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "याद से बनाए अपने दोनों नक्शे दिखाओ और यह भी कि हर एक में क्या छूट गया। एक वाक्य लिखो कि तुम्हारी याद रखने की तरकीब काम आई या नहीं।",
    "instruction_status": "ready"
   }
  },
@@ -6747,7 +6747,7 @@
     "Three socks or soft things"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your line of things with the next ones added. Then make a pattern of your own for them to continue.",
    "instruction_status": "ready"
   }
  },
@@ -6785,7 +6785,7 @@
     "ત્રણ મોજાં કે નરમ વસ્તુઓ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને આગળ ઉમેરેલી વસ્તુઓ સાથેની તમારી હરોળ બતાવો. પછી તેમને આગળ વધારવા માટે તમારી પોતાની એક ભાત બનાવો.",
    "instruction_status": "ready"
   }
  },
@@ -6823,7 +6823,7 @@
     "तीन मोज़े या नरम चीज़ें"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को आगे जोड़ी गई चीज़ों के साथ अपनी कतार दिखाओ। फिर उनके आगे बढ़ाने के लिए अपना एक पैटर्न बनाओ।",
    "instruction_status": "ready"
   }
  },
@@ -6862,7 +6862,7 @@
     "A grown-up to swap patterns with"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your pattern with its rule in words, the pattern you made for a grown-up, and the mistake you found and fixed. Tell them how you knew it was a mistake.",
    "instruction_status": "ready"
   }
  },
@@ -6901,7 +6901,7 @@
     "ભાતની અદલાબદલી કરવા માટે મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "શબ્દોમાં નિયમ સાથેની તમારી ભાત, મોટા માટે બનાવેલી ભાત, અને જે ભૂલ તમે શોધીને સુધારી તે બતાવો. તેમને કહો કે તમને કેવી રીતે ખબર પડી કે તે ભૂલ હતી.",
    "instruction_status": "ready"
   }
  },
@@ -6940,7 +6940,7 @@
     "पैटर्न की अदला-बदली के लिए बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "शब्दों में नियम के साथ अपना पैटर्न, बड़े के लिए बनाया पैटर्न, और वह गलती दिखाओ जो तुमने ढूँढकर सुधारी। उन्हें बताओ कि तुम्हें कैसे पता चला कि वह गलती थी।",
    "instruction_status": "ready"
   }
  },
@@ -6980,7 +6980,7 @@
     "A family member to find your rule"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your dot pattern with its rule in a sentence, your prediction checked by drawing, and the next three numbers. Tell us whether a family member worked out the rule of your own pattern.",
    "instruction_status": "ready"
   }
  },
@@ -7020,7 +7020,7 @@
     "તમારો નિયમ શોધવા માટે પરિવારનો એક સભ્ય"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "બિંદુઓની તમારી ભાત નિયમના એક વાક્ય સાથે, ચિત્ર દોરીને ચકાસેલો અંદાજ અને પછીની ત્રણ સંખ્યાઓ બતાવો. કહો કે પરિવારના કોઈ સભ્યે તમારી બનાવેલી ભાતનો નિયમ શોધી કાઢ્યો કે નહીં.",
    "instruction_status": "ready"
   }
  },
@@ -7060,7 +7060,7 @@
     "तुम्हारा नियम ढूँढने के लिए परिवार का एक सदस्य"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "बिंदुओं का अपना पैटर्न नियम के एक वाक्य के साथ, चित्र बनाकर जाँचा हुआ अनुमान, और अगली तीन संख्याएँ दिखाओ। बताओ कि क्या परिवार के किसी सदस्य ने तुम्हारे बनाए पैटर्न का नियम ढूँढ लिया।",
    "instruction_status": "ready"
   }
  },
@@ -7096,7 +7096,7 @@
     "Two or three safe things in the room, like a cup, a spoon or a cushion"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Say the two things back to a grown-up and bring them. Then ask the grown-up to fetch two things that you choose.",
    "instruction_status": "ready"
   }
  },
@@ -7132,7 +7132,7 @@
     "રૂમમાંની બે કે ત્રણ સુરક્ષિત વસ્તુઓ, જેમ કે કપ, ચમચી કે ગાદી"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાએ કહેલી બે વસ્તુઓ બોલી બતાવો અને તે લાવો. પછી તેમને તમારી પસંદ કરેલી બે વસ્તુઓ લાવવા કહો.",
    "instruction_status": "ready"
   }
  },
@@ -7168,7 +7168,7 @@
     "कमरे की दो या तीन सुरक्षित चीज़ें, जैसे कप, चम्मच या गद्दी"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े की बताई दो चीज़ें दोहराओ और उन्हें ले आओ। फिर उनसे अपनी चुनी दो चीज़ें लाने को कहो।",
    "instruction_status": "ready"
   }
  },
@@ -7207,7 +7207,7 @@
     "Paper and pencil for the grown-up (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a grown-up how many things you remembered in each of your two tries, and which trick worked best for you.",
    "instruction_status": "ready"
   }
  },
@@ -7246,7 +7246,7 @@
     "મોટા માટે કાગળ અને પેન્સિલ (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને કહો કે તમારા બંને પ્રયાસમાં તમને કેટલી વસ્તુઓ યાદ રહી અને કઈ યુક્તિ તમારા માટે સૌથી સારી રહી.",
    "instruction_status": "ready"
   }
  },
@@ -7285,7 +7285,7 @@
     "बड़े के लिए कागज़ और पेंसिल (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को बताओ कि अपनी दोनों कोशिशों में तुम्हें कितनी चीज़ें याद रहीं और कौन-सी तरकीब तुम्हारे लिए सबसे अच्छी रही।",
    "instruction_status": "ready"
   }
  },
@@ -7327,7 +7327,7 @@
     "Paper and pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Say the eight items once with the journey trick and once by plain repeating. Then write one sentence about when the journey trick helps you.",
    "instruction_status": "ready"
   }
  },
@@ -7369,7 +7369,7 @@
     "કાગળ અને પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "આઠ વસ્તુઓ એક વાર સફર વાળી યુક્તિથી અને એક વાર સીધું દોહરાવીને બોલો. પછી એક વાક્ય લખો કે સફર વાળી યુક્તિ તમને ક્યારે કામ લાગે છે.",
    "instruction_status": "ready"
   }
  },
@@ -7411,7 +7411,7 @@
     "कागज़ और पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "आठ चीज़ें एक बार सफ़र वाली तरकीब से और एक बार सीधे दोहराकर बोलो। फिर एक वाक्य लिखो कि सफ़र वाली तरकीब तुम्हारे कब काम आती है।",
    "instruction_status": "ready"
   }
  },
@@ -7447,7 +7447,7 @@
     "Your hand and a grown-up to listen"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a grown-up three things you did today, in order, using your fingers to help.",
    "instruction_status": "ready"
   }
  },
@@ -7483,7 +7483,7 @@
     "તમારો હાથ અને સાંભળવા માટે મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "આંગળીઓની મદદથી કોઈ મોટાને આજે તમે કરેલી ત્રણ વાતો ક્રમમાં કહો.",
    "instruction_status": "ready"
   }
  },
@@ -7519,7 +7519,7 @@
     "तुम्हारा हाथ और सुनने के लिए बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "उँगलियों की मदद से किसी बड़े को आज की तीन बातें क्रम से बताओ जो तुमने कीं।",
    "instruction_status": "ready"
   }
  },
@@ -7558,7 +7558,7 @@
     "A grown-up to listen"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your timeline of five things from yesterday, with a picture and one detail for each, and tell it to a grown-up.",
    "instruction_status": "ready"
   }
  },
@@ -7597,7 +7597,7 @@
     "સાંભળવા માટે મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ગઈકાલની પાંચ બાબતોની તમારી સમયરેખા બતાવો, દરેક માટે એક ચિત્ર અને એક વિગત સાથે, અને તે કોઈ મોટાને કહી સંભળાવો.",
    "instruction_status": "ready"
   }
  },
@@ -7636,7 +7636,7 @@
     "सुनने के लिए बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "कल की पाँच बातों की अपनी समय-रेखा दिखाओ, हर एक के लिए एक चित्र और एक बात के साथ, और उसे किसी बड़े को सुनाओ।",
    "instruction_status": "ready"
   }
  },
@@ -7678,7 +7678,7 @@
     "A clock or timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your two recalls of the day, the second one in a new colour, with your two counts. Write which cue helped most, and one sentence on how you could use it for homework or jobs.",
    "instruction_status": "ready"
   }
  },
@@ -7720,7 +7720,7 @@
     "ઘડિયાળ કે ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તે દિવસની તમારી બંને યાદ-યાદી બતાવો, બીજી નવા રંગમાં, બંનેની ગણતરી સાથે. લખો કે કયો સંકેત સૌથી વધુ કામ લાગ્યો, અને એક વાક્યમાં કે તમે તેનો હોમવર્ક કે કામ માટે કેવી રીતે ઉપયોગ કરી શકો.",
    "instruction_status": "ready"
   }
  },
@@ -7762,7 +7762,7 @@
     "घड़ी या टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "उस दिन की अपनी दोनों याद-सूचियाँ दिखाओ, दूसरी नए रंग में, दोनों गिनती के साथ। लिखो कि कौन-सा संकेत सबसे ज़्यादा काम आया, और एक वाक्य में कि तुम उसे होमवर्क या कामों के लिए कैसे इस्तेमाल कर सकते हो।",
    "instruction_status": "ready"
   }
  },
@@ -7800,7 +7800,7 @@
     "Crayons or a pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your three pictures and tell the story in order, using the words 'first', 'then' and 'last'.",
    "instruction_status": "ready"
   }
  },
@@ -7838,7 +7838,7 @@
     "ક્રેયોન કે પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારાં ત્રણે ચિત્રો બતાવો અને વાર્તા ક્રમમાં કહો, 'પહેલાં', 'પછી' અને 'છેલ્લે' શબ્દો વાપરીને.",
    "instruction_status": "ready"
   }
  },
@@ -7876,7 +7876,7 @@
     "क्रेयॉन या पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपने तीनों चित्र दिखाओ और कहानी क्रम से सुनाओ, 'पहले', 'फिर' और 'आख़िर में' शब्दों का इस्तेमाल करते हुए।",
    "instruction_status": "ready"
   }
  },
@@ -7915,7 +7915,7 @@
     "A pencil or crayons"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your five story cards in the order that makes sense. Tell the story smoothly with linking words like 'suddenly', 'later' and 'finally'.",
    "instruction_status": "ready"
   }
  },
@@ -7954,7 +7954,7 @@
     "પેન્સિલ કે ક્રેયોન"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારા પાંચ વાર્તા-કાર્ડ યોગ્ય ક્રમમાં બતાવો. 'અચાનક', 'પછી' અને 'આખરે' જેવા જોડતા શબ્દો સાથે વાર્તા સરળતાથી કહો.",
    "instruction_status": "ready"
   }
  },
@@ -7993,7 +7993,7 @@
     "पेंसिल या क्रेयॉन"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपने पाँच कहानी-कार्ड सही क्रम में दिखाओ। 'अचानक', 'बाद में' और 'आख़िरकार' जैसे जोड़ने वाले शब्दों के साथ कहानी बिना रुके सुनाओ।",
    "instruction_status": "ready"
   }
  },
@@ -8035,7 +8035,7 @@
     "A clock or timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your six-event outline and the first paragraph told in a new order, with time words. Tell us which order your listener found more interesting and which sentence you improved.",
    "instruction_status": "ready"
   }
  },
@@ -8077,7 +8077,7 @@
     "ઘડિયાળ કે ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી છ ઘટનાઓની રૂપરેખા અને નવા ક્રમમાં કહેલો પહેલો ફકરો, સમય બતાવતા શબ્દો સાથે, બતાવો. કહો કે તમારા શ્રોતાને કયો ક્રમ વધુ રસપ્રદ લાગ્યો અને તમે કયું વાક્ય સુધાર્યું.",
    "instruction_status": "ready"
   }
  },
@@ -8119,7 +8119,7 @@
     "घड़ी या टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपनी छह घटनाओं की रूपरेखा और नए क्रम में सुनाया पहला अनुच्छेद, समय बताने वाले शब्दों के साथ, दिखाओ। बताओ कि तुम्हारे श्रोता को कौन-सा क्रम ज़्यादा दिलचस्प लगा और तुमने कौन-सा वाक्य बेहतर किया।",
    "instruction_status": "ready"
   }
  },
@@ -8157,7 +8157,7 @@
     "Paper and crayons or a pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a grown-up your new ending for the story. Show them your drawing of it and tell them who is happy in it.",
    "instruction_status": "ready"
   }
  },
@@ -8195,7 +8195,7 @@
     "કાગળ અને ક્રેયોન કે પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને વાર્તાનો તમારો નવો અંત કહો. તેમને તેનું ચિત્ર બતાવો અને કહો કે તેમાં કોણ ખુશ છે.",
    "instruction_status": "ready"
   }
  },
@@ -8233,7 +8233,7 @@
     "कागज़ और क्रेयॉन या पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को कहानी का अपना नया अंत सुनाओ। उन्हें उसका चित्र दिखाओ और बताओ कि उसमें कौन खुश है।",
    "instruction_status": "ready"
   }
  },
@@ -8272,7 +8272,7 @@
     "Paper and pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a grown-up your two new endings, which one you chose, and one clue from the story that supports your choice.",
    "instruction_status": "ready"
   }
  },
@@ -8311,7 +8311,7 @@
     "કાગળ અને પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને તમારા બંને નવા અંત કહો, તમે કયો પસંદ કર્યો, અને વાર્તાનો એ એક સંકેત જે તમારી પસંદગીને ટેકો આપે છે.",
    "instruction_status": "ready"
   }
  },
@@ -8350,7 +8350,7 @@
     "कागज़ और पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को अपने दोनों नए अंत सुनाओ, तुमने कौन-सा चुना, और कहानी का वह एक सुराग जो तुम्हारे चुनाव का साथ देता है।",
    "instruction_status": "ready"
   }
  },
@@ -8392,7 +8392,7 @@
     "A family member to listen"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your three one-line endings with notes on how each changes the message, and your full paragraph with dialogue. Tell us what message a family member heard.",
    "instruction_status": "ready"
   }
  },
@@ -8434,7 +8434,7 @@
     "સાંભળવા માટે પરિવારનો એક સભ્ય"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારા ત્રણ એક લીટીના અંત, દરેક સંદેશ કેવી રીતે બદલે છે તેની નોંધ સાથે, અને સંવાદવાળો આખો ફકરો બતાવો. કહો કે પરિવારના કોઈ સભ્યે કયો સંદેશ સાંભળ્યો.",
    "instruction_status": "ready"
   }
  },
@@ -8476,7 +8476,7 @@
     "सुनने के लिए परिवार का एक सदस्य"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपने तीन एक पंक्ति के अंत, हर एक संदेश को कैसे बदलता है इसके नोट्स के साथ, और संवाद वाला पूरा अनुच्छेद दिखाओ। बताओ कि परिवार के किसी सदस्य ने कौन-सा संदेश सुना।",
    "instruction_status": "ready"
   }
  },
@@ -8514,7 +8514,7 @@
     "Crayons or a pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your drawing of your pretend friend. Tell them its name, three things about it and what it does when it is happy.",
    "instruction_status": "ready"
   }
  },
@@ -8552,7 +8552,7 @@
     "ક્રેયોન કે પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને તમારા કાલ્પનિક મિત્રનું ચિત્ર બતાવો. તેનું નામ, તેના વિશે ત્રણ વાતો અને ખુશ હોય ત્યારે તે શું કરે છે તે કહો.",
    "instruction_status": "ready"
   }
  },
@@ -8590,7 +8590,7 @@
     "क्रेयॉन या पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को अपने काल्पनिक दोस्त का चित्र दिखाओ। उसका नाम, उसके बारे में तीन बातें और खुश होने पर वह क्या करता है, यह बताओ।",
    "instruction_status": "ready"
   }
  },
@@ -8629,7 +8629,7 @@
     "Crayons (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your character card with its name, look, favourite thing, worry and wish. Tell a short scene where the character tries to solve a problem, and ask a grown-up what they learned about your character.",
    "instruction_status": "ready"
   }
  },
@@ -8668,7 +8668,7 @@
     "ક્રેયોન (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારું પાત્ર-કાર્ડ બતાવો, જેમાં નામ, દેખાવ, મનપસંદ વસ્તુ, ચિંતા અને ઇચ્છા હોય. એક નાનું દૃશ્ય કહો જેમાં પાત્ર કોઈ સમસ્યા ઉકેલવાનો પ્રયાસ કરે, અને કોઈ મોટાને પૂછો કે તેમને તમારા પાત્ર વિશે શું જાણવા મળ્યું.",
    "instruction_status": "ready"
   }
  },
@@ -8707,7 +8707,7 @@
     "क्रेयॉन (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना किरदार-कार्ड दिखाओ, जिसमें नाम, रूप, पसंदीदा चीज़, चिंता और इच्छा हो। एक छोटा दृश्य सुनाओ जिसमें किरदार किसी समस्या को सुलझाने की कोशिश करता है, और किसी बड़े से पूछो कि उन्होंने तुम्हारे किरदार के बारे में क्या जाना।",
    "instruction_status": "ready"
   }
  },
@@ -8747,7 +8747,7 @@
     "A family member to listen"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Share your character profile and your scene of about 100 words that shows the flaw without naming it. Tell us how a family member described the character and which line you improved.",
    "instruction_status": "ready"
   }
  },
@@ -8787,7 +8787,7 @@
     "સાંભળવા માટે પરિવારનો એક સભ્ય"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારા પાત્રનો પરિચય અને લગભગ 100 શબ્દોનું દૃશ્ય બતાવો, જે ખામીનું નામ લીધા વિના તેને દેખાડે છે. કહો કે પરિવારના સભ્યે પાત્રનું વર્ણન કેવું કર્યું અને તમે કઈ લીટી સુધારી.",
    "instruction_status": "ready"
   }
  },
@@ -8827,7 +8827,7 @@
     "सुनने के लिए परिवार का एक सदस्य"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपने किरदार का परिचय और लगभग 100 शब्दों का दृश्य दिखाओ, जो कमी का नाम लिए बिना उसे दिखाता है। बताओ कि परिवार के सदस्य ने किरदार को कैसा बताया और तुमने कौन-सी पंक्ति बेहतर की।",
    "instruction_status": "ready"
   }
  },
@@ -8865,7 +8865,7 @@
     "Crayons or a pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your drawing of the moon visiting your home and tell them three things about the visit.",
    "instruction_status": "ready"
   }
  },
@@ -8903,7 +8903,7 @@
     "ક્રેયોન કે પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને ચંદ્ર તમારા ઘરે આવ્યો તેનું તમારું ચિત્ર બતાવો અને તે મુલાકાત વિશે ત્રણ વાતો કહો.",
    "instruction_status": "ready"
   }
  },
@@ -8941,7 +8941,7 @@
     "क्रेयॉन या पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को चाँद के तुम्हारे घर आने का अपना चित्र दिखाओ और उस मुलाक़ात के बारे में तीन बातें बताओ।",
    "instruction_status": "ready"
   }
  },
@@ -8980,7 +8980,7 @@
     "Crayons or coloured pencils (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your map with three spots, and tell what you see, hear and smell in each. Tell a grown-up about a day in your place, following its strange rule.",
    "instruction_status": "ready"
   }
  },
@@ -9019,7 +9019,7 @@
     "ક્રેયોન કે રંગીન પેન્સિલ (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ત્રણ જગ્યાવાળો તમારો નકશો બતાવો, અને કહો કે દરેક જગ્યાએ શું દેખાય, સંભળાય અને સુગંધાય છે. કોઈ મોટાને તમારી જગ્યાનો એક દિવસ કહો, તેના વિચિત્ર નિયમને પાળીને.",
    "instruction_status": "ready"
   }
  },
@@ -9058,7 +9058,7 @@
     "क्रेयॉन या रंगीन पेंसिलें (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "तीन जगहों वाला अपना नक्शा दिखाओ, और बताओ कि हर जगह क्या दिखता, सुनाई देता और महकता है। किसी बड़े को अपनी जगह का एक दिन सुनाओ, उसके अजीब नियम को मानते हुए।",
    "instruction_status": "ready"
   }
  },
@@ -9100,7 +9100,7 @@
     "A clock or timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your list of five changes and your short story of a day that solves one problem. Add lines that answer two questions a family member asked.",
    "instruction_status": "ready"
   }
  },
@@ -9142,7 +9142,7 @@
     "ઘડિયાળ કે ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારા પાંચ ફેરફારોની યાદી અને એવા એક દિવસની ટૂંકી વાર્તા બતાવો જે એક સમસ્યા ઉકેલે છે. પરિવારના કોઈ સભ્યે પૂછેલા બે પ્રશ્નોના જવાબવાળી લીટીઓ પણ ઉમેરો.",
    "instruction_status": "ready"
   }
  },
@@ -9184,7 +9184,7 @@
     "घड़ी या टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपने पाँच बदलावों की सूची और ऐसे एक दिन की छोटी कहानी दिखाओ जो एक समस्या सुलझाता है। परिवार के किसी सदस्य के पूछे दो सवालों के जवाब वाली पंक्तियाँ भी जोड़ो।",
    "instruction_status": "ready"
   }
  },
@@ -9224,7 +9224,7 @@
     "A small soft toy"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your paper tube and your flat sheet with the toy on each. Tell them which one held the toy better.",
    "instruction_status": "ready"
   }
  },
@@ -9264,7 +9264,7 @@
     "એક નાનું નરમ રમકડું"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને દરેક પર રમકડું મૂકેલી તમારી કાગળની નળી અને સપાટ કાગળ બતાવો. કહો કે કોણે રમકડું વધુ સારી રીતે ઝીલ્યું.",
    "instruction_status": "ready"
   }
  },
@@ -9304,7 +9304,7 @@
     "एक छोटा नरम खिलौना"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को खिलौना रखे अपनी कागज़ की नली और सपाट कागज़ दिखाओ। बताओ कि किसने खिलौने को बेहतर सँभाला।",
    "instruction_status": "ready"
   }
  },
@@ -9347,7 +9347,7 @@
     "Paper and pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your prediction and how many books each of the three tube shapes held. Tell a grown-up why you think one shape was strongest.",
    "instruction_status": "ready"
   }
  },
@@ -9390,7 +9390,7 @@
     "કાગળ અને પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારો અંદાજ બતાવો અને કહો કે ત્રણે નળીના આકારે કેટલાં પુસ્તકો ઝીલ્યાં. કોઈ મોટાને કહો કે તમને કેમ લાગે છે કે એક આકાર સૌથી મજબૂત હતો.",
    "instruction_status": "ready"
   }
  },
@@ -9433,7 +9433,7 @@
     "कागज़ और पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना अनुमान दिखाओ और बताओ कि तीनों नली-आकारों ने कितनी किताबें सँभालीं। किसी बड़े को बताओ कि तुम्हें क्यों लगता है कि एक आकार सबसे मज़बूत था।",
    "instruction_status": "ready"
   }
  },
@@ -9477,7 +9477,7 @@
     "Paper and pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Share your prediction, your table of rice counts for the four beam shapes and your ranking. Write two sentences explaining why a folded shape can be stronger than a flat sheet.",
    "instruction_status": "ready"
   }
  },
@@ -9521,7 +9521,7 @@
     "કાગળ અને પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારો અંદાજ, ચારે બીમ આકારની ચોખાની ગણતરીનું કોષ્ટક અને તમારો ક્રમ બતાવો. બે વાક્ય લખો કે વાળેલો આકાર સપાટ કાગળ કરતાં વધુ મજબૂત કેમ હોઈ શકે.",
    "instruction_status": "ready"
   }
  },
@@ -9565,7 +9565,7 @@
     "कागज़ और पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना अनुमान, चारों शहतीर-आकारों के चावल की गिनती की तालिका और अपनी क्रम-सूची दिखाओ। दो वाक्य लिखो कि मुड़ा आकार सपाट कागज़ से ज़्यादा मज़बूत क्यों हो सकता है।",
    "instruction_status": "ready"
   }
  },
@@ -9607,7 +9607,7 @@
     "Two crumpled paper balls"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your paper boat floating with its paper cargo, and tell them what happened.",
    "instruction_status": "ready"
   }
  },
@@ -9649,7 +9649,7 @@
     "કાગળના બે ગોળા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને કાગળનો સામાન મૂકીને પાણી પર તરતી તમારી કાગળની હોડી બતાવો, અને કહો કે શું થયું.",
    "instruction_status": "ready"
   }
  },
@@ -9691,7 +9691,7 @@
     "कागज़ की दो गेंदें"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को कागज़ का सामान रखकर पानी पर तैरती अपनी कागज़ की नाव दिखाओ, और बताओ कि क्या हुआ।",
    "instruction_status": "ready"
   }
  },
@@ -9736,7 +9736,7 @@
     "Paper and pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your prediction and how much cargo each of the two boats held. Tell a grown-up the one change you tested on the weaker boat.",
    "instruction_status": "ready"
   }
  },
@@ -9781,7 +9781,7 @@
     "કાગળ અને પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારો અંદાજ બતાવો અને કહો કે બંને હોડીએ કેટલો સામાન ઝીલ્યો. કોઈ મોટાને એ એક ફેરફાર કહો જે તમે નબળી હોડી પર અજમાવ્યો.",
    "instruction_status": "ready"
   }
  },
@@ -9826,7 +9826,7 @@
     "कागज़ और पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना अनुमान दिखाओ और बताओ कि दोनों नावों ने कितना सामान सँभाला। किसी बड़े को वह एक बदलाव बताओ जिसे तुमने कमज़ोर नाव पर परखा।",
    "instruction_status": "ready"
   }
  },
@@ -9872,7 +9872,7 @@
     "Paper and pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Share your three sketches, your table of cargo counts for each hull tested twice, and your redesign with its retest. Explain your design choices in 3 sentences, using your records as proof.",
    "instruction_status": "ready"
   }
  },
@@ -9918,7 +9918,7 @@
     "કાગળ અને પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારા ત્રણ સ્કેચ, દરેક હલની બે વાર કસોટીનું સામાન-ગણતરીનું કોષ્ટક, અને ફરી ચકાસેલી નવી ડિઝાઇન બતાવો. તમારી નોંધને પુરાવો બનાવીને 3 વાક્યમાં તમારી ડિઝાઇનના નિર્ણયો સમજાવો.",
    "instruction_status": "ready"
   }
  },
@@ -9964,7 +9964,7 @@
     "कागज़ और पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपने तीन रेखाचित्र, हर ढाँचे की दो बार जाँच की सामान-गिनती वाली तालिका, और दोबारा जाँचा हुआ नया डिज़ाइन दिखाओ। अपने रिकॉर्ड को सबूत बनाकर 3 वाक्यों में अपने डिज़ाइन के फ़ैसले समझाओ।",
    "instruction_status": "ready"
   }
  },
@@ -10004,7 +10004,7 @@
     "A little tape (a grown-up helps)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your paper house for your toy and tell them the one thing you changed to make it better.",
    "instruction_status": "ready"
   }
  },
@@ -10044,7 +10044,7 @@
     "થોડી ટેપ (મોટા મદદ કરે)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને તમારા રમકડા માટે બનાવેલું કાગળનું ઘર બતાવો અને કહો કે તેને સારું બનાવવા તમે કઈ એક વસ્તુ બદલી.",
    "instruction_status": "ready"
   }
  },
@@ -10084,7 +10084,7 @@
     "थोड़ी टेप (बड़ा मदद करे)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को अपने खिलौने के लिए बनाया कागज़ का घर दिखाओ और बताओ कि उसे बेहतर बनाने के लिए तुमने कौन-सी एक चीज़ बदली।",
    "instruction_status": "ready"
   }
  },
@@ -10129,7 +10129,7 @@
     "A notebook to wave"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your paper shelter and tell a grown-up how it did in the wind test and the rain test. Show the part you improved and what happened when you tested again.",
    "instruction_status": "ready"
   }
  },
@@ -10174,7 +10174,7 @@
     "ઝુલાવવા માટે એક નોટબુક"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારો કાગળનો આશરો બતાવો અને કોઈ મોટાને કહો કે તે પવનની કસોટી અને વરસાદની કસોટીમાં કેવો રહ્યો. તમે સુધારેલો ભાગ બતાવો અને ફરી ચકાસતાં શું થયું તે કહો.",
    "instruction_status": "ready"
   }
  },
@@ -10219,7 +10219,7 @@
     "झलने के लिए एक कॉपी"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना कागज़ का आश्रय दिखाओ और किसी बड़े को बताओ कि वह हवा की जाँच और बारिश की जाँच में कैसा रहा। वह हिस्सा दिखाओ जो तुमने सुधारा और दोबारा जाँचने पर क्या हुआ।",
    "instruction_status": "ready"
   }
  },
@@ -10265,7 +10265,7 @@
     "Paper and pencil"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Share your two sketches, your built shelter, and your wind and rain results. Tell a family member the one redesign you made, how it did when tested again, and two design choices you made.",
    "instruction_status": "ready"
   }
  },
@@ -10311,7 +10311,7 @@
     "કાગળ અને પેન્સિલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારા બંને સ્કેચ, બનાવેલો આશરો, અને પવન તથા વરસાદના પરિણામ બતાવો. પરિવારના કોઈ સભ્યને તમે ડિઝાઇનમાં કરેલો એક ફેરફાર, ફરી ચકાસતાં તે કેવો રહ્યો, અને તમારા બે ડિઝાઇન-નિર્ણયો કહો.",
    "instruction_status": "ready"
   }
  },
@@ -10357,7 +10357,7 @@
     "कागज़ और पेंसिल"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपने दोनों रेखाचित्र, बनाया हुआ आश्रय, और हवा व बारिश के नतीजे दिखाओ। परिवार के किसी सदस्य को वह एक बदलाव बताओ जो तुमने डिज़ाइन में किया, दोबारा जाँचने पर वह कैसा रहा, और तुम्हारे दो डिज़ाइन-फ़ैसले।",
    "instruction_status": "ready"
   }
  },
@@ -10395,7 +10395,7 @@
     "A little tape (a grown-up helps)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your small woven paper mat. Say the words 'over' and 'under' as you point along a strip.",
    "instruction_status": "ready"
   }
  },
@@ -10433,7 +10433,7 @@
     "થોડી ટેપ (મોટા મદદ કરે)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને તમારી ગૂંથેલી નાની કાગળની સાદડી બતાવો. પટ્ટી પર આંગળી ફેરવતાં 'ઉપર' અને 'નીચે' શબ્દો બોલો.",
    "instruction_status": "ready"
   }
  },
@@ -10471,7 +10471,7 @@
     "थोड़ी टेप (बड़ा मदद करे)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को अपनी बुनी हुई छोटी कागज़ की चटाई दिखाओ। पट्टी पर उँगली चलाते हुए 'ऊपर' और 'नीचे' शब्द बोलो।",
    "instruction_status": "ready"
   }
  },
@@ -10512,7 +10512,7 @@
     "Paper and pencil (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your two woven mats and tell a grown-up the rule of each pattern in words. Say which pattern you like better and why.",
    "instruction_status": "ready"
   }
  },
@@ -10553,7 +10553,7 @@
     "કાગળ અને પેન્સિલ (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી બંને ગૂંથેલી સાદડીઓ બતાવો અને કોઈ મોટાને દરેક ભાતનો નિયમ શબ્દોમાં કહો. કહો કે તમને કઈ ભાત વધુ ગમે છે અને કેમ.",
    "instruction_status": "ready"
   }
  },
@@ -10594,7 +10594,7 @@
     "कागज़ और पेंसिल (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपनी दोनों बुनी हुई चटाइयाँ दिखाओ और किसी बड़े को हर पैटर्न का नियम शब्दों में बताओ। कहो कि तुम्हें कौन-सा पैटर्न ज़्यादा पसंद है और क्यों।",
    "instruction_status": "ready"
   }
  },
@@ -10640,7 +10640,7 @@
     "A clock or timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Share your sketch and plan, and show your woven basket holding a light load. Tell a family member how you made the weak spot stronger and explain two choices you made.",
    "instruction_status": "ready"
   }
  },
@@ -10686,7 +10686,7 @@
     "ઘડિયાળ કે ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારો સ્કેચ અને યોજના બતાવો, અને હલકો ભાર ઉપાડતી તમારી ગૂંથેલી ટોપલી બતાવો. પરિવારના કોઈ સભ્યને કહો કે તમે નબળી જગ્યા કેવી રીતે મજબૂત કરી અને તમારા બે નિર્ણયો સમજાવો.",
    "instruction_status": "ready"
   }
  },
@@ -10732,7 +10732,7 @@
     "घड़ी या टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना रेखाचित्र और योजना दिखाओ, और हल्का सामान उठाती अपनी बुनी टोकरी दिखाओ। परिवार के किसी सदस्य को बताओ कि तुमने कमज़ोर जगह को कैसे मज़बूत किया और अपने दो फ़ैसले समझाओ।",
    "instruction_status": "ready"
   }
  },
@@ -10770,7 +10770,7 @@
     "A mirror that cannot break (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Make three faces for a grown-up and tell them a feeling for each face. Then ask them how they feel today and listen to their answer.",
    "instruction_status": "ready"
   }
  },
@@ -10808,7 +10808,7 @@
     "ન તૂટે તેવો અરીસો (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને ત્રણ ચહેરા બનાવી બતાવો અને દરેક ચહેરા માટે એક લાગણી કહો. પછી તેમને પૂછો કે આજે તેઓ કેવું અનુભવે છે અને તેમનો જવાબ સાંભળો.",
    "instruction_status": "ready"
   }
  },
@@ -10846,7 +10846,7 @@
     "न टूटने वाला आईना (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को तीन चेहरे बनाकर दिखाओ और हर चेहरे के लिए एक भावना बताओ। फिर उनसे पूछो कि आज वे कैसा महसूस कर रहे हैं और उनका जवाब सुनो।",
    "instruction_status": "ready"
   }
  },
@@ -10885,7 +10885,7 @@
     "Crayons (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your four drawn faces, each with two possible feelings and a kind question. Tell a grown-up why asking is better than guessing.",
    "instruction_status": "ready"
   }
  },
@@ -10924,7 +10924,7 @@
     "ક્રેયોન (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારા દોરેલા ચાર ચહેરા બતાવો, દરેકની સાથે બે શક્ય લાગણીઓ અને એક માયાળુ પ્રશ્ન. કોઈ મોટાને કહો કે અંદાજ લગાવવા કરતાં પૂછવું કેમ સારું છે.",
    "instruction_status": "ready"
   }
  },
@@ -10963,7 +10963,7 @@
     "क्रेयॉन (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपने बनाए चार चेहरे दिखाओ, हर एक के साथ दो संभव भावनाएँ और एक कोमल सवाल। किसी बड़े को बताओ कि अंदाज़ा लगाने से पूछना बेहतर क्यों है।",
    "instruction_status": "ready"
   }
  },
@@ -11003,7 +11003,7 @@
     "A book or show you know"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Share your three situations with their clues, three possible feelings for each, and one open question for each. Write a short explanation of why asking helps.",
    "instruction_status": "ready"
   }
  },
@@ -11043,7 +11043,7 @@
     "તમે જાણતા હો તે પુસ્તક કે શો"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી ત્રણ પરિસ્થિતિઓ, તેમના સંકેતો, દરેકની ત્રણ શક્ય લાગણીઓ અને દરેક માટે એક ખુલ્લો પ્રશ્ન બતાવો. પૂછવું કેમ મદદ કરે છે તેનું ટૂંકું સમજૂતી લખો.",
    "instruction_status": "ready"
   }
  },
@@ -11083,7 +11083,7 @@
     "तुम्हारी जानी हुई किताब या शो"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपनी तीन स्थितियाँ, उनके सुराग, हर एक के लिए तीन संभव भावनाएँ और हर एक के लिए एक खुला सवाल दिखाओ। एक छोटा स्पष्टीकरण लिखो कि पूछना क्यों मदद करता है।",
    "instruction_status": "ready"
   }
  },
@@ -11121,7 +11121,7 @@
     "A grown-up to tell the stories"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a grown-up how the toy would feel in each of three tiny stories.",
    "instruction_status": "ready"
   }
  },
@@ -11159,7 +11159,7 @@
     "વાર્તાઓ કહેવા માટે મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને કહો કે ત્રણ નાની વાર્તાઓમાંથી દરેકમાં રમકડું કેવું અનુભવશે.",
    "instruction_status": "ready"
   }
  },
@@ -11197,7 +11197,7 @@
     "कहानियाँ सुनाने के लिए बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को बताओ कि तीन छोटी कहानियों में से हर एक में खिलौना कैसा महसूस करेगा।",
    "instruction_status": "ready"
   }
  },
@@ -11238,7 +11238,7 @@
     "A story you know well"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your line of five story moments, with a face and a feeling word for each and what caused each change. Tell a grown-up about the moment with two feelings at once.",
    "instruction_status": "ready"
   }
  },
@@ -11279,7 +11279,7 @@
     "તમે સારી રીતે જાણતા હો તે વાર્તા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "પાંચ વાર્તા-ક્ષણોની તમારી રેખા બતાવો, દરેક માટે ચહેરો અને લાગણીનો શબ્દ, અને દરેક ફેરફારનું કારણ. કોઈ મોટાને એ ક્ષણ કહો જેમાં એક સાથે બે લાગણીઓ હતી.",
    "instruction_status": "ready"
   }
  },
@@ -11320,7 +11320,7 @@
     "तुम्हारी अच्छी तरह जानी हुई कहानी"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "पाँच कहानी-पलों की अपनी रेखा दिखाओ, हर एक के लिए चेहरा और भावना का शब्द, और हर बदलाव का कारण। किसी बड़े को वह पल बताओ जिसमें एक साथ दो भावनाएँ थीं।",
    "instruction_status": "ready"
   }
  },
@@ -11360,7 +11360,7 @@
     "A story, film or show you know"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a trusted grown-up about the scene you studied: the outside and inside feelings, the body clues, what the character needed and a calmer option. Your private sentence stays yours.",
    "instruction_status": "ready"
   }
  },
@@ -11400,7 +11400,7 @@
     "તમે જાણતા હો તે વાર્તા, ફિલ્મ કે શો"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ ભરોસાપાત્ર મોટાને તમે તપાસેલા દૃશ્ય વિશે કહો: બહારની અને અંદરની લાગણીઓ, શરીરના સંકેતો, પાત્રને શું જોઈતું હતું અને એક શાંત વિકલ્પ. તમારું ખાનગી વાક્ય તમારું જ રહેશે.",
    "instruction_status": "ready"
   }
  },
@@ -11440,7 +11440,7 @@
     "तुम्हारी जानी हुई कहानी, फ़िल्म या शो"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी भरोसेमंद बड़े को उस दृश्य के बारे में बताओ जिसे तुमने परखा: बाहर और भीतर की भावनाएँ, शरीर के संकेत, किरदार को क्या चाहिए था और एक शांत विकल्प। तुम्हारा निजी वाक्य तुम्हारा ही रहेगा।",
    "instruction_status": "ready"
   }
  },
@@ -11480,7 +11480,7 @@
     "A grown-up to play with"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up one slow breath and say one calm sentence for a pretend problem with toys. Then swap roles and practise the calm words for them.",
    "instruction_status": "ready"
   }
  },
@@ -11520,7 +11520,7 @@
     "સાથે રમવા માટે મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને એક ધીમો શ્વાસ કરીને બતાવો અને રમકડાંની બનાવટી સમસ્યા માટે એક શાંત વાક્ય બોલો. પછી ભૂમિકા બદલીને તેમના માટે શાંત શબ્દોનો મહાવરો કરો.",
    "instruction_status": "ready"
   }
  },
@@ -11560,7 +11560,7 @@
     "साथ खेलने के लिए बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को एक धीमी साँस करके दिखाओ और खिलौनों वाली नकली समस्या के लिए एक शांत वाक्य बोलो। फिर भूमिकाएँ बदलकर उनके लिए शांत शब्दों का अभ्यास करो।",
    "instruction_status": "ready"
   }
  },
@@ -11599,7 +11599,7 @@
     "Paper and pencil (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up the three steps, Stop, Breathe and Say, in two pretend problems. Tell them which step is easiest and which is hardest for you.",
    "instruction_status": "ready"
   }
  },
@@ -11638,7 +11638,7 @@
     "કાગળ અને પેન્સિલ (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને બે બનાવટી સમસ્યાઓમાં ત્રણે પગલાં, અટકો, શ્વાસ લો અને બોલો, કરીને બતાવો. તેમને કહો કે કયું પગલું તમારા માટે સૌથી સહેલું અને કયું સૌથી અઘરું છે.",
    "instruction_status": "ready"
   }
  },
@@ -11677,7 +11677,7 @@
     "कागज़ और पेंसिल (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को दो नकली समस्याओं में तीनों कदम, रुको, साँस लो और कहो, करके दिखाओ। उन्हें बताओ कि कौन-सा कदम तुम्हारे लिए सबसे आसान और कौन-सा सबसे मुश्किल है।",
    "instruction_status": "ready"
   }
  },
@@ -11717,7 +11717,7 @@
     "A family member to rehearse with"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Share your heated and calm versions of what to say, and your calm-down plan. Practise once with a family member, then tell them what felt hardest and one way to make it easier.",
    "instruction_status": "ready"
   }
  },
@@ -11757,7 +11757,7 @@
     "મહાવરા માટે પરિવારનો એક સભ્ય"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "શું કહેવું તેના તમારા ગરમ અને શાંત રૂપ, અને શાંત થવાની તમારી યોજના બતાવો. પરિવારના કોઈ સભ્ય સાથે એક વાર મહાવરો કરો, પછી તેમને કહો કે સૌથી અઘરું શું લાગ્યું અને તેને સહેલું બનાવવાનો એક રસ્તો.",
    "instruction_status": "ready"
   }
  },
@@ -11797,7 +11797,7 @@
     "अभ्यास के लिए परिवार का एक सदस्य"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "क्या कहना है इसके अपने गरम और शांत रूप, और शांत होने की अपनी योजना दिखाओ। परिवार के किसी सदस्य के साथ एक बार अभ्यास करो, फिर उन्हें बताओ कि सबसे मुश्किल क्या लगा और उसे आसान बनाने का एक तरीका।",
    "instruction_status": "ready"
   }
  },
@@ -11833,7 +11833,7 @@
     "A small safe job, like carrying a light cushion"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Ask a grown-up 'Would you like some help?' and then help with one small, safe job. When they say thank you, say 'You're welcome'.",
    "instruction_status": "ready"
   }
  },
@@ -11869,7 +11869,7 @@
     "એક નાનું સુરક્ષિત કામ, જેમ કે હળવી ગાદી ઊંચકવી"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને પૂછો 'શું તમને થોડી મદદ જોઈએ છે?' અને પછી એક નાના, સલામત કામમાં મદદ કરો. તેઓ આભાર કહે ત્યારે કહો 'કંઈ નહીં'.",
    "instruction_status": "ready"
   }
  },
@@ -11905,7 +11905,7 @@
     "एक छोटा सुरक्षित काम, जैसे हल्की गद्दी उठाना"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े से पूछो 'क्या आपको थोड़ी मदद चाहिए?' और फिर एक छोटे, सुरक्षित काम में मदद करो। जब वे धन्यवाद कहें तो कहो 'कोई बात नहीं'।",
    "instruction_status": "ready"
   }
  },
@@ -11944,7 +11944,7 @@
     "Feeling cards or paper (optional)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Hold a short check-in with family members and thank each person who shares. Tell a grown-up one thing you learned about listening.",
    "instruction_status": "ready"
   }
  },
@@ -11983,7 +11983,7 @@
     "લાગણીનાં કાર્ડ કે કાગળ (વૈકલ્પિક)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "પરિવારના સભ્યો સાથે ટૂંકી વાતચીત કરો અને જે બોલે તે દરેક વ્યક્તિનો આભાર માનો. કોઈ મોટાને સાંભળવા વિશે શીખેલી એક વાત કહો.",
    "instruction_status": "ready"
   }
  },
@@ -12022,7 +12022,7 @@
     "भावनाओं के कार्ड या कागज़ (वैकल्पिक)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "परिवार के सदस्यों के साथ एक छोटी चर्चा करो और जो बोले उस हर व्यक्ति को धन्यवाद कहो। किसी बड़े को सुनने के बारे में एक सीखी हुई बात बताओ।",
    "instruction_status": "ready"
   }
  },
@@ -12062,7 +12062,7 @@
     "Paper and pen or a notebook"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Hold a three-minute listening conversation and say back a one- or two-sentence summary of what you heard. Tell a grown-up the open question you asked, and keep your own note about what to change next time.",
    "instruction_status": "ready"
   }
  },
@@ -12102,7 +12102,7 @@
     "કાગળ અને પેન કે નોટબુક"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ત્રણ મિનિટની સાંભળવાની વાતચીત કરો અને જે સાંભળ્યું તેનો એક-બે વાક્યનો સાર પાછો કહો. કોઈ મોટાને તમે પૂછેલો ખુલ્લો પ્રશ્ન કહો, અને આગળ શું બદલવું તેની તમારી પોતાની નોંધ તમારી પાસે રાખો.",
    "instruction_status": "ready"
   }
  },
@@ -12142,7 +12142,7 @@
     "कागज़ और पेन या नोटबुक"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "तीन मिनट की सुनने वाली बातचीत करो और जो सुना उसका एक-दो वाक्य का सार वापस सुनाओ। किसी बड़े को वह खुला सवाल बताओ जो तुमने पूछा, और अगली बार क्या बदलना है इसका अपना नोट अपने पास रखो।",
    "instruction_status": "ready"
   }
  },
@@ -12180,7 +12180,7 @@
     "A grown-up to play with"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Clap the parts of three words for a grown-up. Then clap one word without saying it, so they can guess which word it is.",
    "instruction_status": "ready"
   }
  },
@@ -12218,7 +12218,7 @@
     "સાથે રમવા માટે મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટા માટે ત્રણ શબ્દોના ભાગ પર તાળી પાડો. પછી એક શબ્દ બોલ્યા વિના તાળીથી વગાડો, જેથી તેઓ અંદાજ લગાવે કે કયો શબ્દ છે.",
    "instruction_status": "ready"
   }
  },
@@ -12256,7 +12256,7 @@
     "साथ खेलने के लिए बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े के लिए तीन शब्दों के हिस्सों पर ताली बजाओ। फिर एक शब्द बिना बोले ताली से बजाओ, ताकि वे अंदाज़ा लगाएँ कि कौन-सा शब्द है।",
    "instruction_status": "ready"
   }
  },
@@ -12297,7 +12297,7 @@
     "A grown-up to guess"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show the phrase you turned into a clapped rhythm and your row of dots that goes with the claps. Clap a second phrase that has the same rhythm.",
    "instruction_status": "ready"
   }
  },
@@ -12338,7 +12338,7 @@
     "ઓળખવા માટે મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "જે વાક્યખંડને તમે તાળીની લય બનાવ્યો તે અને તાળીઓ સાથે મેળ ખાતી બિંદુઓની હરોળ બતાવો. બીજો વાક્યખંડ વગાડો જેની લય એ જ હોય.",
    "instruction_status": "ready"
   }
  },
@@ -12379,7 +12379,7 @@
     "पहचानने के लिए बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "वह वाक्यांश दिखाओ जिसे तुमने तालियों की लय बनाया और तालियों से मेल खाती बिंदुओं की कतार। एक दूसरा वाक्यांश बजाओ जिसकी लय वही हो।",
    "instruction_status": "ready"
   }
  },
@@ -12421,7 +12421,7 @@
     "A family member to clap with"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your saying split into syllables with the stress circled, and clap it with louder and softer claps. Perform both parts together with a family member and tell them what was hardest.",
    "instruction_status": "ready"
   }
  },
@@ -12463,7 +12463,7 @@
     "સાથે તાળી પાડવા માટે પરિવારનો એક સભ્ય"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી કહેવત અક્ષરોમાં વહેંચીને, ભાર વાળા અક્ષર પર ગોળ કરીને બતાવો, અને તેને મોટી તથા ધીમી તાળીઓથી વગાડો. પરિવારના કોઈ સભ્ય સાથે બંને ભાગ સાથે રજૂ કરો અને કહો કે સૌથી અઘરું શું હતું.",
    "instruction_status": "ready"
   }
  },
@@ -12505,7 +12505,7 @@
     "साथ ताली बजाने के लिए परिवार का एक सदस्य"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपनी कहावत अक्षरों में बाँटकर, ज़ोर वाले अक्षर पर गोला लगाकर दिखाओ, और उसे तेज़ व धीमी तालियों से बजाओ। परिवार के किसी सदस्य के साथ दोनों हिस्से मिलाकर पेश करो और बताओ कि सबसे मुश्किल क्या था।",
    "instruction_status": "ready"
   }
  },
@@ -12545,7 +12545,7 @@
     "Tape (a grown-up helps)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your home-made shaker. Shake it slowly, then quickly, then along to a rhyme, and stop when the rhyme stops.",
    "instruction_status": "ready"
   }
  },
@@ -12585,7 +12585,7 @@
     "ટેપ (મોટા મદદ કરે)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને ઘરે બનાવેલું તમારું શેકર બતાવો. તેને ધીમે, પછી ઝડપથી, પછી કોઈ જોડકણા સાથે વગાડો, અને જોડકણું અટકે ત્યારે અટકી જાઓ.",
    "instruction_status": "ready"
   }
  },
@@ -12625,7 +12625,7 @@
     "टेप (बड़ा मदद करे)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को अपना घर में बना शेकर दिखाओ। उसे धीरे, फिर तेज़, फिर किसी तुकबंदी के साथ बजाओ, और तुकबंदी रुके तो रुक जाओ।",
    "instruction_status": "ready"
   }
  },
@@ -12664,7 +12664,7 @@
     "A grown-up to play along"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Play your four-sound pattern four times without stopping to a steady beat. Then play it together with a grown-up's different pattern.",
    "instruction_status": "ready"
   }
  },
@@ -12703,7 +12703,7 @@
     "સાથે વગાડવા માટે મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી ચાર અવાજની લય એકસરખી તાલ પર અટક્યા વિના ચાર વાર વગાડો. પછી કોઈ મોટાની અલગ લય સાથે મળીને વગાડો.",
    "instruction_status": "ready"
   }
  },
@@ -12742,7 +12742,7 @@
     "साथ बजाने के लिए बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपनी चार आवाज़ों की लय एक समान ताल पर बिना रुके चार बार बजाओ। फिर किसी बड़े की अलग लय के साथ मिलाकर बजाओ।",
    "instruction_status": "ready"
   }
  },
@@ -12786,7 +12786,7 @@
     "A clock or timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your written three-part score with a loud and a soft section, and perform it with family members. Show the one place you fixed after the band got lost.",
    "instruction_status": "ready"
   }
  },
@@ -12830,7 +12830,7 @@
     "ઘડિયાળ કે ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "મોટા અને ધીમા વિભાગવાળો તમારો લખેલો ત્રણ ભાગનો સ્કોર બતાવો, અને પરિવારના સભ્યો સાથે તેને વગાડો. ટોળી ભૂલી પડી ત્યારે તમે સુધારેલી એક જગ્યા બતાવો.",
    "instruction_status": "ready"
   }
  },
@@ -12874,7 +12874,7 @@
     "घड़ी या टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "तेज़ और धीमे हिस्से वाला अपना लिखा तीन भागों का स्कोर दिखाओ, और परिवार के सदस्यों के साथ उसे बजाओ। वह एक जगह दिखाओ जिसे तुमने ठीक किया जब टोली भटक गई थी।",
    "instruction_status": "ready"
   }
  },
@@ -12912,7 +12912,7 @@
     "A grown-up to play with"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your pattern: stomp, clap four times in a row, and then stomp, clap, pat on your knees.",
    "instruction_status": "ready"
   }
  },
@@ -12950,7 +12950,7 @@
     "સાથે રમવા માટે મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને તમારી લય બતાવો: પગ પછાડો, સતત ચાર વાર તાળી પાડો, અને પછી પગ પછાડો, તાળી પાડો, ઘૂંટણ પર થપકી મારો.",
    "instruction_status": "ready"
   }
  },
@@ -12988,7 +12988,7 @@
     "साथ खेलने के लिए बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को अपनी लय दिखाओ: पैर पटको, लगातार चार बार ताली बजाओ, और फिर पैर पटको, ताली बजाओ, घुटनों पर थपकी दो।",
    "instruction_status": "ready"
   }
  },
@@ -13027,7 +13027,7 @@
     "A grown-up to teach"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Do your four-part pattern eight times in a row while counting. Then change the order and teach the new order to a grown-up.",
    "instruction_status": "ready"
   }
  },
@@ -13066,7 +13066,7 @@
     "શીખવવા માટે મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી ચાર ભાગની લય ગણતાં ગણતાં સતત આઠ વાર કરો. પછી ક્રમ બદલો અને નવો ક્રમ કોઈ મોટાને શીખવો.",
    "instruction_status": "ready"
   }
  },
@@ -13105,7 +13105,7 @@
     "सिखाने के लिए बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपनी चार हिस्सों वाली लय गिनते हुए लगातार आठ बार करो। फिर क्रम बदलो और नया क्रम किसी बड़े को सिखाओ।",
    "instruction_status": "ready"
   }
  },
@@ -13147,7 +13147,7 @@
     "A family member to teach"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Write the number of steps until the two counts meet, and one sentence saying why. Perform the pattern twice with a family member.",
    "instruction_status": "ready"
   }
  },
@@ -13189,7 +13189,7 @@
     "શીખવવા માટે પરિવારનો એક સભ્ય"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કેટલાં પગલાં પછી બંને ગણતરી મળે છે તે સંખ્યા લખો અને એક વાક્ય કે એવું કેમ થાય છે. પરિવારના કોઈ સભ્ય સાથે લય બે વાર કરી બતાવો.",
    "instruction_status": "ready"
   }
  },
@@ -13231,7 +13231,7 @@
     "सिखाने के लिए परिवार का एक सदस्य"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "वह संख्या लिखो कि कितने कदमों के बाद दोनों गिनतियाँ मिलती हैं, और एक वाक्य कि ऐसा क्यों होता है। परिवार के किसी सदस्य के साथ लय दो बार करके दिखाओ।",
    "instruction_status": "ready"
   }
  },
@@ -13269,7 +13269,7 @@
     "A grown-up to join in"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Say a rhyme slowly, quickly, softly and loudly while you clap to the beat, for a grown-up.",
    "instruction_status": "ready"
   }
  },
@@ -13307,7 +13307,7 @@
     "જોડાવા માટે મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટા માટે તાલ પર તાળી પાડતાં કોઈ જોડકણું ધીમે, ઝડપથી, ધીમા અવાજે અને મોટેથી બોલો.",
    "instruction_status": "ready"
   }
  },
@@ -13345,7 +13345,7 @@
     "शामिल होने के लिए बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े के लिए ताल पर ताली बजाते हुए कोई तुकबंदी धीरे, तेज़, धीमी आवाज़ में और ज़ोर से बोलो।",
    "instruction_status": "ready"
   }
  },
@@ -13384,7 +13384,7 @@
     "A grown-up to guess and perform"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Perform your song at three speeds and two volumes. Then perform one secret version and let the grown-up guess which one it was.",
    "instruction_status": "ready"
   }
  },
@@ -13423,7 +13423,7 @@
     "ઓળખવા અને રજૂ કરવા માટે મોટા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારું ગીત ત્રણ ઝડપે અને બે અવાજે રજૂ કરો. પછી એક ગુપ્ત રૂપ રજૂ કરો અને મોટાને અંદાજ લગાવવા દો કે તે કયું હતું.",
    "instruction_status": "ready"
   }
  },
@@ -13462,7 +13462,7 @@
     "पहचानने और पेश करने के लिए बड़ा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना गीत तीन रफ़्तारों और दो आवाज़ों में सुनाओ। फिर एक गुप्त रूप सुनाओ और बड़े को अंदाज़ा लगाने दो कि वह कौन-सा था।",
    "instruction_status": "ready"
   }
  },
@@ -13504,7 +13504,7 @@
     "A family member to perform with"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your written four-section plan with the speed, the volume and one pause. Perform it with a family member and tell us the one change you made after their feedback.",
    "instruction_status": "ready"
   }
  },
@@ -13546,7 +13546,7 @@
     "સાથે રજૂ કરવા માટે પરિવારનો એક સભ્ય"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ઝડપ, અવાજ અને એક વિરામ સાથેની તમારી લખેલી ચાર વિભાગની યોજના બતાવો. પરિવારના કોઈ સભ્ય સાથે તે રજૂ કરો અને તેમના અભિપ્રાય પછી તમે કરેલો એક ફેરફાર કહો.",
    "instruction_status": "ready"
   }
  },
@@ -13588,7 +13588,7 @@
     "साथ पेश करने के लिए परिवार का एक सदस्य"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "गति, आवाज़ और एक विराम वाली अपनी लिखी चार हिस्सों की योजना दिखाओ। परिवार के किसी सदस्य के साथ उसे पेश करो और उनकी राय के बाद तुमने जो एक बदलाव किया वह बताओ।",
    "instruction_status": "ready"
   }
  },
@@ -13628,7 +13628,7 @@
     "A plant"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up how you turn the tap off while you scrub your hands. Then pour the saved clean water on a plant together.",
    "instruction_status": "ready"
   }
  },
@@ -13668,7 +13668,7 @@
     "એક છોડ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને બતાવો કે હાથ ઘસતી વખતે તમે નળ બંધ કરો છો. પછી બચાવેલું સાફ પાણી તેમની સાથે મળીને કોઈ છોડમાં રેડો.",
    "instruction_status": "ready"
   }
  },
@@ -13708,7 +13708,7 @@
     "एक पौधा"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को दिखाओ कि हाथ मलते समय तुम नल बंद कर देते हो। फिर बचाया हुआ साफ़ पानी उनके साथ मिलकर किसी पौधे में डालो।",
    "instruction_status": "ready"
   }
  },
@@ -13751,7 +13751,7 @@
     "A plant or a bucket for the measured water"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a grown-up your guess and your measured count of cups of tap water. Show your careful hand-washing method and the reminder sign you made.",
    "instruction_status": "ready"
   }
  },
@@ -13794,7 +13794,7 @@
     "માપેલા પાણી માટે છોડ કે ડોલ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને નળના પાણીના કપનો તમારો અંદાજ અને માપેલી ગણતરી કહો. હાથ ધોવાની તમારી કાળજીભરી રીત અને તમે બનાવેલી યાદ અપાવતી નિશાની બતાવો.",
    "instruction_status": "ready"
   }
  },
@@ -13837,7 +13837,7 @@
     "नापे हुए पानी के लिए पौधा या बाल्टी"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को नल के पानी के कपों का अपना अनुमान और नापी हुई गिनती बताओ। हाथ धोने का अपना सावधानी वाला तरीका और अपना बनाया याद दिलाने वाला चिह्न दिखाओ।",
    "instruction_status": "ready"
   }
  },
@@ -13881,7 +13881,7 @@
     "A grown-up's agreement"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your prediction, your measured numbers before and after the change, and the saving per day you worked out. Write 3 sentences on why the saving matters and how the saved water could be used.",
    "instruction_status": "ready"
   }
  },
@@ -13925,7 +13925,7 @@
     "મોટાની સંમતિ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારો અંદાજ, ફેરફાર પહેલાં અને પછીની માપેલી સંખ્યાઓ, અને તમે કાઢેલી રોજની બચત બતાવો. 3 વાક્ય લખો કે આ બચત કેમ મહત્વની છે અને બચેલા પાણીનો કેવી રીતે ઉપયોગ થઈ શકે.",
    "instruction_status": "ready"
   }
  },
@@ -13969,7 +13969,7 @@
     "बड़े की सहमति"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपना अनुमान, बदलाव से पहले और बाद की नापी हुई संख्याएँ, और प्रतिदिन की जो बचत तुमने निकाली वह दिखाओ। 3 वाक्य लिखो कि यह बचत क्यों मायने रखती है और बचे पानी का कैसे उपयोग हो सकता है।",
    "instruction_status": "ready"
   }
  },
@@ -14007,7 +14007,7 @@
     "A toy to use with the reused thing"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Tell a grown-up a new use for each of three clean, dry things, and show how you used one of them.",
    "instruction_status": "ready"
   }
  },
@@ -14045,7 +14045,7 @@
     "ફરી વાપરેલી વસ્તુ સાથે વાપરવા માટે એક રમકડું"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને ત્રણ સાફ, સૂકી વસ્તુઓમાંથી દરેકનો નવો ઉપયોગ કહો, અને બતાવો કે તમે તેમાંથી એકનો કેવી રીતે ઉપયોગ કર્યો.",
    "instruction_status": "ready"
   }
  },
@@ -14083,7 +14083,7 @@
     "दोबारा इस्तेमाल की चीज़ के साथ इस्तेमाल करने के लिए एक खिलौना"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को तीन साफ़, सूखी चीज़ों में से हर एक का नया उपयोग बताओ, और दिखाओ कि तुमने उनमें से एक का कैसे उपयोग किया।",
    "instruction_status": "ready"
   }
  },
@@ -14124,7 +14124,7 @@
     "A pencil or a crayon"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your count of collected sheets, your three sorted piles and the sheets you reused. Tell your family one way to use less paper tomorrow.",
    "instruction_status": "ready"
   }
  },
@@ -14165,7 +14165,7 @@
     "પેન્સિલ કે ક્રેયોન"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ભેગાં કરેલાં પાનાંની તમારી ગણતરી, ત્રણ ગોઠવેલા ઢગલા અને ફરી વાપરેલાં પાનાં બતાવો. તમારા પરિવારને કાલે ઓછો કાગળ વાપરવાનો એક રસ્તો કહો.",
    "instruction_status": "ready"
   }
  },
@@ -14206,7 +14206,7 @@
     "पेंसिल या क्रेयॉन"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "इकट्ठे किए पन्नों की अपनी गिनती, तीन छाँटे हुए ढेर और जो पन्ने दोबारा काम में लिए वे दिखाओ। अपने परिवार को कल कम कागज़ इस्तेमाल करने का एक तरीका बताओ।",
    "instruction_status": "ready"
   }
  },
@@ -14248,7 +14248,7 @@
     "A calendar or a chart"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your notes on three packages, and the idea you chose with your one-week tally chart and the first day filled in. Write how you will decide at the end of the week whether it worked.",
    "instruction_status": "ready"
   }
  },
@@ -14290,7 +14290,7 @@
     "કેલેન્ડર કે ચાર્ટ"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "ત્રણ પેકેટ પરની તમારી નોંધ, અને પસંદ કરેલો વિચાર એક અઠવાડિયાના ગણતરી-ચાર્ટ સાથે, પહેલા દિવસની નોંધ ભરીને બતાવો. લખો કે અઠવાડિયાના અંતે તમે કેવી રીતે નક્કી કરશો કે તે કામ લાગ્યું કે નહીં.",
    "instruction_status": "ready"
   }
  },
@@ -14332,7 +14332,7 @@
     "कैलेंडर या चार्ट"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "तीन पैकेटों पर अपने नोट्स, और चुना हुआ विचार एक सप्ताह के गिनती-चार्ट के साथ, पहले दिन की प्रविष्टि भरकर दिखाओ। लिखो कि सप्ताह के अंत में तुम कैसे तय करोगे कि वह काम किया या नहीं।",
    "instruction_status": "ready"
   }
  },
@@ -14372,7 +14372,7 @@
     "A little tape (a grown-up helps)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up your sign for a spot and put a thing in its spot three times.",
    "instruction_status": "ready"
   }
  },
@@ -14412,7 +14412,7 @@
     "થોડી ટેપ (મોટા મદદ કરે)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને કોઈ જગ્યા માટે બનાવેલી તમારી નિશાની બતાવો અને એક વસ્તુ તેની જગ્યાએ ત્રણ વાર મૂકો.",
    "instruction_status": "ready"
   }
  },
@@ -14452,7 +14452,7 @@
     "थोड़ी टेप (बड़ा मदद करे)"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को किसी जगह के लिए बनाया अपना चिह्न दिखाओ और एक चीज़ को उसकी जगह पर तीन बार रखो।",
    "instruction_status": "ready"
   }
  },
@@ -14491,7 +14491,7 @@
     "A little tape or a place to stick the chart"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your chart of no more than five picture steps and tell a grown-up how your test run went. Tell them the one step you changed, and put the chart where it will be used.",
    "instruction_status": "ready"
   }
  },
@@ -14530,7 +14530,7 @@
     "થોડી ટેપ કે ચાર્ટ ચોંટાડવાની જગ્યા"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "પાંચ કે તેથી ઓછા ચિત્ર-પગલાંવાળો તમારો ચાર્ટ બતાવો અને કોઈ મોટાને કહો કે તમારી કસોટી કેવી રહી. તેમને તમે બદલેલું એક પગલું કહો, અને ચાર્ટ ત્યાં લગાવો જ્યાં તે કામ લાગશે.",
    "instruction_status": "ready"
   }
  },
@@ -14569,7 +14569,7 @@
     "थोड़ी टेप या चार्ट चिपकाने की जगह"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "पाँच या उससे कम चित्र-कदमों वाला अपना चार्ट दिखाओ और किसी बड़े को बताओ कि तुम्हारी जाँच कैसी रही। उन्हें वह एक कदम बताओ जो तुमने बदला, और चार्ट वहाँ लगाओ जहाँ वह काम आएगा।",
    "instruction_status": "ready"
   }
  },
@@ -14611,7 +14611,7 @@
     "A clock or timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your checklist or flowchart with an if-then step, where your tester paused, and the one improvement you made. Tell us the day you agreed to check whether it is working.",
    "instruction_status": "ready"
   }
  },
@@ -14653,7 +14653,7 @@
     "ઘડિયાળ કે ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી ચેકલિસ્ટ કે ફ્લોચાર્ટ બતાવો જેમાં 'જો-તો' વાળું પગલું હોય, જ્યાં તમારો ચકાસનાર અટક્યો, અને તમે કરેલો એક સુધારો. કહો કે તે કામ કરે છે કે નહીં તે તપાસવા તમે કયો દિવસ નક્કી કર્યો.",
    "instruction_status": "ready"
   }
  },
@@ -14695,7 +14695,7 @@
     "घड़ी या टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपनी चेकलिस्ट या प्रवाह-चित्र दिखाओ जिसमें 'अगर-तो' वाला कदम हो, जहाँ तुम्हारा परखने वाला रुका, और तुमने जो एक सुधार किया। बताओ कि तुमने किस दिन जाँचने का तय किया कि वह काम कर रही है या नहीं।",
    "instruction_status": "ready"
   }
  },
@@ -14733,7 +14733,7 @@
     "One more safe thing, like a spoon or a cushion"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show a grown-up three new uses for a box by acting them out. Then think of three new uses for a second safe thing.",
    "instruction_status": "ready"
   }
  },
@@ -14771,7 +14771,7 @@
     "બીજી એક સુરક્ષિત વસ્તુ, જેમ કે ચમચી કે ગાદી"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ મોટાને ડબ્બાના ત્રણ નવા ઉપયોગ અભિનય કરીને બતાવો. પછી બીજી કોઈ સલામત વસ્તુના ત્રણ નવા ઉપયોગ વિચારીને કહો.",
    "instruction_status": "ready"
   }
  },
@@ -14809,7 +14809,7 @@
     "एक और सुरक्षित चीज़, जैसे चम्मच या गद्दी"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी बड़े को डिब्बे के तीन नए उपयोग अभिनय करके दिखाओ। फिर किसी दूसरी सुरक्षित चीज़ के तीन नए उपयोग सोचकर बताओ।",
    "instruction_status": "ready"
   }
  },
@@ -14850,7 +14850,7 @@
     "A timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Show your page of uses for one thing, with your two favourite ideas starred and one sketch. Tell a grown-up why the idea is useful and who would like it.",
    "instruction_status": "ready"
   }
  },
@@ -14891,7 +14891,7 @@
     "એક ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "કોઈ એક વસ્તુના ઉપયોગોનું તમારું પાનું બતાવો, જેમાં તમારા બે મનપસંદ વિચારો પર તારો લગાવેલો હોય અને એક સ્કેચ હોય. કોઈ મોટાને કહો કે તે વિચાર કેમ કામનો છે અને કોને ગમશે.",
    "instruction_status": "ready"
   }
  },
@@ -14932,7 +14932,7 @@
     "एक टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "किसी एक चीज़ के उपयोगों वाला अपना पन्ना दिखाओ, जिसमें तुम्हारे दो पसंदीदा विचारों पर तारा लगा हो और एक रेखाचित्र हो। किसी बड़े को बताओ कि वह विचार क्यों काम का है और किसे पसंद आएगा।",
    "instruction_status": "ready"
   }
  },
@@ -14976,7 +14976,7 @@
     "A clock or timer"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "Share your list of problems, your ideas from five prompts, your table comparing two ideas and your labelled sketch. Tell a family member the one improvement you made after their question.",
    "instruction_status": "ready"
   }
  },
@@ -15020,7 +15020,7 @@
     "ઘડિયાળ કે ટાઇમર"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "તમારી સમસ્યાઓની યાદી, પાંચ સંકેતોમાંથી મળેલા વિચારો, બે વિચારોની સરખામણીનું કોષ્ટક અને નામ લખેલો સ્કેચ બતાવો. પરિવારના કોઈ સભ્યને તેમના પ્રશ્ન પછી તમે કરેલો એક સુધારો કહો.",
    "instruction_status": "ready"
   }
  },
@@ -15064,7 +15064,7 @@
     "घड़ी या टाइमर"
    ],
    "observation_guidance": null,
-   "submission_requirements": null,
+   "submission_requirements": "अपनी समस्याओं की सूची, पाँच संकेतों से निकले विचार, दो विचारों की तुलना वाली तालिका और नाम लिखा रेखाचित्र दिखाओ। परिवार के किसी सदस्य को वह एक सुधार बताओ जो उनके सवाल के बाद तुमने किया।",
    "instruction_status": "ready"
   }
  }
