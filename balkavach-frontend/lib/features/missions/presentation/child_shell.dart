@@ -10,6 +10,7 @@ import '../../../shared/widgets/buttons.dart';
 import '../../companion/presentation/panda_talk_sheet.dart';
 import '../../notifications/domain/notification_category.dart';
 import '../../notifications/presentation/notification_center_screen.dart';
+import 'mission_approval_celebrator.dart';
 
 /// Child-mode frame: brand header with Parent Gate, plus bottom navigation on
 /// phones and a navigation rail on wide windows.
@@ -75,46 +76,50 @@ class ChildShell extends StatelessWidget {
     );
 
     if (expanded) {
-      return Scaffold(
-        appBar: appBar,
-        body: SafeArea(
-          top: false,
-          child: Row(
-            children: [
-              NavigationRail(
-                selectedIndex: _index,
-                onDestinationSelected: (i) => _go(context, i),
-                labelType: NavigationRailLabelType.all,
-                destinations: [
-                  for (final (icon, selected, label) in destinations)
-                    NavigationRailDestination(
-                      icon: Icon(icon),
-                      selectedIcon: Icon(selected),
-                      label: Text(label),
-                    ),
-                ],
-              ),
-              Expanded(child: child),
-            ],
+      return MissionApprovalCelebrator(
+        child: Scaffold(
+          appBar: appBar,
+          body: SafeArea(
+            top: false,
+            child: Row(
+              children: [
+                NavigationRail(
+                  selectedIndex: _index,
+                  onDestinationSelected: (i) => _go(context, i),
+                  labelType: NavigationRailLabelType.all,
+                  destinations: [
+                    for (final (icon, selected, label) in destinations)
+                      NavigationRailDestination(
+                        icon: Icon(icon),
+                        selectedIcon: Icon(selected),
+                        label: Text(label),
+                      ),
+                  ],
+                ),
+                Expanded(child: child),
+              ],
+            ),
           ),
         ),
       );
     }
 
-    return Scaffold(
-      appBar: appBar,
-      body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => _go(context, i),
-        destinations: [
-          for (final (icon, selected, label) in destinations)
-            NavigationDestination(
-              icon: Icon(icon),
-              selectedIcon: Icon(selected),
-              label: label,
-            ),
-        ],
+    return MissionApprovalCelebrator(
+      child: Scaffold(
+        appBar: appBar,
+        body: child,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _index,
+          onDestinationSelected: (i) => _go(context, i),
+          destinations: [
+            for (final (icon, selected, label) in destinations)
+              NavigationDestination(
+                icon: Icon(icon),
+                selectedIcon: Icon(selected),
+                label: label,
+              ),
+          ],
+        ),
       ),
     );
   }

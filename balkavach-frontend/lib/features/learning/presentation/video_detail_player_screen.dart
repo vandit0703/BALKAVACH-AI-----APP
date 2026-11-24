@@ -8,6 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/celebration/activity_completion.dart';
+import '../../../shared/celebration/panda_celebration.dart';
+import '../../../shared/diag/video_diag.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/state_views.dart';
@@ -67,6 +70,9 @@ class _VideoDetailPlayerScreenState
 
   /// The video reached its end: the overlay offers what to watch next.
   bool _ended = false;
+
+  /// The mission-video celebration is shown once per opening of this screen.
+  bool _celebratedMissionVideo = false;
   bool _leaving = false;
   bool _muted = false;
   DateTime _lastProgressSentAt = DateTime.fromMillisecondsSinceEpoch(0);
@@ -173,6 +179,12 @@ class _VideoDetailPlayerScreenState
   @override
   void initState() {
     super.initState();
+    vdiag(
+      'detail.initState',
+      screen: 'detail',
+      id: identityHashCode(this),
+      extra: 'mission=${widget.launch.missionTaskId != null}',
+    );
     WidgetsBinding.instance.addObserver(this);
     _start();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -520,6 +532,12 @@ class _VideoDetailPlayerScreenState
   }
 
   Future<void> _leave() async {
+    vdiag(
+      'detail.leave.begin',
+      screen: 'detail',
+      id: identityHashCode(this),
+      extra: 'alreadyLeaving=$_leaving',
+    );
     if (_leaving) return;
     final navigator = Navigator.of(context);
     if (!navigator.canPop()) return;
@@ -564,12 +582,20 @@ class _VideoDetailPlayerScreenState
   }
 
   static Future<void> _restoreSystemUi() async {
+    vdiag('systemUi.restore.begin', screen: 'detail');
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     await SystemChrome.setPreferredOrientations(const []);
+    vdiag('systemUi.restore.end', screen: 'detail');
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    vdiag(
+      'detail.appLifecycle',
+      screen: 'detail',
+      id: identityHashCode(this),
+      extra: 'state=${state.name}',
+    );
     // Nothing plays behind another app. The YouTube embed pauses itself.
     if (state != AppLifecycleState.resumed) {
       unawaited(_controller?.pause());
@@ -604,12 +630,38 @@ class _VideoDetailPlayerScreenState
 
   @override
   void dispose() {
+    vdiag(
+      'detail.dispose.begin',
+      screen: 'detail',
+      id: identityHashCode(this),
+      extra: 'fullscreen=$_fullscreen leaving=$_leaving',
+    );
     WidgetsBinding.instance.removeObserver(this);
     _tickets.dispose();
     _release();
     _scroll.dispose();
     if (_fullscreen) unawaited(_restoreSystemUi());
+    vdiag('detail.dispose.end', screen: 'detail', id: identityHashCode(this));
     super.dispose();
+  }
+
+  /// The server marked the mission's required watch time complete. Mission
+  /// Stars and XP come from the parent's later approval, so none are shown.
+  void _celebrateMissionVideoOnce() {
+    if (_celebratedMissionVideo) return;
+    _celebratedMissionVideo = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(
+        showPandaCelebration(
+          context,
+          ActivityCompletion(
+            kind: ActivityKind.video,
+            title: widget.launch.video.title,
+          ),
+        ),
+      );
+    });
   }
 
   @override
@@ -670,6 +722,12 @@ class _VideoDetailPlayerScreenState
     return PopScope(
       canPop: _video.reportVideoId == null || _leaving,
       onPopInvokedWithResult: (didPop, _) {
+        vdiag(
+          'detail.popInvoked',
+          screen: 'detail',
+          id: identityHashCode(this),
+          extra: 'didPop=$didPop',
+        );
         if (!didPop && _video.reportVideoId != null) unawaited(_leave());
       },
       child: Scaffold(
@@ -897,6 +955,7 @@ class _VideoDetailPlayerScreenState
     if (widget.launch.missionTaskId != null &&
         missionWatch!.status != 'active') {
       final completed = missionWatch.status == 'completed';
+      if (completed) _celebrateMissionVideoOnce();
       return _StageNotice(
         key: const Key('detail.mission.ended'),
         background: still,

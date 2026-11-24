@@ -3214,4 +3214,226 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get createMissionRewardFixed =>
       'इनाम हर मिशन के लिए एक जैसा है और ऐप तय करता है, इसलिए यहाँ बदला नहीं जा सकता।';
+
+  @override
+  String get hubTabVideos => 'वीडियो';
+
+  @override
+  String get hubTabQuizzes => 'क्विज़';
+
+  @override
+  String get hubTabStories => 'कहानियाँ';
+
+  @override
+  String get hubMoreToExplore => 'और देखें';
+
+  @override
+  String get storiesEmpty => 'अभी कोई कहानी नहीं है। जल्दी फिर देखें!';
+
+  @override
+  String storyReadingTime(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: 'पढ़ने में $minutes मिनट',
+      one: 'पढ़ने में 1 मिनट',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get quizzesEmpty => 'अभी कोई क्विज़ नहीं है। जल्दी फिर देखें!';
+
+  @override
+  String quizQuestionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count प्रश्न',
+      one: '1 प्रश्न',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get quizDifficultyEasy => 'आसान';
+
+  @override
+  String get quizDifficultyMedium => 'मध्यम';
+
+  @override
+  String get quizDifficultyHard => 'कठिन';
+
+  @override
+  String get quizStatusPending => 'करना बाकी';
+
+  @override
+  String get quizStatusInProgress => 'जारी है';
+
+  @override
+  String get quizStatusAttempted => 'कोशिश की';
+
+  @override
+  String get quizStatusPassed => 'पास हुए';
+
+  @override
+  String quizBestScore(int percent) {
+    return 'सबसे अच्छा: $percent%';
+  }
+
+  @override
+  String quizPassMark(int percent) {
+    return 'पास होने के अंक: $percent%';
+  }
+
+  @override
+  String get quizRewardPrefix => 'पहली बार पास होने पर मिलेगा';
+
+  @override
+  String quizRewardStars(int count) {
+    return '$count स्टार';
+  }
+
+  @override
+  String quizRewardXp(int count) {
+    return '$count XP अंक';
+  }
+
+  @override
+  String get quizStart => 'क्विज़ शुरू करें';
+
+  @override
+  String get quizResume => 'क्विज़ जारी रखें';
+
+  @override
+  String get quizTryAgain => 'फिर से कोशिश करें';
+
+  @override
+  String get quizOnlyOnce => 'आप यह क्विज़ पहले ही दे चुके हैं।';
+
+  @override
+  String get quizHistoryTitle => 'आपकी कोशिशें';
+
+  @override
+  String quizQuestionOf(int current, int total) {
+    return 'प्रश्न $current / $total';
+  }
+
+  @override
+  String get quizPickOne => 'एक उत्तर चुनें';
+
+  @override
+  String get quizPickMany => 'सभी सही उत्तर चुनें';
+
+  @override
+  String get quizNext => 'आगे';
+
+  @override
+  String get quizPrevious => 'पीछे';
+
+  @override
+  String get quizSubmit => 'क्विज़ पूरा करें';
+
+  @override
+  String get quizLeaveTitle => 'क्विज़ छोड़ें?';
+
+  @override
+  String get quizLeaveBody => 'इस कोशिश के आपके उत्तर मिट जाएँगे।';
+
+  @override
+  String get quizLeaveStay => 'जारी रखें';
+
+  @override
+  String get quizLeaveConfirm => 'छोड़ें';
+
+  @override
+  String get quizChanged => 'यह क्विज़ बदल गया है। कृपया इसे फिर से शुरू करें।';
+
+  @override
+  String get quizResultPassed => 'बहुत बढ़िया!';
+
+  @override
+  String get quizResultTryAgain => 'अच्छी कोशिश!';
+
+  @override
+  String quizScoreLine(int correct, int total) {
+    return 'आपके $total में से $correct सही हैं';
+  }
+
+  @override
+  String get quizCorrectLabel => 'सही';
+
+  @override
+  String get quizIncorrectLabel => 'गलत';
+
+  @override
+  String get quizScoreLabel => 'स्कोर';
+
+  @override
+  String quizEarned(int stars, int xp) {
+    return 'आपने $stars स्टार और $xp XP कमाए!';
+  }
+
+  @override
+  String get quizRewardOnce =>
+      'इनाम सिर्फ़ एक बार, पहली बार पास होने पर मिलता है।';
+
+  @override
+  String quizNeedMore(int percent) {
+    return 'पास होने के लिए $percent% चाहिए। आप फिर से कोशिश कर सकते हैं!';
+  }
+
+  @override
+  String get quizReviewTitle => 'अपने उत्तर देखें';
+
+  @override
+  String get quizYourAnswer => 'आपका उत्तर';
+
+  @override
+  String get quizRightAnswer => 'सही उत्तर';
+
+  @override
+  String get quizReviewUnavailable =>
+      'क्विज़ बदल गया है, इसलिए समीक्षा उपलब्ध नहीं है।';
+
+  @override
+  String get quizBackToLearn => 'सीखने पर वापस';
+
+  @override
+  String get quizHome => 'होम';
+
+  @override
+  String get celebrationMission => 'मिशन पूरा!';
+
+  @override
+  String get celebrationQuiz => 'क्विज़ पूरी!';
+
+  @override
+  String get celebrationVideo => 'वीडियो पूरा!';
+
+  @override
+  String get celebrationStory => 'कहानी पूरी!';
+
+  @override
+  String get celebrationGarden => 'आपका बगीचा बढ़ रहा है!';
+
+  @override
+  String get celebrationCheer => 'बहुत बढ़िया! ऐसे ही चलते रहो!';
+
+  @override
+  String get celebrationMissionPending =>
+      'आपके माता-पिता इसे देखेंगे, फिर इनाम मिलेंगे।';
+
+  @override
+  String get celebrationContinue => 'जारी रखें';
+
+  @override
+  String get celebrationHome => 'होम पर वापस';
+
+  @override
+  String get celebrationMissionApproved => 'मिशन मंज़ूर!';
+
+  @override
+  String get celebrationMissionApprovedNote =>
+      'आपके माता-पिता ने इसे मंज़ूर किया। ये रहे आपके इनाम!';
 }

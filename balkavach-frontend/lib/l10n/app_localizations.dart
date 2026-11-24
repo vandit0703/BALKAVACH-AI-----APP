@@ -5349,6 +5349,378 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The reward is the same for every mission and is set by the app, so it cannot be changed here.'**
   String get createMissionRewardFixed;
+
+  /// No description provided for @hubTabVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get hubTabVideos;
+
+  /// No description provided for @hubTabQuizzes.
+  ///
+  /// In en, this message translates to:
+  /// **'Quizzes'**
+  String get hubTabQuizzes;
+
+  /// No description provided for @hubTabStories.
+  ///
+  /// In en, this message translates to:
+  /// **'Stories'**
+  String get hubTabStories;
+
+  /// No description provided for @hubMoreToExplore.
+  ///
+  /// In en, this message translates to:
+  /// **'More to explore'**
+  String get hubMoreToExplore;
+
+  /// No description provided for @storiesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No stories yet. Check back soon!'**
+  String get storiesEmpty;
+
+  /// No description provided for @storyReadingTime.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes, plural, =1{1 min read} other{{minutes} min read}}'**
+  String storyReadingTime(int minutes);
+
+  /// No description provided for @quizzesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No quizzes yet. Check back soon!'**
+  String get quizzesEmpty;
+
+  /// No description provided for @quizQuestionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 question} other{{count} questions}}'**
+  String quizQuestionCount(int count);
+
+  /// No description provided for @quizDifficultyEasy.
+  ///
+  /// In en, this message translates to:
+  /// **'Easy'**
+  String get quizDifficultyEasy;
+
+  /// No description provided for @quizDifficultyMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get quizDifficultyMedium;
+
+  /// No description provided for @quizDifficultyHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard'**
+  String get quizDifficultyHard;
+
+  /// No description provided for @quizStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'To do'**
+  String get quizStatusPending;
+
+  /// No description provided for @quizStatusInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get quizStatusInProgress;
+
+  /// No description provided for @quizStatusAttempted.
+  ///
+  /// In en, this message translates to:
+  /// **'Tried'**
+  String get quizStatusAttempted;
+
+  /// No description provided for @quizStatusPassed.
+  ///
+  /// In en, this message translates to:
+  /// **'Passed'**
+  String get quizStatusPassed;
+
+  /// No description provided for @quizBestScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Best: {percent}%'**
+  String quizBestScore(int percent);
+
+  /// No description provided for @quizPassMark.
+  ///
+  /// In en, this message translates to:
+  /// **'Pass mark: {percent}%'**
+  String quizPassMark(int percent);
+
+  /// No description provided for @quizRewardPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'First pass earns'**
+  String get quizRewardPrefix;
+
+  /// No description provided for @quizRewardStars.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} Stars'**
+  String quizRewardStars(int count);
+
+  /// No description provided for @quizRewardXp.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} XP'**
+  String quizRewardXp(int count);
+
+  /// No description provided for @quizStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start quiz'**
+  String get quizStart;
+
+  /// No description provided for @quizResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue quiz'**
+  String get quizResume;
+
+  /// No description provided for @quizTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get quizTryAgain;
+
+  /// No description provided for @quizOnlyOnce.
+  ///
+  /// In en, this message translates to:
+  /// **'You have already taken this quiz.'**
+  String get quizOnlyOnce;
+
+  /// No description provided for @quizHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your tries'**
+  String get quizHistoryTitle;
+
+  /// No description provided for @quizQuestionOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {current} of {total}'**
+  String quizQuestionOf(int current, int total);
+
+  /// No description provided for @quizPickOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose one answer'**
+  String get quizPickOne;
+
+  /// No description provided for @quizPickMany.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose all the right answers'**
+  String get quizPickMany;
+
+  /// No description provided for @quizNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get quizNext;
+
+  /// No description provided for @quizPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get quizPrevious;
+
+  /// No description provided for @quizSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish quiz'**
+  String get quizSubmit;
+
+  /// No description provided for @quizLeaveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave the quiz?'**
+  String get quizLeaveTitle;
+
+  /// No description provided for @quizLeaveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your answers on this try will be lost.'**
+  String get quizLeaveBody;
+
+  /// No description provided for @quizLeaveStay.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep going'**
+  String get quizLeaveStay;
+
+  /// No description provided for @quizLeaveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get quizLeaveConfirm;
+
+  /// No description provided for @quizChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'This quiz was updated. Please start it again.'**
+  String get quizChanged;
+
+  /// No description provided for @quizResultPassed.
+  ///
+  /// In en, this message translates to:
+  /// **'Great job!'**
+  String get quizResultPassed;
+
+  /// No description provided for @quizResultTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Good try!'**
+  String get quizResultTryAgain;
+
+  /// No description provided for @quizScoreLine.
+  ///
+  /// In en, this message translates to:
+  /// **'You got {correct} of {total} right'**
+  String quizScoreLine(int correct, int total);
+
+  /// No description provided for @quizCorrectLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct'**
+  String get quizCorrectLabel;
+
+  /// No description provided for @quizIncorrectLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect'**
+  String get quizIncorrectLabel;
+
+  /// No description provided for @quizScoreLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Score'**
+  String get quizScoreLabel;
+
+  /// No description provided for @quizEarned.
+  ///
+  /// In en, this message translates to:
+  /// **'You earned {stars} Stars and {xp} XP!'**
+  String quizEarned(int stars, int xp);
+
+  /// No description provided for @quizRewardOnce.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewards are given once, the first time you pass.'**
+  String get quizRewardOnce;
+
+  /// No description provided for @quizNeedMore.
+  ///
+  /// In en, this message translates to:
+  /// **'You need {percent}% to pass. You can try again!'**
+  String quizNeedMore(int percent);
+
+  /// No description provided for @quizReviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review your answers'**
+  String get quizReviewTitle;
+
+  /// No description provided for @quizYourAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Your answer'**
+  String get quizYourAnswer;
+
+  /// No description provided for @quizRightAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Right answer'**
+  String get quizRightAnswer;
+
+  /// No description provided for @quizReviewUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The quiz was updated, so the review is not available.'**
+  String get quizReviewUnavailable;
+
+  /// No description provided for @quizBackToLearn.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Learn'**
+  String get quizBackToLearn;
+
+  /// No description provided for @quizHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get quizHome;
+
+  /// No description provided for @celebrationMission.
+  ///
+  /// In en, this message translates to:
+  /// **'Mission complete!'**
+  String get celebrationMission;
+
+  /// No description provided for @celebrationQuiz.
+  ///
+  /// In en, this message translates to:
+  /// **'Quiz complete!'**
+  String get celebrationQuiz;
+
+  /// No description provided for @celebrationVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Video done!'**
+  String get celebrationVideo;
+
+  /// No description provided for @celebrationStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Story finished!'**
+  String get celebrationStory;
+
+  /// No description provided for @celebrationGarden.
+  ///
+  /// In en, this message translates to:
+  /// **'Your garden is growing!'**
+  String get celebrationGarden;
+
+  /// No description provided for @celebrationCheer.
+  ///
+  /// In en, this message translates to:
+  /// **'Great job! Keep going!'**
+  String get celebrationCheer;
+
+  /// No description provided for @celebrationMissionPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Your parent will check it, then your rewards arrive.'**
+  String get celebrationMissionPending;
+
+  /// No description provided for @celebrationContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get celebrationContinue;
+
+  /// No description provided for @celebrationHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Home'**
+  String get celebrationHome;
+
+  /// No description provided for @celebrationMissionApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Mission approved!'**
+  String get celebrationMissionApproved;
+
+  /// No description provided for @celebrationMissionApprovedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Your parent approved it. Here are your rewards!'**
+  String get celebrationMissionApprovedNote;
 }
 
 class _AppLocalizationsDelegate

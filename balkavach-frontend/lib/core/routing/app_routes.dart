@@ -36,6 +36,14 @@ abstract final class AppRoutes {
   static const childRewards = '/child/rewards';
   static const childGarden = '/child/garden';
   static const childLearn = '/child/learn';
+
+  /// The Learning Hub opened on one of its tabs: `videos`, `quizzes`, `stories`.
+  static String childLearnTab(String tab) =>
+      Uri(path: childLearn, queryParameters: {'tab': tab}).toString();
+  static String childQuiz(String quizId) => '/child/quizzes/$quizId';
+  static String childQuizTake(String quizId) => '/child/quizzes/$quizId/take';
+  static String childQuizResult(String attemptId) =>
+      '/child/quizzes/result/$attemptId';
   static const childVideos = '/child/videos';
   static const childVideoPlay = '/child/videos/play';
   static const childShorts = '/child/shorts';

@@ -61,34 +61,34 @@ final dailyMissionChoicesProvider = FutureProvider<DailyMissionChoices>((
 /// their task, submissions and status, so opening one resumes it: nothing is
 /// selected or created again. If the list cannot be loaded the missions still
 /// appear in the general list, so a failure here hides nothing for good.
-final unfinishedMissionsProvider = FutureProvider<List<DailyMissionAssignment>>(
-  (ref) async {
-    final childId = ref.watch(activeChildIdProvider);
-    if (childId == null) return const [];
-    // Language-dependent mission content must refresh immediately on locale changes.
-    ref.watch(appLocaleProvider);
-    final List<DailyMissionAssignment> older;
-    try {
-      older = await ref
-          .watch(missionsRepositoryProvider)
-          .getUnfinishedDailyMissions();
-    } on ApiException {
-      return const [];
-    }
-    // The server only carries forward missions for the child's current age
-    // group. Defensively, when today's group is known, drop any other.
-    String? band;
-    try {
-      band = (await ref.watch(dailyMissionChoicesProvider.future)).ageBand;
-    } on ApiException {
-      band = null;
-    }
-    return [
-      for (final a in older)
-        if (band == null || a.ageBand == band) a,
-    ];
-  },
-);
+final unfinishedMissionsProvider = FutureProvider<List<DailyMissionAssignment>>((
+  ref,
+) async {
+  final childId = ref.watch(activeChildIdProvider);
+  if (childId == null) return const [];
+  // Language-dependent mission content must refresh immediately on locale changes.
+  ref.watch(appLocaleProvider);
+  final List<DailyMissionAssignment> older;
+  try {
+    older = await ref
+        .watch(missionsRepositoryProvider)
+        .getUnfinishedDailyMissions();
+  } on ApiException {
+    return const [];
+  }
+  // The server only carries forward missions for the child's current age
+  // group. Defensively, when today's group is known, drop any other.
+  String? band;
+  try {
+    band = (await ref.watch(dailyMissionChoicesProvider.future)).ageBand;
+  } on ApiException {
+    band = null;
+  }
+  return [
+    for (final a in older)
+      if (band == null || a.ageBand == band) a,
+  ];
+});
 
 /// Missions for the parent's family.
 final familyMissionsProvider = FutureProvider.family<List<Mission>, String>((

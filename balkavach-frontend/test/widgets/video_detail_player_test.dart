@@ -120,6 +120,63 @@ Future<_Rig> _pump(
 
 void main() {
   group('Mission-scoped playback', () {
+    testWidgets('celebrates once when the server completes the requirement', (
+      tester,
+    ) async {
+      const taskId = '55555555-5555-4555-8555-555555555555';
+      await _pump(
+        tester,
+        youtube('mission', _yt),
+        missionTaskId: taskId,
+        routes: (backend) {
+          backend.reply('POST', '/api/v1/tasks/$taskId/video-watch/sessions', {
+            'task_id': taskId,
+            'session_id': '88888888-8888-4888-8888-888888888888',
+            'required_video_seconds': 900,
+            'verified_video_seconds': 900,
+            'remaining_video_seconds': 0,
+            'is_complete': true,
+            'accepted_seconds': 0,
+            'status': 'completed',
+          }, status: 201);
+        },
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('detail.mission.ended')), findsOneWidget);
+      expect(find.byKey(const Key('celebration.card')), findsOneWidget);
+      expect(find.text('Video done!'), findsOneWidget);
+      // Watching pays nothing by itself: mission Stars and XP come later,
+      // from the parent's approval, so no reward line is shown.
+      expect(find.byKey(const Key('celebration.rewards')), findsNothing);
+      await tester.tap(find.byKey(const Key('celebration.continue')));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 30));
+      expect(find.byKey(const Key('celebration.card')), findsNothing);
+    });
+
+    testWidgets('an unfinished requirement is not celebrated', (tester) async {
+      const taskId = '55555555-5555-4555-8555-555555555555';
+      await _pump(
+        tester,
+        youtube('mission', _yt),
+        missionTaskId: taskId,
+        routes: (backend) {
+          backend.reply('POST', '/api/v1/tasks/$taskId/video-watch/sessions', {
+            'task_id': taskId,
+            'session_id': '88888888-8888-4888-8888-888888888888',
+            'required_video_seconds': 900,
+            'verified_video_seconds': 10,
+            'remaining_video_seconds': 890,
+            'is_complete': false,
+            'accepted_seconds': 0,
+            'status': 'active',
+          }, status: 201);
+        },
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('celebration.card')), findsNothing);
+    });
+
     testWidgets('starts a server session and meters only mission heartbeats', (
       tester,
     ) async {

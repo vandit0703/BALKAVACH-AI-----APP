@@ -8,6 +8,8 @@ import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/celebration/activity_completion.dart';
+import '../../../shared/celebration/panda_celebration.dart';
 import '../../../shared/media/photo_picker.dart';
 import '../../../shared/models/app_assets.dart';
 import '../../../shared/validation/validators.dart';
@@ -63,6 +65,20 @@ class _MissionSubmitScreenState extends ConsumerState<MissionSubmitScreen> {
         .read(missionSubmitControllerProvider.notifier)
         .submit(widget.taskId, note: _note.text, photo: _photo);
     if (!mounted || submission == null) return;
+    // The mission is handed in, not yet approved: the celebration cheers the
+    // submission and promises nothing. Stars and XP are paid by the parent's
+    // approval on the server, so none are shown here.
+    final title =
+        ref.read(childMissionProvider(widget.taskId)).value?.title ?? '';
+    await showPandaCelebration(
+      context,
+      ActivityCompletion(
+        kind: ActivityKind.mission,
+        title: title,
+        note: AppLocalizations.of(context).celebrationMissionPending,
+      ),
+    );
+    if (!mounted) return;
     context.pushReplacement(AppRoutes.childMissionWaiting(widget.taskId));
   }
 

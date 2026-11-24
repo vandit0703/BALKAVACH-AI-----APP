@@ -427,6 +427,40 @@ void main() {
       expect(rig.embeds.history, isEmpty);
       expect(rig.players.created, isEmpty);
     });
+
+    // Regression: after a video is watched it appears under Continue
+    // watching. That block used to put a sliver header inside a Column, which
+    // threw while building and left Home's content area blank.
+    testWidgets('Continue watching builds without a render error and Home '
+        'stays usable', (tester) async {
+      final rig = await _pumpHome(
+        tester,
+        shorts: _someShorts,
+        videos: _someVideos,
+        routes: (backend) => backend.reply(
+          'GET',
+          '/api/v1/videos/watch-history/continue-watching',
+          [
+            {
+              ..._video(
+                id: 'v1',
+                title: 'Volcano facts',
+                youtubeId: _ytId(50),
+                seconds: 420,
+              ),
+              'video_id': 'v1',
+              'video_format': 'regular',
+              'last_position_seconds': 75,
+            },
+          ],
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Continue watching'), findsOneWidget);
+      expect(find.byKey(const Key('watch.scroll')), findsOneWidget);
+      expect(rig.players.created, isEmpty);
+    });
   });
 
   group('Watch & Learn Home: allowance refresh', () {

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
@@ -10,6 +11,7 @@ import '../../../core/errors/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/diag/video_diag.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/learning_repository.dart';
@@ -144,6 +146,13 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _controller = YoutubePlayerController(params: _params);
+    vdiag(
+      'embed.initState',
+      screen: 'embed',
+      id: identityHashCode(_controller),
+      extra:
+          'webview=${identityHashCode(_controller.webViewController)} autoFullScreen=${widget.config.autoFullScreen} overlay=${widget.config.overlay != null}',
+    );
     if (!kIsWeb) {
       unawaited(
         _controller.webViewController.setNavigationDelegate(
@@ -217,7 +226,52 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
     }
   }
 
+  /// The iframe package only resizes the player to fill the screen; it no
+  /// longer rotates the phone. A fullscreen the child asked for with the
+  /// player's button (locked) therefore turns the phone landscape, and leaving
+  /// it gives rotation back. Fullscreen entered by physically rotating is not
+  /// locked, so rotating back still leaves it. Shorts stay portrait.
+  bool _orientationLocked = false;
+
+  void _syncOrientation(FullScreenOption option) {
+    if (kIsWeb || !widget.config.autoFullScreen) return;
+    final wantLandscape = youtubeFullscreenWantsLandscape(option);
+    if (wantLandscape == _orientationLocked) return;
+    _orientationLocked = wantLandscape;
+    unawaited(_applyOrientation(wantLandscape));
+  }
+
+  static Future<void> _applyOrientation(bool landscape) async {
+    vdiag('systemUi.apply', screen: 'embed', extra: 'landscape=$landscape');
+    if (landscape) {
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      await SystemChrome.setPreferredOrientations(const [
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    } else {
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      await SystemChrome.setPreferredOrientations(const []);
+    }
+  }
+
+  PlayerState? _diagState;
+  bool? _diagFullscreen;
+
   void _onValue(YoutubePlayerValue value) {
+    if (_diagState != value.playerState ||
+        _diagFullscreen != value.fullScreenOption.enabled) {
+      _diagState = value.playerState;
+      _diagFullscreen = value.fullScreenOption.enabled;
+      vdiag(
+        'embed.value',
+        screen: 'embed',
+        id: identityHashCode(_controller),
+        extra:
+            'player=${value.playerState.name} fullscreen=${value.fullScreenOption.enabled} locked=${value.fullScreenOption.locked} error=${value.error.name}',
+      );
+    }
+    _syncOrientation(value.fullScreenOption);
     final isPlaying = value.playerState == PlayerState.playing;
     if (_lastReportedPlaying != isPlaying) {
       _lastReportedPlaying = isPlaying;
@@ -269,6 +323,13 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
 
   @override
   void dispose() {
+    vdiag(
+      'embed.dispose.begin',
+      screen: 'embed',
+      id: identityHashCode(_controller),
+      extra:
+          'fullscreen=${_controller.value.fullScreenOption.enabled} orientationLocked=$_orientationLocked',
+    );
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_values?.cancel());
     unawaited(_positions?.cancel());
@@ -277,12 +338,39 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
     if (!kIsWeb && _controller.value.fullScreenOption.enabled) {
       _controller.exitFullScreen();
     }
-    unawaited(_controller.close());
+    if (_orientationLocked) {
+      _orientationLocked = false;
+      unawaited(_applyOrientation(false));
+    }
+    unawaited(
+      _controller.close().then(
+        (_) => vdiag(
+          'embed.controller.closed',
+          screen: 'embed',
+          id: identityHashCode(_controller),
+        ),
+        onError: (Object e, StackTrace s) => vdiag(
+          'embed.controller.closeFailed',
+          screen: 'embed',
+          id: identityHashCode(_controller),
+          error: e,
+          stack: s,
+        ),
+      ),
+    );
+    vdiag(
+      'embed.dispose.end',
+      screen: 'embed',
+      id: identityHashCode(_controller),
+    );
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      VideoDiagProbe(name: 'embed.youtubePlayer', child: _buildPlayer(context));
+
+  Widget _buildPlayer(BuildContext context) {
     final config = widget.config;
     final onSwipe = config.onVerticalSwipe;
     final overlay = config.overlay;
@@ -322,6 +410,13 @@ class _OfficialYouTubeEmbedState extends State<OfficialYouTubeEmbed>
     );
   }
 }
+
+/// Whether a fullscreen state should turn the phone landscape: only a
+/// fullscreen the child asked for with the player's button (locked). One that
+/// came from physically rotating is not locked and must follow the phone.
+@visibleForTesting
+bool youtubeFullscreenWantsLandscape(FullScreenOption option) =>
+    option.enabled && option.locked;
 
 /// YouTube errors no retry can fix: embedding disabled by the owner, or the
 /// video removed or made private.

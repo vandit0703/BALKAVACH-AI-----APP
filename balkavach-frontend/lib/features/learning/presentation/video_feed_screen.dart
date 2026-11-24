@@ -68,7 +68,7 @@ class _VideoFeedScreenState extends State<VideoFeedScreen>
       body: TabBarView(
         controller: _tabs,
         children: const [
-          _FeedTab(kind: VideoFeedKind.learn),
+          VideoFeedList(kind: VideoFeedKind.learn),
           _KeepAlive(child: ShortsFeed()),
         ],
       ),
@@ -97,16 +97,19 @@ class _KeepAliveState extends State<_KeepAlive>
   }
 }
 
-class _FeedTab extends ConsumerStatefulWidget {
-  const _FeedTab({required this.kind});
+class VideoFeedList extends ConsumerStatefulWidget {
+  const VideoFeedList({required this.kind, this.header = const [], super.key});
 
   final VideoFeedKind kind;
 
+  /// Shown above the videos (the Learning Hub puts curated picks here).
+  final List<Widget> header;
+
   @override
-  ConsumerState<_FeedTab> createState() => _FeedTabState();
+  ConsumerState<VideoFeedList> createState() => _VideoFeedListState();
 }
 
-class _FeedTabState extends ConsumerState<_FeedTab>
+class _VideoFeedListState extends ConsumerState<VideoFeedList>
     with AutomaticKeepAliveClientMixin {
   late final VideoFeedPager _pager;
 
@@ -149,6 +152,7 @@ class _FeedTabState extends ConsumerState<_FeedTab>
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
+              ...widget.header,
               EmptyView(
                 key: Key('videos.${widget.kind.name}.empty'),
                 message: l10n.videoFeedEmpty,
@@ -165,7 +169,7 @@ class _FeedTabState extends ConsumerState<_FeedTab>
       onRefresh: _pager.refresh,
       child: LazyListPage(
         key: Key('videos.${widget.kind.name}.list'),
-        header: const [],
+        header: widget.header,
         itemCount: items.length,
         itemBuilder: (context, index) {
           // Ask for the next page a few rows before the end.

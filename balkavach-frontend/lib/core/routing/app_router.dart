@@ -17,6 +17,7 @@ import '../../features/garden/presentation/garden_screen.dart';
 import '../../features/learning/data/learning_repository.dart';
 import '../../features/learning/data/playable_video.dart';
 import '../../features/learning/data/video_feed_repository.dart';
+import '../../features/learning/presentation/learning_hub_screen.dart';
 import '../../features/learning/presentation/learning_screen.dart';
 import '../../features/learning/presentation/video_detail_player_screen.dart';
 import '../../features/learning/presentation/video_feed_screen.dart';
@@ -38,10 +39,15 @@ import '../../features/parent_dashboard/presentation/create_mission_screen.dart'
 import '../../features/parent_dashboard/presentation/parent_home_screen.dart';
 import '../../features/progress/presentation/streak_screen.dart';
 import '../../features/progress/presentation/weekly_report_screen.dart';
+import '../../features/quizzes/data/quiz_repository.dart' show QuizResult;
+import '../../features/quizzes/presentation/quiz_intro_screen.dart';
+import '../../features/quizzes/presentation/quiz_result_screen.dart';
+import '../../features/quizzes/presentation/quiz_take_screen.dart';
 import '../../features/rewards/presentation/parent_rewards_screen.dart';
 import '../../features/rewards/presentation/reward_form_screen.dart';
 import '../../features/rewards/presentation/rewards_screen.dart';
 import '../../features/settings/presentation/parent_settings_screen.dart';
+import '../../shared/diag/video_diag.dart';
 import 'app_routes.dart';
 import 'route_guard.dart';
 
@@ -60,6 +66,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = _RouterRefresh(ref);
   final router = GoRouter(
     navigatorKey: _rootKey,
+    observers: [VideoDiagNavigatorObserver()],
     initialLocation: AppRoutes.splash,
     refreshListenable: refresh,
     redirect: (context, state) {
@@ -274,10 +281,40 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   ),
                 ],
               ),
+              // Quiz screens cover the shell (no bottom bar). The result route
+              // is declared first so "result" is never read as a quiz id.
+              GoRoute(
+                path: 'quizzes/result/:attemptId',
+                parentNavigatorKey: _rootKey,
+                builder: (_, state) => QuizResultScreen(
+                  attemptId: state.pathParameters['attemptId']!,
+                  result: state.extra is QuizResult
+                      ? state.extra! as QuizResult
+                      : null,
+                ),
+              ),
+              GoRoute(
+                path: 'quizzes/:quizId',
+                parentNavigatorKey: _rootKey,
+                builder: (_, state) =>
+                    QuizIntroScreen(quizId: state.pathParameters['quizId']!),
+                routes: [
+                  GoRoute(
+                    path: 'take',
+                    parentNavigatorKey: _rootKey,
+                    builder: (_, state) => QuizTakeScreen(
+                      quizId: state.pathParameters['quizId']!,
+                    ),
+                  ),
+                ],
+              ),
               GoRoute(
                 path: 'learn',
-                pageBuilder: (_, _) =>
-                    const NoTransitionPage(child: LearningScreen()),
+                pageBuilder: (_, state) => NoTransitionPage(
+                  child: LearningHubScreen(
+                    initialTab: state.uri.queryParameters['tab'] ?? 'videos',
+                  ),
+                ),
                 routes: [
                   GoRoute(
                     path: ':itemId',

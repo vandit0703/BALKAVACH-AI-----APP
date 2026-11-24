@@ -276,6 +276,10 @@ void main() {
           .data,
       {'proof_type': 'note', 'proof_note': 'I read about a lion!'},
     );
+    // The Panda cheers the hand-in (no Stars yet: the parent has not approved).
+    expect(find.byKey(const Key('celebration.card')), findsOneWidget);
+    expect(find.byKey(const Key('celebration.rewards')), findsNothing);
+    await _tap(tester, find.byKey(const Key('celebration.continue')));
     expect(find.text('Sent to your parent!'), findsOneWidget);
 
     // Parent approves; the child checks again.

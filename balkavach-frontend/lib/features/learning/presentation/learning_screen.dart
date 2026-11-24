@@ -9,6 +9,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/async/refresh_quietly.dart';
+import '../../../shared/celebration/activity_completion.dart';
+import '../../../shared/celebration/panda_celebration.dart';
 import '../../../shared/models/app_assets.dart';
 import '../../../shared/platform/link_opener.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -16,6 +18,7 @@ import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/lazy_list_page.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/learning_repository.dart';
+import 'stories_tab.dart' show storyReadingMinutes;
 import 'video_lock_screen.dart' show ensureVideoAllowance;
 
 /// Localised name for the categories the app ships with; any other category
@@ -130,14 +133,18 @@ class _LearningScreenState extends ConsumerState<LearningScreen> {
       itemCount: visible.length,
       itemBuilder: (context, index) => Padding(
         padding: const EdgeInsets.only(bottom: AppSpacing.md),
-        child: _LearningCard(item: visible[index], categories: categories),
+        child: LearningCard(item: visible[index], categories: categories),
       ),
     );
   }
 }
 
-class _LearningCard extends StatelessWidget {
-  const _LearningCard({required this.item, required this.categories});
+class LearningCard extends StatelessWidget {
+  const LearningCard({
+    required this.item,
+    required this.categories,
+    super.key,
+  });
 
   final LearningItem item;
   final List<LearningCategory> categories;
@@ -206,6 +213,56 @@ class LearningDetailScreen extends ConsumerStatefulWidget {
 class _LearningDetailScreenState extends ConsumerState<LearningDetailScreen> {
   bool _failed = false;
 
+  // A story counts as read once the child has been on it for a fraction of its
+  // reading time AND scrolled to the end. That only decides when the Panda
+  // cheers: nothing is recorded or paid for reading (no policy exists yet).
+  final _scroll = ScrollController();
+  Timer? _readTimer;
+  bool _timeMet = false;
+  bool _storyCelebrated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final item = widget.item;
+    final text = item.description?.trim();
+    if (item.contentType == 'article' &&
+        item.openableUri == null &&
+        text != null &&
+        text.isNotEmpty) {
+      final seconds = (storyReadingMinutes(text) * 60 * 0.4).round().clamp(
+        5,
+        60,
+      );
+      _readTimer = Timer(Duration(seconds: seconds), () {
+        _timeMet = true;
+        _checkStoryDone();
+      });
+      _scroll.addListener(_checkStoryDone);
+    }
+  }
+
+  @override
+  void dispose() {
+    _readTimer?.cancel();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _checkStoryDone() {
+    if (_storyCelebrated || !_timeMet || !mounted || !_scroll.hasClients) {
+      return;
+    }
+    if (_scroll.position.extentAfter > 32) return;
+    _storyCelebrated = true;
+    unawaited(
+      showPandaCelebration(
+        context,
+        ActivityCompletion(kind: ActivityKind.story, title: widget.item.title),
+      ),
+    );
+  }
+
   Future<void> _open(Uri uri) async {
     final opened = await ref.read(linkOpenerProvider).open(uri);
     if (mounted) setState(() => _failed = !opened);
@@ -218,6 +275,13 @@ class _LearningDetailScreenState extends ConsumerState<LearningDetailScreen> {
     final item = widget.item;
     final uri = item.openableUri;
     final description = item.description?.trim();
+    // A story is read in the app: its text is the description, so it needs no
+    // link and nothing opens outside BALKAVACH.
+    final readable =
+        item.contentType == 'article' &&
+        uri == null &&
+        description != null &&
+        description.isNotEmpty;
     // A curated video plays only inside the app, metered like any feed video.
     // It never falls back to the browser or the YouTube app: that would be
     // unmetered viewing outside BALKAVACH.
@@ -234,6 +298,7 @@ class _LearningDetailScreenState extends ConsumerState<LearningDetailScreen> {
       appBar: AppBar(title: Text(l10n.learnTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _scroll,
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -257,9 +322,20 @@ class _LearningDetailScreenState extends ConsumerState<LearningDetailScreen> {
                 ],
               ),
               EyebrowPill(label: learningTypeName(l10n, item.contentType)),
-              if (description != null && description.isNotEmpty)
+              if (readable)
+                Text(
+                  description,
+                  key: const Key('story.text'),
+                  style: context.text.bodyLarge?.copyWith(
+                    fontSize: 20,
+                    height: 1.6,
+                  ),
+                )
+              else if (description != null && description.isNotEmpty)
                 Text(description, style: context.text.bodyLarge),
-              if (blocker != null)
+              if (readable)
+                const SizedBox.shrink()
+              else if (blocker != null)
                 InlineNotice(
                   key: const Key('learn.blocker'),
                   icon: Icons.lock_outline_rounded,

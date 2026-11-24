@@ -15,6 +15,8 @@ class AppPreferences {
   static const _consentSyncedPrefix = 'consent.synced.';
   static const _avatarPrefix = 'child.avatar.';
   static const _submissionsPrefix = 'child.submissions.';
+  static const _celebratedPrefix = 'child.celebrated_approvals.';
+  static const _approvalBaselinePrefix = 'child.approval_baseline.';
 
   String? get languageCode => _prefs.getString(_languageKey);
 
@@ -62,6 +64,22 @@ class AppPreferences {
       return const [];
     }
   }
+
+  /// Ids of approved submissions this device already celebrated for
+  /// [childId], oldest first.
+  List<String> celebratedSubmissionIds(String childId) =>
+      _prefs.getStringList('$_celebratedPrefix$childId') ?? const [];
+
+  Future<void> setCelebratedSubmissionIds(String childId, List<String> ids) =>
+      _prefs.setStringList('$_celebratedPrefix$childId', ids);
+
+  /// Whether this child's approvals were looked at once on this device (what
+  /// was already approved then is history and is never celebrated).
+  bool approvalBaselineDone(String childId) =>
+      _prefs.getBool('$_approvalBaselinePrefix$childId') ?? false;
+
+  Future<void> setApprovalBaselineDone(String childId) =>
+      _prefs.setBool('$_approvalBaselinePrefix$childId', true);
 
   Future<void> setSubmissionRecords(
     String childId,

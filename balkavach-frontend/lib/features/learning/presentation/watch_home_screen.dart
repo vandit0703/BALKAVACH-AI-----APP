@@ -8,6 +8,7 @@ import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../shared/diag/video_diag.dart';
 import '../../../shared/models/app_assets.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/state_views.dart';
@@ -51,6 +52,7 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
   @override
   void initState() {
     super.initState();
+    vdiag('home.initState', screen: 'home', id: identityHashCode(this));
     WidgetsBinding.instance.addObserver(this);
     final repository = ref.read(videoFeedRepositoryProvider);
     _shorts = VideoFeedPager(repository, VideoFeedKind.shorts, pageSize: 10)
@@ -94,10 +96,23 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
   }
 
   Future<void> _afterPlayback() async {
+    vdiag(
+      'home.afterPlayback.begin',
+      screen: 'home',
+      id: identityHashCode(this),
+      extra: 'mounted=$mounted',
+    );
     ref
       ..invalidate(continueWatchingProvider)
       ..invalidate(videoAllowanceProvider);
     await Future.wait([_shorts.refresh(), _videos.refresh()]);
+    vdiag(
+      'home.afterPlayback.end',
+      screen: 'home',
+      id: identityHashCode(this),
+      extra:
+          'mounted=$mounted shorts=${_shorts.items.length} videos=${_videos.items.length}',
+    );
   }
 
   @override
@@ -116,6 +131,7 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
 
   @override
   void dispose() {
+    vdiag('home.dispose', screen: 'home', id: identityHashCode(this));
     WidgetsBinding.instance.removeObserver(this);
     for (final pager in [_shorts, _videos]) {
       pager
@@ -123,6 +139,16 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
         ..dispose();
     }
     super.dispose();
+  }
+
+  /// Continue-watching cards are 280 wide: a 16:9 thumbnail, then padding, a
+  /// two-line title and the channel row. The text part grows with the font
+  /// scale, so a fixed height would overflow at larger sizes and in Hindi or
+  /// Gujarati.
+  static double _continueRowHeight(BuildContext context) {
+    const thumbnail = 280 * 9 / 16;
+    const body = 124.0;
+    return thumbnail + body * MediaQuery.textScalerOf(context).scale(1);
   }
 
   Future<void> _openShort(int index) async {
@@ -147,7 +173,14 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
               exhausted: !_shorts.hasMore,
             ),
           )
-          .then((_) => _afterPlayback()),
+          .then((_) {
+            vdiag(
+              'home.push.completed',
+              screen: 'home',
+              extra: 'route=shorts mounted=$mounted',
+            );
+            return _afterPlayback();
+          }),
     );
   }
 
@@ -168,13 +201,25 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
         (v) => v.key != video.key && v.categoryId != video.categoryId,
       ),
     ].take(20).toList();
+    vdiag(
+      'home.push.watch',
+      screen: 'home',
+      extra: 'source=${video.source.runtimeType}',
+    );
     unawaited(
       context
           .push(
             AppRoutes.childWatch,
             extra: VideoLaunch(video: video, related: related),
           )
-          .then((_) => _afterPlayback()),
+          .then((_) {
+            vdiag(
+              'home.push.completed',
+              screen: 'home',
+              extra: 'route=watch mounted=$mounted',
+            );
+            return _afterPlayback();
+          }),
     );
   }
 
@@ -184,6 +229,13 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
     final categories = ref.watch(learningCategoriesProvider).value ?? const [];
     final continueVideos =
         ref.watch(continueWatchingProvider).value ?? const [];
+    vdiag(
+      'home.build',
+      screen: 'home',
+      id: identityHashCode(this),
+      extra:
+          'continue=${continueVideos.length} shorts=${_shorts.items.length} videos=${_videos.items.length}',
+    );
     final picked = [
       for (final item
           in ref.watch(learningItemsProvider).value ?? const <LearningItem>[])
@@ -220,43 +272,40 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
             sliver: SliverToBoxAdapter(child: _Heading(l10n: l10n)),
           ),
           const SliverToBoxAdapter(child: VideoAllowanceCard()),
-          if (continueVideos.isNotEmpty)
+          if (continueVideos.isNotEmpty) ...[
+            // _SectionHeader is itself a sliver, so it sits beside the row
+            // in the scroll view, never inside a box widget like a Column.
+            _SectionHeader(
+              icon: Icons.play_circle_outline_rounded,
+              title: l10n.watchContinue,
+            ),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _SectionHeader(
-                      icon: Icons.play_circle_outline_rounded,
-                      title: l10n.watchContinue,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    SizedBox(
-                      height: 240,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: continueVideos.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(width: AppSpacing.md),
-                        itemBuilder: (context, index) {
-                          final video = PlayableVideo.fromFeed(
-                            continueVideos[index],
-                          );
-                          return SizedBox(
-                            width: 280,
-                            child: _VideoCard(
-                              video: video,
-                              onTap: () => _openVideo(video, [video]),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+                child: SizedBox(
+                  height: _continueRowHeight(context),
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: continueVideos.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(width: AppSpacing.md),
+                    itemBuilder: (context, index) {
+                      final video = PlayableVideo.fromFeed(
+                        continueVideos[index],
+                      );
+                      return SizedBox(
+                        width: 280,
+                        child: _VideoCard(
+                          video: video,
+                          onTap: () => _openVideo(video, [video]),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
+          ],
           if (nothingAtAll)
             SliverToBoxAdapter(
               child: EmptyView(
