@@ -23,7 +23,7 @@ const _ageBands = {
   '13-15': '13-15',
 };
 
-class YouTubeReviewsPage extends ConsumerStatefulWidget {
+class YouTubeReviewsPage extends C  onsumerStatefulWidget {
   const YouTubeReviewsPage({super.key});
 
   @override

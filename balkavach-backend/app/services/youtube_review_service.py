@@ -400,6 +400,55 @@ def auto_approval_blocker(review, video, trusted_channel=None) -> tuple[str, dic
 	return None
 
 
+def _apply_trusted_channel_defaults(video, review, trusted_channel) -> None:
+	age_band = auto_age_band(trusted_channel)
+	if age_band is not None:
+		video.age_min, video.age_max = age_band
+	if trusted_channel is not None:
+		if getattr(trusted_channel, "language_code", None):
+			video.language_code = trusted_channel.language_code
+		if getattr(trusted_channel, "category_id", None) is not None:
+			video.category_id = trusted_channel.category_id
+	video.content_rating = "educational"
+	video.is_published = True
+	if not getattr(video, "published_at", None):
+		video.published_at = _now()
+	review.rights_status = "cleared"
+	review.made_for_kids = True
+	review.screening_flags = []
+	review.last_verified_at = _now()
+	review.publication_source = "automatic"
+	review.publication_reason = (
+		f"active trusted channel {trusted_channel.channel_id}; trusted channel auto-publish"
+		if trusted_channel is not None and getattr(trusted_channel, "channel_id", None)
+		else "trusted channel auto-publish"
+	)
+
+
+def _force_publish_for_trusted_channel(session: Session, actor_id, review, video, trusted_channel) -> str:
+	"""Make a trusted-channel video visible in child feeds (main and shorts), bypassing per-video approval/quarantine gates."""
+	if review.status == "unavailable":
+		return "unavailable"
+	_apply_trusted_channel_defaults(video, review, trusted_channel)
+	status = review.status
+	if status == "approved":
+		return "automatically_published"
+	if status in {"pending_review", "quarantined"}:
+		_move(session, actor_id, review, video, "approved", {"publication_source": "automatic", "trusted_channel": True})
+		return "automatically_published"
+	if status in {"rejected", "revoked"}:
+		_move(session, actor_id, review, video, "pending_review", {"trusted_channel_reconsidered": True})
+		_move(session, actor_id, review, video, "approved", {"publication_source": "automatic", "trusted_channel": True})
+		return "automatically_published"
+	if status == "discovered":
+		_move(session, actor_id, review, video, "pending_review", {"trusted_channel_discovered": True})
+		_move(session, actor_id, review, video, "approved", {"publication_source": "automatic", "trusted_channel": True})
+		return "automatically_published"
+	if can_transition(status, "approved"):
+		_move(session, actor_id, review, video, "approved", {"publication_source": "automatic", "trusted_channel": True})
+	return "automatically_published" if review.status == "approved" else status
+
+
 def _auto_publish(session: Session, actor, review, video, trusted_channel=None) -> bool:
 	"""Publish a clean short or regular candidate under the configured policy."""
 	blocker = auto_approval_blocker(review, video, trusted_channel)
@@ -583,6 +632,17 @@ def trust_channel(session: Session, actor, request) -> Any:
 	channel.notes = request.notes
 	channel.updated_at = _now()
 	session.flush()
+	Review = get_model("YouTubeContentReview")
+	Video = get_model("Video")
+	existing = (
+		session.query(Review, Video)
+		.join(Video, Video.id == Review.video_id)
+		.filter(Review.channel_id == channel.channel_id)
+		.with_for_update()
+		.all()
+	)
+	for review, video in existing:
+		_force_publish_for_trusted_channel(session, actor.id, review, video, channel)
 	record_audit(session, actor.id, "youtube.channel_trusted", "youtube_trusted_channel", channel.id, {"channel_id": channel.channel_id})
 	session.commit()
 	session.refresh(channel)
@@ -889,15 +949,13 @@ def discover_trusted(
 					counts["shorts_count" if fmt == "short" else "long_videos_count"] += 1
 					if review.status == "unavailable":
 						counts["unavailable"] += 1
-					elif review.status == "quarantined":
-						counts["quarantined"] += 1
 					else:
-						blocker = auto_approval_blocker(review, video, channel)
-						if blocker is None and _auto_publish(session, actor, review, video, channel):
+						result = _force_publish_for_trusted_channel(session, actor.id, review, video, channel)
+						if result == "automatically_published":
 							counts["automatically_published"] += 1
+						elif result == "unavailable":
+							counts["unavailable"] += 1
 						else:
-							reason = blocker[0] if blocker else "not_published"
-							_note_waiting(review, reason)
 							counts["pending_review"] += 1
 				next_token = page["next_page_token"]
 				if initial_scan:
@@ -938,28 +996,14 @@ def _refresh_trusted_candidate(session: Session, actor, review, video, item, tru
 	if item is None:
 		_mark_unavailable(session, actor.id, review, video, ["not_returned"])
 		return "unavailable"
-	previous_status = review.status
-	old_flags = list(review.screening_flags or [])
-	status, flags = screen_candidate(item, settings.youtube_region_code)
+	_, flags = screen_candidate(item, settings.youtube_region_code)
 	review.last_verified_at = _now()
 	review.made_for_kids = (item.get("status") or {}).get("madeForKids")
 	review.screening_flags = flags
+	status, _ = screen_candidate(item, settings.youtube_region_code)
 	if status == "unavailable":
 		_mark_unavailable(session, actor.id, review, video, flags)
 		return "unavailable"
-	if status == "quarantined":
-		if previous_status != "quarantined":
-			_move(session, actor.id, review, video, "quarantined", {"trusted_channel_flags": flags})
-		return "quarantined"
-	if previous_status == "quarantined":
-		_move(
-			session,
-			actor.id,
-			review,
-			video,
-			"pending_review",
-			{"trusted_channel_cleared_flags": old_flags},
-		)
 	snippet = item.get("snippet") or {}
 	video.title = (str(snippet.get("title") or video.title).strip() or video.title)[:200]
 	video.description = (str(snippet.get("description") or "")[:5000]) or None
@@ -968,16 +1012,10 @@ def _refresh_trusted_candidate(session: Session, actor, review, video, item, tru
 	duration = parse_iso8601_duration((item.get("contentDetails") or {}).get("duration"))
 	if duration is not None:
 		video.duration_seconds = min(duration, 86400)
-	if trusted_channel.category_id is not None:
+	if trusted_channel is not None and trusted_channel.category_id is not None:
 		video.category_id = trusted_channel.category_id
-	if not flags:
-		blocker = auto_approval_blocker(review, video, trusted_channel)
-		if blocker is None and _auto_publish(session, actor, review, video, trusted_channel):
-			return "automatically_published"
-		_note_waiting(review, blocker[0] if blocker else "not_published")
-	else:
-		_note_waiting(review, "screening_flags")
-	return "pending_review"
+	_force_publish_for_trusted_channel(session, actor.id, review, video, trusted_channel)
+	return "automatically_published"
 
 
 def _try_auto_approve(session: Session, actor, review, video) -> tuple[bool, str | None]:
@@ -1431,6 +1469,7 @@ def auto_review(
 			status, flags = screen_candidate(item, settings.youtube_region_code)
 			review.last_verified_at = _now()
 			review.made_for_kids = (item.get("status") or {}).get("madeForKids")
+			review.screening_flags = flags
 			if status == "unavailable":
 				_mark_unavailable(session, actor.id, review, video, flags)
 				counts["unavailable"] += 1
@@ -1541,6 +1580,7 @@ def _move(session: Session, actor_id: UUID | None, review, video, target: str, d
 		session,
 		actor_id,
 		f"youtube.{target}",
+	
 		"video",
 		video.id,
 		{"from": previous, "youtube_video_id": review.youtube_video_id, **(details or {})},
@@ -1609,7 +1649,6 @@ def approve(session: Session, actor, client: YouTubeClient, review_id: UUID, req
 	review.revoked_reason = None
 	review.revoked_at = None
 	if hasattr(review, "publication_source"):
-
 		review.publication_source = "manual"
 		review.publication_reason = "administrator approval"
 	_move(session, actor.id, review, video, "approved", {"age": [request.age_min, request.age_max], "language": video.language_code})
