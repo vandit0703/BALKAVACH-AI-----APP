@@ -7,16 +7,16 @@ import '../core/session.dart';
 import '../ui/widgets.dart';
 
 const _ageBands = <String, String>{
-  '3-5': '3â€“5 (early childhood)',
-  '3-8': '3â€“8',
-  '3-12': '3â€“12',
-  '3-15': '3â€“15 (all supported ages)',
-  '6-8': '6â€“8',
-  '6-12': '6â€“12',
-  '6-15': '6â€“15',
-  '9-12': '9â€“12',
-  '9-15': '9â€“15 (including 11â€“15 coverage)',
-  '13-15': '13â€“15',
+  '3-5': '3-5 (early childhood)',
+  '3-8': '3-8',
+  '3-12': '3-12',
+  '3-15': '3-15 (all supported ages)',
+  '6-8': '6-8',
+  '6-12': '6-12',
+  '6-15': '6-15',
+  '9-12': '9-12',
+  '9-15': '9-15 (including 11-15 coverage)',
+  '13-15': '13-15',
 };
 
 class YouTubeChannelDetailPage extends ConsumerStatefulWidget {
@@ -99,7 +99,7 @@ class _YouTubeChannelDetailPageState
 
   String _ageLabel(Object? min, Object? max) {
     if (min == null || max == null) return 'Not configured';
-    return '$minâ€“$max';
+    return '$min-$max';
   }
 
   Future<Map<String, String>?> _activeVideoCategories() async {

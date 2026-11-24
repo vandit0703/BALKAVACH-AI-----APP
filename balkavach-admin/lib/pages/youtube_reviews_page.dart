@@ -11,16 +11,16 @@ import '../l10n/app_localizations.dart';
 import '../ui/widgets.dart';
 
 const _ageBands = {
-  '3-5': '3Ã¢â‚¬â€œ5',
-  '3-8': '3Ã¢â‚¬â€œ8 (3Ã¢â‚¬â€œ5 + 6Ã¢â‚¬â€œ8)',
-  '3-12': '3Ã¢â‚¬â€œ12 (3Ã¢â‚¬â€œ5 + 6Ã¢â‚¬â€œ8 + 9Ã¢â‚¬â€œ12)',
-  '3-15': '3Ã¢â‚¬â€œ15 (all age groups)',
-  '6-8': '6Ã¢â‚¬â€œ8',
-  '6-12': '6Ã¢â‚¬â€œ12 (6Ã¢â‚¬â€œ8 + 9Ã¢â‚¬â€œ12)',
-  '6-15': '6Ã¢â‚¬â€œ15 (6Ã¢â‚¬â€œ8 + 9Ã¢â‚¬â€œ12 + 13Ã¢â‚¬â€œ15)',
-  '9-12': '9Ã¢â‚¬â€œ12',
-  '9-15': '9Ã¢â‚¬â€œ15 (9Ã¢â‚¬â€œ12 + 13Ã¢â‚¬â€œ15)',
-  '13-15': '13Ã¢â‚¬â€œ15',
+  '3-5': '3-5',
+  '3-8': '3-8 (3-5 + 6-8)',
+  '3-12': '3-12 (3-5 + 6-8 + 9-12)',
+  '3-15': '3-15 (all age groups)',
+  '6-8': '6-8',
+  '6-12': '6-12 (6-8 + 9-12)',
+  '6-15': '6-15 (6-8 + 9-12 + 13-15)',
+  '9-12': '9-12',
+  '9-15': '9-15 (9-12 + 13-15)',
+  '13-15': '13-15',
 };
 
 class YouTubeReviewsPage extends ConsumerStatefulWidget {
@@ -627,7 +627,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
                       channel['channel_title'] as String? ?? 'YouTube channel',
                     ),
                     subtitle: Text(
-                      'ID: ${channel['channel_id'] ?? 'Ã¢â‚¬â€'} Ã‚Â· Age: ${channel['age_min'] ?? 'Ã¢â‚¬â€'}Ã¢â‚¬â€œ${channel['age_max'] ?? 'Ã¢â‚¬â€'} Ã‚Â· '
+                      'ID: ${channel['channel_id'] ?? 'Ã¢â‚¬â€'} Ã‚Â· Age: ${channel['age_min'] ?? 'Ã¢â‚¬â€'}-${channel['age_max'] ?? 'Ã¢â‚¬â€'} Ã‚Â· '
                       'Total: ${channel['total_videos'] ?? 'Ã¢â‚¬â€'} Ã‚Â· Shorts: ${channel['shorts_count'] ?? 'Ã¢â‚¬â€'} Ã‚Â· '
                       'Long: ${channel['long_videos_count'] ?? 'Ã¢â‚¬â€'} Ã‚Â· Last discovery: ${_when(channel['last_discovery_at'])}',
                     ),

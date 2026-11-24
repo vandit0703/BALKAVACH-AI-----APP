@@ -636,6 +636,18 @@ def update_trusted_channel(session: Session, actor, channel_id: str, request) ->
 	if "age_min" in changes and "age_max" in changes:
 		channel.age_min = changes["age_min"]
 		channel.age_max = changes["age_max"]
+		age_band = auto_age_band(channel)
+		if age_band is not None:
+			Review = get_model("YouTubeContentReview")
+			Video = get_model("Video")
+			session.query(Video).filter(
+				Video.id.in_(
+					session.query(Review.video_id).filter(Review.channel_id == channel.channel_id)
+				)
+			).update(
+				{Video.age_min: age_band[0], Video.age_max: age_band[1]},
+				synchronize_session=False,
+			)
 	if "language_code" in changes:
 		channel.language_code = changes["language_code"].lower() if changes["language_code"] else None
 	if "category_id" in changes:
