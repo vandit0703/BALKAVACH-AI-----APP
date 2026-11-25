@@ -83,6 +83,22 @@ class _FakeRepository implements VideoFeedRepository {
   Future<List<FeedVideo>> continueWatching({int limit = 20}) async => [];
 
   @override
+  Future<Map<String, dynamic>> getMyInterests() async => {
+    'interests': <String>[],
+    'pending_requests': <String>[],
+    'available_categories': <Object?>[],
+  };
+
+  @override
+  Future<Map<String, dynamic>> requestInterests(
+    List<String> interests,
+  ) async => {
+    'interests': <String>[],
+    'pending_requests': interests,
+    'available_categories': <Object?>[],
+  };
+
+  @override
   Future<Map<String, dynamic>?> recordProgress(
     String videoId,
     int positionSeconds, {

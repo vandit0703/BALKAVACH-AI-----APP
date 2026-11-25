@@ -287,3 +287,144 @@ def deactivate_child(
 		user=user,
 		session=session,
 	) and Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def _valid_interest_categories(session: Session) -> list[dict[str, str]]:
+	VideoCategory = get_model("VideoCategory")
+	rows = (
+		session.query(VideoCategory.slug, VideoCategory.name)
+		.filter(VideoCategory.is_active.is_(True))
+		.order_by(VideoCategory.display_order, VideoCategory.name)
+		.all()
+	)
+	return [{"slug": str(slug), "name": str(name)} for slug, name in rows if slug]
+
+
+class _InterestsUpdateBody(ChildUpdate.__base__):
+	interests: list[str]
+	clear_pending: bool = True
+
+
+@router.get("/{family_id}/children/{child_id}/interests")
+def get_child_interests(
+	family_id: UUID,
+	child_id: UUID,
+	user=Depends(require_parent),
+	session: Session = Depends(get_db),
+) -> dict:
+	_require_membership(session, family_id, user.id)
+	ChildProfile = get_model("ChildProfile")
+	child = (
+		session.query(ChildProfile)
+		.filter(ChildProfile.id == child_id, ChildProfile.family_id == family_id, ChildProfile.is_active.is_(True))
+		.one_or_none()
+	)
+	if child is None:
+		raise HTTPException(status_code=404, detail="Child profile not found")
+	return {
+		"child_id": str(child.id),
+		"interests": list(getattr(child, "interests", None) or []),
+		"pending_requests": list(getattr(child, "pending_interest_requests", None) or []),
+		"available_categories": _valid_interest_categories(session),
+	}
+
+
+@router.put("/{family_id}/children/{child_id}/interests")
+def update_child_interests(
+	family_id: UUID,
+	child_id: UUID,
+	body: _InterestsUpdateBody,
+	user=Depends(require_parent),
+	session: Session = Depends(get_db),
+) -> dict:
+	from datetime import datetime, timezone
+	from app.services.admin_service import record_audit
+	from app.utils import utc_naive
+
+	_require_membership(session, family_id, user.id)
+	ChildProfile = get_model("ChildProfile")
+	child = (
+		session.query(ChildProfile)
+		.filter(ChildProfile.id == child_id, ChildProfile.family_id == family_id, ChildProfile.is_active.is_(True))
+		.with_for_update()
+		.one_or_none()
+	)
+	if child is None:
+		raise HTTPException(status_code=404, detail="Child profile not found")
+	categories = _valid_interest_categories(session)
+	allowed = {c["slug"].lower() for c in categories}
+	normalized = list(dict.fromkeys(s.strip().lower() for s in body.interests if s and s.strip().lower() in allowed))
+	if hasattr(child, "interests"):
+		child.interests = normalized
+	if body.clear_pending and hasattr(child, "pending_interest_requests"):
+		child.pending_interest_requests = []
+	now = utc_naive(datetime.now(timezone.utc))
+	if hasattr(child, "interests_updated_at"):
+		child.interests_updated_at = now
+	if hasattr(child, "interests_updated_by"):
+		child.interests_updated_by = user.id
+	record_audit(session, user.id, "child.interests_updated", "child_profile", child.id, {"count": len(normalized)})
+	session.commit()
+	return {
+		"child_id": str(child.id),
+		"interests": normalized,
+		"pending_requests": list(getattr(child, "pending_interest_requests", None) or []),
+		"available_categories": categories,
+	}
+
+
+@router.post("/{family_id}/children/{child_id}/link-code", status_code=201)
+def create_child_link_code(
+	family_id: UUID,
+	child_id: UUID,
+	user=Depends(require_parent),
+	session: Session = Depends(get_db),
+) -> dict:
+	import hashlib
+	import secrets
+	from datetime import datetime, timedelta, timezone
+	from app.db.base import has_model
+	from app.services.admin_service import record_audit
+	from app.utils import utc_aware, utc_naive
+
+	_require_membership(session, family_id, user.id)
+	if not has_model("ChildLinkCode"):
+		raise HTTPException(status_code=503, detail="Child linking is not configured")
+	ChildProfile = get_model("ChildProfile")
+	child = (
+		session.query(ChildProfile)
+		.filter(ChildProfile.id == child_id, ChildProfile.family_id == family_id, ChildProfile.is_active.is_(True))
+		.one_or_none()
+	)
+	if child is None:
+		raise HTTPException(status_code=404, detail="Child profile not found")
+
+	ChildLinkCode = get_model("ChildLinkCode")
+	now_utc = datetime.now(timezone.utc)
+	expires_utc = now_utc + timedelta(minutes=10)
+	session.query(ChildLinkCode).filter(
+		ChildLinkCode.child_id == child.id,
+		ChildLinkCode.used_at.is_(None),
+		ChildLinkCode.is_revoked.is_(False),
+	).update({"is_revoked": True}, synchronize_session=False)
+
+	alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+	raw_code = "".join(secrets.choice(alphabet) for _ in range(8))
+	code_hash = hashlib.sha256(raw_code.encode("utf-8")).hexdigest()
+	row = ChildLinkCode(
+		family_id=family_id,
+		child_id=child.id,
+		created_by=user.id,
+		code_hash=code_hash,
+		expires_at=utc_naive(expires_utc),
+		is_revoked=False,
+	)
+	session.add(row)
+	record_audit(session, user.id, "child_link.generated", "child_profile", child.id, {"expires_minutes": 10})
+	session.commit()
+	return {
+		"code": raw_code,
+		"qr_payload": f"balkavach://link?code={raw_code}",
+		"expires_at": utc_aware(expires_utc).isoformat(),
+		"child_id": str(child.id),
+	}

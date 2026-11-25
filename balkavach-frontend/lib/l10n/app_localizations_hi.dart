@@ -3436,4 +3436,204 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get celebrationMissionApprovedNote =>
       'आपके माता-पिता ने इसे मंज़ूर किया। ये रहे आपके इनाम!';
+
+  @override
+  String levelXpToNext(int xp, int level) {
+    return 'लेवल $level तक $xp XP';
+  }
+
+  @override
+  String get levelMaxReached => 'आप सबसे ऊँचे लेवल पर पहुँच गए!';
+
+  @override
+  String get achievementsLockedTitle => 'आगे बढ़ते रहो!';
+
+  @override
+  String achievementsProgress(int current, int target) {
+    return '$target में से $current';
+  }
+
+  @override
+  String get celebrationLevelUp => 'लेवल बढ़ गया!';
+
+  @override
+  String get celebrationBadge => 'नया बैज!';
+
+  @override
+  String get rewardsTabHistory => 'इतिहास';
+
+  @override
+  String get rewardsHistoryEmpty => 'अभी कोई पूरा हुआ अनुरोध नहीं है।';
+
+  @override
+  String get rewardStatusFulfilled => 'सौंप दिया गया';
+
+  @override
+  String get rewardStatusRejected => 'अस्वीकृत';
+
+  @override
+  String get rewardStatusCancelled => 'रद्द किया गया';
+
+  @override
+  String rewardHistoryRequested(String date) {
+    return '$date को माँगा';
+  }
+
+  @override
+  String rewardHistoryDecided(String date) {
+    return '$date को निर्णय';
+  }
+
+  @override
+  String rewardHistoryFulfilled(String date) {
+    return '$date को सौंपा';
+  }
+
+  @override
+  String rewardHistoryNote(String note) {
+    return 'टिप्पणी: $note';
+  }
+
+  @override
+  String get rewardHistoryUnnamed => 'इनाम';
+
+  @override
+  String get parentAchievementsTitle => 'लेवल और बैज';
+
+  @override
+  String get parentBadgesEarnedTitle => 'कमाए हुए';
+
+  @override
+  String get parentNoBadgesEarned => 'अभी कोई बैज नहीं मिला।';
+
+  @override
+  String get parentNoBadgesDefined => 'अभी कमाने के लिए कोई बैज नहीं है।';
+
+  @override
+  String parentBadgeEarnedOn(String date) {
+    return '$date को मिला';
+  }
+
+  @override
+  String get parentQuizHistoryTitle => 'क्विज़';
+
+  @override
+  String get parentQuizHistoryEmpty => 'अभी कोई क्विज़ नहीं दी गई।';
+
+  @override
+  String get parentQuizNotPassed => 'पास नहीं हुए';
+
+  @override
+  String get parentLevelUnavailable => 'अभी कोई लेवल नहीं है।';
+
+  @override
+  String parentQuizScoreLine(int correct, int total) {
+    return '$total में से $correct सही';
+  }
+
+  @override
+  String get settingsHelpTitle => 'सहायता और समर्थन';
+
+  @override
+  String get settingsHelpSubtitle =>
+      'अक्सर पूछे जाने वाले प्रश्न और सुरक्षा मार्गदर्शिका';
+
+  @override
+  String get settingsDeleteAccount => 'खाता हटाएँ';
+
+  @override
+  String get settingsDeleteAccountSubtitle =>
+      'व्यक्तिगत डेटा हटाएँ और स्थायी रूप से साइन आउट करें';
+
+  @override
+  String get settingsDeleteConfirmTitle => 'क्या आप अपना खाता हटाना चाहते हैं?';
+
+  @override
+  String get settingsDeleteConfirmBody =>
+      'यह आपके परिवार को स्थायी रूप से साइन आउट कर देगा और व्यक्तिगत विवरण तथा बच्चों की प्रोफ़ाइल गुमनाम कर देगा। स्टार लेज़र और ऑडिट इतिहास गुमनाम रूप में सुरक्षित रहेंगे।';
+
+  @override
+  String get settingsDeletePasswordLabel =>
+      'पुष्टि करने के लिए अपना पासवर्ड दर्ज करें';
+
+  @override
+  String get settingsDeleteAction => 'स्थायी रूप से हटाएँ';
+
+  @override
+  String get interestsTitle => 'वीडियो रुचियाँ';
+
+  @override
+  String get interestsParentSubtitle =>
+      'स्वीकृत विषय इस बच्चे के वीडियो फ़ीड को व्यक्तिगत बनाते हैं।';
+
+  @override
+  String get interestsChildSubtitle =>
+      'आपके माता-पिता द्वारा चुने गए सक्रिय विषय। आप नीचे बदलाव का अनुरोध कर सकते हैं।';
+
+  @override
+  String get interestsPendingTitle => 'बच्चे के लंबित अनुरोध';
+
+  @override
+  String get interestsPendingBadge => 'माता-पिता की स्वीकृति की प्रतीक्षा है';
+
+  @override
+  String get interestsApproveAll => 'अनुरोध स्वीकार करें';
+
+  @override
+  String get interestsRejectAll => 'अस्वीकार करें';
+
+  @override
+  String get interestsSave => 'रुचियाँ सहेजें';
+
+  @override
+  String get interestsRequestSave => 'इन रुचियों का अनुरोध करें';
+
+  @override
+  String get interestsSaved => 'रुचियाँ अपडेट हो गईं';
+
+  @override
+  String get interestsRequestSent => 'माता-पिता को अनुरोध भेजा गया';
+
+  @override
+  String get interestsEmpty => 'अभी तक कोई विषय उपलब्ध नहीं है।';
+
+  @override
+  String get childLinkTitle => 'बच्चे का डिवाइस लिंक करें';
+
+  @override
+  String get childLinkSubtitle =>
+      'बच्चे के डिवाइस के लिए अल्पकालिक, एक-बार उपयोग होने वाला कोड या QR बनाएँ।';
+
+  @override
+  String get childLinkGenerate => 'लिंक कोड बनाएँ';
+
+  @override
+  String get childLinkCopy => 'कोड कॉपी करें';
+
+  @override
+  String get childLinkCopied => 'लिंक कोड कॉपी हो गया';
+
+  @override
+  String childLinkExpires(int minutes, int seconds) {
+    return '$minutes मिनट $seconds सेकंड में समाप्त होगा';
+  }
+
+  @override
+  String get childLinkExpired => 'कोड समाप्त हो गया। नया बनाएँ।';
+
+  @override
+  String get childLinkEnterTitle => 'या माता-पिता के कोड से लिंक करें';
+
+  @override
+  String get childLinkCodeHint => '8-अक्षर का कोड या QR लिंक दर्ज करें';
+
+  @override
+  String get childLinkConfirmTitle => 'इस डिवाइस को लिंक करें?';
+
+  @override
+  String get childLinkConfirmBody =>
+      'यह एक-बार के कोड का उपयोग करके इस डिवाइस को आपकी बच्चे की प्रोफ़ाइल से जोड़ेगा।';
+
+  @override
+  String get childLinkAction => 'डिवाइस लिंक करें';
 }

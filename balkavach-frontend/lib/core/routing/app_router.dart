@@ -46,12 +46,17 @@ import '../../features/quizzes/presentation/quiz_take_screen.dart';
 import '../../features/rewards/presentation/parent_rewards_screen.dart';
 import '../../features/rewards/presentation/reward_form_screen.dart';
 import '../../features/rewards/presentation/rewards_screen.dart';
+import '../../features/settings/presentation/help_support_screen.dart';
 import '../../features/settings/presentation/parent_settings_screen.dart';
 import '../../shared/diag/video_diag.dart';
 import 'app_routes.dart';
 import 'route_guard.dart';
 
 final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+
+/// Notifies [RouteAware] screens when a pushed [PageRoute] is popped back to
+/// them (ignoring dialogs/bottom sheets, which are [PopupRoute]s).
+final appRouteObserver = RouteObserver<PageRoute<dynamic>>();
 
 /// Re-runs redirects whenever the session or onboarding state changes.
 class _RouterRefresh extends ChangeNotifier {
@@ -66,7 +71,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = _RouterRefresh(ref);
   final router = GoRouter(
     navigatorKey: _rootKey,
-    observers: [VideoDiagNavigatorObserver()],
+    observers: [VideoDiagNavigatorObserver(), appRouteObserver],
     initialLocation: AppRoutes.splash,
     refreshListenable: refresh,
     redirect: (context, state) {
@@ -161,6 +166,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'panda-voice',
                 builder: (_, _) => const PandaVoiceConsentScreen(),
+              ),
+              GoRoute(
+                path: 'help',
+                builder: (_, _) => const HelpSupportScreen(),
               ),
             ],
           ),

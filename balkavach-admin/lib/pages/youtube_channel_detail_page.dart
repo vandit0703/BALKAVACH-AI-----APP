@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api.dart';
 import '../core/locale.dart';
 import '../core/session.dart';
+import '../l10n/app_localizations.dart';
 import '../ui/widgets.dart';
 
 const _ageBands = <String, String>{
@@ -133,20 +134,21 @@ class _YouTubeChannelDetailPageState
         ? currentBand
         : '3-15';
     final categoryId = channel['category_id'] as String?;
+    final l10n = AppLocalizations.of(context);
     final values = await showFormDialog(
       context,
-      title: 'Edit trusted channel',
+      title: l10n.youtubeEditTrustedChannel,
       fields: [
         FormFieldSpec(
           key: 'channel_title',
-          label: 'Channel name',
+          label: l10n.youtubeChannelNameLabel,
           kind: FieldKind.text,
           initial: '${channel['channel_title'] ?? ''}',
           required: true,
         ),
         FormFieldSpec(
           key: 'age_band',
-          label: 'Age range',
+          label: l10n.youtubeAgeRangeLabel,
           kind: FieldKind.choice,
           required: true,
           options: _ageBands,
@@ -154,21 +156,21 @@ class _YouTubeChannelDetailPageState
         ),
         FormFieldSpec(
           key: 'language_code',
-          label: 'Language',
+          label: l10n.youtubeLanguageLabel,
           kind: FieldKind.choice,
           options: kLanguageNames,
           initial: '${channel['language_code'] ?? 'en'}',
         ),
         FormFieldSpec(
           key: 'category_id',
-          label: 'Category',
+          label: l10n.youtubeCategoryLabel,
           kind: FieldKind.choice,
           options: categories,
           initial: categories.containsKey(categoryId) ? categoryId : '',
         ),
         FormFieldSpec(
           key: 'rights_status',
-          label: 'Rights status',
+          label: l10n.youtubeRightsStatusLabel,
           kind: FieldKind.choice,
           options: const {
             'unknown': 'Unknown / unreviewed',
@@ -179,13 +181,13 @@ class _YouTubeChannelDetailPageState
         ),
         FormFieldSpec(
           key: 'notes',
-          label: 'Notes',
+          label: l10n.youtubeNotesLabel,
           kind: FieldKind.multiline,
           initial: '${channel['notes'] ?? ''}',
           maxLength: 2000,
         ),
       ],
-      submitLabel: 'Save channel',
+      submitLabel: l10n.actionSave,
     );
     if (values == null || !mounted) {
       return;
@@ -221,22 +223,24 @@ class _YouTubeChannelDetailPageState
 
   Future<void> _discoverMore(Map<String, dynamic> channel) async {
     if (!_canWrite || _discovering) return;
+    final l10n = AppLocalizations.of(context);
     final name = '${channel['channel_title'] ?? widget.channelId}';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Discover more from this channel'),
+        title: Text(l10n.youtubeDiscoverMore),
         content: Text(
-          'Run trusted discovery for "$name" only?\n\nThis will scan this channel\'s uploads, deduplicate existing videos, classify Shorts and long videos from real metadata, and send new items through the normal screening and review pipeline.',
+          '$name — ${l10n.youtubeFetchingUploads}',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.youtubeCancel),
           ),
           FilledButton(
+            key: const Key('form.submit'),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Discover now'),
+            child: Text(l10n.youtubeDiscoverNow),
           ),
         ],
       ),
@@ -271,7 +275,7 @@ class _YouTubeChannelDetailPageState
       );
       _loadAll();
     } on Object catch (error) {
-      if (mounted) showMessage(context, 'Channel discovery failed: $error');
+      if (mounted) showMessage(context, 'Failed to discover more videos: $error');
       _loadAll(resetVideos: false);
     } finally {
       if (mounted) setState(() => _discovering = false);
@@ -290,12 +294,13 @@ class _YouTubeChannelDetailPageState
   }
 
   Widget _overview(Map<String, dynamic> detail) {
+    final l10n = AppLocalizations.of(context);
     final channel = (detail['channel'] as Map<String, dynamic>? ?? const {});
     final counts = (detail['counts'] as Map<String, dynamic>? ?? const {});
-    final status = '${detail['status'] ?? channel['status'] ?? 'â€”'}';
+    final status = '${detail['status'] ?? channel['status'] ?? '—'}';
     final isActive = status == 'approved' || channel['is_active'] == true;
     return SectionCard(
-      title: 'Channel overview',
+      title: l10n.youtubeChannelOverview,
       trailing: _canWrite
           ? Wrap(
               spacing: 8,
@@ -304,7 +309,7 @@ class _YouTubeChannelDetailPageState
                 OutlinedButton.icon(
                   onPressed: _saving ? null : () => _editChannel(channel),
                   icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Edit channel'),
+                  label: Text(l10n.youtubeEditChannel),
                 ),
                 FilledButton.icon(
                   key: const Key('youtube.channelDiscoverMore'),
@@ -316,7 +321,9 @@ class _YouTubeChannelDetailPageState
                         )
                       : const Icon(Icons.travel_explore_outlined),
                   label: Text(
-                    _discovering ? 'Discoveringâ€¦' : 'Discover More',
+                    _discovering
+                        ? l10n.youtubeDiscovering
+                        : l10n.youtubeDiscoverMore,
                   ),
                 ),
               ],
@@ -475,8 +482,9 @@ class _YouTubeChannelDetailPageState
   );
 
   Widget _videosSection() {
+    final l10n = AppLocalizations.of(context);
     return SectionCard(
-      title: 'Videos from this channel',
+      title: l10n.youtubeVideosFromChannel,
       trailing: Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -487,7 +495,7 @@ class _YouTubeChannelDetailPageState
             child: TextField(
               controller: _search,
               decoration: InputDecoration(
-                hintText: 'Search by title or video ID',
+                hintText: l10n.youtubeSearchTitleOrId,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.arrow_forward),
@@ -499,10 +507,10 @@ class _YouTubeChannelDetailPageState
           ),
           DropdownButton<String>(
             value: _formatFilter,
-            items: const [
-              DropdownMenuItem(value: 'all', child: Text('All formats')),
-              DropdownMenuItem(value: 'short', child: Text('Shorts only')),
-              DropdownMenuItem(value: 'long', child: Text('Long videos only')),
+            items: [
+              DropdownMenuItem(value: 'all', child: Text(l10n.youtubeAllFormats)),
+              DropdownMenuItem(value: 'short', child: Text(l10n.youtubeShortsOnly)),
+              DropdownMenuItem(value: 'long', child: Text(l10n.youtubeLongOnly)),
             ],
             onChanged: (v) {
               if (v == null) return;
@@ -515,23 +523,23 @@ class _YouTubeChannelDetailPageState
           ),
           DropdownButton<String>(
             value: _statusFilter,
-            items: const [
-              DropdownMenuItem(value: 'all', child: Text('All statuses')),
-              DropdownMenuItem(value: 'published', child: Text('Published')),
+            items: [
+              DropdownMenuItem(value: 'all', child: Text(l10n.youtubeAll)),
+              DropdownMenuItem(value: 'published', child: Text(l10n.youtubePublished)),
               DropdownMenuItem(
                 value: 'pending_review',
-                child: Text('Pending review'),
+                child: Text(l10n.youtubePendingReview),
               ),
-              DropdownMenuItem(value: 'approved', child: Text('Approved')),
+              DropdownMenuItem(value: 'approved', child: Text(l10n.youtubeApproved)),
               DropdownMenuItem(
                 value: 'quarantined',
-                child: Text('Quarantined'),
+                child: Text(l10n.youtubeQuarantined),
               ),
               DropdownMenuItem(
                 value: 'unavailable',
-                child: Text('Unavailable'),
+                child: Text(l10n.youtubeUnavailable),
               ),
-              DropdownMenuItem(value: 'rejected', child: Text('Rejected')),
+              DropdownMenuItem(value: 'rejected', child: Text(l10n.youtubeRejected)),
             ],
             onChanged: (v) {
               if (v == null) return;
@@ -545,7 +553,7 @@ class _YouTubeChannelDetailPageState
           IconButton(
             onPressed: () => _loadAll(resetVideos: true),
             icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
+            tooltip: l10n.youtubeRefresh,
           ),
         ],
       ),
@@ -557,8 +565,8 @@ class _YouTubeChannelDetailPageState
               .cast<Map<String, dynamic>>();
           final total = (data['total'] as num?)?.toInt() ?? items.length;
           if (items.isEmpty) {
-            return const EmptyState(
-              message: 'No videos found for this channel and filters.',
+            return EmptyState(
+              message: l10n.youtubeNoChannelVideos,
             );
           }
           return Column(
@@ -598,8 +606,8 @@ class _YouTubeChannelDetailPageState
                     ),
                     isThreeLine: true,
                     trailing: item['video_format'] == 'short'
-                        ? const Chip(label: Text('Short'))
-                        : const Chip(label: Text('Long')),
+                        ? Chip(label: Text(l10n.youtubeFormatShort))
+                        : Chip(label: Text(l10n.youtubeFormatLong)),
                   ),
                 ),
               const SizedBox(height: 8),
@@ -614,7 +622,7 @@ class _YouTubeChannelDetailPageState
                               _videosFuture = _fetchVideos();
                             });
                           },
-                    child: const Text('Previous'),
+                    child: Text(l10n.youtubePrevious),
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton(
@@ -626,7 +634,7 @@ class _YouTubeChannelDetailPageState
                               _videosFuture = _fetchVideos();
                             });
                           },
-                    child: const Text('Next'),
+                    child: Text(l10n.youtubeNext),
                   ),
                 ],
               ),
@@ -638,15 +646,16 @@ class _YouTubeChannelDetailPageState
   }
 
   Widget _historySection() {
+    final l10n = AppLocalizations.of(context);
     return SectionCard(
-      title: 'Discovery history',
+      title: l10n.youtubeDiscoveryHistory,
       child: AsyncBody<List<Map<String, dynamic>>>(
         future: _historyFuture,
         onRetry: () => _loadAll(resetVideos: false),
         builder: (context, runs) {
           if (runs.isEmpty) {
-            return const EmptyState(
-              message: 'No discovery runs recorded for this channel yet.',
+            return EmptyState(
+              message: l10n.youtubeNoDiscoveryRuns,
             );
           }
           return Column(
@@ -661,14 +670,26 @@ class _YouTubeChannelDetailPageState
                         : Icons.error_outline,
                   ),
                   title: Text(
-                    '${run['trigger'] ?? 'manual'} Â· ${run['status'] ?? 'â€”'} Â· ${_when(run['started_at'])}',
+                    l10n.youtubeDiscoveryRunTitle(
+                      '${run['id'] ?? '—'}',
+                      '${run['trigger'] ?? 'manual'}',
+                      '${run['status'] ?? '—'}',
+                      _when(run['started_at']),
+                    ),
                   ),
                   subtitle: Text(
-                    'Scanned ${run['scanned_videos'] ?? 0}, new ${run['new_videos'] ?? 0}, duplicates ${run['duplicate_videos'] ?? 0}, '
-                    'Shorts ${run['shorts_count'] ?? 0}, long ${run['long_videos_count'] ?? 0}, '
-                    'auto-approved ${run['auto_approved_count'] ?? 0}, pending ${run['pending_review_count'] ?? 0}, '
-                    'quarantined ${run['quarantined_count'] ?? 0}, unavailable ${run['unavailable_count'] ?? 0}, errors ${run['error_count'] ?? 0}'
-                    '${run['error_message'] != null ? '\nError: ${run['error_message']}' : ''}',
+                    '${l10n.youtubeDiscoveryRunSummary(
+                      (run['scanned_videos'] as num?)?.toInt() ?? 0,
+                      (run['new_videos'] as num?)?.toInt() ?? 0,
+                      (run['duplicate_videos'] as num?)?.toInt() ?? 0,
+                      (run['shorts_count'] as num?)?.toInt() ?? 0,
+                      (run['long_videos_count'] as num?)?.toInt() ?? 0,
+                      (run['auto_approved_count'] as num?)?.toInt() ?? 0,
+                      (run['pending_review_count'] as num?)?.toInt() ?? 0,
+                      (run['quarantined_count'] as num?)?.toInt() ?? 0,
+                      (run['unavailable_count'] as num?)?.toInt() ?? 0,
+                      (run['error_count'] as num?)?.toInt() ?? 0,
+                    )}${run['error_message'] != null ? '\n${run['error_message']}' : ''}',
                   ),
                   isThreeLine: run['error_message'] != null,
                 ),
@@ -681,6 +702,7 @@ class _YouTubeChannelDetailPageState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AsyncBody<Map<String, dynamic>>(
       future: _detailFuture,
       onRetry: () => _loadAll(),
@@ -688,14 +710,13 @@ class _YouTubeChannelDetailPageState
         return ListView(
           children: [
             PageHeader(
-              title: 'Trusted channel details',
-              subtitle:
-                  'Inspect channel configuration, statistics, videos, and discovery runs for this channel only.',
+              title: l10n.youtubeChannelDetailsTitle,
+              subtitle: l10n.youtubeChannelDetailsSubtitle,
               actions: [
                 OutlinedButton.icon(
                   onPressed: () => Navigator.of(context).maybePop(),
                   icon: const Icon(Icons.arrow_back),
-                  label: const Text('Back'),
+                  label: Text(l10n.youtubeBack),
                 ),
               ],
             ),

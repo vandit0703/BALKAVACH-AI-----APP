@@ -141,12 +141,20 @@ def test_only_the_two_gated_paths_write_the_allowance_ledger():
 
 	app = pathlib.Path(__file__).resolve().parents[1] / "app"
 	charge_users = sorted(
-		p.name for p in app.rglob("*.py") if "apply_allowance_charge(" in p.read_text(encoding="utf-8")
+		p.name
+		for p in app.rglob("*.py")
+		if "apply_allowance_charge(" in p.read_text(encoding="utf-8", errors="ignore")
 	)
 	assert charge_users == ["play_ticket_service.py", "video_watch_history_service.py"]
 	consume_users = sorted(
-		p.name for p in app.rglob("*.py") if "consume_video_allowance(" in p.read_text(encoding="utf-8")
+		p.name
+		for p in app.rglob("*.py")
+		if "consume_video_allowance(" in p.read_text(encoding="utf-8", errors="ignore")
 	)
 	assert consume_users == ["video_entitlement_service.py", "video_watch_history_service.py"]
-	gate_users = sorted(p.name for p in app.rglob("*.py") if "play_tickets_active()" in p.read_text(encoding="utf-8"))
+	gate_users = sorted(
+		p.name
+		for p in app.rglob("*.py")
+		if "play_tickets_active()" in p.read_text(encoding="utf-8", errors="ignore")
+	)
 	assert {"play_ticket_service.py", "video_watch_history_service.py"} <= set(gate_users)

@@ -289,6 +289,8 @@ class QuizHistoryItem {
     required this.totalQuestions,
     required this.passed,
     required this.submittedAt,
+    this.starsAwarded = 0,
+    this.xpAwarded = 0,
   });
 
   factory QuizHistoryItem.fromJson(Map<String, dynamic> json) =>
@@ -301,6 +303,8 @@ class QuizHistoryItem {
         totalQuestions: (json['total_questions'] as num).toInt(),
         passed: json['passed'] as bool? ?? false,
         submittedAt: DateTime.parse(json['submitted_at'] as String),
+        starsAwarded: (json['stars_awarded'] as num?)?.toInt() ?? 0,
+        xpAwarded: (json['xp_awarded'] as num?)?.toInt() ?? 0,
       );
 
   final String attemptId;
@@ -311,6 +315,10 @@ class QuizHistoryItem {
   final int totalQuestions;
   final bool passed;
   final DateTime submittedAt;
+
+  /// What the server paid for this attempt: only a first pass pays.
+  final int starsAwarded;
+  final int xpAwarded;
 }
 
 /// Verified contract: `app/api/v1/quizzes.py`.
@@ -368,6 +376,21 @@ class QuizRepository {
     return QuizResult.fromJson(response.data!);
   });
 
+  /// `GET /api/v1/quizzes/children/{id}/history?limit=&offset=` (parent):
+  /// read-only summary of one child's submitted attempts, newest first. 404
+  /// for a child outside the parent's family.
+  Future<List<QuizHistoryItem>> childHistory(
+    String childId, {
+    required int limit,
+    int offset = 0,
+  }) => guardApi(() async {
+    final response = await _dio.get<List<dynamic>>(
+      '/api/v1/quizzes/children/$childId/history',
+      queryParameters: {'limit': limit, 'offset': offset},
+    );
+    return parseJsonList(response.data, QuizHistoryItem.fromJson);
+  });
+
   /// `GET /api/v1/quizzes/history`, newest first.
   Future<List<QuizHistoryItem>> history() => guardApi(() async {
     final response = await _dio.get<List<dynamic>>('/api/v1/quizzes/history');
@@ -403,3 +426,29 @@ final quizResultProvider = FutureProvider.family<QuizResult, String>((
   ref.watch(sessionUserIdProvider);
   return ref.watch(quizRepositoryProvider).result(attemptId);
 });
+
+/// How many attempts the parent's history adds per "Show more".
+const kQuizHistoryPageSize = 10;
+
+/// One page of a child's attempts, and whether older ones exist.
+typedef QuizHistoryPage = ({List<QuizHistoryItem> items, bool hasMore});
+
+/// A parent's read-only view of one child's quiz attempts, page by page
+/// (0 = newest). Disposed with the screen so reopening it asks the server
+/// again: the child takes quizzes on another device.
+final parentQuizHistoryProvider = FutureProvider.autoDispose
+    .family<QuizHistoryPage, ({String childId, int page})>((ref, key) async {
+      ref.watch(sessionUserIdProvider);
+      final items = await ref
+          .watch(quizRepositoryProvider)
+          .childHistory(
+            key.childId,
+            // One extra row says whether another page exists.
+            limit: kQuizHistoryPageSize + 1,
+            offset: key.page * kQuizHistoryPageSize,
+          );
+      return (
+        items: items.take(kQuizHistoryPageSize).toList(),
+        hasMore: items.length > kQuizHistoryPageSize,
+      );
+    });

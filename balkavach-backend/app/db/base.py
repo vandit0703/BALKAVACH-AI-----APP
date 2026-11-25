@@ -66,6 +66,14 @@ MODEL_TABLES = {
 	"DailyMissionTemplate": "daily_mission_templates",
 	"DailyMissionVariation": "daily_mission_variations",
 	"DailyMissionAssignment": "daily_mission_assignments",
+	# Migration 0021. Use has_model("Quiz") to degrade where it may not be applied yet.
+	"Quiz": "quizzes",
+	"QuizQuestion": "quiz_questions",
+	"QuizOption": "quiz_options",
+	"QuizAttempt": "quiz_attempts",
+	"QuizAttemptAnswer": "quiz_attempt_answers",
+	"QuizRewardGrant": "quiz_reward_grants",
+	"ChildLinkCode": "child_link_codes",
 	# Deferred (D6): not created yet. Use has_model() before get_model().
 	"VideoPlayTicket": "video_play_tickets",
 }

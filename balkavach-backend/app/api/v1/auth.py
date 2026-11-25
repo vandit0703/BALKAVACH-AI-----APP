@@ -306,3 +306,163 @@ def logout_all(
 	account_security_service.sign_out_everywhere(session, parent, session_id)
 	return Response(status_code=status.HTTP_204_NO_CONTENT)
 
+
+class _AccountDeleteBody(LoginRequest.__base__):
+	password: str = ""
+
+
+@router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+	request: _AccountDeleteBody,
+	parent=Depends(require_parent),
+	session: Session = Depends(get_db),
+) -> Response:
+	"""Soft-delete and anonymize parent + child PII while retaining anonymized ledgers and audit logs."""
+	from datetime import datetime, timezone
+	from app.core.security import verify_password
+	from app.db.base import get_model, has_model
+	from app.services.admin_service import record_audit
+	from app.services.session_service import revoke_all_sessions
+	from app.utils import utc_naive
+
+	if not request.password or not verify_password(request.password, parent.password_hash):
+		raise HTTPException(status_code=403, detail="Password verification failed")
+
+	now = utc_naive(datetime.now(timezone.utc))
+	User = get_model("User")
+	FamilyMember = get_model("FamilyMember")
+	ChildProfile = get_model("ChildProfile")
+	DeviceToken = get_model("DeviceToken") if has_model("DeviceToken") else None
+
+	family_ids = [
+		row[0]
+		for row in session.query(FamilyMember.family_id)
+		.filter(FamilyMember.user_id == parent.id, FamilyMember.is_active.is_(True))
+		.all()
+	]
+	session.query(FamilyMember).filter(FamilyMember.user_id == parent.id).update({"is_active": False})
+	revoke_all_sessions(session, parent.id)
+	if DeviceToken is not None:
+		session.query(DeviceToken).filter(DeviceToken.user_id == parent.id).delete(synchronize_session=False)
+
+	if family_ids:
+		children = (
+			session.query(ChildProfile)
+			.filter(ChildProfile.family_id.in_(family_ids), ChildProfile.is_active.is_(True))
+			.all()
+		)
+		for child in children:
+			other_parents = (
+				session.query(FamilyMember.id)
+				.filter(
+					FamilyMember.family_id == child.family_id,
+					FamilyMember.user_id != parent.id,
+					FamilyMember.is_active.is_(True),
+				)
+				.first()
+			)
+			if other_parents is not None:
+				continue
+			child.display_name = "Deleted Child"
+			child.date_of_birth = None
+			child.avatar_url = None
+			child.is_active = False
+			if hasattr(child, "interests"):
+				child.interests = []
+			if hasattr(child, "deleted_at"):
+				child.deleted_at = now
+			revoke_all_sessions(session, child.user_id)
+			if DeviceToken is not None:
+				session.query(DeviceToken).filter(DeviceToken.user_id == child.user_id).delete(synchronize_session=False)
+			child_user = session.query(User).filter(User.id == child.user_id).one_or_none()
+			if child_user is not None:
+				child_user.email = f"deleted-{child_user.id}@deleted.local"
+				child_user.full_name = "Deleted Child"
+				child_user.phone_number = None
+				child_user.password_hash = "!"
+				child_user.is_active = False
+				if hasattr(child_user, "deleted_at"):
+					child_user.deleted_at = now
+
+	parent.email = f"deleted-{parent.id}@deleted.local"
+	parent.full_name = "Deleted User"
+	parent.phone_number = None
+	parent.password_hash = "!"
+	parent.is_active = False
+	if hasattr(parent, "deleted_at"):
+		parent.deleted_at = now
+	record_audit(session, parent.id, "account.deleted", "user", parent.id, {"anonymized": True})
+	session.commit()
+	return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+class _ChildLinkRedeemBody(LoginRequest.__base__):
+	code: str
+
+
+@router.post("/child-link/redeem", response_model=TokenResponse)
+def redeem_child_link_code(
+	request: _ChildLinkRedeemBody,
+	http_request: Request,
+	session: Session = Depends(get_db),
+) -> TokenResponse:
+	"""Redeem a single-use, short-lived child linking code/QR payload and issue a child session (DEC-05)."""
+	import hashlib
+	from datetime import datetime, timezone
+	from app.core.exceptions import APIError
+	from app.db.base import get_model, has_model
+	from app.services.admin_service import record_audit
+	from app.utils import utc_naive
+
+	enforce(
+		login_limiter,
+		f"child_link:{_client_ip(http_request)}",
+		limit=settings.login_rate_limit,
+		window_seconds=settings.login_rate_window_seconds,
+	)
+	if not has_model("ChildLinkCode"):
+		raise HTTPException(status_code=503, detail="Child linking is not configured")
+
+	raw = request.code.strip()
+	if raw.startswith("balkavach://"):
+		from urllib.parse import parse_qs, urlparse
+
+		raw = (parse_qs(urlparse(raw).query).get("code") or [""])[0].strip()
+	normalized = raw.upper()
+	if len(normalized) < 6 or len(normalized) > 32:
+		raise APIError(400, "invalid_link_code", "Invalid linking code")
+
+	code_hash = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+	ChildLinkCode = get_model("ChildLinkCode")
+	row = session.query(ChildLinkCode).filter(ChildLinkCode.code_hash == code_hash).with_for_update().one_or_none()
+	now = utc_naive(datetime.now(timezone.utc))
+	if row is None or row.is_revoked or row.used_at is not None or row.expires_at <= now:
+		if row is not None:
+			record_audit(session, row.created_by, "child_link.failed", "child_profile", row.child_id, {"reason": "expired_or_used"})
+			session.commit()
+		raise APIError(400, "invalid_or_expired_link_code", "This linking code is invalid or expired")
+
+	ChildProfile = get_model("ChildProfile")
+	User = get_model("User")
+	child = (
+		session.query(ChildProfile)
+		.filter(ChildProfile.id == row.child_id, ChildProfile.family_id == row.family_id, ChildProfile.is_active.is_(True))
+		.one_or_none()
+	)
+	child_user = (
+		session.query(User)
+		.filter(User.id == child.user_id, User.role == "child", User.is_active.is_(True))
+		.one_or_none()
+		if child is not None
+		else None
+	)
+	if child is None or child_user is None:
+		raise APIError(404, "child_not_found", "Child profile not found")
+
+	row.used_at = now
+	response = start_session(session, child_user, issued_by=row.created_by)
+	response.child_id = child.id
+	record_audit(session, row.created_by, "child_link.redeemed", "child_profile", child.id, {"link_id": str(row.id)})
+	session.commit()
+	return response
+

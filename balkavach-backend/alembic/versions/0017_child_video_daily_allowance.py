@@ -4,7 +4,9 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0017_child_video_daily_allowance"
+# The file is numbered 0017 but its revision id is, and has always been in deployed databases'
+# alembic_version, "0016_child_video_daily_allowance" (0018 and the docs refer to it). Do not rename it.
+revision = "0016_child_video_daily_allowance"
 down_revision = ("0015_daily_mission_engine", "0015_trusted_channel_upload_discovery")
 branch_labels = None
 depends_on = None

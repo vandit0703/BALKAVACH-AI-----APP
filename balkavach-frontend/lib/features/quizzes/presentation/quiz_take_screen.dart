@@ -11,6 +11,9 @@ import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/gamification.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../../missions/presentation/mission_providers.dart'
+    show activeChildIdProvider;
+import '../../progress/data/progress_repository.dart';
 import '../data/quiz_repository.dart';
 
 /// One question at a time. The attempt comes from the server (which sends no
@@ -87,6 +90,13 @@ class _QuizTakeScreenState extends ConsumerState<QuizTakeScreen> {
         ..invalidate(quizzesProvider)
         ..invalidate(quizProvider(widget.quizId))
         ..invalidate(quizHistoryProvider);
+      // A passed quiz may have paid XP: refresh level, badges and progress.
+      final childId = ref.read(activeChildIdProvider);
+      if (childId != null) {
+        ref
+          ..invalidate(childProgressProvider(childId))
+          ..invalidate(achievementsProvider(childId));
+      }
       context.pushReplacement(
         AppRoutes.childQuizResult(result.attemptId),
         extra: result,

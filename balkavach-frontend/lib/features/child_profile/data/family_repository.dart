@@ -121,6 +121,98 @@ class FamilyRepository {
     );
     return ConsentRecord.fromJson(response.data!);
   });
+
+  /// `GET /api/v1/families/{id}/children/{child_id}/interests` (parent).
+  Future<ChildInterests> getChildInterests(String familyId, String childId) =>
+      guardApi(() async {
+        final response = await _dio.get<Map<String, dynamic>>(
+          '/api/v1/families/$familyId/children/$childId/interests',
+        );
+        return ChildInterests.fromJson(response.data!);
+      });
+
+  /// `PUT /api/v1/families/{id}/children/{child_id}/interests` (parent).
+  Future<ChildInterests> updateChildInterests(
+    String familyId,
+    String childId,
+    List<String> interests, {
+    bool clearPending = true,
+  }) => guardApi(() async {
+    final response = await _dio.put<Map<String, dynamic>>(
+      '/api/v1/families/$familyId/children/$childId/interests',
+      data: {'interests': interests, 'clear_pending': clearPending},
+    );
+    return ChildInterests.fromJson(response.data!);
+  });
+
+  /// `POST /api/v1/families/{id}/children/{child_id}/link-code` (parent).
+  Future<ChildLinkCode> createChildLinkCode(
+    String familyId,
+    String childId,
+  ) => guardApi(() async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/families/$familyId/children/$childId/link-code',
+    );
+    return ChildLinkCode.fromJson(response.data!);
+  });
+}
+
+class InterestCategoryOption {
+  const InterestCategoryOption({required this.slug, required this.name});
+
+  factory InterestCategoryOption.fromJson(Map<String, dynamic> json) =>
+      InterestCategoryOption(
+        slug: json['slug'] as String,
+        name: json['name'] as String,
+      );
+
+  final String slug;
+  final String name;
+}
+
+class ChildInterests {
+  const ChildInterests({
+    required this.interests,
+    required this.pendingRequests,
+    required this.availableCategories,
+  });
+
+  factory ChildInterests.fromJson(Map<String, dynamic> json) => ChildInterests(
+    interests: [
+      for (final item in (json['interests'] as List? ?? const []))
+        item.toString(),
+    ],
+    pendingRequests: [
+      for (final item in (json['pending_requests'] as List? ?? const []))
+        item.toString(),
+    ],
+    availableCategories: [
+      for (final item in (json['available_categories'] as List? ?? const []))
+        InterestCategoryOption.fromJson(item as Map<String, dynamic>),
+    ],
+  );
+
+  final List<String> interests;
+  final List<String> pendingRequests;
+  final List<InterestCategoryOption> availableCategories;
+}
+
+class ChildLinkCode {
+  const ChildLinkCode({
+    required this.code,
+    required this.qrPayload,
+    required this.expiresAt,
+  });
+
+  factory ChildLinkCode.fromJson(Map<String, dynamic> json) => ChildLinkCode(
+    code: json['code'] as String,
+    qrPayload: json['qr_payload'] as String,
+    expiresAt: DateTime.parse(json['expires_at'] as String),
+  );
+
+  final String code;
+  final String qrPayload;
+  final DateTime expiresAt;
 }
 
 final familyRepositoryProvider = Provider<FamilyRepository>(

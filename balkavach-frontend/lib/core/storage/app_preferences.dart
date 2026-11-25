@@ -16,6 +16,8 @@ class AppPreferences {
   static const _avatarPrefix = 'child.avatar.';
   static const _submissionsPrefix = 'child.submissions.';
   static const _celebratedPrefix = 'child.celebrated_approvals.';
+  static const _levelSeenPrefix = 'child.milestone.level.';
+  static const _badgesSeenPrefix = 'child.milestone.badges.';
   static const _approvalBaselinePrefix = 'child.approval_baseline.';
 
   String? get languageCode => _prefs.getString(_languageKey);
@@ -72,6 +74,20 @@ class AppPreferences {
 
   Future<void> setCelebratedSubmissionIds(String childId, List<String> ids) =>
       _prefs.setStringList('$_celebratedPrefix$childId', ids);
+
+  /// The highest level this device has already shown [childId] (null until
+  /// the first look at their progress).
+  int? levelSeen(String childId) => _prefs.getInt('$_levelSeenPrefix$childId');
+
+  Future<void> setLevelSeen(String childId, int level) =>
+      _prefs.setInt('$_levelSeenPrefix$childId', level);
+
+  /// Ids of earned badges already celebrated (or already held at first look).
+  List<String> badgesSeen(String childId) =>
+      _prefs.getStringList('$_badgesSeenPrefix$childId') ?? const [];
+
+  Future<void> setBadgesSeen(String childId, List<String> ids) =>
+      _prefs.setStringList('$_badgesSeenPrefix$childId', ids);
 
   /// Whether this child's approvals were looked at once on this device (what
   /// was already approved then is history and is never celebrated).

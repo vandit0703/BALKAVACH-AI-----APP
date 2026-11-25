@@ -24,8 +24,12 @@ import '../../../shared/widgets/state_views.dart';
 import '../../authentication/data/auth_repository.dart';
 import '../../authentication/presentation/session_controller.dart';
 import '../../progress/data/progress_repository.dart';
+import '../../progress/presentation/achievements_widgets.dart';
+import '../../quizzes/data/quiz_repository.dart';
+import '../../quizzes/presentation/parent_quiz_history_section.dart';
 import '../data/family_repository.dart';
 import '../domain/family_models.dart';
+import 'child_interests_and_link_cards.dart';
 import 'child_mode_launcher.dart';
 import 'create_child_screen.dart';
 import 'family_providers.dart';
@@ -121,7 +125,9 @@ class _Profile extends ConsumerWidget {
       onRefresh: () async {
         ref
           ..invalidate(familyChildrenProvider(familyId))
-          ..invalidate(childProgressProvider(child.id));
+          ..invalidate(childProgressProvider(child.id))
+          ..invalidate(achievementsProvider(child.id))
+          ..invalidate(parentQuizHistoryProvider);
         await refreshQuietly(ref.read(childProgressProvider(child.id).future));
       },
       child: ListView(
@@ -223,6 +229,10 @@ class _Profile extends ConsumerWidget {
                     ],
                   ),
                 ),
+                ParentChildInterestsCard(familyId: familyId, childId: child.id),
+                ParentChildLinkCard(familyId: familyId, childId: child.id),
+                ParentAchievementsSection(childId: child.id),
+                ParentQuizHistorySection(childId: child.id),
                 for (final sibling in siblings) _SiblingCard(child: sibling),
                 AppCard(
                   key: const Key('profile.addChild'),

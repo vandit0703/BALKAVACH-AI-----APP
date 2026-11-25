@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_current_user
 from app.db.base import get_model
 from app.db.session import get_db
-from app.schemas.progress import ProgressPublic, StreakPublic, WeeklyReportPublic
+from app.schemas.progress import AchievementsPublic, ProgressPublic, StreakPublic, WeeklyReportPublic
+from app.services.achievement_service import get_achievements
 from app.services.progress_service import get_progress
 from app.services.report_service import weekly_report
 
@@ -80,3 +81,14 @@ def child_weekly_report(
 ) -> WeeklyReportPublic:
 	child = _authorized_child(session, user, child_id)
 	return WeeklyReportPublic.model_validate(weekly_report(session, child, weeks_back))
+
+
+@router.get("/children/{child_id}/achievements", response_model=AchievementsPublic)
+def child_achievements(
+	child_id: UUID,
+	user=Depends(get_current_user),
+	session: Session = Depends(get_db),
+) -> AchievementsPublic:
+	"""Every active badge (earned or locked, with real progress) and the child's level progress."""
+	_authorized_child(session, user, child_id)
+	return AchievementsPublic.model_validate(get_achievements(session, child_id))

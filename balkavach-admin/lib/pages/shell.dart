@@ -35,6 +35,7 @@ class Section {
     'rewards' => l10n.navRewards,
     'redemptions' => l10n.navRedemptions,
     'content' => l10n.navContent,
+    'quizzes' => l10n.navQuizzes,
     'youtubeReviews' => l10n.navYoutubeReviews,
     'badges' => l10n.navBadges,
     'settings' => l10n.navSettings,

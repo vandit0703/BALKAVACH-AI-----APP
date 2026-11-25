@@ -15,6 +15,7 @@ import 'pages/families_page.dart';
 import 'pages/login_page.dart';
 import 'pages/missions_page.dart';
 import 'pages/presets_page.dart';
+import 'pages/quizzes_page.dart';
 import 'pages/rewards_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/shell.dart';
@@ -95,6 +96,13 @@ const kSections = <Section>[
     NavGroup.learning,
   ),
   Section(
+    'quizzes',
+    Icons.quiz_outlined,
+    '/quizzes',
+    'content:read',
+    NavGroup.learning,
+  ),
+  Section(
     'badges',
     Icons.military_tech_outlined,
     '/badges',
@@ -126,6 +134,7 @@ Widget _pageFor(String path) => switch (path) {
   '/rewards' => const RewardsPage(),
   '/redemptions' => const RedemptionsPage(),
   '/content' => const ContentPage(),
+  '/quizzes' => const QuizzesPage(),
   '/youtube-reviews' => const YouTubeReviewsPage(),
   '/badges' => const BadgesPage(),
   '/settings' => const SettingsPage(),

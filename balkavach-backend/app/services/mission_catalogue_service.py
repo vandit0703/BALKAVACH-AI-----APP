@@ -110,19 +110,30 @@ def _has(patterns: Iterable[str], text: str, *, regex: bool) -> str | None:
 	return None
 
 
-def validate_catalogue(missions: Iterable[dict[str, Any]] = MISSIONS) -> list[str]:
+def validate_catalogue(
+	missions: Iterable[dict[str, Any]] = MISSIONS,
+	*,
+	allowed_themes: Iterable[str] | None = None,
+	activities: dict[str, dict[str, str]] | None = None,
+	duration_ranges: dict[str, tuple[int, int]] | None = None,
+) -> list[str]:
 	"""Every problem found, as readable strings. Empty means the catalogue is fit to seed."""
 	missions = list(missions)
 	problems: list[str] = []
 	slugs: set[str] = set()
 	titles: dict[tuple[str, str], str] = {}
 
-	weekday_themes = set(THEMES_BY_WEEKDAY.values())
 	covered = {mission["theme"] for mission in missions}
-	for theme in sorted(weekday_themes - covered):
-		problems.append(f"theme {theme}: no mission")
-	for theme in sorted(covered - weekday_themes):
-		problems.append(f"theme {theme}: not one of the seven weekday themes")
+	if allowed_themes is None:
+		weekday_themes = set(THEMES_BY_WEEKDAY.values())
+		for theme in sorted(weekday_themes - covered):
+			problems.append(f"theme {theme}: no mission")
+		for theme in sorted(covered - weekday_themes):
+			problems.append(f"theme {theme}: not one of the seven weekday themes")
+	else:
+		allowed = set(allowed_themes)
+		for theme in sorted(covered - allowed):
+			problems.append(f"theme {theme}: unknown category")
 
 	for mission in missions:
 		slug = mission["slug"]
@@ -145,8 +156,9 @@ def validate_catalogue(missions: Iterable[dict[str, Any]] = MISSIONS) -> list[st
 			if age is None:
 				continue
 			spot = f"{where}/{age_band}"
-			if not MIN_MINUTES <= age.get("minutes", 0) <= MAX_MINUTES:
-				problems.append(f"{spot}: duration {age.get('minutes')} min outside {MIN_MINUTES}-{MAX_MINUTES}")
+			low, high = duration_ranges[age_band] if duration_ranges and age_band in duration_ranges else (MIN_MINUTES, MAX_MINUTES)
+			if not low <= age.get("minutes", 0) <= high:
+				problems.append(f"{spot}: duration {age.get('minutes')} min outside {low}-{high}")
 			for field in ("rationale", "parent_involvement"):
 				if not str(age.get(field, "")).strip():
 					problems.append(f"{spot}: {field} missing")
@@ -168,7 +180,7 @@ def validate_catalogue(missions: Iterable[dict[str, Any]] = MISSIONS) -> list[st
 				if key in titles:
 					problems.append(f"{spot}/{locale}: title also used by {titles[key]}")
 				titles[key] = f"{spot}/{locale}"
-	problems.extend(distinct_activity_problems(missions))
+	problems.extend(distinct_activity_problems(missions, activities=activities))
 	return problems
 
 
@@ -177,18 +189,23 @@ def _step_words(mission: dict[str, Any], age_band: str) -> set[str]:
 	return set(re.findall(r"[a-z]+", steps)) - _STEP_STOP_WORDS
 
 
-def distinct_activity_problems(missions: Iterable[dict[str, Any]]) -> list[str]:
+def distinct_activity_problems(
+	missions: Iterable[dict[str, Any]],
+	*,
+	activities: dict[str, dict[str, str]] | None = None,
+) -> list[str]:
 	"""Problems that mean two templates are really one activity (or that nobody recorded what the activity is).
 
 	Every mission needs an entry in ``activities.ACTIVITIES``; every ``mechanic`` must be unique across the catalogue;
 	and two missions in one theme must not share more than ``MAX_STEP_SIMILARITY`` of their English step words in any
 	age band (a rewritten title or reworded steps cannot make a repeat look new)."""
 	missions = list(missions)
+	activity_map = ACTIVITIES if activities is None else activities
 	problems: list[str] = []
 	seen: dict[str, str] = {}
 	for mission in missions:
 		slug = mission["slug"]
-		entry = ACTIVITIES.get(slug)
+		entry = activity_map.get(slug)
 		if not entry or not str(entry.get("mechanic", "")).strip() or not str(entry.get("summary", "")).strip():
 			problems.append(f"{slug}: no activity entry (mechanic and summary) in activities.py")
 			continue
@@ -385,7 +402,29 @@ def apply_catalogue(
 	``publish`` publishes only templates this run created. ``publish_existing`` (explicit, separate) also publishes
 	templates that already exist unpublished, but only when every stored variation still equals the catalogue (no admin
 	edit) and the same instruction checks pass; an edited template is reported in ``publish_skipped_conflict``."""
-	problems = validate_catalogue(missions := list(missions))
+	missions = list(missions)
+	if any(m.get("library") for m in missions):
+		from app.content.mission_library import CATEGORIES, LIBRARY_ACTIVITIES, is_publishable_translation
+		from app.services.mission_library_service import DURATION_RANGE, library_problems
+
+		core_only = [m for m in missions if not m.get("library")]
+		lib_only = [m for m in missions if m.get("library")]
+		problems = []
+		if core_only:
+			problems.extend(validate_catalogue(core_only))
+		if lib_only:
+			problems.extend(
+				validate_catalogue(
+					lib_only,
+					allowed_themes=set(CATEGORIES),
+					activities=LIBRARY_ACTIVITIES,
+					duration_ranges=DURATION_RANGE,
+				)
+			)
+			problems.extend(library_problems(lib_only, core_only))
+	else:
+		is_publishable_translation = None
+		problems = validate_catalogue(missions)
 	if problems:
 		raise ValueError("catalogue is invalid: " + "; ".join(problems[:5]))
 	Template = get_model("DailyMissionTemplate")
@@ -438,15 +477,18 @@ def apply_catalogue(
 		if publish_existing and not created and not template.is_published and edited:
 			report["publish_skipped_conflict"].append(mission["slug"])
 		if (publish and created) or (publish_existing and not created and not template.is_published and not edited):
-			rows = session.query(Variation.age_band, Variation.locale).filter(Variation.template_id == template.id).all()
-			if has_complete_localized_variations(rows):
-				# The same checks as the admin publish endpoint: real steps, materials, a child-facing submission, safety...
-				problems = instruction_problems(session.query(Variation).filter(Variation.template_id == template.id).all())
-				if problems:
-					report["publish_blocked"].append({"template": mission["slug"], "problems": sorted({p["code"] for p in problems})})
-				else:
-					template.is_published = True
-					report["published" if created else "published_existing"] += 1
+			if mission.get("library") and is_publishable_translation is not None and not is_publishable_translation(mission):
+				report["publish_blocked"].append({"template": mission["slug"], "problems": ["translation_pending_native_review"]})
+			else:
+				rows = session.query(Variation.age_band, Variation.locale).filter(Variation.template_id == template.id).all()
+				if has_complete_localized_variations(rows):
+					# The same checks as the admin publish endpoint: real steps, materials, a child-facing submission, safety...
+					problems = instruction_problems(session.query(Variation).filter(Variation.template_id == template.id).all())
+					if problems:
+						report["publish_blocked"].append({"template": mission["slug"], "problems": sorted({p["code"] for p in problems})})
+					else:
+						template.is_published = True
+						report["published" if created else "published_existing"] += 1
 	session.flush()
 	return report
 

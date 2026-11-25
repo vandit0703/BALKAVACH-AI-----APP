@@ -87,7 +87,7 @@ void main() {
           'age_min': 3,
           'age_max': 5,
           'language_code': 'en',
-          'category': 'cat-1',
+          'category_id': 'cat-1',
           'is_active': true,
           'discovered_at': '2026-04-12T10:00:00Z',
           'last_discovered_at': '2026-04-12T10:00:00Z',
@@ -99,8 +99,8 @@ void main() {
             'status': 'completed',
             'started_at': '2026-04-12T10:00:00Z',
             'completed_at': '2026-04-12T10:00:00Z',
-            'scanned_videos': 0,
-            'new_videos': 0,
+            'scanned_videos': 2,
+            'new_videos': 2,
             'duplicate_videos': 0,
             'shorts_count': 0,
             'long_videos_count': 0,
@@ -161,7 +161,7 @@ void main() {
         'age_min': 3,
         'age_max': 5,
         'language_code': 'en',
-        'category': 'cat-1',
+        'category_id': 'cat-1',
         'rights_status': 'cleared',
         'notes': null,
       });
@@ -519,8 +519,8 @@ void channelTests() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Scanned: 10'), findsWidgets);
-    expect(find.textContaining('New: 2'), findsWidgets);
+    expect(find.textContaining('Scanned 10'), findsWidgets);
+    expect(find.textContaining('2 new'), findsWidgets);
     expect(
       server.to('GET', '/api/v1/admin/videos/youtube/channels/$_channelId').length,
       greaterThanOrEqualTo(2),

@@ -1,4 +1,4 @@
-﻿from uuid import UUID
+from uuid import UUID
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -83,6 +83,54 @@ def list_video_categories(
 		VideoCategory.display_order, VideoCategory.name
 	).all()
 	return [VideoCategoryPublic.model_validate(category) for category in categories]
+
+
+@router.get("/interests")
+def my_video_interests(
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> dict:
+	VideoCategory = get_model("VideoCategory")
+	cats = (
+		session.query(VideoCategory.slug, VideoCategory.name)
+		.filter(VideoCategory.is_active.is_(True))
+		.order_by(VideoCategory.display_order, VideoCategory.name)
+		.all()
+	)
+	return {
+		"interests": list(getattr(child, "interests", None) or []),
+		"pending_requests": list(getattr(child, "pending_interest_requests", None) or []),
+		"available_categories": [{"slug": str(slug), "name": str(name)} for slug, name in cats if slug],
+	}
+
+
+@router.post("/interests/request")
+def request_video_interests(
+	payload: dict,
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> dict:
+	"""Child submits interest change requests; parent approval is required before active interests change (DEC-04)."""
+	raw = payload.get("interests")
+	if not isinstance(raw, list):
+		raise HTTPException(status_code=422, detail="interests must be a list")
+	VideoCategory = get_model("VideoCategory")
+	cats = (
+		session.query(VideoCategory.slug, VideoCategory.name)
+		.filter(VideoCategory.is_active.is_(True))
+		.order_by(VideoCategory.display_order, VideoCategory.name)
+		.all()
+	)
+	allowed = {str(slug).lower() for slug, _ in cats if slug}
+	requested = list(dict.fromkeys(str(item).strip().lower() for item in raw if str(item).strip().lower() in allowed))
+	if hasattr(child, "pending_interest_requests"):
+		child.pending_interest_requests = requested
+		session.commit()
+	return {
+		"interests": list(getattr(child, "interests", None) or []),
+		"pending_requests": requested,
+		"available_categories": [{"slug": str(slug), "name": str(name)} for slug, name in cats if slug],
+	}
 
 
 def _feed_item(

@@ -95,6 +95,118 @@ DateTime utcDay(DateTime value) {
   return DateTime.utc(utc.year, utc.month, utc.day);
 }
 
+/// One badge in the full catalogue, earned or locked. [threshold] and
+/// [current] exist only for criteria the server can measure: the app shows the
+/// server's numbers and never invents progress.
+@immutable
+class AchievementBadge {
+  const AchievementBadge({
+    required this.id,
+    required this.name,
+    required this.unlocked,
+    this.description,
+    this.unlockedAt,
+    this.threshold,
+    this.current,
+  });
+
+  factory AchievementBadge.fromJson(Map<String, dynamic> json) =>
+      AchievementBadge(
+        id: json['badge_id'] as String,
+        name: json['name'] as String,
+        description: json['description'] as String?,
+        unlocked: json['unlocked'] as bool? ?? false,
+        unlockedAt: json['unlocked_at'] == null
+            ? null
+            : DateTime.parse(json['unlocked_at'] as String),
+        threshold: (json['threshold'] as num?)?.toInt(),
+        current: (json['current'] as num?)?.toInt(),
+      );
+
+  final String id;
+  final String name;
+  final String? description;
+  final bool unlocked;
+  final DateTime? unlockedAt;
+  final int? threshold;
+  final int? current;
+
+  bool get hasProgress => threshold != null && current != null;
+
+  /// 0..1 towards the badge; null when the server gave no measurable target.
+  double? get fraction =>
+      hasProgress ? (current! / threshold!).clamp(0.0, 1.0).toDouble() : null;
+}
+
+/// The child's level and the distance to the next one (`level` in
+/// `GET /progress/children/{id}/achievements`).
+@immutable
+class LevelProgress {
+  const LevelProgress({
+    required this.totalXp,
+    required this.minimumXp,
+    this.levelNumber,
+    this.name,
+    this.nextLevelNumber,
+    this.nextLevelName,
+    this.nextMinimumXp,
+  });
+
+  factory LevelProgress.fromJson(Map<String, dynamic> json) => LevelProgress(
+    levelNumber: (json['level_number'] as num?)?.toInt(),
+    name: json['name'] as String?,
+    minimumXp: (json['minimum_xp'] as num?)?.toInt() ?? 0,
+    nextLevelNumber: (json['next_level_number'] as num?)?.toInt(),
+    nextLevelName: json['next_level_name'] as String?,
+    nextMinimumXp: (json['next_minimum_xp'] as num?)?.toInt(),
+    totalXp: (json['total_xp'] as num?)?.toInt() ?? 0,
+  );
+
+  final int? levelNumber;
+  final String? name;
+  final int minimumXp;
+  final int? nextLevelNumber;
+  final String? nextLevelName;
+  final int? nextMinimumXp;
+  final int totalXp;
+
+  bool get isTopLevel => nextMinimumXp == null;
+  int? get xpToNext => nextMinimumXp == null
+      ? null
+      : (nextMinimumXp! - totalXp).clamp(0, 1 << 30);
+
+  /// 0..1 through the current level; null at the top level.
+  double? get fraction {
+    final next = nextMinimumXp;
+    if (next == null || next <= minimumXp) return null;
+    return ((totalXp - minimumXp) / (next - minimumXp))
+        .clamp(0.0, 1.0)
+        .toDouble();
+  }
+}
+
+/// `AchievementsPublic`.
+@immutable
+class Achievements {
+  const Achievements({required this.level, required this.badges});
+
+  factory Achievements.fromJson(Map<String, dynamic> json) => Achievements(
+    level: LevelProgress.fromJson(json['level'] as Map<String, dynamic>),
+    badges: [
+      for (final badge in json['badges'] as List<dynamic>? ?? const [])
+        AchievementBadge.fromJson(badge as Map<String, dynamic>),
+    ],
+  );
+
+  final LevelProgress level;
+  final List<AchievementBadge> badges;
+
+  List<AchievementBadge> get locked => [
+    for (final badge in badges)
+      if (!badge.unlocked) badge,
+  ];
+}
+
 /// `BadgePublic`.
 @immutable
 class EarnedBadge {
@@ -393,6 +505,15 @@ class ProgressRepository {
     return ChildProgress.fromJson(response.data!);
   });
 
+  /// `GET /api/v1/progress/children/{id}/achievements`: every active badge
+  /// with the child's real progress, plus level progress.
+  Future<Achievements> achievements(String childId) => guardApi(() async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/v1/progress/children/$childId/achievements',
+    );
+    return Achievements.fromJson(response.data!);
+  });
+
   /// `GET /api/v1/progress/children/{id}/streak`
   Future<StreakInfo> streakInfo(String childId) => guardApi(() async {
     final response = await _dio.get<Map<String, dynamic>>(
@@ -436,6 +557,14 @@ final childProgressProvider = FutureProvider.family<ChildProgress, String>((
   ref.watch(sessionUserIdProvider);
   return ref.watch(progressRepositoryProvider).childProgress(childId);
 });
+
+/// Disposed when no screen shows it, so reopening a profile asks the server
+/// again (a parent's app cannot know the child just earned something).
+final achievementsProvider = FutureProvider.autoDispose
+    .family<Achievements, String>((ref, childId) {
+      ref.watch(sessionUserIdProvider);
+      return ref.watch(progressRepositoryProvider).achievements(childId);
+    });
 
 final streakInfoProvider = FutureProvider.family<StreakInfo, String>((
   ref,

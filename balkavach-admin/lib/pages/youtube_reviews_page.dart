@@ -23,7 +23,7 @@ const _ageBands = {
   '13-15': '13-15',
 };
 
-class YouTubeReviewsPage extends C  onsumerStatefulWidget {
+class YouTubeReviewsPage extends ConsumerStatefulWidget {
   const YouTubeReviewsPage({super.key});
 
   @override
@@ -145,7 +145,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
         : '3-15';
     final values = await showFormDialog(
       context,
-      title: 'Trust / configure channel',
+      title: l10n.youtubeEditTrustedChannel,
       fields: [
         FormFieldSpec(
           key: 'age_band',
@@ -177,7 +177,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
         ),
         FormFieldSpec(
           key: 'notes',
-          label: 'Notes',
+          label: l10n.youtubeNotesLabel,
           kind: FieldKind.multiline,
           initial: '${channel['notes'] ?? ''}',
           maxLength: 2000,
@@ -217,7 +217,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
           0;
       showMessage(
         context,
-        'Channel trusted/configured. $count new videos discovered.',
+        l10n.youtubeChannelTrustedResult(count),
       );
       _reloadAll();
     } on Object catch (error) {
@@ -650,7 +650,7 @@ class _YouTubeReviewsPageState extends ConsumerState<YouTubeReviewsPage> {
                             '/youtube-reviews/channels/${channel['channel_id']}',
                           ),
                           icon: const Icon(Icons.open_in_new),
-                          label: const Text('View Details'),
+                          label: Text(l10n.youtubeChannelDetailsTitle),
                         ),
                         if (_canWrite)
                           IconButton(

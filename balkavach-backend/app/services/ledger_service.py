@@ -12,6 +12,17 @@ def star_balance(session: Session, child_id) -> int:
 	return int(balance or 0)
 
 
+def lifetime_stars_earned(session: Session, child_id) -> int:
+	"""Total Stars earned from approved missions and passed quizzes (excludes refunds/adjustments/spends)."""
+	StarTransaction = get_model("StarTransaction")
+	earned = session.query(func.coalesce(func.sum(StarTransaction.amount), 0)).filter(
+		StarTransaction.child_id == child_id,
+		StarTransaction.amount > 0,
+		StarTransaction.transaction_type.in_(["task_approved", "quiz_passed"]),
+	).scalar()
+	return int(earned or 0)
+
+
 def xp_total(session: Session, child_id) -> int:
 	XPTransaction = get_model("XPTransaction")
 	total = session.query(func.coalesce(func.sum(XPTransaction.amount), 0)).filter(

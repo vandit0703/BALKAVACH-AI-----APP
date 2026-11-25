@@ -13,7 +13,7 @@ from app.core.exceptions import APIError, database_error_details
 from app.db.base import get_model
 from app.schemas.task import TaskReviewCreate, TaskSubmissionCreate
 from app.services.child_age import ensure_task_age_eligible
-from app.services.ledger_service import star_balance, xp_total
+from app.services.ledger_service import lifetime_stars_earned, star_balance, xp_total
 from app.services.notification_service import create_notification, family_parent_ids
 from app.services.progress_service import badge_qualifies
 from app.services.timezone_service import local_date_of
@@ -318,7 +318,7 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 		current_streak = streak_result["current_streak"]
 		criteria_values = {
 			"approved_tasks": int(approved_tasks or 0),
-			"total_stars": star_balance(session, child.id),
+			"total_stars": lifetime_stars_earned(session, child.id),
 			"total_xp": xp_total(session, child.id),
 			"current_streak": current_streak,
 		}

@@ -163,7 +163,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('video.lock.panda')), findsOneWidget);
     expect(
-      h.backend.requests.where((r) => r.uri.path.contains('/progress')),
+      h.backend.requests.where(
+        // Video progress reports; the child's own progress summary is a read.
+        (r) =>
+            r.uri.path.contains('/progress') &&
+            !r.uri.path.contains('/progress/children'),
+      ),
       isEmpty,
     );
   });
@@ -292,7 +297,12 @@ void main() {
       isNotEmpty,
     );
     expect(
-      h.backend.requests.where((r) => r.uri.path.contains('/progress')),
+      h.backend.requests.where(
+        // Video progress reports; the child's own progress summary is a read.
+        (r) =>
+            r.uri.path.contains('/progress') &&
+            !r.uri.path.contains('/progress/children'),
+      ),
       isEmpty,
     );
   });

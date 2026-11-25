@@ -26,6 +26,7 @@ from app.schemas.task import (
 from app.schemas.video import VideoFeedItem
 from app.services.child_age import child_age_band_or_none, ineligible_daily_task_ids
 from app.services.daily_mission_service import localized_task_fields
+from app.services.mission_rewards import MISSION_STAR_REWARD, MISSION_XP_REWARD
 from app.services.display_locale import resolve_display_locale
 from app.services.ledger_service import awarded_by_submission
 from app.services.mission_video_service import (
@@ -148,8 +149,8 @@ def create_task(
 		assigned_child_id=request.assigned_child_id,
 		title=request.title.strip(),
 		description=request.description,
-		xp_reward=request.xp_reward,
-		star_reward=request.star_reward,
+		xp_reward=MISSION_XP_REWARD,
+		star_reward=MISSION_STAR_REWARD,
 		required_video_seconds=request.required_video_seconds,
 		due_at=utc_naive(request.due_at) if request.due_at else None,
 		repeat_rule=request.repeat_rule,

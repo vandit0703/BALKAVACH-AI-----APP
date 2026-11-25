@@ -8,6 +8,7 @@ import '../../../shared/widgets/app_card.dart';
 import '../../missions/presentation/child_home_screen.dart';
 import '../../onboarding/presentation/onboarding_controller.dart';
 import '../../settings/presentation/settings_providers.dart';
+import 'child_interests_and_link_cards.dart';
 
 /// Child Profile: the dashboard that used to be Home.
 ///
@@ -22,7 +23,7 @@ class ChildHomeProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return const ChildDashboard(
       key: Key('profile.dashboard'),
-      trailing: [_LanguageCard()],
+      trailing: [ChildInterestsCard(), _LanguageCard()],
     );
   }
 }

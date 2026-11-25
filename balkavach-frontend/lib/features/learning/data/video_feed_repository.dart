@@ -25,9 +25,7 @@ class VideoAllowance {
     required this.activeEntitlementsCount,
     int? freeRemainingSeconds,
     this.missionRemainingSeconds = 0,
-  }) : freeRemainingSeconds =
-           freeRemainingSeconds ??
-           (remainingSeconds < 900 ? remainingSeconds : 900);
+  }) : freeRemainingSeconds = freeRemainingSeconds ?? 0;
 
   factory VideoAllowance.fromJson(Map<String, dynamic> json) => VideoAllowance(
     childId: json['child_id'] as String,
@@ -43,7 +41,7 @@ class VideoAllowance {
     activeEntitlementsCount:
         (json['active_entitlements_count'] as num?)?.toInt() ?? 0,
     freeRemainingSeconds:
-        (json['free_remaining_seconds'] as num?)?.toInt() ?? 900,
+        (json['free_remaining_seconds'] as num?)?.toInt() ?? 0,
     missionRemainingSeconds:
         (json['mission_remaining_seconds'] as num?)?.toInt() ?? 0,
   );
@@ -364,6 +362,25 @@ class VideoFeedRepository {
     );
     return VideoAllowance.fromJson(response.data!);
   });
+
+  /// `GET /api/v1/videos/interests` (child).
+  Future<Map<String, dynamic>> getMyInterests() => guardApi(() async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/v1/videos/interests',
+    );
+    return response.data!;
+  });
+
+  /// `POST /api/v1/videos/interests/request` (child): submits pending
+  /// interest requests without altering active parent-approved interests.
+  Future<Map<String, dynamic>> requestInterests(List<String> interests) =>
+      guardApi(() async {
+        final response = await _dio.post<Map<String, dynamic>>(
+          '/api/v1/videos/interests/request',
+          data: {'interests': interests},
+        );
+        return response.data!;
+      });
 
   Future<MissionVideoProgress> missionVideoProgress(String taskId) =>
       guardApi(() async {

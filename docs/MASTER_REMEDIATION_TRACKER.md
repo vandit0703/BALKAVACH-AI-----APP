@@ -1,0 +1,26 @@
+# BALKAVACH — Master Remediation Tracker
+
+**Updated:** 2026-11-25  
+**Baseline:** `main` @ `36a7c069d69cb7a5b1ac148bbcb3ee7fd46cb8bf` (dirty working tree preserved; no commits/pushes/resets performed)  
+**Product Decisions Applied:** `DEC-01` through `DEC-10`
+
+---
+
+## Status Summary
+
+| Workstream | Item | Status | Evidence / Notes |
+|---|---|---|---|
+| **WS-0** | Preserve baseline & Phase 6 work | **DONE** | Working tree preserved; Phase 6 parent progress, reward history, and quiz history untouched. |
+| **WS-1** | Migration `0022_production_readiness` & `alembic_version` widening (`VARCHAR(64)`) | **IMPLEMENTED (DB RUN BLOCKED)** | `alembic/env.py` + `0022_production_readiness.py` + `app/db/base.py` implemented; single-head check passed in `test_video_recommendations_and_integrity.py`. Live PostgreSQL migration & `TEST_DATABASE_URL` integration suite **BLOCKED** locally because PostgreSQL 18 requires an unconfigured `postgres` password and `balkavach-backend/.env` has no `TEST_DATABASE_URL`. |
+| **WS-2** | Zero free daily allowance + 900s per qualifying mission + carry-forward (`DEC-02`, `DEC-03`) | **DONE** | `FREE_DAILY_ALLOWANCE_SECONDS = 0`; `expires_at = None` in `video_entitlement_service.py`; frontend defaults updated to `0` in `video_feed_repository.dart`. Verified by `test_video_recommendations_and_integrity.py` (7/7) and `video_feed_test.dart`. |
+| **WS-2** | Server-side mission rewards (`10` stars, `15` XP) (`tasks.py`) | **DONE** | Enforced server-side via `MISSION_STAR_REWARD` & `MISSION_XP_REWARD`. |
+| **WS-2** | Trusted YouTube channel quarantine / `not_cleared` safety fix | **DONE** | `_force_publish_for_trusted_channel` & `_refresh_trusted_candidate` in `youtube_review_service.py` never auto-publish `quarantined` or `not_cleared` videos. Verified by `test_youtube_auto_review.py` + `test_play_ticket_rules.py` + `test_video_classification.py` (91/91). |
+| **WS-2** | `lifetime_stars_earned` badge integrity + `skip_assignment` flush + redemption snapshots | **DONE** | Implemented in `ledger_service.py`, `achievement_service.py`, `task_service.py`, `daily_mission_service.py`, `reward_service.py`. |
+| **WS-3** | Video feed redesign: remove topic chips, auto-refresh on return, interest-based ranking | **DONE** | Removed `_TopicChips`/`_categoryId`/`_selectCategory` in `watch_home_screen.dart`; added `appRouteObserver` (`RouteObserver<PageRoute<dynamic>>`) + debounced `didPopNext` refresh; updated `video_service.py` (`eligible_feed`) with approved interests, watch-history affinity, early-skip deprioritization, language match, and deterministic seed rotation. Verified by `watch_home_test.dart`, `home_feed_states_test.dart`, `video_feed_test.dart`. |
+| **WS-4** | Parent & Child Interest Management (`DEC-04`) | **DONE** | Backend: `GET/PUT /api/v1/families/{family_id}/children/{child_id}/interests`, `GET/POST /api/v1/videos/interests*`. Frontend: `ParentChildInterestsCard`, `ChildInterestsCard` in `child_interests_and_link_cards.dart` wired into `child_profile_screen.dart` and `child_home_profile_screen.dart`. Verified by `interests_linking_help_test.dart` (5/5). |
+| **WS-5** | Secure Child Account Linking (Code + QR) (`DEC-05`) | **DONE (Unit/Widget)** | Backend: `child_link_codes` table, `POST /api/v1/families/{family_id}/children/{child_id}/link-code`, `POST /api/v1/auth/child-link/redeem`. Frontend: `ParentChildLinkCard` + `ChildLoginScreen` code/QR entry & confirmation dialog. Widget tests pass; DB concurrency/expiry integration tests await `TEST_DATABASE_URL`. |
+| **WS-6** | Help & Support (`en`, `gu`, `hi`) (`DEC-07`) & Account Deletion (`DELETE /api/v1/auth/account`) | **DONE** | `help_support_screen.dart` + `/parent/settings/help` + Delete Account dialog in `parent_settings_screen.dart`. Verified by `interests_linking_help_test.dart` and `localization_audit_test.dart`. Note: placeholder support contact text remains until client supplies official support email/URL. |
+| **WS-7** | Flutter Web Admin (`balkavach-admin`) localization & tests (`DEC-01`) | **DONE** | Replaced hardcoded strings in `youtube_reviews_page.dart` and `youtube_channel_detail_page.dart`, updated `app_{en,gu,hi}.arb` + `flutter gen-l10n`, fixed `youtube_reviews_test.dart`. `flutter analyze` has 0 errors; `flutter test` passed 99/99 active tests (1 skipped); `flutter build web --release` built `build/web/index.html`. Contract addendum prepared at `docs/CONTRACT_ADDENDUM_FLUTTER_WEB_ADMIN.md`. |
+| **WS-8** | Native-script educator-reviewed `0015` mission templates | **BLOCKED (Client Content)** | `0015_daily_mission_engine.py` contains 22 placeholder templates with romanized `gu`/`hi` text. Native-script (`gu`/`hi`) translations and educator review are pending from the client/content team (not fabricated). |
+| **WS-9** | Android Release AppBundle (`flutter build appbundle --release`) | **BLOCKED (Offline Network)** | `android/key.properties` is present, but Gradle wrapper timed out (`java.net.ConnectException: Connection timed out: connect`) downloading Gradle artifacts in this offline environment. |
+| **DEFER** | Animated Mitu Panda (`DEC-06`) & React/Next.js Admin migration (`DEC-01`) | **DEFERRED** | Explicitly deferred out of MVP scope per `DEC-01` and `DEC-06`. |

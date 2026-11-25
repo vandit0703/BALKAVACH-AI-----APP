@@ -193,6 +193,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      // The child area also loads progress (for level-ups and badges); let
+      // every request finish so none is still in flight when a test ends.
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.pumpAndSettle();
     }
 
     Future<void> reload(WidgetTester tester) async {

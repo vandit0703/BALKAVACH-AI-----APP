@@ -426,14 +426,19 @@ def _apply_trusted_channel_defaults(video, review, trusted_channel) -> None:
 
 
 def _force_publish_for_trusted_channel(session: Session, actor_id, review, video, trusted_channel) -> str:
-	"""Make a trusted-channel video visible in child feeds (main and shorts), bypassing per-video approval/quarantine gates."""
+	"""Auto-publish a trusted-channel video unless safety restrictions or explicit rights denial block it."""
 	if review.status == "unavailable":
 		return "unavailable"
+	# Never publish videos with confirmed child-safety restrictions or open reports.
+	if review.status == "quarantined":
+		return "quarantined"
+	if getattr(review, "rights_status", None) == "not_cleared":
+		return "pending_review"
 	_apply_trusted_channel_defaults(video, review, trusted_channel)
 	status = review.status
 	if status == "approved":
 		return "automatically_published"
-	if status in {"pending_review", "quarantined"}:
+	if status == "pending_review":
 		_move(session, actor_id, review, video, "approved", {"publication_source": "automatic", "trusted_channel": True})
 		return "automatically_published"
 	if status in {"rejected", "revoked"}:
@@ -955,6 +960,8 @@ def discover_trusted(
 							counts["automatically_published"] += 1
 						elif result == "unavailable":
 							counts["unavailable"] += 1
+						elif result == "quarantined":
+							counts["quarantined"] += 1
 						else:
 							counts["pending_review"] += 1
 				next_token = page["next_page_token"]
@@ -996,14 +1003,20 @@ def _refresh_trusted_candidate(session: Session, actor, review, video, item, tru
 	if item is None:
 		_mark_unavailable(session, actor.id, review, video, ["not_returned"])
 		return "unavailable"
-	_, flags = screen_candidate(item, settings.youtube_region_code)
+	status, flags = screen_candidate(item, settings.youtube_region_code)
 	review.last_verified_at = _now()
 	review.made_for_kids = (item.get("status") or {}).get("madeForKids")
 	review.screening_flags = flags
-	status, _ = screen_candidate(item, settings.youtube_region_code)
 	if status == "unavailable":
 		_mark_unavailable(session, actor.id, review, video, flags)
 		return "unavailable"
+	# Recover old heuristic quarantine when fresh screening shows no restriction;
+	# conversely, move to quarantined if fresh screening found a restriction.
+	if review.status == "quarantined" and status == "pending_review" and can_transition(review.status, "pending_review"):
+		_move(session, actor.id, review, video, "pending_review", {"trusted_channel_rescreened": True})
+	elif status == "quarantined" and review.status != "quarantined" and can_transition(review.status, "quarantined"):
+		_move(session, actor.id, review, video, "quarantined", {"screening_flags": flags})
+		return "quarantined"
 	snippet = item.get("snippet") or {}
 	video.title = (str(snippet.get("title") or video.title).strip() or video.title)[:200]
 	video.description = (str(snippet.get("description") or "")[:5000]) or None
@@ -1014,8 +1027,7 @@ def _refresh_trusted_candidate(session: Session, actor, review, video, item, tru
 		video.duration_seconds = min(duration, 86400)
 	if trusted_channel is not None and trusted_channel.category_id is not None:
 		video.category_id = trusted_channel.category_id
-	_force_publish_for_trusted_channel(session, actor.id, review, video, trusted_channel)
-	return "automatically_published"
+	return _force_publish_for_trusted_channel(session, actor.id, review, video, trusted_channel)
 
 
 def _try_auto_approve(session: Session, actor, review, video) -> tuple[bool, str | None]:

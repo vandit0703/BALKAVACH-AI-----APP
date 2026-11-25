@@ -1,6 +1,7 @@
 from logging.config import fileConfig
 
 from alembic import context
+import sqlalchemy as sa
 from sqlalchemy import engine_from_config, pool
 
 from app.core.config import get_database_url, settings
@@ -33,6 +34,16 @@ def run_migrations_online() -> None:
 	with connectable.connect() as connection:
 		prepare_models(connection)
 		# Reflection autobegins a transaction; end it so Alembic owns (and commits) its own.
+		connection.commit()
+		# Ensure alembic_version.version_num can hold >32-char revision IDs (e.g. 0015_trusted_channel_upload_discovery).
+		connection.execute(
+			sa.text(
+				"DO $$ BEGIN "
+				"IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='alembic_version' AND column_name='version_num' AND character_maximum_length < 64) THEN "
+				"ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(64); "
+				"END IF; END $$;"
+			)
+		)
 		connection.commit()
 		context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
 		with context.begin_transaction():

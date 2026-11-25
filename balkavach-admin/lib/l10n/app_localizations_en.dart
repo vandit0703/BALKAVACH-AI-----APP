@@ -1462,4 +1462,306 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get youtubeChannelRemoved => 'Removed';
+
+  @override
+  String get navQuizzes => 'Quizzes';
+
+  @override
+  String get quizzesTitle => 'Quizzes';
+
+  @override
+  String get quizzesSubtitle =>
+      'Build quizzes for children. Correct answers stay on the server until a child submits.';
+
+  @override
+  String get quizzesEmpty => 'No quizzes yet.';
+
+  @override
+  String get quizzesNew => 'New quiz';
+
+  @override
+  String get quizzesNewTitle => 'New quiz';
+
+  @override
+  String get quizzesEditTitle => 'Edit quiz';
+
+  @override
+  String get quizColQuestions => 'Questions';
+
+  @override
+  String get quizColReward => 'First-pass reward';
+
+  @override
+  String get quizStatusPublished => 'Published';
+
+  @override
+  String get quizStatusDraft => 'Draft';
+
+  @override
+  String get quizActionPublish => 'Publish';
+
+  @override
+  String get quizActionUnpublish => 'Unpublish';
+
+  @override
+  String get quizActionPreview => 'Preview';
+
+  @override
+  String get quizActionDelete => 'Delete';
+
+  @override
+  String get quizPublished => 'Quiz published.';
+
+  @override
+  String get quizUnpublished => 'Quiz unpublished.';
+
+  @override
+  String get quizSaved => 'Quiz saved.';
+
+  @override
+  String get quizDeleted => 'Quiz deleted.';
+
+  @override
+  String get quizDeleteConfirm => 'Delete this quiz? This cannot be undone.';
+
+  @override
+  String get quizEditLocked => 'Unpublish the quiz to edit it.';
+
+  @override
+  String get quizFieldSubject => 'Subject';
+
+  @override
+  String get quizFieldDifficulty => 'Difficulty';
+
+  @override
+  String get quizDifficultyEasy => 'Easy';
+
+  @override
+  String get quizDifficultyMedium => 'Medium';
+
+  @override
+  String get quizDifficultyHard => 'Hard';
+
+  @override
+  String get quizFieldAgeMin => 'Minimum age';
+
+  @override
+  String get quizFieldAgeMax => 'Maximum age';
+
+  @override
+  String get quizFieldPassPercent => 'Pass mark (%)';
+
+  @override
+  String get quizFieldStars => 'Stars for the first pass';
+
+  @override
+  String get quizFieldXp => 'XP for the first pass';
+
+  @override
+  String get quizFieldRetry => 'Allow retakes';
+
+  @override
+  String get quizRewardHelp =>
+      'Rewards are paid once per child, on the first pass. 0 means no reward.';
+
+  @override
+  String get quizQuestionsHeading => 'Questions';
+
+  @override
+  String get quizAddQuestion => 'Add question';
+
+  @override
+  String get quizQuestionPrompt => 'Question';
+
+  @override
+  String get quizQuestionType => 'Answer type';
+
+  @override
+  String get quizTypeSingle => 'One correct answer';
+
+  @override
+  String get quizTypeMultiple => 'Several correct answers';
+
+  @override
+  String get quizTypeTrueFalse => 'True / false';
+
+  @override
+  String get quizQuestionExplanation => 'Explanation (shown after submitting)';
+
+  @override
+  String get quizOptionText => 'Answer';
+
+  @override
+  String get quizOptionCorrect => 'Correct';
+
+  @override
+  String get quizAddOption => 'Add answer';
+
+  @override
+  String get quizRemove => 'Remove';
+
+  @override
+  String get quizTrue => 'True';
+
+  @override
+  String get quizFalse => 'False';
+
+  @override
+  String get quizErrorTitle => 'Enter a title for the quiz.';
+
+  @override
+  String quizErrorQuestion(int number) {
+    return 'Question $number needs a prompt, at least two different answers and the right number of correct answers.';
+  }
+
+  @override
+  String get quizPreviewTitle => 'Quiz preview';
+
+  @override
+  String get quizPreviewCorrect => 'Correct';
+
+  @override
+  String youtubeChannelTrustedResult(int count) {
+    return '$count videos discovered';
+  }
+
+  @override
+  String youtubeChannelStatsLine(String longs, String when) {
+    return 'Long: $longs · Last discovery: $when';
+  }
+
+  @override
+  String get youtubeNotesLabel => 'Notes';
+
+  @override
+  String get youtubeDiscoverNow => 'Discover now';
+
+  @override
+  String get youtubeDiscovering => 'Discovering…';
+
+  @override
+  String get youtubeFetchingUploads =>
+      'Fetching latest uploads for this channel…';
+
+  @override
+  String get youtubeChannelDetailsTitle => 'Trusted channel details';
+
+  @override
+  String get youtubeChannelDetailsSubtitle =>
+      'Inspect channel configuration, statistics, videos, and discovery runs for this channel only.';
+
+  @override
+  String get youtubeBack => 'Back';
+
+  @override
+  String get youtubeChannelOverview => 'Channel overview';
+
+  @override
+  String get youtubeEditChannel => 'Edit channel';
+
+  @override
+  String get youtubeDiscoverMore => 'Discover More';
+
+  @override
+  String get youtubeDiscoveryHistory => 'Discovery history';
+
+  @override
+  String get youtubeNoDiscoveryRuns =>
+      'No discovery runs recorded for this channel yet.';
+
+  @override
+  String youtubeDiscoveryRunTitle(
+    String id,
+    String trigger,
+    String status,
+    String when,
+  ) {
+    return 'Run #$id · $trigger · $status · $when';
+  }
+
+  @override
+  String youtubeDiscoveryRunSummary(
+    int scanned,
+    int created,
+    int duplicates,
+    int shorts,
+    int longs,
+    int autoApproved,
+    int pending,
+    int quarantined,
+    int unavailable,
+    int errors,
+  ) {
+    return 'Scanned $scanned, $created new, $duplicates duplicates, Shorts $shorts, long $longs, auto-approved $autoApproved, pending $pending, quarantined $quarantined, unavailable $unavailable, errors $errors';
+  }
+
+  @override
+  String get youtubePrevious => 'Previous';
+
+  @override
+  String get youtubeNext => 'Next';
+
+  @override
+  String get youtubeCancel => 'Cancel';
+
+  @override
+  String get youtubeEditTrustedChannel => 'Edit trusted channel';
+
+  @override
+  String get youtubeChannelNameLabel => 'Channel name';
+
+  @override
+  String get youtubeAgeRangeLabel => 'Age range';
+
+  @override
+  String get youtubeLanguageLabel => 'Language';
+
+  @override
+  String get youtubeCategoryLabel => 'Category';
+
+  @override
+  String get youtubeRightsStatusLabel => 'Rights status';
+
+  @override
+  String get youtubeVideosFromChannel => 'Videos from this channel';
+
+  @override
+  String get youtubeSearchTitleOrId => 'Search by title or video ID';
+
+  @override
+  String get youtubeAllFormats => 'All formats';
+
+  @override
+  String get youtubeShortsOnly => 'Shorts only';
+
+  @override
+  String get youtubeLongOnly => 'Long videos only';
+
+  @override
+  String get youtubePendingReview => 'Pending review';
+
+  @override
+  String get youtubeApproved => 'Approved';
+
+  @override
+  String get youtubeQuarantined => 'Quarantined';
+
+  @override
+  String get youtubeUnavailable => 'Unavailable';
+
+  @override
+  String get youtubeRejected => 'Rejected';
+
+  @override
+  String get youtubeRefresh => 'Refresh';
+
+  @override
+  String get youtubeNoChannelVideos =>
+      'No videos found for this channel and filters.';
+
+  @override
+  String get youtubeFormatShort => 'Short';
+
+  @override
+  String get youtubeFormatLong => 'Long';
 }

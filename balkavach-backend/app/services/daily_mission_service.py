@@ -224,7 +224,7 @@ def _choose_templates(session: Session, child, age_band: str, locales: list[str]
         candidates,
         history,
         local_date,
-        THEMES_BY_WEEKDAY[local_date.weekday()],
+        None,
         f"{child.id}:{local_date.isoformat()}",
         used_themes={(row.snapshot or {}).get("theme") for row in current},
         limit=needed,
@@ -482,6 +482,7 @@ def skip_assignment(session: Session, child, assignment_id: UUID, now_utc: datet
     row.status = "skipped"
     row.is_current = False
     row.skipped_at = utc_naive(now_utc or _now())
+    session.flush()
     try:
         local_date, age_band, choices = ensure_daily_choices(session, child, now_utc)
     except APIError as error:

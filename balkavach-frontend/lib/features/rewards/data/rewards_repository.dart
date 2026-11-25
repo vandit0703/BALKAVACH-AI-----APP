@@ -106,6 +106,10 @@ class Redemption {
 
   bool get isPending => status == 'pending';
   bool get isApproved => status == 'approved';
+
+  /// The latest thing that happened to this request. Not every status has
+  /// every date (a cancelled request may have no decision date).
+  DateTime get lastEventAt => fulfilledAt ?? reviewedAt ?? requestedAt;
 }
 
 /// Input for creating or editing a reward.
@@ -238,17 +242,49 @@ class RewardsRepository {
     await _dio.delete<void>('/api/v1/rewards/$rewardId');
   });
 
-  /// `GET /api/v1/redemptions?family_id=&status=` (parent), newest first.
+  /// The most rows `GET /redemptions` returns in one request.
+  static const redemptionPageSize = 100;
+
+  /// `GET /api/v1/redemptions?family_id=&status=&offset=` (parent), newest
+  /// first.
   Future<List<Redemption>> familyRedemptions(
     String familyId, {
     String? status,
+    int offset = 0,
   }) => guardApi(() async {
     final response = await _dio.get<List<dynamic>>(
       '/api/v1/redemptions',
-      queryParameters: {'family_id': familyId, 'status': ?status, 'limit': 100},
+      queryParameters: {
+        'family_id': familyId,
+        'status': ?status,
+        'limit': redemptionPageSize,
+        if (offset > 0) 'offset': offset,
+      },
     );
     return parseJsonList(response.data, Redemption.fromJson);
   });
+
+  /// Every request in [status], following the server's pages to the end.
+  Future<List<Redemption>> allFamilyRedemptions(
+    String familyId, {
+    required String status,
+  }) async {
+    final byId = <String, Redemption>{};
+    for (var offset = 0; ; offset += redemptionPageSize) {
+      final page = await familyRedemptions(
+        familyId,
+        status: status,
+        offset: offset,
+      );
+      final known = byId.length;
+      for (final redemption in page) {
+        byId[redemption.id] = redemption;
+      }
+      // A short page is the last one; a page with nothing new cannot advance.
+      if (page.length < redemptionPageSize || byId.length == known) break;
+    }
+    return byId.values.toList();
+  }
 
   /// `POST /api/v1/redemptions/{id}/approve` (parent): deducts the stars.
   Future<Redemption> approve(String redemptionId, {String? note}) =>
@@ -337,3 +373,23 @@ final pendingRedemptionCountProvider = Provider.family<int?, String>((
   final redemptions = ref.watch(familyRedemptionsProvider(familyId)).value;
   return redemptions?.where((r) => r.isPending).length;
 });
+
+/// Finished requests (handed over, declined, cancelled), most recent first.
+/// Open requests stay in [familyRedemptionsProvider]; this never changes one.
+/// Disposed with the tab, so coming back shows what finished meanwhile.
+final familyRedemptionHistoryProvider = FutureProvider.autoDispose
+    .family<List<Redemption>, String>((ref, familyId) async {
+      ref.watch(sessionUserIdProvider);
+      final repository = ref.watch(rewardsRepositoryProvider);
+      final results = await Future.wait([
+        repository.allFamilyRedemptions(familyId, status: 'fulfilled'),
+        repository.allFamilyRedemptions(familyId, status: 'rejected'),
+        repository.allFamilyRedemptions(familyId, status: 'cancelled'),
+      ]);
+      final byId = <String, Redemption>{
+        for (final list in results)
+          for (final redemption in list) redemption.id: redemption,
+      };
+      return byId.values.toList()
+        ..sort((a, b) => b.lastEventAt.compareTo(a.lastEventAt));
+    });

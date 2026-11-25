@@ -6,7 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/storage/app_preferences.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/celebration/activity_completion.dart';
+import '../../../shared/celebration/celebration_queue.dart';
 import '../../../shared/celebration/panda_celebration.dart';
+import '../../progress/data/progress_repository.dart';
+import '../../progress/presentation/progress_milestone_celebrator.dart';
 import '../data/approval_celebration_store.dart';
 import '../domain/mission_models.dart';
 import 'mission_providers.dart';
@@ -97,23 +100,36 @@ class _MissionApprovalCelebratorState
       await store.recordBaseline(childId, submissions);
       return;
     }
+    var celebrated = false;
     for (final approval in store.pending(childId, submissions)) {
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context);
-      await showPandaCelebration(
-        context,
-        ActivityCompletion(
-          kind: ActivityKind.mission,
-          headline: l10n.celebrationMissionApproved,
-          title: approval.title,
-          stars: approval.stars,
-          xp: approval.xp,
-          note: l10n.celebrationMissionApprovedNote,
-        ),
-      );
-      // Recorded only once the child has seen it. If the app was killed
-      // before this line, the celebration is shown again next time.
-      await store.markCelebrated(childId, approval.submissionId);
+      // One celebration at a time across the whole app (approvals, level-ups,
+      // badges), in the order they were detected.
+      await ref.read(celebrationQueueProvider).run(() async {
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context);
+        await showPandaCelebration(
+          context,
+          ActivityCompletion(
+            kind: ActivityKind.mission,
+            headline: l10n.celebrationMissionApproved,
+            title: approval.title,
+            stars: approval.stars,
+            xp: approval.xp,
+            note: l10n.celebrationMissionApprovedNote,
+          ),
+        );
+        // Recorded only once the child has seen it. If the app was killed
+        // before this line, the celebration is shown again next time.
+        await store.markCelebrated(childId, approval.submissionId);
+        celebrated = true;
+      });
+    }
+    if (celebrated && mounted) {
+      // An approval pays XP: look at the level and badges it may have moved.
+      ref
+        ..invalidate(childProgressProvider(childId))
+        ..invalidate(achievementsProvider(childId));
     }
   }
 
@@ -122,6 +138,8 @@ class _MissionApprovalCelebratorState
     ref.listen(mySubmissionsProvider, (_, next) {
       if (next is AsyncData) unawaited(_check());
     });
-    return widget.child;
+    // Level-ups and badges are celebrated by the sibling watcher, through the
+    // same queue, so mounting this once covers all child-area celebrations.
+    return ProgressMilestoneCelebrator(child: widget.child);
   }
 }

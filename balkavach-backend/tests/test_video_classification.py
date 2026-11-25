@@ -122,7 +122,7 @@ def _video(source="youtube", seconds=45):
 def client(monkeypatch):
 	calls = []
 
-	def fake_feed(session, child, category_id, limit, offset, video_format=None):
+	def fake_feed(session, child, category_id, limit, offset, video_format=None, seed=None):
 		calls.append({"video_format": video_format, "limit": limit, "offset": offset})
 		return [_video(seconds=45), _video(seconds=1), _video(source="hosted", seconds=600)]
 

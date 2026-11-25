@@ -53,11 +53,19 @@ class _Tabs extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final pending = ref.watch(pendingRedemptionCountProvider(familyId));
+    // Three equal slots cut labels off on a phone: there each tab takes the
+    // width its label needs, and the row scrolls if they do not all fit.
+    final compact = WindowSize.of(context).isCompact;
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Column(
         children: [
           TabBar(
+            isScrollable: compact,
+            tabAlignment: compact ? TabAlignment.center : null,
+            labelPadding: compact
+                ? const EdgeInsets.symmetric(horizontal: AppSpacing.md - 4)
+                : null,
             tabs: [
               Tab(
                 key: const Key('rewards.tab.requests'),
@@ -69,6 +77,10 @@ class _Tabs extends ConsumerWidget {
                 key: const Key('rewards.tab.catalog'),
                 text: l10n.rewardsTabCatalog,
               ),
+              Tab(
+                key: const Key('rewards.tab.history'),
+                text: l10n.rewardsTabHistory,
+              ),
             ],
           ),
           Expanded(
@@ -76,6 +88,7 @@ class _Tabs extends ConsumerWidget {
               children: [
                 _RequestsTab(familyId: familyId),
                 _CatalogTab(familyId: familyId),
+                _HistoryTab(familyId: familyId),
               ],
             ),
           ),
@@ -129,6 +142,170 @@ class _RequestsTab extends ConsumerWidget {
               _ => const LoadingView(),
             },
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Finished requests: handed over, declined or cancelled. Read-only: nothing
+/// here can approve, refund or create a request. Not every status carries
+/// every date, so only the dates the server sent are shown.
+class _HistoryTab extends ConsumerWidget {
+  const _HistoryTab({required this.familyId});
+
+  final String familyId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final history = ref.watch(familyRedemptionHistoryProvider(familyId));
+    // A request carries no description; the catalog has one while the reward
+    // is still offered. Optional: history never waits or fails because of it.
+    final descriptions = <String, String>{
+      for (final reward
+          in ref.watch(familyRewardsProvider(familyId)).value ??
+              const <Reward>[])
+        if (reward.description?.trim().isNotEmpty ?? false)
+          reward.id: reward.description!.trim(),
+    };
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(familyRedemptionHistoryProvider(familyId));
+        await refreshQuietly(
+          ref.read(familyRedemptionHistoryProvider(familyId).future),
+        );
+      },
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          ResponsiveContent(
+            child: switch (history) {
+              AsyncData(:final value) when value.isEmpty => EmptyView(
+                key: const Key('history.empty'),
+                message: l10n.rewardsHistoryEmpty,
+              ),
+              AsyncData(:final value) => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: AppSpacing.md,
+                children: [
+                  for (final r in value)
+                    _HistoryCard(
+                      key: Key('history.${r.id}'),
+                      redemption: r,
+                      description: descriptions[r.rewardId],
+                    ),
+                ],
+              ),
+              AsyncError(:final error) => ErrorView(
+                key: const Key('history.error'),
+                error: error,
+                onRetry: () =>
+                    ref.invalidate(familyRedemptionHistoryProvider(familyId)),
+              ),
+              _ => const LoadingView(),
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryCard extends StatelessWidget {
+  const _HistoryCard({required this.redemption, this.description, super.key});
+
+  final Redemption redemption;
+  final String? description;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = context.colors;
+    final r = redemption;
+    final dates = DateFormat.yMMMd(Localizations.localeOf(context).toString());
+    String date(DateTime value) => dates.format(value.toLocal());
+    final (label, icon, background, foreground) = switch (r.status) {
+      'fulfilled' => (
+        l10n.rewardStatusFulfilled,
+        Icons.card_giftcard_rounded,
+        colors.primaryFixed,
+        colors.primary,
+      ),
+      'rejected' => (
+        l10n.rewardStatusRejected,
+        Icons.block_rounded,
+        colors.errorContainer,
+        colors.onErrorContainer,
+      ),
+      _ => (
+        l10n.rewardStatusCancelled,
+        Icons.cancel_outlined,
+        colors.surfaceContainer,
+        colors.onSurfaceVariant,
+      ),
+    };
+    final note = r.reviewNote?.trim();
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: AppSpacing.xs,
+        children: [
+          Text(
+            r.rewardName ?? l10n.rewardHistoryUnnamed,
+            style: context.text.titleMedium,
+          ),
+          if (description != null)
+            Text(
+              description!,
+              key: Key('history.description.${r.id}'),
+              style: context.text.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          StatusChip(
+            label: label,
+            icon: icon,
+            background: background,
+            foreground: foreground,
+          ),
+          if (r.childName != null)
+            Text(
+              '${r.childName} · ${l10n.quizRewardStars(r.starCost)}',
+              style: context.text.bodyMedium,
+            )
+          else
+            Text(
+              l10n.quizRewardStars(r.starCost),
+              style: context.text.bodyMedium,
+            ),
+          Text(
+            l10n.rewardHistoryRequested(date(r.requestedAt)),
+            style: context.text.labelMedium?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+          if (r.reviewedAt != null)
+            Text(
+              l10n.rewardHistoryDecided(date(r.reviewedAt!)),
+              style: context.text.labelMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          if (r.fulfilledAt != null)
+            Text(
+              l10n.rewardHistoryFulfilled(date(r.fulfilledAt!)),
+              style: context.text.labelMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          if (note != null && note.isNotEmpty)
+            Text(
+              l10n.rewardHistoryNote(note),
+              key: Key('history.note.${r.id}'),
+              style: context.text.bodySmall,
+            ),
         ],
       ),
     );
@@ -208,9 +385,16 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
     } on ApiException catch (error) {
       if (mounted) showErrorSnackBar(context, error);
     } finally {
-      ref.invalidate(familyRedemptionsProvider(widget.familyId));
+      ref
+        ..invalidate(familyRedemptionsProvider(widget.familyId))
+        ..invalidate(familyRedemptionHistoryProvider(widget.familyId));
       final childId = widget.redemption.childId;
-      if (childId != null) ref.invalidate(childProgressProvider(childId));
+      if (childId != null) {
+        ref
+          ..invalidate(childProgressProvider(childId))
+          // Star badges follow the balance this decision just changed.
+          ..invalidate(achievementsProvider(childId));
+      }
       if (mounted) setState(() => _busy = false);
     }
   }

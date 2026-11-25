@@ -2,10 +2,13 @@
 // test/helpers/fake_video_players.dart); this is not real playback
 // verification.
 
+import 'dart:async';
+
 import 'package:balkavach_app/app.dart';
 import 'package:balkavach_app/features/learning/data/video_playback_controller.dart';
 import 'package:balkavach_app/features/learning/presentation/shorts_feed.dart';
 import 'package:balkavach_app/features/learning/presentation/video_detail_player_screen.dart';
+import 'package:balkavach_app/features/learning/presentation/watch_home_screen.dart';
 import 'package:balkavach_app/features/learning/presentation/youtube_player_screen.dart';
 import 'package:balkavach_app/shared/platform/link_opener.dart';
 import 'package:flutter/material.dart';
@@ -318,7 +321,7 @@ void main() {
       expect(rig.embeds.history, isEmpty);
     });
 
-    testWidgets('topics filter the regular videos on the server', (
+    testWidgets('home feed renders unified discovery without category filters', (
       tester,
     ) async {
       final rig = await _pumpHome(
@@ -329,21 +332,72 @@ void main() {
         ],
       );
 
-      await tester.tap(find.byKey(const Key('watch.topic.science')));
-      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('watch.topic.science')), findsNothing);
+      expect(find.byKey(const Key('watch.topic.all')), findsNothing);
       final requests = rig.h.backend.requestsTo('GET', _feedPath);
-      expect(requests.last.queryParameters['category_id'], 'cat-sci');
-      await tester.tap(find.byKey(const Key('watch.topic.all')));
-      await tester.pumpAndSettle();
-      expect(
-        rig.h.backend
-            .requestsTo('GET', _feedPath)
-            .last
-            .queryParameters
-            .containsKey('category_id'),
-        isFalse,
-      );
+      expect(requests, isNotEmpty);
+      expect(requests.last.queryParameters.containsKey('category_id'), isFalse);
     });
+
+    testWidgets(
+      'returning to home refreshes feed and preserves existing items on error',
+      (tester) async {
+        var failNext = false;
+        final rig = await _pumpHome(
+          tester,
+          routes: (backend) {
+            backend.on('GET', _feedPath, (_) {
+              if (failNext) {
+                return FakeReply(503, {'detail': 'offline'});
+              }
+              return FakeReply(200, _someVideos);
+            });
+          },
+        );
+
+        final initialCalls = rig.h.backend.requestsTo('GET', _feedPath).length;
+        expect(find.text('Volcano facts'), findsOneWidget);
+
+        // Push a child route and pop back to trigger RouteAware.didPopNext.
+        failNext = false;
+        final navigator = Navigator.of(
+          tester.element(find.byType(WatchHomeScreen)),
+        );
+        unawaited(
+          navigator.push(
+            MaterialPageRoute<void>(
+              builder: (_) => const Scaffold(body: Text('Other screen')),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        navigator.pop();
+        await tester.pumpAndSettle();
+
+        expect(
+          rig.h.backend.requestsTo('GET', _feedPath).length,
+          greaterThan(initialCalls),
+        );
+        expect(find.text('Volcano facts'), findsOneWidget);
+
+        // Wait past debounce, then simulate offline failure on return: existing
+        // feed must stay visible.
+        await tester.pump(const Duration(seconds: 2));
+        failNext = true;
+        unawaited(
+          navigator.push(
+            MaterialPageRoute<void>(
+              builder: (_) => const Scaffold(body: Text('Other screen 2')),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        navigator.pop();
+        await tester.pumpAndSettle();
+
+        expect(find.text('Volcano facts'), findsOneWidget);
+      },
+    );
 
     testWidgets('scrolling the list loads the next page', (tester) async {
       final rig = await _pumpHome(

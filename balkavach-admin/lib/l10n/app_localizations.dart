@@ -2730,6 +2730,562 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Removed'**
   String get youtubeChannelRemoved;
+
+  /// No description provided for @navQuizzes.
+  ///
+  /// In en, this message translates to:
+  /// **'Quizzes'**
+  String get navQuizzes;
+
+  /// No description provided for @quizzesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quizzes'**
+  String get quizzesTitle;
+
+  /// No description provided for @quizzesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Build quizzes for children. Correct answers stay on the server until a child submits.'**
+  String get quizzesSubtitle;
+
+  /// No description provided for @quizzesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No quizzes yet.'**
+  String get quizzesEmpty;
+
+  /// No description provided for @quizzesNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New quiz'**
+  String get quizzesNew;
+
+  /// No description provided for @quizzesNewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New quiz'**
+  String get quizzesNewTitle;
+
+  /// No description provided for @quizzesEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit quiz'**
+  String get quizzesEditTitle;
+
+  /// No description provided for @quizColQuestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Questions'**
+  String get quizColQuestions;
+
+  /// No description provided for @quizColReward.
+  ///
+  /// In en, this message translates to:
+  /// **'First-pass reward'**
+  String get quizColReward;
+
+  /// No description provided for @quizStatusPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Published'**
+  String get quizStatusPublished;
+
+  /// No description provided for @quizStatusDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get quizStatusDraft;
+
+  /// No description provided for @quizActionPublish.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish'**
+  String get quizActionPublish;
+
+  /// No description provided for @quizActionUnpublish.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpublish'**
+  String get quizActionUnpublish;
+
+  /// No description provided for @quizActionPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get quizActionPreview;
+
+  /// No description provided for @quizActionDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get quizActionDelete;
+
+  /// No description provided for @quizPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Quiz published.'**
+  String get quizPublished;
+
+  /// No description provided for @quizUnpublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Quiz unpublished.'**
+  String get quizUnpublished;
+
+  /// No description provided for @quizSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Quiz saved.'**
+  String get quizSaved;
+
+  /// No description provided for @quizDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Quiz deleted.'**
+  String get quizDeleted;
+
+  /// No description provided for @quizDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this quiz? This cannot be undone.'**
+  String get quizDeleteConfirm;
+
+  /// No description provided for @quizEditLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpublish the quiz to edit it.'**
+  String get quizEditLocked;
+
+  /// No description provided for @quizFieldSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject'**
+  String get quizFieldSubject;
+
+  /// No description provided for @quizFieldDifficulty.
+  ///
+  /// In en, this message translates to:
+  /// **'Difficulty'**
+  String get quizFieldDifficulty;
+
+  /// No description provided for @quizDifficultyEasy.
+  ///
+  /// In en, this message translates to:
+  /// **'Easy'**
+  String get quizDifficultyEasy;
+
+  /// No description provided for @quizDifficultyMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get quizDifficultyMedium;
+
+  /// No description provided for @quizDifficultyHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard'**
+  String get quizDifficultyHard;
+
+  /// No description provided for @quizFieldAgeMin.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum age'**
+  String get quizFieldAgeMin;
+
+  /// No description provided for @quizFieldAgeMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum age'**
+  String get quizFieldAgeMax;
+
+  /// No description provided for @quizFieldPassPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Pass mark (%)'**
+  String get quizFieldPassPercent;
+
+  /// No description provided for @quizFieldStars.
+  ///
+  /// In en, this message translates to:
+  /// **'Stars for the first pass'**
+  String get quizFieldStars;
+
+  /// No description provided for @quizFieldXp.
+  ///
+  /// In en, this message translates to:
+  /// **'XP for the first pass'**
+  String get quizFieldXp;
+
+  /// No description provided for @quizFieldRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow retakes'**
+  String get quizFieldRetry;
+
+  /// No description provided for @quizRewardHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewards are paid once per child, on the first pass. 0 means no reward.'**
+  String get quizRewardHelp;
+
+  /// No description provided for @quizQuestionsHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Questions'**
+  String get quizQuestionsHeading;
+
+  /// No description provided for @quizAddQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Add question'**
+  String get quizAddQuestion;
+
+  /// No description provided for @quizQuestionPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Question'**
+  String get quizQuestionPrompt;
+
+  /// No description provided for @quizQuestionType.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer type'**
+  String get quizQuestionType;
+
+  /// No description provided for @quizTypeSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'One correct answer'**
+  String get quizTypeSingle;
+
+  /// No description provided for @quizTypeMultiple.
+  ///
+  /// In en, this message translates to:
+  /// **'Several correct answers'**
+  String get quizTypeMultiple;
+
+  /// No description provided for @quizTypeTrueFalse.
+  ///
+  /// In en, this message translates to:
+  /// **'True / false'**
+  String get quizTypeTrueFalse;
+
+  /// No description provided for @quizQuestionExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Explanation (shown after submitting)'**
+  String get quizQuestionExplanation;
+
+  /// No description provided for @quizOptionText.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer'**
+  String get quizOptionText;
+
+  /// No description provided for @quizOptionCorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct'**
+  String get quizOptionCorrect;
+
+  /// No description provided for @quizAddOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Add answer'**
+  String get quizAddOption;
+
+  /// No description provided for @quizRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get quizRemove;
+
+  /// No description provided for @quizTrue.
+  ///
+  /// In en, this message translates to:
+  /// **'True'**
+  String get quizTrue;
+
+  /// No description provided for @quizFalse.
+  ///
+  /// In en, this message translates to:
+  /// **'False'**
+  String get quizFalse;
+
+  /// No description provided for @quizErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a title for the quiz.'**
+  String get quizErrorTitle;
+
+  /// No description provided for @quizErrorQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {number} needs a prompt, at least two different answers and the right number of correct answers.'**
+  String quizErrorQuestion(int number);
+
+  /// No description provided for @quizPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quiz preview'**
+  String get quizPreviewTitle;
+
+  /// No description provided for @quizPreviewCorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct'**
+  String get quizPreviewCorrect;
+
+  /// No description provided for @youtubeChannelTrustedResult.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} videos discovered'**
+  String youtubeChannelTrustedResult(int count);
+
+  /// No description provided for @youtubeChannelStatsLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Long: {longs} · Last discovery: {when}'**
+  String youtubeChannelStatsLine(String longs, String when);
+
+  /// No description provided for @youtubeNotesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get youtubeNotesLabel;
+
+  /// No description provided for @youtubeDiscoverNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover now'**
+  String get youtubeDiscoverNow;
+
+  /// No description provided for @youtubeDiscovering.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovering…'**
+  String get youtubeDiscovering;
+
+  /// No description provided for @youtubeFetchingUploads.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetching latest uploads for this channel…'**
+  String get youtubeFetchingUploads;
+
+  /// No description provided for @youtubeChannelDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted channel details'**
+  String get youtubeChannelDetailsTitle;
+
+  /// No description provided for @youtubeChannelDetailsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Inspect channel configuration, statistics, videos, and discovery runs for this channel only.'**
+  String get youtubeChannelDetailsSubtitle;
+
+  /// No description provided for @youtubeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get youtubeBack;
+
+  /// No description provided for @youtubeChannelOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel overview'**
+  String get youtubeChannelOverview;
+
+  /// No description provided for @youtubeEditChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit channel'**
+  String get youtubeEditChannel;
+
+  /// No description provided for @youtubeDiscoverMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover More'**
+  String get youtubeDiscoverMore;
+
+  /// No description provided for @youtubeDiscoveryHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovery history'**
+  String get youtubeDiscoveryHistory;
+
+  /// No description provided for @youtubeNoDiscoveryRuns.
+  ///
+  /// In en, this message translates to:
+  /// **'No discovery runs recorded for this channel yet.'**
+  String get youtubeNoDiscoveryRuns;
+
+  /// No description provided for @youtubeDiscoveryRunTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Run #{id} · {trigger} · {status} · {when}'**
+  String youtubeDiscoveryRunTitle(
+    String id,
+    String trigger,
+    String status,
+    String when,
+  );
+
+  /// No description provided for @youtubeDiscoveryRunSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanned {scanned}, {created} new, {duplicates} duplicates, Shorts {shorts}, long {longs}, auto-approved {autoApproved}, pending {pending}, quarantined {quarantined}, unavailable {unavailable}, errors {errors}'**
+  String youtubeDiscoveryRunSummary(
+    int scanned,
+    int created,
+    int duplicates,
+    int shorts,
+    int longs,
+    int autoApproved,
+    int pending,
+    int quarantined,
+    int unavailable,
+    int errors,
+  );
+
+  /// No description provided for @youtubePrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get youtubePrevious;
+
+  /// No description provided for @youtubeNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get youtubeNext;
+
+  /// No description provided for @youtubeCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get youtubeCancel;
+
+  /// No description provided for @youtubeEditTrustedChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit trusted channel'**
+  String get youtubeEditTrustedChannel;
+
+  /// No description provided for @youtubeChannelNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel name'**
+  String get youtubeChannelNameLabel;
+
+  /// No description provided for @youtubeAgeRangeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Age range'**
+  String get youtubeAgeRangeLabel;
+
+  /// No description provided for @youtubeLanguageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get youtubeLanguageLabel;
+
+  /// No description provided for @youtubeCategoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get youtubeCategoryLabel;
+
+  /// No description provided for @youtubeRightsStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Rights status'**
+  String get youtubeRightsStatusLabel;
+
+  /// No description provided for @youtubeVideosFromChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos from this channel'**
+  String get youtubeVideosFromChannel;
+
+  /// No description provided for @youtubeSearchTitleOrId.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by title or video ID'**
+  String get youtubeSearchTitleOrId;
+
+  /// No description provided for @youtubeAllFormats.
+  ///
+  /// In en, this message translates to:
+  /// **'All formats'**
+  String get youtubeAllFormats;
+
+  /// No description provided for @youtubeShortsOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorts only'**
+  String get youtubeShortsOnly;
+
+  /// No description provided for @youtubeLongOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Long videos only'**
+  String get youtubeLongOnly;
+
+  /// No description provided for @youtubePendingReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending review'**
+  String get youtubePendingReview;
+
+  /// No description provided for @youtubeApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved'**
+  String get youtubeApproved;
+
+  /// No description provided for @youtubeQuarantined.
+  ///
+  /// In en, this message translates to:
+  /// **'Quarantined'**
+  String get youtubeQuarantined;
+
+  /// No description provided for @youtubeUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get youtubeUnavailable;
+
+  /// No description provided for @youtubeRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get youtubeRejected;
+
+  /// No description provided for @youtubeRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get youtubeRefresh;
+
+  /// No description provided for @youtubeNoChannelVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'No videos found for this channel and filters.'**
+  String get youtubeNoChannelVideos;
+
+  /// No description provided for @youtubeFormatShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Short'**
+  String get youtubeFormatShort;
+
+  /// No description provided for @youtubeFormatLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Long'**
+  String get youtubeFormatLong;
 }
 
 class _AppLocalizationsDelegate

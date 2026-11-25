@@ -18,6 +18,7 @@ import '../../../shared/widgets/state_views.dart';
 import '../../authentication/presentation/session_controller.dart';
 import '../../missions/presentation/mission_providers.dart';
 import '../../progress/data/progress_repository.dart';
+import '../../progress/presentation/achievements_widgets.dart';
 import '../data/rewards_repository.dart';
 
 Future<void> _shareProgress(
@@ -96,6 +97,7 @@ class RewardsScreen extends ConsumerWidget {
                   _VaultCard(progress: value),
                   _CatalogSection(balance: value.starBalance),
                   _BadgesSection(badges: value.badges),
+                  LockedBadgesSection(childId: value.childId),
                 ],
               ),
               AsyncError(:final error) => ErrorView(

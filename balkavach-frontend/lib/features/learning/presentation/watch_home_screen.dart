@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/routing/app_router.dart' show appRouteObserver;
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -17,19 +18,18 @@ import '../../missions/presentation/mission_providers.dart'
 import '../data/learning_repository.dart';
 import '../data/playable_video.dart';
 import '../data/video_feed_repository.dart';
-import 'learning_screen.dart' show learningCategoryName;
 import 'video_lock_screen.dart';
 import 'video_player_screen.dart' show formatPlaybackTime;
 import 'widgets/video_actions.dart';
 import 'widgets/video_allowance_card.dart';
 
-/// Home: Watch & Learn. A row of Shorts that opens the full-screen vertical
-/// feed, topic filters, the regular video list and grown-up picks.
+/// Home: Watch & Learn. A unified, personalized discovery feed of Shorts,
+/// regular videos, Continue Watching, and grown-up picks.
 ///
 /// Everything shown comes from the server for the signed-in child
-/// (`/videos/shorts`, `/videos/feed`, `/videos/categories`,
-/// `/educational-content`). No player is created on this page; players only
-/// exist on the Shorts and video screens it opens.
+/// (`/videos/shorts`, `/videos/feed`, `/educational-content`). No player is
+/// created on this page; players only exist on the Shorts and video screens it
+/// opens.
 ///
 /// Continue Watching is populated only from the child's backend watch history.
 class WatchHomeScreen extends ConsumerStatefulWidget {
@@ -40,14 +40,17 @@ class WatchHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, RouteAware {
   /// Returning from the background refreshes the allowance at most this often.
   static const _resumeRefreshGap = Duration(seconds: 15);
+  static const _returnRefreshDebounce = Duration(seconds: 1);
   DateTime? _lastResumeRefresh;
+  DateTime? _lastReturnRefresh;
+  bool _isBackgroundRefreshing = false;
+  PageRoute<dynamic>? _observedRoute;
 
-  late VideoFeedPager _shorts;
-  late VideoFeedPager _videos;
-  String? _categoryId;
+  late final VideoFeedPager _shorts;
+  late final VideoFeedPager _videos;
 
   @override
   void initState() {
@@ -57,62 +60,71 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
     final repository = ref.read(videoFeedRepositoryProvider);
     _shorts = VideoFeedPager(repository, VideoFeedKind.shorts, pageSize: 10)
       ..addListener(_changed);
-    _videos = _videoPager(repository, null);
+    _videos = VideoFeedPager(repository, VideoFeedKind.learn)
+      ..addListener(_changed);
     unawaited(_shorts.loadMore());
     unawaited(_videos.loadMore());
   }
 
-  VideoFeedPager _videoPager(
-    VideoFeedRepository repository,
-    String? category,
-  ) =>
-      VideoFeedPager(repository, VideoFeedKind.learn, categoryId: category)
-        ..addListener(_changed);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute<dynamic> && route != _observedRoute) {
+      appRouteObserver.unsubscribe(this);
+      _observedRoute = route;
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() {
+    unawaited(_refreshOnReturn());
+  }
 
   void _changed() {
     if (mounted) setState(() {});
   }
 
-  void _selectCategory(String? categoryId) {
-    if (categoryId == _categoryId) return;
-    final previous = _videos;
-    setState(() {
-      _categoryId = categoryId;
-      _videos = _videoPager(ref.read(videoFeedRepositoryProvider), categoryId);
-    });
-    previous
-      ..removeListener(_changed)
-      ..dispose();
-    unawaited(_videos.loadMore());
-  }
-
   Future<void> _refresh() async {
     ref
       ..invalidate(learningItemsProvider)
-      ..invalidate(learningCategoriesProvider)
       ..invalidate(continueWatchingProvider)
       ..invalidate(videoAllowanceProvider);
     await Future.wait([_shorts.refresh(), _videos.refresh()]);
   }
 
-  Future<void> _afterPlayback() async {
+  Future<void> _refreshOnReturn() async {
+    if (!mounted || _isBackgroundRefreshing) return;
+    final now = DateTime.now();
+    final last = _lastReturnRefresh;
+    if (last != null && now.difference(last) < _returnRefreshDebounce) return;
+    _lastReturnRefresh = now;
+    setState(() => _isBackgroundRefreshing = true);
     vdiag(
-      'home.afterPlayback.begin',
+      'home.returnRefresh.begin',
       screen: 'home',
       id: identityHashCode(this),
       extra: 'mounted=$mounted',
     );
-    ref
-      ..invalidate(continueWatchingProvider)
-      ..invalidate(videoAllowanceProvider);
-    await Future.wait([_shorts.refresh(), _videos.refresh()]);
-    vdiag(
-      'home.afterPlayback.end',
-      screen: 'home',
-      id: identityHashCode(this),
-      extra:
-          'mounted=$mounted shorts=${_shorts.items.length} videos=${_videos.items.length}',
-    );
+    try {
+      ref
+        ..invalidate(learningItemsProvider)
+        ..invalidate(continueWatchingProvider)
+        ..invalidate(videoAllowanceProvider);
+      await Future.wait([_shorts.refresh(), _videos.refresh()]);
+    } finally {
+      if (mounted) {
+        setState(() => _isBackgroundRefreshing = false);
+      }
+      vdiag(
+        'home.returnRefresh.end',
+        screen: 'home',
+        id: identityHashCode(this),
+        extra:
+            'mounted=$mounted shorts=${_shorts.items.length} videos=${_videos.items.length}',
+      );
+    }
   }
 
   @override
@@ -123,15 +135,17 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
     if (last != null && now.difference(last) < _resumeRefreshGap) return;
     _lastResumeRefresh = now;
     // A parent may have approved a mission while the app was away: reload
-    // the notifications (they drive the allowance) and the allowance itself.
+    // the notifications (they drive the allowance) and refresh the feed.
     ref
       ..invalidate(childNotificationsProvider)
       ..invalidate(videoAllowanceProvider);
+    unawaited(_refreshOnReturn());
   }
 
   @override
   void dispose() {
     vdiag('home.dispose', screen: 'home', id: identityHashCode(this));
+    appRouteObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     for (final pager in [_shorts, _videos]) {
       pager
@@ -179,7 +193,7 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
               screen: 'home',
               extra: 'route=shorts mounted=$mounted',
             );
-            return _afterPlayback();
+            return _refreshOnReturn();
           }),
     );
   }
@@ -189,7 +203,7 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
     if (video.isTimeLocked) {
       // Time was earned since this card was loaded: reload so it becomes
       // playable. The child taps again; nothing plays from a stale card.
-      await _afterPlayback();
+      await _refreshOnReturn();
       return;
     }
     // "Up next" prefers the same topic, then the rest of the list.
@@ -218,7 +232,7 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
               screen: 'home',
               extra: 'route=watch mounted=$mounted',
             );
-            return _afterPlayback();
+            return _refreshOnReturn();
           }),
     );
   }
@@ -226,7 +240,6 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final categories = ref.watch(learningCategoriesProvider).value ?? const [];
     final continueVideos =
         ref.watch(continueWatchingProvider).value ?? const [];
     vdiag(
@@ -248,9 +261,7 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
     final shortsSettledEmpty =
         shorts.isEmpty && _shorts.status == PagerStatus.done;
     final videosSettledEmpty =
-        videos.isEmpty &&
-        _videos.status == PagerStatus.done &&
-        _categoryId == null;
+        videos.isEmpty && _videos.status == PagerStatus.done;
     // The server lists the catalogue even at zero allowance (cards are then
     // locked and the allowance card explains why), so an empty feed really
     // means nothing is eligible right now.
@@ -262,6 +273,13 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
       child: CustomScrollView(
         key: const Key('watch.scroll'),
         slivers: [
+          if (_isBackgroundRefreshing)
+            const SliverToBoxAdapter(
+              child: LinearProgressIndicator(
+                key: Key('watch.refreshing'),
+                minHeight: 2,
+              ),
+            ),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.md,
@@ -335,19 +353,6 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
                       ),
               ),
               SliverToBoxAdapter(child: _shortsRow(context, shorts)),
-            ],
-            if (categories.isNotEmpty) ...[
-              _SectionHeader(
-                icon: Icons.explore_rounded,
-                title: l10n.watchTopicsSection,
-              ),
-              SliverToBoxAdapter(
-                child: _TopicChips(
-                  categories: categories,
-                  selected: _categoryId,
-                  onSelected: _selectCategory,
-                ),
-              ),
             ],
             if (!videosSettledEmpty) ...[
               _SectionHeader(
@@ -585,45 +590,6 @@ class _SectionHeader extends StatelessWidget {
       ),
     ),
   );
-}
-
-class _TopicChips extends StatelessWidget {
-  const _TopicChips({
-    required this.categories,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  final List<LearningCategory> categories;
-  final String? selected;
-  final ValueChanged<String?> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: Row(
-        spacing: AppSpacing.sm,
-        children: [
-          ChoiceChip(
-            key: const Key('watch.topic.all'),
-            label: Text(l10n.learnAll),
-            selected: selected == null,
-            onSelected: (_) => onSelected(null),
-          ),
-          for (final category in categories)
-            ChoiceChip(
-              key: Key('watch.topic.${category.slug}'),
-              label: Text(learningCategoryName(l10n, category)),
-              selected: selected == category.id,
-              onSelected: (_) => onSelected(category.id),
-            ),
-        ],
-      ),
-    );
-  }
 }
 
 /// A portrait card: Shorts look different from regular videos at a glance.

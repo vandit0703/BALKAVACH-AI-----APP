@@ -14,6 +14,7 @@ import '../../../shared/widgets/state_views.dart';
 import '../../authentication/presentation/session_controller.dart';
 import '../../missions/presentation/mission_providers.dart';
 import '../../progress/data/progress_repository.dart';
+import '../../progress/presentation/achievements_widgets.dart';
 
 /// Growth stage shown in the garden, derived from the missions a parent
 /// approved in the last seven days. The backend keeps a `garden_progress`
@@ -62,12 +63,19 @@ class GardenScreen extends ConsumerWidget {
         children: [
           ResponsiveContent(
             child: switch (progress) {
-              AsyncData(:final value) => _Garden(
-                name: session.user.fullName,
-                progress: value,
-                weeklyMissions: value
-                    .week(today)
-                    .fold<int>(0, (sum, d) => sum + d.completedTasks),
+              AsyncData(:final value) => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: AppSpacing.md,
+                children: [
+                  _Garden(
+                    name: session.user.fullName,
+                    progress: value,
+                    weeklyMissions: value
+                        .week(today)
+                        .fold<int>(0, (sum, d) => sum + d.completedTasks),
+                  ),
+                  LevelProgressCard(childId: value.childId),
+                ],
               ),
               AsyncError(:final error) => ErrorView(
                 error: error,

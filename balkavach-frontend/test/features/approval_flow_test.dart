@@ -4,9 +4,11 @@
 // return (see balkavach-backend/tests/test_parent_mission_approval.py, which runs the real approval code). They
 // do not prove the production server or database behave this way.
 import 'package:balkavach_app/features/approvals/presentation/approvals_screen.dart';
+import 'package:balkavach_app/features/progress/data/progress_repository.dart';
 import 'package:balkavach_app/l10n/app_localizations_en.dart';
 import 'package:dio/dio.dart' show RequestOptions;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fake_backend.dart';
@@ -167,6 +169,35 @@ void main() {
       expect(s.h.backend.requestsTo('POST', _review), hasLength(1));
     },
   );
+
+  testWidgets("approving refreshes the child's achievements", (tester) async {
+    final s = await _screen(tester);
+    const path = '/api/v1/progress/children/${Fx.childId}/achievements';
+    s.h.backend
+      ..reply('GET', path, {
+        'level': {'minimum_xp': 0, 'total_xp': 0},
+        'badges': <Object?>[],
+      })
+      ..on('POST', _review, (_) {
+        s.server.status = 'approved';
+        return FakeReply(200, Fx.submission(status: 'approved'));
+      });
+    // A child profile left open behind this screen keeps listening.
+    final scope = ProviderScope.containerOf(
+      tester.element(find.byType(ApprovalsScreen)),
+    );
+    final subscription = scope.listen(
+      achievementsProvider(Fx.childId),
+      (_, _) {},
+    );
+    addTearDown(subscription.close);
+    await tester.pumpAndSettle();
+    expect(s.h.backend.requestsTo('GET', path), hasLength(1));
+
+    await _tap(tester, const Key('review.approve'));
+
+    expect(s.h.backend.requestsTo('GET', path), hasLength(2));
+  });
 
   testWidgets(
     'a failed approval shows the real reason, awards nothing on screen, and can be retried',

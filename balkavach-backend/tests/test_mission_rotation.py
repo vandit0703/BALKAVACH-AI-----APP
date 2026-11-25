@@ -91,19 +91,21 @@ def test_fresh_candidates_always_beat_cooldown_ones_even_in_the_weekday_theme():
 	assert all(p.tier == 0 for p in picks)
 
 
-def test_weekday_theme_then_not_recent_then_least_shown_then_deterministic():
+def test_not_recent_then_least_shown_then_deterministic_without_weekday_bias():
 	theme = [candidate("monday_sound_detective") for _ in range(3)]
 	other = [candidate("tuesday_memory_master")]
 	history = ChildHistory(
 		recent_offered={theme[0].id},  # shown on one of the last two offered days
-		offered_count={theme[1].id: 5, theme[2].id: 1},
+		offered_count={theme[1].id: 5, theme[2].id: 1, other[0].id: 1},
 	)
 	picks = rank_candidates([*other, *theme], history, TODAY, "monday_sound_detective", "s", limit=4)
 	order = [p.candidate.id for p in picks]
-	# first pick: weekday theme, not recent, least shown
-	assert order[0] == theme[2].id
+	# first pick: not recent, least shown (without weekday bias)
+	assert order[0] in {theme[2].id, other[0].id}
 	assert order.index(theme[0].id) > order.index(theme[1].id)  # a recent one ranks below a non-recent one
 	assert rank_candidates([*other, *theme], history, TODAY, "monday_sound_detective", "s", limit=4) == picks  # deterministic
+	# changing weekday_theme argument does not change ranking
+	assert rank_candidates([*other, *theme], history, TODAY, "friday_emotion_detective", "s", limit=4) == picks
 
 
 def test_a_different_seed_gives_a_different_but_stable_tie_break():

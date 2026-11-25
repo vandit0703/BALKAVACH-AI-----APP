@@ -3439,4 +3439,203 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get celebrationMissionApprovedNote =>
       'Your parent approved it. Here are your rewards!';
+
+  @override
+  String levelXpToNext(int xp, int level) {
+    return '$xp XP to Level $level';
+  }
+
+  @override
+  String get levelMaxReached => 'You reached the top level!';
+
+  @override
+  String get achievementsLockedTitle => 'Keep going!';
+
+  @override
+  String achievementsProgress(int current, int target) {
+    return '$current of $target';
+  }
+
+  @override
+  String get celebrationLevelUp => 'Level up!';
+
+  @override
+  String get celebrationBadge => 'New badge!';
+
+  @override
+  String get rewardsTabHistory => 'History';
+
+  @override
+  String get rewardsHistoryEmpty => 'No finished requests yet.';
+
+  @override
+  String get rewardStatusFulfilled => 'Handed over';
+
+  @override
+  String get rewardStatusRejected => 'Declined';
+
+  @override
+  String get rewardStatusCancelled => 'Cancelled';
+
+  @override
+  String rewardHistoryRequested(String date) {
+    return 'Requested $date';
+  }
+
+  @override
+  String rewardHistoryDecided(String date) {
+    return 'Decided $date';
+  }
+
+  @override
+  String rewardHistoryFulfilled(String date) {
+    return 'Handed over $date';
+  }
+
+  @override
+  String rewardHistoryNote(String note) {
+    return 'Note: $note';
+  }
+
+  @override
+  String get rewardHistoryUnnamed => 'Reward';
+
+  @override
+  String get parentAchievementsTitle => 'Level and badges';
+
+  @override
+  String get parentBadgesEarnedTitle => 'Earned';
+
+  @override
+  String get parentNoBadgesEarned => 'No badges earned yet.';
+
+  @override
+  String get parentNoBadgesDefined => 'There are no badges to earn yet.';
+
+  @override
+  String parentBadgeEarnedOn(String date) {
+    return 'Earned $date';
+  }
+
+  @override
+  String get parentQuizHistoryTitle => 'Quizzes';
+
+  @override
+  String get parentQuizHistoryEmpty => 'No quizzes taken yet.';
+
+  @override
+  String get parentQuizNotPassed => 'Not passed';
+
+  @override
+  String get parentLevelUnavailable => 'No level yet.';
+
+  @override
+  String parentQuizScoreLine(int correct, int total) {
+    return '$correct of $total right';
+  }
+
+  @override
+  String get settingsHelpTitle => 'Help & Support';
+
+  @override
+  String get settingsHelpSubtitle =>
+      'Frequently asked questions and safety guide';
+
+  @override
+  String get settingsDeleteAccount => 'Delete account';
+
+  @override
+  String get settingsDeleteAccountSubtitle =>
+      'Remove personal data and sign out permanently';
+
+  @override
+  String get settingsDeleteConfirmTitle => 'Delete your account?';
+
+  @override
+  String get settingsDeleteConfirmBody =>
+      'This permanently signs out your family and anonymizes personal details and child profiles. Financial/star ledgers and audit history are retained in anonymized form.';
+
+  @override
+  String get settingsDeletePasswordLabel => 'Enter your password to confirm';
+
+  @override
+  String get settingsDeleteAction => 'Delete permanently';
+
+  @override
+  String get interestsTitle => 'Video interests';
+
+  @override
+  String get interestsParentSubtitle =>
+      'Approved topics personalize this child\'s video feed.';
+
+  @override
+  String get interestsChildSubtitle =>
+      'Active topics chosen by your parent. You can request changes below.';
+
+  @override
+  String get interestsPendingTitle => 'Pending child requests';
+
+  @override
+  String get interestsPendingBadge => 'Waiting for parent approval';
+
+  @override
+  String get interestsApproveAll => 'Approve requests';
+
+  @override
+  String get interestsRejectAll => 'Dismiss';
+
+  @override
+  String get interestsSave => 'Save interests';
+
+  @override
+  String get interestsRequestSave => 'Request these interests';
+
+  @override
+  String get interestsSaved => 'Interests updated';
+
+  @override
+  String get interestsRequestSent => 'Interest request sent to parent';
+
+  @override
+  String get interestsEmpty => 'No topics available yet.';
+
+  @override
+  String get childLinkTitle => 'Link child device';
+
+  @override
+  String get childLinkSubtitle =>
+      'Generate a short-lived, single-use code or QR payload for the child\'s device.';
+
+  @override
+  String get childLinkGenerate => 'Generate link code';
+
+  @override
+  String get childLinkCopy => 'Copy code';
+
+  @override
+  String get childLinkCopied => 'Link code copied';
+
+  @override
+  String childLinkExpires(int minutes, int seconds) {
+    return 'Expires in ${minutes}m ${seconds}s';
+  }
+
+  @override
+  String get childLinkExpired => 'Code expired. Generate a new one.';
+
+  @override
+  String get childLinkEnterTitle => 'Or link with a parent code';
+
+  @override
+  String get childLinkCodeHint => 'Enter 8-character code or QR link';
+
+  @override
+  String get childLinkConfirmTitle => 'Link this device?';
+
+  @override
+  String get childLinkConfirmBody =>
+      'This connects this device to your child profile using the single-use code.';
+
+  @override
+  String get childLinkAction => 'Link device';
 }

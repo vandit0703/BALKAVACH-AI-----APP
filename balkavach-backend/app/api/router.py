@@ -20,6 +20,7 @@ from app.api.v1.videos import router as videos_router
 from app.api.v1.video_access import router as video_access_router
 from app.api.v1.play_tickets import router as play_tickets_router
 from app.api.v1.daily_missions import router as daily_missions_router, admin_router as admin_daily_missions_router
+from app.api.v1.quizzes import router as quizzes_router, admin_router as admin_quizzes_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -43,3 +44,5 @@ api_router.include_router(notifications_router)
 api_router.include_router(uploads_router)
 api_router.include_router(settings_router)
 api_router.include_router(companion_router)
+api_router.include_router(quizzes_router)
+api_router.include_router(admin_quizzes_router)

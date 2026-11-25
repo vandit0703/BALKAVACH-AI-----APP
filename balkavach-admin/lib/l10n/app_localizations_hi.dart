@@ -1460,4 +1460,306 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get youtubeChannelRemoved => 'हटाए गए';
+
+  @override
+  String get navQuizzes => 'क्विज़';
+
+  @override
+  String get quizzesTitle => 'क्विज़';
+
+  @override
+  String get quizzesSubtitle =>
+      'बच्चों के लिए क्विज़ बनाएँ। सही उत्तर तब तक सर्वर पर रहते हैं जब तक बच्चा जमा न करे।';
+
+  @override
+  String get quizzesEmpty => 'अभी कोई क्विज़ नहीं है।';
+
+  @override
+  String get quizzesNew => 'नई क्विज़';
+
+  @override
+  String get quizzesNewTitle => 'नई क्विज़';
+
+  @override
+  String get quizzesEditTitle => 'क्विज़ संपादित करें';
+
+  @override
+  String get quizColQuestions => 'प्रश्न';
+
+  @override
+  String get quizColReward => 'पहली बार पास का इनाम';
+
+  @override
+  String get quizStatusPublished => 'प्रकाशित';
+
+  @override
+  String get quizStatusDraft => 'मसौदा';
+
+  @override
+  String get quizActionPublish => 'प्रकाशित करें';
+
+  @override
+  String get quizActionUnpublish => 'प्रकाशन रोकें';
+
+  @override
+  String get quizActionPreview => 'पूर्वावलोकन';
+
+  @override
+  String get quizActionDelete => 'हटाएँ';
+
+  @override
+  String get quizPublished => 'क्विज़ प्रकाशित हो गई।';
+
+  @override
+  String get quizUnpublished => 'क्विज़ का प्रकाशन रोक दिया गया।';
+
+  @override
+  String get quizSaved => 'क्विज़ सहेजी गई।';
+
+  @override
+  String get quizDeleted => 'क्विज़ हटा दी गई।';
+
+  @override
+  String get quizDeleteConfirm =>
+      'यह क्विज़ हटाएँ? इसे वापस नहीं किया जा सकता।';
+
+  @override
+  String get quizEditLocked => 'संपादित करने के लिए क्विज़ का प्रकाशन रोकें।';
+
+  @override
+  String get quizFieldSubject => 'विषय';
+
+  @override
+  String get quizFieldDifficulty => 'कठिनाई';
+
+  @override
+  String get quizDifficultyEasy => 'आसान';
+
+  @override
+  String get quizDifficultyMedium => 'मध्यम';
+
+  @override
+  String get quizDifficultyHard => 'कठिन';
+
+  @override
+  String get quizFieldAgeMin => 'न्यूनतम आयु';
+
+  @override
+  String get quizFieldAgeMax => 'अधिकतम आयु';
+
+  @override
+  String get quizFieldPassPercent => 'पास होने के अंक (%)';
+
+  @override
+  String get quizFieldStars => 'पहली बार पास होने पर स्टार';
+
+  @override
+  String get quizFieldXp => 'पहली बार पास होने पर XP';
+
+  @override
+  String get quizFieldRetry => 'दोबारा देने दें';
+
+  @override
+  String get quizRewardHelp =>
+      'इनाम हर बच्चे को सिर्फ़ एक बार, पहली बार पास होने पर मिलता है। 0 का मतलब कोई इनाम नहीं।';
+
+  @override
+  String get quizQuestionsHeading => 'प्रश्न';
+
+  @override
+  String get quizAddQuestion => 'प्रश्न जोड़ें';
+
+  @override
+  String get quizQuestionPrompt => 'प्रश्न';
+
+  @override
+  String get quizQuestionType => 'उत्तर का प्रकार';
+
+  @override
+  String get quizTypeSingle => 'एक सही उत्तर';
+
+  @override
+  String get quizTypeMultiple => 'कई सही उत्तर';
+
+  @override
+  String get quizTypeTrueFalse => 'सही / गलत';
+
+  @override
+  String get quizQuestionExplanation => 'व्याख्या (जमा करने के बाद दिखेगी)';
+
+  @override
+  String get quizOptionText => 'उत्तर';
+
+  @override
+  String get quizOptionCorrect => 'सही';
+
+  @override
+  String get quizAddOption => 'उत्तर जोड़ें';
+
+  @override
+  String get quizRemove => 'हटाएँ';
+
+  @override
+  String get quizTrue => 'सही';
+
+  @override
+  String get quizFalse => 'गलत';
+
+  @override
+  String get quizErrorTitle => 'क्विज़ का शीर्षक लिखें।';
+
+  @override
+  String quizErrorQuestion(int number) {
+    return 'प्रश्न $number में प्रश्न, कम से कम दो अलग उत्तर और सही उत्तरों की सही संख्या चाहिए।';
+  }
+
+  @override
+  String get quizPreviewTitle => 'क्विज़ पूर्वावलोकन';
+
+  @override
+  String get quizPreviewCorrect => 'सही';
+
+  @override
+  String youtubeChannelTrustedResult(int count) {
+    return '$count वीडियो मिले';
+  }
+
+  @override
+  String youtubeChannelStatsLine(String longs, String when) {
+    return 'लंबे: $longs · अंतिम खोज: $when';
+  }
+
+  @override
+  String get youtubeNotesLabel => 'नोट्स';
+
+  @override
+  String get youtubeDiscoverNow => 'अभी खोजें';
+
+  @override
+  String get youtubeDiscovering => 'खोज रहे हैं…';
+
+  @override
+  String get youtubeFetchingUploads => 'इस चैनल के नए अपलोड ला रहे हैं…';
+
+  @override
+  String get youtubeChannelDetailsTitle => 'विश्वसनीय चैनल विवरण';
+
+  @override
+  String get youtubeChannelDetailsSubtitle =>
+      'केवल इस चैनल के लिए कॉन्फ़िगरेशन, आँकड़े, वीडियो और खोज रन देखें।';
+
+  @override
+  String get youtubeBack => 'वापस';
+
+  @override
+  String get youtubeChannelOverview => 'चैनल अवलोकन';
+
+  @override
+  String get youtubeEditChannel => 'चैनल संपादित करें';
+
+  @override
+  String get youtubeDiscoverMore => 'और खोजें';
+
+  @override
+  String get youtubeDiscoveryHistory => 'खोज इतिहास';
+
+  @override
+  String get youtubeNoDiscoveryRuns =>
+      'इस चैनल के लिए अभी तक कोई खोज रन दर्ज नहीं है।';
+
+  @override
+  String youtubeDiscoveryRunTitle(
+    String id,
+    String trigger,
+    String status,
+    String when,
+  ) {
+    return 'रन #$id · $trigger · $status · $when';
+  }
+
+  @override
+  String youtubeDiscoveryRunSummary(
+    int scanned,
+    int created,
+    int duplicates,
+    int shorts,
+    int longs,
+    int autoApproved,
+    int pending,
+    int quarantined,
+    int unavailable,
+    int errors,
+  ) {
+    return 'स्कैन $scanned, $created नए, $duplicates डुप्लिकेट, शॉर्ट्स $shorts, लंबे $longs, स्वतः स्वीकृत $autoApproved, लंबित $pending, क्वारंटाइन $quarantined, अनुपलब्ध $unavailable, त्रुटियाँ $errors';
+  }
+
+  @override
+  String get youtubePrevious => 'पिछला';
+
+  @override
+  String get youtubeNext => 'अगला';
+
+  @override
+  String get youtubeCancel => 'रद्द करें';
+
+  @override
+  String get youtubeEditTrustedChannel => 'विश्वसनीय चैनल संपादित करें';
+
+  @override
+  String get youtubeChannelNameLabel => 'चैनल का नाम';
+
+  @override
+  String get youtubeAgeRangeLabel => 'आयु सीमा';
+
+  @override
+  String get youtubeLanguageLabel => 'भाषा';
+
+  @override
+  String get youtubeCategoryLabel => 'श्रेणी';
+
+  @override
+  String get youtubeRightsStatusLabel => 'अधिकार स्थिति';
+
+  @override
+  String get youtubeVideosFromChannel => 'इस चैनल के वीडियो';
+
+  @override
+  String get youtubeSearchTitleOrId => 'शीर्षक या वीडियो ID से खोजें';
+
+  @override
+  String get youtubeAllFormats => 'सभी फ़ॉर्मेट';
+
+  @override
+  String get youtubeShortsOnly => 'केवल शॉर्ट्स';
+
+  @override
+  String get youtubeLongOnly => 'केवल लंबे वीडियो';
+
+  @override
+  String get youtubePendingReview => 'समीक्षा लंबित';
+
+  @override
+  String get youtubeApproved => 'स्वीकृत';
+
+  @override
+  String get youtubeQuarantined => 'क्वारंटाइन';
+
+  @override
+  String get youtubeUnavailable => 'अनुपलब्ध';
+
+  @override
+  String get youtubeRejected => 'अस्वीकृत';
+
+  @override
+  String get youtubeRefresh => 'रीफ़्रेश करें';
+
+  @override
+  String get youtubeNoChannelVideos =>
+      'इस चैनल और फ़िल्टर के लिए कोई वीडियो नहीं मिला।';
+
+  @override
+  String get youtubeFormatShort => 'शॉर्ट';
+
+  @override
+  String get youtubeFormatLong => 'लंबा';
 }

@@ -163,6 +163,7 @@ Future<void> reviewSubmission(
   ref
     ..invalidate(approvalInboxProvider(familyId))
     ..invalidate(childProgressProvider(item.submission.childId))
+    ..invalidate(achievementsProvider(item.submission.childId))
     ..invalidate(videoAllowanceProvider);
 }
 

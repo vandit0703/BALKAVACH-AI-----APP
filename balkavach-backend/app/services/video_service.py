@@ -93,6 +93,39 @@ def feed_conditions(
 	return conditions
 
 
+def _child_interest_slugs(child) -> set[str]:
+	raw = getattr(child, "interests", None)
+	if not isinstance(raw, (list, tuple, set)):
+		return set()
+	return {str(item).strip().lower() for item in raw if str(item).strip()}
+
+
+def _preferred_category_ids(session: Session, child_id: UUID) -> set[UUID]:
+	"""Categories where the child has shown strong engagement (>=50% watched or completed)."""
+	if not has_model("ChildVideoWatchHistory"):
+		return set()
+	WatchHistory = get_model("ChildVideoWatchHistory")
+	Video = get_model("Video")
+	rows = (
+		session.query(Video.category_id)
+		.join(WatchHistory, WatchHistory.video_id == Video.id)
+		.filter(
+			WatchHistory.child_id == child_id,
+			Video.category_id.is_not(None),
+			or_(WatchHistory.is_completed.is_(True), WatchHistory.completion_percentage >= 50),
+		)
+		.distinct()
+		.all()
+	)
+	return {row[0] for row in rows if row[0] is not None}
+
+
+def _category_slugs_by_id(session: Session) -> dict[UUID, str]:
+	VideoCategory = get_model("VideoCategory")
+	rows = session.query(VideoCategory.id, VideoCategory.slug).filter(VideoCategory.is_active.is_(True)).all()
+	return {row[0]: str(row[1]).strip().lower() for row in rows if row[1]}
+
+
 def eligible_feed(
 	session: Session,
 	child,
@@ -172,11 +205,22 @@ def eligible_feed(
 	]
 	if has_model("ChildVideoWatchHistory"):
 		WatchHistory = get_model("ChildVideoWatchHistory")
+		explicit_interests = _child_interest_slugs(child)
+		category_slugs = _category_slugs_by_id(session) if explicit_interests else {}
+		preferred_categories = _preferred_category_ids(session, child.id)
 		partially_watched = exists().where(
 			WatchHistory.child_id == child.id,
 			WatchHistory.video_id == Video.id,
 			WatchHistory.is_completed.is_(False),
 			WatchHistory.last_position_seconds > 0,
+			WatchHistory.completion_percentage >= 15,
+		)
+		early_skipped = exists().where(
+			WatchHistory.child_id == child.id,
+			WatchHistory.video_id == Video.id,
+			WatchHistory.is_completed.is_(False),
+			WatchHistory.watch_duration_seconds > 0,
+			WatchHistory.completion_percentage < 15,
 		)
 		finished = exists().where(
 			WatchHistory.child_id == child.id,
@@ -192,43 +236,55 @@ def eligible_feed(
 			)
 			.scalar_subquery()
 		)
-		watch_bucket = case((finished, 2), (partially_watched, 1), else_=0)
+		# 0 = unseen, 1 = actively in-progress, 2 = early-skipped (deprioritized), 3 = completed
+		watch_bucket = case(
+			(finished, 3),
+			(partially_watched, 1),
+			(early_skipped, 2),
+			else_=0,
+		)
 		rows = query.add_columns(watch_bucket.label("watch_bucket"), finished_last_watched.label("finished_last_watched")).order_by(
 			watch_bucket,
-			case((watch_bucket == 2, finished_last_watched)).asc().nullsfirst(),
+			case((watch_bucket == 3, finished_last_watched)).asc().nullsfirst(),
 			*base_order,
 		).all()
 		ranked = []
 		for video, bucket, finished_at in rows:
 			bucket_value = int(bucket or 0)
+			cat_id = getattr(video, "category_id", None)
+			cat_slug = category_slugs.get(cat_id, "") if cat_id else ""
+			explicit_match = 0 if (explicit_interests and cat_slug in explicit_interests) else 1
+			implicit_match = 0 if (cat_id and cat_id in preferred_categories) else 1
 			# Unseen/in-progress rotate per feed session; finished return gradually
 			# by oldest last-watched time, with deterministic per-seed tiebreaks.
-			if bucket_value == 2:
+			if bucket_value == 3:
 				recency_key = finished_at.isoformat(sep=" ", timespec="microseconds") if finished_at else ""
 				rotation = recency_key
 			else:
 				rotation = _rotation_rank(rotation_seed, video.id)
-			ranked.append((bucket_value, recency_key if bucket_value == 2 else "", rotation, video))
+			ranked.append((bucket_value, explicit_match, implicit_match, recency_key if bucket_value == 3 else "", rotation, video))
 		ranked.sort(
 			key=lambda row: (
 				row[0],
 				row[1],
-				0 if user.preferred_language == row[3].language_code else 1,
 				row[2],
-				getattr(row[3], "display_order", 0) or 0,
+				row[3],
+				0 if user.preferred_language == row[5].language_code else 1,
+				row[4],
+				getattr(row[5], "display_order", 0) or 0,
 				(
 					(1, 0.0)
-					if getattr(row[3], "published_at", None) is None
+					if getattr(row[5], "published_at", None) is None
 					else (
 						0,
 						-(
-							getattr(row[3], "published_at").replace(tzinfo=timezone.utc)
-							if getattr(row[3], "published_at").tzinfo is None
-							else getattr(row[3], "published_at")
+							getattr(row[5], "published_at").replace(tzinfo=timezone.utc)
+							if getattr(row[5], "published_at").tzinfo is None
+							else getattr(row[5], "published_at")
 						).timestamp(),
 					)
 				),
-				str(row[3].id),
+				str(row[5].id),
 			)
 		)
 		result = [video for *_prefix, video in ranked][offset : offset + limit]

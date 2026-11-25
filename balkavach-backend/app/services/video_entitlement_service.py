@@ -30,7 +30,7 @@ from app.utils import utc_aware, utc_naive
 logger = logging.getLogger(__name__)
 
 MISSION_REWARD_ALLOWANCE_SECONDS = 900  # 15 minutes per mission
-FREE_DAILY_ALLOWANCE_SECONDS = 900  # 15 minutes for every child
+FREE_DAILY_ALLOWANCE_SECONDS = 0  # Decision B: zero free daily allowance; earned via approved missions only
 DEFAULT_DAILY_ALLOWANCE_SECONDS = 3600  # 60 minutes default cap
 MIN_DAILY_ALLOWANCE_SECONDS = 900  # 15 minutes minimum cap
 MAX_DAILY_ALLOWANCE_SECONDS = 14400  # 4 hours maximum allowed cap
@@ -75,7 +75,7 @@ def get_child_video_allowance_today(
     start, end = local_day_bounds_utc_naive(zone, today, 1)
 
     VideoAccessEntitlement = get_model("VideoAccessEntitlement")
-    entitlements = (
+    today_entitlements = (
         session.query(VideoAccessEntitlement)
         .filter(
             VideoAccessEntitlement.child_id == child_id,
@@ -86,9 +86,20 @@ def get_child_video_allowance_today(
         .order_by(VideoAccessEntitlement.granted_at.asc())
         .all()
     )
+    active_entitlements = (
+        session.query(VideoAccessEntitlement)
+        .filter(
+            VideoAccessEntitlement.child_id == child_id,
+            VideoAccessEntitlement.source_type == "mission_reward",
+            VideoAccessEntitlement.status == "active",
+            VideoAccessEntitlement.consumed_seconds < VideoAccessEntitlement.granted_seconds,
+        )
+        .order_by(VideoAccessEntitlement.granted_at.asc())
+        .all()
+    )
 
-    total_earned = sum(int(e.granted_seconds or 0) for e in entitlements)
-    total_consumed = sum(int(e.consumed_seconds or 0) for e in entitlements)
+    total_earned = sum(int(e.granted_seconds or 0) for e in today_entitlements)
+    total_consumed = sum(int(e.consumed_seconds or 0) for e in today_entitlements)
     DailyUsage = get_model("ChildVideoDailyUsage")
     free_consumed = int(
         session.query(DailyUsage.free_watched_seconds)
@@ -102,17 +113,14 @@ def get_child_video_allowance_today(
     free_consumed = min(FREE_DAILY_ALLOWANCE_SECONDS, free_consumed)
     total_earned += FREE_DAILY_ALLOWANCE_SECONDS
     total_consumed += free_consumed
+    # DEC-03: Unused earned video time carries forward across days without resetting at midnight.
     mission_remaining = max(
         0,
-        sum(int(e.granted_seconds or 0) - int(e.consumed_seconds or 0) for e in entitlements),
+        sum(int(e.granted_seconds or 0) - int(e.consumed_seconds or 0) for e in active_entitlements),
     )
     free_remaining = max(0, FREE_DAILY_ALLOWANCE_SECONDS - free_consumed)
     remaining = free_remaining + mission_remaining
     daily_cap = get_daily_cap_seconds(session, family_id)
-
-    # If the local day has passed beyond `end`, any remaining allowance for today expires
-    if now_naive >= end:
-        remaining = 0
 
     return {
         "child_id": child_id,
@@ -128,9 +136,7 @@ def get_child_video_allowance_today(
         "mission_remaining_seconds": mission_remaining,
         "daily_cap_seconds": FREE_DAILY_ALLOWANCE_SECONDS + daily_cap,
         "is_exhausted": remaining <= 0,
-        "active_entitlements_count": len(
-            [e for e in entitlements if e.status == "active" and (e.consumed_seconds or 0) < (e.granted_seconds or 0)]
-        ),
+        "active_entitlements_count": len(active_entitlements),
     }
 
 
@@ -231,7 +237,7 @@ def grant_mission_video_entitlement(
         )
         return None
 
-    # 5. Create new universal mission-earned entitlement
+    # 5. Create new universal mission-earned entitlement (expires_at=None so unused time carries forward per DEC-03)
     entitlement = VideoAccessEntitlement(
         id=uuid4(),
         child_id=child.id,
@@ -244,7 +250,7 @@ def grant_mission_video_entitlement(
         consumed_seconds=0,
         granted_at=now_naive,
         valid_from=now_naive,
-        expires_at=end,
+        expires_at=None,
         status="active",
     )
     session.add(entitlement)
@@ -288,9 +294,7 @@ def consume_video_allowance(
             VideoAccessEntitlement.child_id == child_id,
             VideoAccessEntitlement.source_type == "mission_reward",
             VideoAccessEntitlement.status == "active",
-            VideoAccessEntitlement.granted_at >= start,
-            VideoAccessEntitlement.granted_at < end,
-            (VideoAccessEntitlement.expires_at.is_(None)) | (VideoAccessEntitlement.expires_at > now_naive),
+            VideoAccessEntitlement.consumed_seconds < VideoAccessEntitlement.granted_seconds,
         )
         .order_by(VideoAccessEntitlement.granted_at.asc())
         .with_for_update()

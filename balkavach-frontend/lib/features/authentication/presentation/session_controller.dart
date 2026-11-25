@@ -124,6 +124,13 @@ class SessionController extends AsyncNotifier<Session?> {
     await _adopt(session);
   }
 
+  Future<void> linkWithCode(String code) async {
+    final session = await ref
+        .read(authRepositoryProvider)
+        .redeemChildLinkCode(code);
+    await _adopt(session);
+  }
+
   Future<void> register({
     required String fullName,
     required String email,

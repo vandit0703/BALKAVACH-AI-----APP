@@ -5721,6 +5721,354 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your parent approved it. Here are your rewards!'**
   String get celebrationMissionApprovedNote;
+
+  /// No description provided for @levelXpToNext.
+  ///
+  /// In en, this message translates to:
+  /// **'{xp} XP to Level {level}'**
+  String levelXpToNext(int xp, int level);
+
+  /// No description provided for @levelMaxReached.
+  ///
+  /// In en, this message translates to:
+  /// **'You reached the top level!'**
+  String get levelMaxReached;
+
+  /// No description provided for @achievementsLockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep going!'**
+  String get achievementsLockedTitle;
+
+  /// No description provided for @achievementsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} of {target}'**
+  String achievementsProgress(int current, int target);
+
+  /// No description provided for @celebrationLevelUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Level up!'**
+  String get celebrationLevelUp;
+
+  /// No description provided for @celebrationBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'New badge!'**
+  String get celebrationBadge;
+
+  /// No description provided for @rewardsTabHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get rewardsTabHistory;
+
+  /// No description provided for @rewardsHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No finished requests yet.'**
+  String get rewardsHistoryEmpty;
+
+  /// No description provided for @rewardStatusFulfilled.
+  ///
+  /// In en, this message translates to:
+  /// **'Handed over'**
+  String get rewardStatusFulfilled;
+
+  /// No description provided for @rewardStatusRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Declined'**
+  String get rewardStatusRejected;
+
+  /// No description provided for @rewardStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get rewardStatusCancelled;
+
+  /// No description provided for @rewardHistoryRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested {date}'**
+  String rewardHistoryRequested(String date);
+
+  /// No description provided for @rewardHistoryDecided.
+  ///
+  /// In en, this message translates to:
+  /// **'Decided {date}'**
+  String rewardHistoryDecided(String date);
+
+  /// No description provided for @rewardHistoryFulfilled.
+  ///
+  /// In en, this message translates to:
+  /// **'Handed over {date}'**
+  String rewardHistoryFulfilled(String date);
+
+  /// No description provided for @rewardHistoryNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note: {note}'**
+  String rewardHistoryNote(String note);
+
+  /// No description provided for @rewardHistoryUnnamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Reward'**
+  String get rewardHistoryUnnamed;
+
+  /// No description provided for @parentAchievementsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Level and badges'**
+  String get parentAchievementsTitle;
+
+  /// No description provided for @parentBadgesEarnedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Earned'**
+  String get parentBadgesEarnedTitle;
+
+  /// No description provided for @parentNoBadgesEarned.
+  ///
+  /// In en, this message translates to:
+  /// **'No badges earned yet.'**
+  String get parentNoBadgesEarned;
+
+  /// No description provided for @parentNoBadgesDefined.
+  ///
+  /// In en, this message translates to:
+  /// **'There are no badges to earn yet.'**
+  String get parentNoBadgesDefined;
+
+  /// No description provided for @parentBadgeEarnedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Earned {date}'**
+  String parentBadgeEarnedOn(String date);
+
+  /// No description provided for @parentQuizHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quizzes'**
+  String get parentQuizHistoryTitle;
+
+  /// No description provided for @parentQuizHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No quizzes taken yet.'**
+  String get parentQuizHistoryEmpty;
+
+  /// No description provided for @parentQuizNotPassed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not passed'**
+  String get parentQuizNotPassed;
+
+  /// No description provided for @parentLevelUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No level yet.'**
+  String get parentLevelUnavailable;
+
+  /// No description provided for @parentQuizScoreLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{correct} of {total} right'**
+  String parentQuizScoreLine(int correct, int total);
+
+  /// No description provided for @settingsHelpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Help & Support'**
+  String get settingsHelpTitle;
+
+  /// No description provided for @settingsHelpSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Frequently asked questions and safety guide'**
+  String get settingsHelpSubtitle;
+
+  /// No description provided for @settingsDeleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get settingsDeleteAccount;
+
+  /// No description provided for @settingsDeleteAccountSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove personal data and sign out permanently'**
+  String get settingsDeleteAccountSubtitle;
+
+  /// No description provided for @settingsDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete your account?'**
+  String get settingsDeleteConfirmTitle;
+
+  /// No description provided for @settingsDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently signs out your family and anonymizes personal details and child profiles. Financial/star ledgers and audit history are retained in anonymized form.'**
+  String get settingsDeleteConfirmBody;
+
+  /// No description provided for @settingsDeletePasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password to confirm'**
+  String get settingsDeletePasswordLabel;
+
+  /// No description provided for @settingsDeleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete permanently'**
+  String get settingsDeleteAction;
+
+  /// No description provided for @interestsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Video interests'**
+  String get interestsTitle;
+
+  /// No description provided for @interestsParentSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved topics personalize this child\'s video feed.'**
+  String get interestsParentSubtitle;
+
+  /// No description provided for @interestsChildSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Active topics chosen by your parent. You can request changes below.'**
+  String get interestsChildSubtitle;
+
+  /// No description provided for @interestsPendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending child requests'**
+  String get interestsPendingTitle;
+
+  /// No description provided for @interestsPendingBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for parent approval'**
+  String get interestsPendingBadge;
+
+  /// No description provided for @interestsApproveAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve requests'**
+  String get interestsApproveAll;
+
+  /// No description provided for @interestsRejectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get interestsRejectAll;
+
+  /// No description provided for @interestsSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save interests'**
+  String get interestsSave;
+
+  /// No description provided for @interestsRequestSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Request these interests'**
+  String get interestsRequestSave;
+
+  /// No description provided for @interestsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Interests updated'**
+  String get interestsSaved;
+
+  /// No description provided for @interestsRequestSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Interest request sent to parent'**
+  String get interestsRequestSent;
+
+  /// No description provided for @interestsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No topics available yet.'**
+  String get interestsEmpty;
+
+  /// No description provided for @childLinkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Link child device'**
+  String get childLinkTitle;
+
+  /// No description provided for @childLinkSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate a short-lived, single-use code or QR payload for the child\'s device.'**
+  String get childLinkSubtitle;
+
+  /// No description provided for @childLinkGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate link code'**
+  String get childLinkGenerate;
+
+  /// No description provided for @childLinkCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy code'**
+  String get childLinkCopy;
+
+  /// No description provided for @childLinkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Link code copied'**
+  String get childLinkCopied;
+
+  /// No description provided for @childLinkExpires.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires in {minutes}m {seconds}s'**
+  String childLinkExpires(int minutes, int seconds);
+
+  /// No description provided for @childLinkExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Code expired. Generate a new one.'**
+  String get childLinkExpired;
+
+  /// No description provided for @childLinkEnterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Or link with a parent code'**
+  String get childLinkEnterTitle;
+
+  /// No description provided for @childLinkCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 8-character code or QR link'**
+  String get childLinkCodeHint;
+
+  /// No description provided for @childLinkConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Link this device?'**
+  String get childLinkConfirmTitle;
+
+  /// No description provided for @childLinkConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This connects this device to your child profile using the single-use code.'**
+  String get childLinkConfirmBody;
+
+  /// No description provided for @childLinkAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Link device'**
+  String get childLinkAction;
 }
 
 class _AppLocalizationsDelegate

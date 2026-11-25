@@ -116,3 +116,35 @@ class WeeklyReportPublic(BaseModel):
 	current_streak: int
 	longest_streak: int
 	recent_approved: list[ReportRecentItem]
+
+
+class AchievementBadgePublic(BaseModel):
+	badge_id: UUID
+	name: str
+	description: str | None
+	icon_url: str | None
+	unlocked: bool
+	unlocked_at: datetime | None = None
+	criteria_type: str
+	# Only for criteria the server can measure; the child sees real progress, never an invented number.
+	threshold: int | None = None
+	current: int | None = None
+
+	@field_serializer("unlocked_at")
+	def serialize_unlocked_at(self, value: datetime | None) -> datetime | None:
+		return utc_aware(value) if value is not None else None
+
+
+class LevelProgressPublic(BaseModel):
+	level_number: int | None
+	name: str | None
+	minimum_xp: int
+	next_level_number: int | None
+	next_level_name: str | None
+	next_minimum_xp: int | None
+	total_xp: int
+
+
+class AchievementsPublic(BaseModel):
+	level: LevelProgressPublic
+	badges: list[AchievementBadgePublic]

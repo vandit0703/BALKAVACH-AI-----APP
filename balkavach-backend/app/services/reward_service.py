@@ -145,6 +145,10 @@ def request_redemption(session: Session, child, reward_id: UUID, idempotency_key
 		idempotency_key=idempotency_key,
 		requested_at=utc_naive(datetime.now(timezone.utc)),
 	)
+	if hasattr(redemption, "reward_title_snapshot"):
+		redemption.reward_title_snapshot = reward.name
+	if hasattr(redemption, "reward_description_snapshot"):
+		redemption.reward_description_snapshot = getattr(reward, "description", None)
 	session.add(redemption)
 	try:
 		session.flush()
@@ -294,8 +298,11 @@ def cancel_redemption(session: Session, redemption_id: UUID, actor, parent_actio
 	elif child.user_id != actor.user_id:
 		raise HTTPException(status_code=404, detail="Redemption not found")
 
+	now_cancelled = utc_naive(datetime.now(timezone.utc))
 	if redemption.status == "pending":
 		redemption.status = "cancelled"
+		if hasattr(redemption, "cancelled_at"):
+			redemption.cancelled_at = now_cancelled
 	elif redemption.status == "approved" and parent_action:
 		StarTransaction = get_model("StarTransaction")
 		session.add(
@@ -306,10 +313,12 @@ def cancel_redemption(session: Session, redemption_id: UUID, actor, parent_actio
 				redemption_id=redemption.id,
 				idempotency_key=f"redemption:{redemption.id}:refund",
 				description="Refund for cancelled reward",
-				created_at=utc_naive(datetime.now(timezone.utc)),
+				created_at=now_cancelled,
 			)
 		)
 		redemption.status = "cancelled"
+		if hasattr(redemption, "cancelled_at"):
+			redemption.cancelled_at = now_cancelled
 	else:
 		raise APIError(409, "redemption_not_cancellable", "This redemption can no longer be cancelled")
 	session.commit()

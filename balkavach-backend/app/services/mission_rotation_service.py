@@ -95,13 +95,17 @@ def rank_candidates(
 	candidates: Iterable[Candidate],
 	history: ChildHistory,
 	today: date,
-	weekday_theme: str,
-	seed: str,
+	weekday_theme: str | None = None,
+	seed: str = "",
 	*,
 	used_themes: Iterable[str] = (),
 	limit: int = 3,
 ) -> list[Pick]:
-	"""The best ``limit`` candidates in offer order. Pure: no database, no clock."""
+	"""The best ``limit`` candidates in offer order. Pure: no database, no clock.
+
+	Note: ``weekday_theme`` is kept only as a deprecated signature parameter and is intentionally ignored
+	so missions are never biased by day of the week."""
+	del weekday_theme  # explicitly no weekday-based mission preference
 	blocked = history.issued_today | history.active
 	fresh: list[tuple[tuple, Candidate]] = []
 	cooling: list[tuple[tuple, Candidate]] = []
@@ -116,8 +120,7 @@ def rank_candidates(
 			cooling.append(((_last_shown(history, candidate.id) or date.min, shown, recent, tie), candidate))
 		else:
 			surprise_first = 0 if candidate.is_surprise and not recent else 1
-			theme_first = 0 if candidate.theme == weekday_theme else 1
-			fresh.append(((surprise_first, theme_first, recent, shown, tie), candidate))
+			fresh.append(((surprise_first, recent, shown, tie), candidate))
 
 	picks: list[Pick] = []
 	themes = set(used_themes)

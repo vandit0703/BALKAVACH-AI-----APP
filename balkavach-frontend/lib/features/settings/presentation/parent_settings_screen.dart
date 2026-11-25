@@ -15,6 +15,7 @@ import '../../../shared/widgets/brand_header.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/illustration.dart';
 import '../../../shared/widgets/state_views.dart';
+import '../../authentication/data/auth_repository.dart';
 import '../../authentication/presentation/session_controller.dart';
 import '../../child_profile/domain/family_models.dart';
 import '../../child_profile/presentation/family_providers.dart';
@@ -90,7 +91,31 @@ class ParentSettingsScreen extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right_rounded),
             ),
           ),
+          AppCard(
+            key: const Key('settings.help'),
+            onTap: () => context.push(AppRoutes.parentHelpSupport),
+            child: _InfoRow(
+              icon: Icons.help_outline_rounded,
+              tint: context.colors.secondaryContainer,
+              iconColor: context.colors.onSecondaryContainer,
+              title: l10n.settingsHelpTitle,
+              subtitle: l10n.settingsHelpSubtitle,
+              trailing: const Icon(Icons.chevron_right_rounded),
+            ),
+          ),
           if (family != null) _PrivacyCard(familyId: family.id),
+          AppCard(
+            key: const Key('settings.deleteAccount'),
+            onTap: () => _confirmDeleteAccount(context, ref),
+            child: _InfoRow(
+              icon: Icons.delete_forever_outlined,
+              tint: context.colors.errorContainer,
+              iconColor: context.colors.onErrorContainer,
+              title: l10n.settingsDeleteAccount,
+              subtitle: l10n.settingsDeleteAccountSubtitle,
+              trailing: const Icon(Icons.chevron_right_rounded),
+            ),
+          ),
           SecondaryButton(
             key: const Key('settings.logout'),
             label: l10n.settingsLogOut,
@@ -754,4 +779,76 @@ class _SafetyCard extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
+  final l10n = AppLocalizations.of(context);
+  final controller = TextEditingController();
+  String? error;
+  var submitting = false;
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (dialogContext, setDialogState) => AlertDialog(
+        title: Text(l10n.settingsDeleteConfirmTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: AppSpacing.sm,
+          children: [
+            Text(l10n.settingsDeleteConfirmBody),
+            TextField(
+              key: const Key('settings.deletePassword'),
+              controller: controller,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: l10n.settingsDeletePasswordLabel,
+                errorText: error,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: submitting
+                ? null
+                : () => Navigator.of(dialogContext).pop(),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            key: const Key('settings.deleteConfirm'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            onPressed: submitting
+                ? null
+                : () async {
+                    setDialogState(() {
+                      submitting = true;
+                      error = null;
+                    });
+                    try {
+                      await ref
+                          .read(authRepositoryProvider)
+                          .deleteAccount(controller.text);
+                      if (dialogContext.mounted) {
+                        Navigator.of(dialogContext).pop();
+                      }
+                      await ref
+                          .read(sessionControllerProvider.notifier)
+                          .signOut();
+                    } on Object catch (e) {
+                      setDialogState(() {
+                        submitting = false;
+                        error = e is ApiException ? e.message : e.toString();
+                      });
+                    }
+                  },
+            child: Text(l10n.settingsDeleteAction),
+          ),
+        ],
+      ),
+    ),
+  );
+  controller.dispose();
 }

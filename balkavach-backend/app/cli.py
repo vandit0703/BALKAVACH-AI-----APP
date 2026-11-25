@@ -580,26 +580,50 @@ def _youtube_discovery_actor(session: Session, actor_id):
 	return actor
 
 
-def _catalogue_missions():
+def _catalogue_missions(source: str = "core"):
 	from app.content.daily_missions import MISSIONS
+	from app.content.mission_library import LIBRARY_MISSIONS
 
-	return list(MISSIONS)
+	if source == "core":
+		return list(MISSIONS)
+	if source == "library":
+		return list(LIBRARY_MISSIONS)
+	if source == "all":
+		return [*MISSIONS, *LIBRARY_MISSIONS]
+	raise ValueError(f"Unknown source: {source!r}")
 
 
 def _seed_daily_missions(
-	session_factory, *, apply: bool, publish: bool, retire: bool, backfill_structured: bool = False, compare_db: bool = False,
-	publish_existing: bool = False
+	session_factory, *, source: str = "core", apply: bool, publish: bool, retire: bool, backfill_structured: bool = False,
+	compare_db: bool = False, publish_existing: bool = False
 ) -> int:
 	"""Validate the localized catalogue and, only with ``apply``, add what is missing (never edits or deletes)."""
+	from app.content.mission_library import CATEGORIES, LIBRARY_ACTIVITIES
 	from app.services.mission_catalogue_service import (
 		apply_catalogue,
 		catalogue_summary,
 		retire_placeholders,
 		validate_catalogue,
 	)
+	from app.services.mission_library_service import DURATION_RANGE, library_problems
 
-	missions = _catalogue_missions()
-	problems = validate_catalogue(missions)
+	missions = _catalogue_missions(source)
+	problems: list[str] = []
+	if source in ("core", "all"):
+		core_list = _catalogue_missions("core")
+		problems.extend(validate_catalogue(core_list))
+	if source in ("library", "all"):
+		lib_list = _catalogue_missions("library")
+		core_list = _catalogue_missions("core")
+		problems.extend(
+			validate_catalogue(
+				lib_list,
+				allowed_themes=set(CATEGORIES),
+				activities=LIBRARY_ACTIVITIES,
+				duration_ranges=DURATION_RANGE,
+			)
+		)
+		problems.extend(library_problems(lib_list, core_list))
 	if problems:
 		print("Catalogue is invalid; nothing was written:", file=sys.stderr)
 		for problem in problems[:20]:
@@ -736,6 +760,12 @@ def main(argv: list[str] | None = None) -> int:
 		"seed-daily-missions",
 		help="Validate the localized daily-mission catalogue; with --apply, add missing templates/variations",
 	)
+	seed.add_argument(
+		"--source",
+		choices=("core", "library", "all"),
+		default="core",
+		help="Which catalogue to validate/seed (default: core)",
+	)
 	seed.add_argument("--apply", action="store_true", help="Write to the configured database (default: dry run)")
 	seed.add_argument("--publish", action="store_true", help="Publish the templates created by this run (needs --apply)")
 	seed.add_argument(
@@ -798,6 +828,7 @@ def main(argv: list[str] | None = None) -> int:
 				return 2
 		return _seed_daily_missions(
 			factory,
+			source=args.source,
 			apply=args.apply,
 			publish=args.publish,
 			retire=args.retire_placeholders,

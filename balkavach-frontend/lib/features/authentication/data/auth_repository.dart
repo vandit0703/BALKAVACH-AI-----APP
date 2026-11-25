@@ -113,6 +113,26 @@ class AuthRepository {
     );
   });
 
+  /// `DELETE /api/v1/auth/account` (parent): soft-deletes and anonymizes PII
+  /// while preserving anonymized reward ledgers and audit logs (DEC-09).
+  Future<void> deleteAccount(String password) => guardApi(() async {
+    await _dio.delete<void>(
+      '/api/v1/auth/account',
+      data: {'password': password},
+    );
+  });
+
+  /// `POST /api/v1/auth/child-link/redeem`: redeems a single-use linking code
+  /// or QR payload (`balkavach://link?code=...`) for a child session (DEC-05).
+  Future<Session> redeemChildLinkCode(String code) => guardApi(() async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/auth/child-link/redeem',
+      data: {'code': code.trim()},
+      options: Options(extra: _unauthenticated),
+    );
+    return Session.fromTokenResponse(response.data!);
+  });
+
   /// `POST /api/v1/auth/parent-mode/enter`: leave child mode. Sent **with the
   /// child session's bearer token** (the server binds the attempt to that
   /// device and to the child's family); the credentials are the same email and

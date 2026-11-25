@@ -26,14 +26,17 @@ class _ChildLoginScreenState extends ConsumerState<ChildLoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _username = TextEditingController();
   final _password = TextEditingController();
+  final _linkCode = TextEditingController();
   bool _busy = false;
   String? _formError;
+  String? _linkError;
   Map<String, String> _fieldErrors = const {};
 
   @override
   void dispose() {
     _username.dispose();
     _password.dispose();
+    _linkCode.dispose();
     super.dispose();
   }
 
@@ -154,8 +157,76 @@ class _ChildLoginScreenState extends ConsumerState<ChildLoginScreen> {
               ),
             ),
           ),
+          AppCard(
+            key: const Key('child.login.linkCard'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: AppSpacing.md,
+              children: [
+                Text(
+                  l10n.childLinkEnterTitle,
+                  style: context.text.titleMedium,
+                ),
+                AppTextField(
+                  fieldKey: const Key('child.login.linkCode'),
+                  label: l10n.childLinkCodeHint,
+                  controller: _linkCode,
+                  textInputAction: TextInputAction.done,
+                  maxLength: 64,
+                  errorText: _linkError,
+                ),
+                SecondaryButton(
+                  key: const Key('child.login.linkSubmit'),
+                  label: l10n.childLinkAction,
+                  icon: Icons.qr_code_scanner_rounded,
+                  onPressed: _busy ? null : _submitLinkCode,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _submitLinkCode() async {
+    if (_busy) return;
+    final raw = _linkCode.text.trim();
+    final l10n = AppLocalizations.of(context);
+    if (raw.isEmpty) {
+      setState(() => _linkError = l10n.childLinkCodeHint);
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.childLinkConfirmTitle),
+        content: Text(l10n.childLinkConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            key: const Key('child.login.linkConfirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.childLinkAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() {
+      _busy = true;
+      _linkError = null;
+    });
+    try {
+      await ref.read(sessionControllerProvider.notifier).linkWithCode(raw);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _linkError = describeError(l10n, error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 }
