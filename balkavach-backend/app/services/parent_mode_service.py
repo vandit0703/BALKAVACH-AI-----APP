@@ -129,7 +129,7 @@ def enter_parent_mode(
 	stored_hash = parent.password_hash if parent is not None and parent.password_hash else _dummy_password_hash()
 	password_ok = verify_password(password, stored_hash)
 
-	if not (parent is not None and is_member and password_ok):
+	if not (parent is not None and is_member and parent.email_verified_at is not None and password_ok):
 		results = [lockout.record_failure(subject) for subject in subjects]
 		record_audit(session, child_user.id, "parent_mode.failed", "child_profile", child.id, {})
 		if any(result.newly_locked for result in results):

@@ -211,6 +211,56 @@ class AppLocalizationsGu extends AppLocalizations {
   String get authResetSent => 'ખાતું હોય તો રીસેટ લિંક મોકલવામાં આવી છે.';
 
   @override
+  String get authEmailNotVerified => 'સાઇન ઇન કરતા પહેલાં તમારું ઇમેઇલ ચકાસો.';
+
+  @override
+  String get authVerifyEmail => 'ઇમેઇલ ચકાસો';
+
+  @override
+  String get emailVerificationTitle => 'તમારું ઇમેઇલ ચકાસો';
+
+  @override
+  String emailVerificationBody(String email) {
+    return '$email પર મોકલેલો 6 અંકનો કોડ દાખલ કરો.';
+  }
+
+  @override
+  String get emailVerificationCode => '6 અંકનો ચકાસણી કોડ';
+
+  @override
+  String get emailVerificationVerify => 'ઇમેઇલ ચકાસો';
+
+  @override
+  String get emailVerificationResend => 'કોડ ફરી મોકલો';
+
+  @override
+  String emailVerificationCountdown(int seconds) {
+    return '$seconds સેકન્ડમાં ફરી મોકલી શકાશે';
+  }
+
+  @override
+  String get emailVerificationInvalid =>
+      'તમારા ઇમેઇલમાંથી 6 અંકનો કોડ દાખલ કરો.';
+
+  @override
+  String get emailVerificationExpired =>
+      'આ કોડની સમયમર્યાદા પૂરી થઈ. નવો કોડ મંગાવો.';
+
+  @override
+  String get emailVerificationAttemptsExceeded =>
+      'ઘણા ખોટા પ્રયાસો થયા. નવો કોડ મંગાવો.';
+
+  @override
+  String get emailVerificationSuccess => 'ઇમેઇલ ચકાસાયું. હવે સાઇન ઇન કરો.';
+
+  @override
+  String get forgotPasswordBody =>
+      'તમારા પેરેન્ટ ખાતાનું ઇમેઇલ દાખલ કરો. ખાતું હોય તો રીસેટ લિંક મોકલીશું.';
+
+  @override
+  String get forgotPasswordSend => 'રીસેટ લિંક મોકલો';
+
+  @override
   String get authPasswordHint => 'ઓછામાં ઓછા 12 અક્ષરો';
 
   @override

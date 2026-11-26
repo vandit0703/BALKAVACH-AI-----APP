@@ -17,9 +17,10 @@ PASSWORD = "a-long-integration-password"
 
 
 class ApiHarness:
-    def __init__(self, client: TestClient, session) -> None:
+    def __init__(self, client: TestClient, session, verification_mailbox=None) -> None:
         self.client = client
         self.session = session
+        self.verification_mailbox = verification_mailbox if verification_mailbox is not None else []
 
     # -- low level ---------------------------------------------------------
     @staticmethod
@@ -45,8 +46,14 @@ class ApiHarness:
     def register_parent(self, name: str = "Test Parent") -> dict:
         email = f"parent-{uuid4().hex}@example.com"
         response = self.post("/auth/register", json={"full_name": name, "email": email, "password": PASSWORD})
-        assert response.status_code == 201, response.text
-        body = response.json()
+        assert response.status_code == 202, response.text
+        delivery = next((item for item in reversed(self.verification_mailbox) if item[0] == email), None)
+        assert delivery is not None, "registration verification email was not captured"
+        verified = self.post("/auth/verify-email", json={"email": email, "otp": delivery[1]})
+        assert verified.status_code == 204, verified.text
+        login = self.post("/auth/login", json={"email": email, "password": PASSWORD})
+        assert login.status_code == 200, login.text
+        body = login.json()
         return {"email": email, "token": body["access_token"], "id": body["user"]["id"]}
 
     def create_family(self, parent_token: str, name: str = "Test Family") -> dict:

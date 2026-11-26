@@ -29,6 +29,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _base = String.fromEnvironment('LIVE_API_BASE_URL');
+const _liveEmailOtp = String.fromEnvironment('LIVE_EMAIL_OTP');
 
 /// A 1x1 PNG.
 final _png = Uint8List.fromList(const [
@@ -46,7 +47,11 @@ Dio _dio(AccessTokenStore tokens) => createApiDio(
 );
 
 void main() {
-  final skip = _base.isEmpty ? 'set --dart-define=LIVE_API_BASE_URL' : null;
+  final skip = _base.isEmpty
+      ? 'set --dart-define=LIVE_API_BASE_URL'
+      : _liveEmailOtp.isEmpty
+      ? 'set --dart-define=LIVE_EMAIL_OTP after receiving the registration code'
+      : null;
 
   test('the app parses a real server end to end', () async {
     final parentTokens = AccessTokenStore();
@@ -58,8 +63,13 @@ void main() {
     final email =
         'flutter-live-${DateTime.now().microsecondsSinceEpoch}@example.com';
     final auth = AuthRepository(parentDio);
-    final parent = await auth.register(
+    final registeredEmail = await auth.register(
       fullName: 'Live Parent',
+      email: email,
+      password: 'live-contract-password-1',
+    );
+    await auth.verifyEmail(email: registeredEmail, otp: _liveEmailOtp);
+    final parent = await auth.login(
       email: email,
       password: 'live-contract-password-1',
     );

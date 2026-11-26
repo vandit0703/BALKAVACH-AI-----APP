@@ -212,6 +212,58 @@ class AppLocalizationsHi extends AppLocalizations {
       'यदि खाता मौजूद है, तो रीसेट लिंक भेज दिया गया है।';
 
   @override
+  String get authEmailNotVerified =>
+      'साइन इन करने से पहले अपना ईमेल सत्यापित करें।';
+
+  @override
+  String get authVerifyEmail => 'ईमेल सत्यापित करें';
+
+  @override
+  String get emailVerificationTitle => 'अपना ईमेल सत्यापित करें';
+
+  @override
+  String emailVerificationBody(String email) {
+    return '$email पर भेजा गया 6 अंकों का कोड दर्ज करें।';
+  }
+
+  @override
+  String get emailVerificationCode => '6 अंकों का सत्यापन कोड';
+
+  @override
+  String get emailVerificationVerify => 'ईमेल सत्यापित करें';
+
+  @override
+  String get emailVerificationResend => 'कोड फिर भेजें';
+
+  @override
+  String emailVerificationCountdown(int seconds) {
+    return 'कोड $seconds सेकंड में फिर भेजें';
+  }
+
+  @override
+  String get emailVerificationInvalid =>
+      'अपने ईमेल से 6 अंकों का कोड दर्ज करें।';
+
+  @override
+  String get emailVerificationExpired =>
+      'यह कोड समाप्त हो गया है। नया कोड मँगाएँ।';
+
+  @override
+  String get emailVerificationAttemptsExceeded =>
+      'बहुत बार गलत कोड दर्ज किया। नया कोड मँगाएँ।';
+
+  @override
+  String get emailVerificationSuccess =>
+      'ईमेल सत्यापित हो गया। अब साइन इन करें।';
+
+  @override
+  String get forgotPasswordBody =>
+      'अपना पैरेंट खाता ईमेल दर्ज करें। खाता होने पर हम रीसेट लिंक भेजेंगे।';
+
+  @override
+  String get forgotPasswordSend => 'रीसेट लिंक भेजें';
+
+  @override
   String get authPasswordHint => 'कम से कम 12 अक्षर';
 
   @override

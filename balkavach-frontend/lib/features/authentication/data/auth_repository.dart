@@ -33,8 +33,8 @@ class AuthRepository {
     return Session.fromTokenResponse(response.data!);
   });
 
-  /// `POST /api/v1/auth/register` (parents only). 409 `email_in_use`.
-  Future<Session> register({
+  /// `POST /api/v1/auth/register` (parents only). 202 means the OTP was sent.
+  Future<String> register({
     required String fullName,
     required String email,
     required String password,
@@ -48,7 +48,24 @@ class AuthRepository {
       },
       options: Options(extra: _unauthenticated),
     );
-    return Session.fromTokenResponse(response.data!);
+    return response.data!['email'] as String;
+  });
+
+  Future<void> verifyEmail({required String email, required String otp}) =>
+      guardApi(() async {
+        await _dio.post<void>(
+          '/api/v1/auth/verify-email',
+          data: {'email': email.trim(), 'otp': otp},
+          options: Options(extra: _unauthenticated),
+        );
+      });
+
+  Future<void> resendVerification(String email) => guardApi(() async {
+    await _dio.post<void>(
+      '/api/v1/auth/resend-verification',
+      data: {'email': email.trim()},
+      options: Options(extra: _unauthenticated),
+    );
   });
 
   /// `GET /api/v1/auth/me` with an explicit token (used while restoring).

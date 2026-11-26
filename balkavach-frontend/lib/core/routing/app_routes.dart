@@ -7,6 +7,8 @@ abstract final class AppRoutes {
   static const childStart = '/child-start';
   static const childLogin = '/child-login';
   static const parentAuth = '/parent-auth';
+    static const verifyEmail = '/verify-email';
+    static const forgotPassword = '/forgot-password';
 
   /// Password-reset landing (deep link `balkavach://app/reset-password?token=…`).
   static const resetPassword = '/reset-password';
@@ -63,5 +65,12 @@ abstract final class AppRoutes {
       '/child/missions/$taskId/waiting';
 
   /// Reachable without a session once onboarding is complete.
-  static const signedOut = {role, childStart, childLogin, parentAuth};
+    static const signedOut = {
+        role,
+        childStart,
+        childLogin,
+        parentAuth,
+        verifyEmail,
+        forgotPassword,
+    };
 }

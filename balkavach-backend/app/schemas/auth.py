@@ -10,6 +10,19 @@ class RegistrationRequest(BaseModel):
 	password: str = Field(min_length=12, max_length=128)
 
 
+class RegistrationAccepted(BaseModel):
+	email: EmailStr
+
+
+class EmailVerificationRequest(BaseModel):
+	email: EmailStr
+	otp: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class EmailVerificationResendRequest(BaseModel):
+	email: EmailStr
+
+
 class LoginRequest(BaseModel):
 	email: EmailStr | None = None
 	username: str | None = Field(default=None, min_length=3, max_length=32)

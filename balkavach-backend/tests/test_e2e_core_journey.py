@@ -61,11 +61,9 @@ def test_parent_child_mission_reward_journey(world):
     api, provider = world
 
     # 1-2: parent registers, signs in again, creates a family; consent version comes from the server
-    email = "journey-parent@example.com"
-    registered = api.post("/auth/register", json={"full_name": "Journey Parent", "email": email, "password": PASSWORD})
-    assert registered.status_code == 201
-    login = api.post("/auth/login", json={"email": email, "password": PASSWORD}).json()
-    parent = login["access_token"]
+    parent_account = api.register_parent("Journey Parent")
+    email = parent_account["email"]
+    parent = parent_account["token"]
     assert api.get("/app-config").json()["consent_versions"]["parent_guardian_terms"]
     family = api.post("/families", parent, {"family_name": "Journey Family"}).json()
     consent = api.post(f"/settings/families/{family['id']}/consents", parent, {

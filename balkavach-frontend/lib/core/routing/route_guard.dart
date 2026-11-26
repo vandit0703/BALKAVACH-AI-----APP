@@ -17,7 +17,11 @@ String? resolveRedirect({
 
   // The password-reset link must survive onboarding and any session state: the
   // token in it is single-use and cannot be re-fetched.
-  if (_isWithin(location, AppRoutes.resetPassword)) return null;
+  if (_isWithin(location, AppRoutes.resetPassword) ||
+      location == AppRoutes.verifyEmail ||
+      location == AppRoutes.forgotPassword) {
+    return null;
+  }
 
   // A signed-in session always goes to its own area; onboarding already
   // happened on this device or the user would not have signed in.

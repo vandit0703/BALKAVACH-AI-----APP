@@ -211,6 +211,57 @@ class AppLocalizationsEn extends AppLocalizations {
       'If an account exists, a reset link has been sent.';
 
   @override
+  String get authEmailNotVerified =>
+      'Verify your email address before signing in.';
+
+  @override
+  String get authVerifyEmail => 'Verify email address';
+
+  @override
+  String get emailVerificationTitle => 'Verify your email';
+
+  @override
+  String emailVerificationBody(String email) {
+    return 'Enter the 6-digit code sent to $email.';
+  }
+
+  @override
+  String get emailVerificationCode => '6-digit verification code';
+
+  @override
+  String get emailVerificationVerify => 'Verify email';
+
+  @override
+  String get emailVerificationResend => 'Resend code';
+
+  @override
+  String emailVerificationCountdown(int seconds) {
+    return 'Resend available in ${seconds}s';
+  }
+
+  @override
+  String get emailVerificationInvalid =>
+      'Enter the 6-digit code from your email.';
+
+  @override
+  String get emailVerificationExpired =>
+      'This code has expired. Request a new code.';
+
+  @override
+  String get emailVerificationAttemptsExceeded =>
+      'Too many incorrect attempts. Request a new code.';
+
+  @override
+  String get emailVerificationSuccess => 'Email verified. You can now sign in.';
+
+  @override
+  String get forgotPasswordBody =>
+      'Enter your parent account email and we will send a reset link if an account exists.';
+
+  @override
+  String get forgotPasswordSend => 'Send reset link';
+
+  @override
   String get authPasswordHint => 'At least 12 characters';
 
   @override

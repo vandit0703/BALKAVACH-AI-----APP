@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/approvals/presentation/approvals_screen.dart';
 import '../../features/authentication/presentation/child_login_screen.dart';
+import '../../features/authentication/presentation/email_verification_screen.dart';
+import '../../features/authentication/presentation/forgot_password_screen.dart';
 import '../../features/authentication/presentation/parent_auth_screen.dart';
 import '../../features/authentication/presentation/parent_mode_screen.dart';
 import '../../features/authentication/presentation/reset_password_screen.dart';
@@ -108,6 +110,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.parentAuth,
         builder: (_, _) => const ParentAuthScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.verifyEmail,
+        builder: (_, state) => EmailVerificationScreen(
+          email: state.uri.queryParameters['email'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        builder: (_, state) => ForgotPasswordScreen(
+          initialEmail: state.uri.queryParameters['email'] ?? '',
+        ),
       ),
       GoRoute(
         path: AppRoutes.resetPassword,

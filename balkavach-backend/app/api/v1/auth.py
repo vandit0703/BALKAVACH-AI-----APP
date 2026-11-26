@@ -13,6 +13,7 @@ from app.core.rate_limit import (
 	parent_mode_limiter,
 	password_change_limiter,
 	registration_limiter,
+	verification_resend_limiter,
 )
 from app.core.security import hash_password, verify_password
 from app.db.base import get_model
@@ -26,12 +27,16 @@ from app.schemas.auth import (
 	PasswordResetConfirm,
 	PasswordResetRequest,
 	RefreshRequest,
+	RegistrationAccepted,
 	RegistrationRequest,
+	EmailVerificationRequest,
+	EmailVerificationResendRequest,
 	TokenResponse,
 	UserPublic,
 )
 from app.services import account_security_service
 from app.services.auth_service import authenticate_user, register_parent, set_parent_pin
+from app.services.email_verification_service import resend_verification, verify_parent_email
 from app.services.password_reset_service import consume_reset_token, create_reset_token
 from app.core.exceptions import APIError
 from app.services.attempt_lockout import parent_mode_lockout
@@ -43,15 +48,59 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
-@router.post("/register", response_model=TokenResponse, status_code=201)
-def register(request: RegistrationRequest, http_request: Request, session: Session = Depends(get_db)) -> TokenResponse:
+@router.post("/register", response_model=RegistrationAccepted, status_code=status.HTTP_202_ACCEPTED)
+def register(
+	request: RegistrationRequest,
+	http_request: Request,
+	background: BackgroundTasks,
+	session: Session = Depends(get_db),
+) -> RegistrationAccepted:
 	enforce(
 		registration_limiter,
 		f"{http_request.client.host if http_request.client else 'unknown'}:{request.email}",
 		limit=settings.registration_rate_limit,
 		window_seconds=settings.login_rate_window_seconds,
 	)
-	return register_parent(session, request)
+	email, otp = register_parent(session, request)
+	background.add_task(_deliver_verification, email, otp)
+	return RegistrationAccepted(email=email)
+
+
+def _deliver_verification(email: str, otp: str) -> None:
+	try:
+		from app.integrations import email as mailer
+
+		mailer.send_parent_verification(email, otp)
+	except Exception:
+		logger.exception("Parent verification email delivery failed")
+
+
+@router.post("/verify-email", status_code=status.HTTP_204_NO_CONTENT)
+def verify_email(request: EmailVerificationRequest, session: Session = Depends(get_db)) -> Response:
+	verify_parent_email(session, str(request.email), request.otp)
+	return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/resend-verification", status_code=status.HTTP_202_ACCEPTED)
+def resend_email_verification(
+	request: EmailVerificationResendRequest,
+	http_request: Request,
+	background: BackgroundTasks,
+	session: Session = Depends(get_db),
+) -> Response:
+	email = str(request.email).strip().lower()
+	enforce(
+		verification_resend_limiter,
+		_client_ip(http_request),
+		limit=settings.verification_resend_rate_limit,
+		window_seconds=60,
+	)
+	result = resend_verification(session, email)
+	if result is not None:
+		delivery_email, otp = result
+		session.commit()
+		background.add_task(_deliver_verification, delivery_email, otp)
+	return Response(status_code=status.HTTP_202_ACCEPTED)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -84,7 +133,7 @@ def forgot_password(
 ) -> Response:
 	enforce(
 		password_reset_limiter,
-		f"{http_request.client.host if http_request.client else 'unknown'}:{request.email}",
+		_client_ip(http_request),
 		limit=settings.password_reset_rate_limit,
 		window_seconds=settings.password_reset_window_seconds,
 	)

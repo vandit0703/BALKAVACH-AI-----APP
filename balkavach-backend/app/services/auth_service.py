@@ -7,6 +7,7 @@ from app.core.exceptions import APIError
 from app.core.security import hash_password, verify_password
 from app.db.base import get_model
 from app.schemas.auth import LoginRequest, RegistrationRequest, TokenResponse
+from app.services.email_verification_service import create_verification
 from app.services.session_service import start_session
 
 
@@ -20,7 +21,7 @@ def _dummy_password_hash() -> str:
 	return _DUMMY_HASH
 
 
-def register_parent(session: Session, request: RegistrationRequest) -> TokenResponse:
+def register_parent(session: Session, request: RegistrationRequest) -> tuple[str, str]:
 	User = get_model("User")
 	email = str(request.email).strip().lower()
 	if session.query(User.id).filter(User.email == email).first():
@@ -33,16 +34,17 @@ def register_parent(session: Session, request: RegistrationRequest) -> TokenResp
 		role="parent",
 		preferred_language="en",
 		is_active=True,
+		email_verified_at=None,
 	)
 	session.add(user)
 	try:
 		session.flush()
-		response = start_session(session, user)
+		otp = create_verification(session, user)
 		session.commit()
 	except IntegrityError as error:
 		session.rollback()
 		raise APIError(409, "account_conflict", "An account with these details already exists") from error
-	return response
+	return email, otp
 
 
 def authenticate_user(session: Session, request: LoginRequest) -> TokenResponse:
@@ -75,6 +77,8 @@ def authenticate_user(session: Session, request: LoginRequest) -> TokenResponse:
 		raise APIError(401, "invalid_credentials", "Username or password is incorrect")
 	if not verify_password(request.password, user.password_hash):
 		raise APIError(401, "invalid_credentials", "Username or password is incorrect")
+	if request.email is not None and user.role == "parent" and user.email_verified_at is None:
+		raise APIError(403, "email_not_verified", "Verify your email address before signing in")
 	if request.username is not None:
 		child_profile = session.query(ChildProfile).filter(
 			ChildProfile.user_id == user.id,

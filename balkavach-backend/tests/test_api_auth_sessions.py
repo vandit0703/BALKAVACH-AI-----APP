@@ -12,7 +12,7 @@ def _login(api, email):
     return response.json()
 
 
-def test_login_and_register_return_a_refresh_token(api):
+def test_verified_parent_login_returns_a_refresh_token(api):
     parent = api.register_parent()
     body = _login(api, parent["email"])
     assert body["refresh_token"] and len(body["refresh_token"]) >= 40

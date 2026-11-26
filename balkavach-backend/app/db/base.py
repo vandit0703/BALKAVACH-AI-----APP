@@ -54,6 +54,7 @@ MODEL_TABLES = {
 	"AdminRole": "admin_roles",
 	"AuditLog": "audit_logs",
 	"AuthSession": "auth_sessions",
+	"ParentEmailVerification": "parent_email_verifications",
 	"PasswordResetToken": "password_reset_tokens",
 	"DeviceToken": "device_tokens",
 	"ProofUpload": "proof_uploads",

@@ -5,9 +5,12 @@ token is covered without a database in ``test_password_reset_page.py``.
 """
 
 from uuid import uuid4
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from app.db.base import get_model
+from app.core.config import settings
 from tests.harness import PASSWORD
 
 NEW_PASSWORD = "a-brand-new-long-password"
@@ -68,3 +71,21 @@ def test_garbage_and_short_passwords_are_rejected(api, mailbox):
 	parent = api.register_parent()
 	api.post("/auth/password/forgot", json={"email": parent["email"]})
 	assert api.post("/auth/password/reset", json={"token": mailbox[0][1], "password": "short"}).status_code == 422
+
+
+def test_reset_token_expiry_and_request_rate_limit(api, mailbox, isolated_test_session, monkeypatch):
+	monkeypatch.setattr(settings, "password_reset_rate_limit", 4)
+	parent = api.register_parent()
+	assert api.post("/auth/password/forgot", json={"email": parent["email"]}).status_code == 202
+	ResetToken = get_model("PasswordResetToken")
+	row = isolated_test_session.query(ResetToken).one()
+	row.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+	isolated_test_session.commit()
+	expired = api.post("/auth/password/reset", json={"token": mailbox[0][1], "password": NEW_PASSWORD})
+	assert expired.status_code == 400
+	assert expired.json()["error"]["code"] == "invalid_reset_token"
+
+	for _ in range(3):
+		assert api.post("/auth/password/forgot", json={"email": f"unknown-{uuid4().hex}@example.com"}).status_code == 202
+	limited = api.post("/auth/password/forgot", json={"email": f"unknown-{uuid4().hex}@example.com"})
+	assert limited.status_code == 429

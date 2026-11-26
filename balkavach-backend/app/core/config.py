@@ -22,6 +22,7 @@ class Settings(BaseSettings):
 	login_rate_limit: int = Field(default=8, ge=1, le=100)
 	login_rate_window_seconds: int = Field(default=300, ge=10, le=3600)
 	registration_rate_limit: int = Field(default=5, ge=1, le=50)
+	verification_resend_rate_limit: int = Field(default=1, ge=1, le=10)
 	password_reset_rate_limit: int = Field(default=3, ge=1, le=20)
 	password_reset_window_seconds: int = Field(default=900, ge=60, le=86400)
 	parent_pin_rate_limit: int = Field(default=5, ge=1, le=30)
@@ -38,7 +39,10 @@ class Settings(BaseSettings):
 	parent_mode_refresh_hours: int = Field(default=12, ge=1, le=720)
 	password_reset_expire_minutes: int = Field(default=30, ge=5, le=1440)
 	password_reset_url: str | None = None
-	password_reset_from_email: str | None = None
+	password_reset_from_email: str | None = Field(
+		default=None,
+		validation_alias=AliasChoices("SMTP_FROM_EMAIL", "PASSWORD_RESET_FROM_EMAIL"),
+	)
 	redis_url: str | None = Field(default=None, repr=False)
 	redis_rate_limit_prefix: str = "balkavach:auth-rate-limit"
 	smtp_host: str | None = None
@@ -46,6 +50,7 @@ class Settings(BaseSettings):
 	smtp_username: str | None = Field(default=None, repr=False)
 	smtp_password: str | None = Field(default=None, repr=False)
 	smtp_use_tls: bool = True
+	smtp_use_ssl: bool = False
 	cors_origins: list[str] = Field(default_factory=list)
 	video_playback_provider: str | None = None
 	# D6 play tickets. Off by default. Has no effect until the deferred

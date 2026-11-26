@@ -16,7 +16,7 @@ def _digest(token: str) -> str:
 
 def create_reset_token(session: Session, user) -> str:
 	ResetToken = get_model("PasswordResetToken")
-	now = datetime.now(timezone.utc).replace(tzinfo=None)
+	now = datetime.now(timezone.utc)
 	session.query(ResetToken).filter(
 		ResetToken.user_id == user.id,
 		ResetToken.used_at.is_(None),
@@ -35,7 +35,7 @@ def create_reset_token(session: Session, user) -> str:
 
 def consume_reset_token(session: Session, token: str, password: str) -> None:
 	ResetToken = get_model("PasswordResetToken")
-	now = datetime.now(timezone.utc).replace(tzinfo=None)
+	now = datetime.now(timezone.utc)
 	row = (
 		session.query(ResetToken)
 		.filter(ResetToken.token_hash == _digest(token))

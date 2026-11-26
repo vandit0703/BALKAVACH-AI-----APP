@@ -15,6 +15,7 @@ from app.schemas.reward import RedemptionReview
 from app.schemas.task import TaskReviewCreate
 from app.schemas.video import PlaybackStartRequest
 from app.services.auth_service import authenticate_user, register_parent
+from app.services.email_verification_service import verify_parent_email
 from app.services.ledger_service import star_balance, xp_total
 from app.services.reward_service import (
     cancel_redemption,
@@ -126,13 +127,16 @@ def test_auth_registration_and_login_on_isolated_database(isolated_test_session,
     email = f"registration-{uuid4().hex}@example.com"
     registration = RegistrationRequest(full_name="Test Parent", email=email, password="a-long-integration-password")
 
-    created = register_parent(isolated_test_session, registration)
+    created_email, otp = register_parent(isolated_test_session, registration)
+    verify_parent_email(isolated_test_session, created_email, otp)
     login = authenticate_user(
         isolated_test_session,
         LoginRequest(email=email, password="a-long-integration-password"),
     )
 
-    assert created.user.role == "parent"
+    User = get_model("User")
+    created = isolated_test_session.query(User).filter(User.email == email).one()
+    assert created.role == "parent" and created.email_verified_at is not None
     assert decode_access_token(login.access_token)["sub"] == str(created.user.id)
 
 

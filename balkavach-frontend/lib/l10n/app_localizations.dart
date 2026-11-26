@@ -466,6 +466,90 @@ abstract class AppLocalizations {
   /// **'If an account exists, a reset link has been sent.'**
   String get authResetSent;
 
+  /// No description provided for @authEmailNotVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your email address before signing in.'**
+  String get authEmailNotVerified;
+
+  /// No description provided for @authVerifyEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify email address'**
+  String get authVerifyEmail;
+
+  /// No description provided for @emailVerificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your email'**
+  String get emailVerificationTitle;
+
+  /// No description provided for @emailVerificationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code sent to {email}.'**
+  String emailVerificationBody(String email);
+
+  /// No description provided for @emailVerificationCode.
+  ///
+  /// In en, this message translates to:
+  /// **'6-digit verification code'**
+  String get emailVerificationCode;
+
+  /// No description provided for @emailVerificationVerify.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify email'**
+  String get emailVerificationVerify;
+
+  /// No description provided for @emailVerificationResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend code'**
+  String get emailVerificationResend;
+
+  /// No description provided for @emailVerificationCountdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend available in {seconds}s'**
+  String emailVerificationCountdown(int seconds);
+
+  /// No description provided for @emailVerificationInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code from your email.'**
+  String get emailVerificationInvalid;
+
+  /// No description provided for @emailVerificationExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This code has expired. Request a new code.'**
+  String get emailVerificationExpired;
+
+  /// No description provided for @emailVerificationAttemptsExceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many incorrect attempts. Request a new code.'**
+  String get emailVerificationAttemptsExceeded;
+
+  /// No description provided for @emailVerificationSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Email verified. You can now sign in.'**
+  String get emailVerificationSuccess;
+
+  /// No description provided for @forgotPasswordBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your parent account email and we will send a reset link if an account exists.'**
+  String get forgotPasswordBody;
+
+  /// No description provided for @forgotPasswordSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send reset link'**
+  String get forgotPasswordSend;
+
   /// No description provided for @authPasswordHint.
   ///
   /// In en, this message translates to:

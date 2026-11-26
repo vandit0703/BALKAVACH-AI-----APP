@@ -65,6 +65,7 @@ def api(isolated_test_session, monkeypatch):
     from app.core.config import settings
     from app.db.session import get_db
     from app.main import app
+    from app.core.rate_limit import FixedWindowLimiter
     from tests.harness import ApiHarness
 
     monkeypatch.setattr(settings, "jwt_secret_key", "integration-test-secret-that-is-long-enough")
@@ -72,6 +73,22 @@ def api(isolated_test_session, monkeypatch):
         settings,
         "child_credentials_encryption_key",
         Fernet.generate_key().decode("ascii"),
+    )
+    import app.api.v1.auth as auth_api
+    from app.integrations import email as email_module
+
+    for limiter_name in (
+        "registration_limiter",
+        "login_limiter",
+        "password_reset_limiter",
+        "verification_resend_limiter",
+    ):
+        monkeypatch.setattr(auth_api, limiter_name, FixedWindowLimiter())
+    verification_mailbox = []
+    monkeypatch.setattr(
+        email_module,
+        "send_parent_verification",
+        lambda email, otp: verification_mailbox.append((email, otp)),
     )
     from app.services.push_service import deliver_ready
 
@@ -87,7 +104,7 @@ def api(isolated_test_session, monkeypatch):
     app.dependency_overrides[get_db] = _get_db
     try:
         with TestClient(app) as client:
-            yield ApiHarness(client, isolated_test_session)
+            yield ApiHarness(client, isolated_test_session, verification_mailbox)
     finally:
         app.dependency_overrides.pop(get_db, None)
 

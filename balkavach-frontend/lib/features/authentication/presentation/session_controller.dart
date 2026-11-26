@@ -131,15 +131,14 @@ class SessionController extends AsyncNotifier<Session?> {
     await _adopt(session);
   }
 
-  Future<void> register({
+  Future<String> register({
     required String fullName,
     required String email,
     required String password,
   }) async {
-    final session = await ref
+    return ref
         .read(authRepositoryProvider)
         .register(fullName: fullName, email: email, password: password);
-    await _adopt(session);
   }
 
   /// Replaces the parent session with a child session for [childId]. The

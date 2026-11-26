@@ -15,7 +15,6 @@ import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/server_status.dart';
 import '../../../shared/widgets/state_views.dart';
-import 'forgot_password_dialog.dart';
 import 'session_controller.dart';
 
 enum _AuthMode { signIn, register }
@@ -38,6 +37,7 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
   _AuthMode _mode = _AuthMode.signIn;
   bool _busy = false;
   String? _formError;
+  bool _verificationRequired = false;
   Map<String, String> _fieldErrors = const {};
 
   @override
@@ -52,6 +52,7 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() {
       _formError = null;
+      _verificationRequired = false;
       _fieldErrors = const {};
     });
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -61,11 +62,19 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
       if (_mode == _AuthMode.signIn) {
         await controller.signIn(email: _email.text, password: _password.text);
       } else {
-        await controller.register(
+        final email = await controller.register(
           fullName: _name.text,
           email: _email.text,
           password: _password.text,
         );
+        if (mounted) {
+          context.go(
+            Uri(
+              path: AppRoutes.verifyEmail,
+              queryParameters: {'email': email},
+            ).toString(),
+          );
+        }
       }
       // The router redirects to the parent home on success.
     } on ApiException catch (error) {
@@ -74,6 +83,8 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
         _formError = switch (error) {
           UnauthorizedException(code: 'invalid_credentials') =>
             l10n.authInvalidCredentials,
+          ForbiddenException(code: 'email_not_verified') =>
+            l10n.authEmailNotVerified,
           ConflictException() => l10n.authEmailInUse,
           ValidationException() => null,
           _ => describeError(l10n, error),
@@ -85,14 +96,19 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
           };
           _formError = _fieldErrors.isEmpty ? l10n.errorGeneric : null;
         }
+        _verificationRequired = error.code == 'email_not_verified';
       });
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _forgotPassword() =>
-      showForgotPasswordDialog(context, ref, initialEmail: _email.text);
+  void _forgotPassword() => context.go(
+    Uri(
+      path: AppRoutes.forgotPassword,
+      queryParameters: {'email': _email.text.trim()},
+    ).toString(),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -144,6 +160,7 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
                           : (selection) => setState(() {
                               _mode = selection.first;
                               _formError = null;
+                              _verificationRequired = false;
                               _fieldErrors = const {};
                             }),
                     ),
@@ -208,6 +225,24 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
                           style: context.text.bodyMedium?.copyWith(
                             color: context.colors.error,
                           ),
+                        ),
+                      ),
+                    if (_verificationRequired)
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: TextButton(
+                          key: const Key('auth.verifyEmail'),
+                          onPressed: _busy
+                              ? null
+                              : () => context.go(
+                                  Uri(
+                                    path: AppRoutes.verifyEmail,
+                                    queryParameters: {
+                                      'email': _email.text.trim(),
+                                    },
+                                  ).toString(),
+                                ),
+                          child: Text(l10n.authVerifyEmail),
                         ),
                       ),
                     PrimaryButton(
