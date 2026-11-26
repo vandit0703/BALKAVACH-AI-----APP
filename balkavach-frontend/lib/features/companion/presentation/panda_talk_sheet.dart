@@ -188,8 +188,9 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
       await _controller.finishListening();
       return;
     }
-    // A parent's consent comes first: without it the child is never asked
-    // for the microphone permission, and the microphone never opens.
+    // Voice must be allowed first (on-device recogniser, or a parent's
+    // consent for the cloud one, and not turned off by a parent): otherwise
+    // the child is never asked for the permission and the mic never opens.
     if (!await _controller.checkVoiceConsent() || !mounted) return;
     if (!_micExplainedThisRun) {
       final granted = await ref.read(speechInputProvider).hasPermission();
@@ -215,7 +216,13 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
         key: const Key('panda.talk.micExplain'),
         icon: const Icon(Icons.mic_rounded),
         title: Text(l10n.pandaMicExplainTitle),
-        content: Text(l10n.pandaMicExplainBody),
+        // On-device recognition keeps the audio on the phone; otherwise the
+        // platform service may be Google's and use the internet.
+        content: Text(
+          ref.read(pandaTalkControllerProvider).onDeviceSpeech == true
+              ? l10n.pandaMicExplainBodyOnDevice
+              : l10n.pandaMicExplainBody,
+        ),
         actions: [
           TextButton(
             key: const Key('panda.talk.micNotNow'),
@@ -270,6 +277,7 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
       PandaProblem.network => l10n.pandaErrorNetwork,
       PandaProblem.busy => l10n.pandaErrorBusy,
       PandaProblem.voiceNeedsParent => l10n.pandaVoiceNeedsParent,
+      PandaProblem.voiceTurnedOff => l10n.pandaVoiceTurnedOff,
     };
     final childSaid = state.phase == PandaPhase.listening
         ? state.heard

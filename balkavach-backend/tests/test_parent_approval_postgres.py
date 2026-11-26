@@ -250,6 +250,50 @@ def test_if_the_entitlement_table_requires_a_video_target_every_mission_approval
 	assert _counts(api.session, sid) == NOTHING
 
 
+# Which production rule broke approvals? Each candidate leaves a distinct signature in the server log line
+# "Mission approval failed and was rolled back (... error_type=..., sqlstate=..., constraint=..., table=..., column=...)".
+# One such line from production (2026-11-26 device report) identifies the cause; these map signature -> rule.
+@pytest.mark.parametrize(
+	("ddl", "signature"),
+	[
+		(
+			"ALTER TABLE video_access_entitlements ADD CONSTRAINT assumed_one_target CHECK "
+			"((video_id IS NOT NULL)::int + (video_collection_id IS NOT NULL)::int = 1)",
+			"sqlstate=23514 constraint=assumed_one_target table=video_access_entitlements",
+		),
+		(
+			"ALTER TABLE video_access_entitlements ALTER COLUMN video_id SET NOT NULL",
+			"sqlstate=23502 table=video_access_entitlements column=video_id",
+		),
+		(
+			"ALTER TABLE video_access_entitlements ALTER COLUMN redemption_id SET NOT NULL",
+			"sqlstate=23502 table=video_access_entitlements column=redemption_id",
+		),
+		(
+			"ALTER TABLE video_access_entitlements ALTER COLUMN expires_at SET NOT NULL",
+			"sqlstate=23502 table=video_access_entitlements column=expires_at",
+		),
+		(
+			"ALTER TABLE notifications ADD CONSTRAINT assumed_notification_types CHECK "
+			"(notification_type IN ('task_submitted','task_approved','task_rejected','task_resubmission_requested',"
+			"'badge_unlocked','streak_continued','streak_milestone','streak_new_after_break')) NOT VALID",
+			"sqlstate=23514 constraint=assumed_notification_types table=notifications",
+		),
+	],
+	ids=["one-target-check", "video_id-not-null", "redemption_id-not-null", "expires_at-not-null", "notification-type-check"],
+)
+def test_each_candidate_production_rule_leaves_a_distinct_log_signature(api, caplog, ddl, signature):
+	ctx, sid = _pending(api)
+	api.session.execute(text(ddl))  # transactional DDL: rolled back with the test
+	with caplog.at_level("ERROR", logger="app.services.task_service"):
+		response = api.review(ctx["parent"]["token"], sid, "approved")
+	assert response.status_code == 500 and response.json()["error"]["code"] == "approval_failed"
+	assert _counts(api.session, sid) == NOTHING
+	logged = " ".join(r.getMessage() for r in caplog.records if "rolled back" in r.getMessage())
+	assert "error_type=IntegrityError" in logged, logged
+	assert signature in logged, logged
+
+
 # ---- 4. concurrency on committed data, separate connections ------------------------------------------------------------------
 
 

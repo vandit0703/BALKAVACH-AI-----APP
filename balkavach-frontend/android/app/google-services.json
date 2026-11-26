@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "944002524542",
+    "project_id": "balkavach-vk",
+    "storage_bucket": "balkavach-vk.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:944002524542:android:c1873f042866f4b0e03f2f",
+        "android_client_info": {
+          "package_name": "com.balkavach.balkavach_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5EM4KO8El0SuAiodYCo__RyaPnhqG8jI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

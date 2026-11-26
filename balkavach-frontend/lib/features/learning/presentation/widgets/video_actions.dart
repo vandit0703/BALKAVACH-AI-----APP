@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/platform/link_opener.dart';
 import '../../../../shared/platform/text_sharer.dart';
+import '../../../authentication/presentation/session_controller.dart';
 import '../../data/playable_video.dart';
 import '../youtube_player_screen.dart' show showVideoReportDialog;
 
@@ -16,16 +17,42 @@ void _notify(BuildContext context, String message) {
 
 bool _leaveGateOpen = false;
 
-/// A link inside the YouTube player wants to leave the app. A grown-up must
-/// confirm before it opens in the YouTube app or browser. Several navigation
-/// events can arrive for one tap, so only one dialog is ever shown.
+/// A child is signed in. Children never leave BALKAVACH for YouTube: once in
+/// the YouTube app, its autoplay, suggestions and floating player are outside
+/// the approved catalogue and outside anything BALKAVACH can control.
+///
+/// Waits for the session if it is still loading. If it cannot be read, the
+/// answer is "child" (fail closed): a link that should have opened is the
+/// safer mistake.
+Future<bool> isChildSession(WidgetRef ref) async {
+  try {
+    final session = await ref.read(sessionControllerProvider.future);
+    return session?.isChild ?? false;
+  } on Object {
+    return true;
+  }
+}
+
+/// A link inside the YouTube player wants to leave the app. In a child
+/// session it never opens (a short message explains why). Otherwise a
+/// grown-up must confirm before it opens in the YouTube app or browser.
+/// Several navigation events can arrive for one tap, so only one dialog is
+/// ever shown.
 Future<void> askGrownUpThenOpen(
   BuildContext context,
   WidgetRef ref,
   Uri uri,
 ) async {
   if (_leaveGateOpen || !context.mounted) return;
-  _leaveGateOpen = true;
+  _leaveGateOpen = true; // one answer per tap, even while the session loads
+  final child = await isChildSession(ref);
+  if (child || !context.mounted) {
+    _leaveGateOpen = false;
+    if (child && context.mounted) {
+      _notify(context, AppLocalizations.of(context).youtubeLeaveBlocked);
+    }
+    return;
+  }
   final l10n = AppLocalizations.of(context);
   bool? confirmed;
   try {
@@ -65,6 +92,13 @@ Future<void> confirmAndShareVideo(
   final uri = video.shareUri;
   if (uri == null) return;
   final l10n = AppLocalizations.of(context);
+  // A shared watch link opens straight in the YouTube app, so children
+  // cannot share videos.
+  if (await isChildSession(ref)) {
+    if (context.mounted) _notify(context, l10n.videoShareBlocked);
+    return;
+  }
+  if (!context.mounted) return;
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(

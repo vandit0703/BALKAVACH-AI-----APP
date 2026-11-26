@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
@@ -26,16 +27,25 @@ abstract class SpeechInput {
   /// Whether microphone permission was already granted (no prompt shown).
   Future<bool> hasPermission();
 
+  /// Whether the phone has an on-device (offline) recogniser, so audio never
+  /// leaves the device. False when unknown: the stricter cloud rules apply.
+  Future<bool> onDeviceAvailable();
+
   /// The best recogniser locale for [languageCode] (`en`, `hi`, `gu`), or
   /// `null` when the device cannot recognise that language.
   Future<String?> localeFor(String languageCode);
 
   /// Listens once. Exactly one of [onFinal] or [onError] is called.
+  ///
+  /// [onDevice] asks for the on-device recogniser. Only pass true after
+  /// [onDeviceAvailable] said so: the plugin would otherwise fall back to the
+  /// cloud recogniser without telling anyone.
   Future<void> listen({
     required String localeId,
     required void Function(String words) onPartial,
     required void Function(String words) onFinal,
     required void Function(SpeechInputError error) onError,
+    bool onDevice = false,
   });
 
   /// Ends listening and keeps what was heard so far.
@@ -133,6 +143,18 @@ class PlatformSpeechInput implements SpeechInput {
   @override
   Future<bool> hasPermission() => _stt.hasPermission.catchError((_) => false);
 
+  static const _channel = MethodChannel('balkavach/speech');
+
+  @override
+  Future<bool> onDeviceAvailable() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
+    try {
+      return await _channel.invokeMethod<bool>('onDeviceAvailable') ?? false;
+    } on Object {
+      return false; // unknown: treat as cloud, which needs a parent's consent
+    }
+  }
+
   @override
   Future<String?> localeFor(String languageCode) async {
     final locales = await _stt.locales().catchError((_) => <LocaleName>[]);
@@ -152,6 +174,7 @@ class PlatformSpeechInput implements SpeechInput {
     required void Function(String words) onPartial,
     required void Function(String words) onFinal,
     required void Function(SpeechInputError error) onError,
+    bool onDevice = false,
   }) async {
     _onFinal = onFinal;
     _onError = onError;
@@ -173,6 +196,7 @@ class PlatformSpeechInput implements SpeechInput {
           partialResults: true,
           cancelOnError: true,
           listenMode: ListenMode.confirmation,
+          onDevice: onDevice,
         ),
       );
     } catch (error) {

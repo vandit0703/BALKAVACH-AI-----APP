@@ -140,7 +140,14 @@ This is a reconstruction, not production's schema.
 
 ### Full backend run
 
-FULL_BACKEND_RESULT_PLACEHOLDER
+Run on the local PostgreSQL with the Redis stand-in. A first attempt is void: the Redis stand-in died part-way through, producing 322 failures and 15 errors.
+
+| Run | Result |
+|---|---|
+| With this fix (whole `tests/`) | 180 failed, 1273 passed, 1 skipped |
+| Baseline: the same tree with the pre-fix `videos.py` and `feed_world.py` and without the two new test files | 179 failed, 1256 passed, 1 skipped |
+
+Every failure in the fix run also fails in the baseline, except `test_mission_catalogue.py::test_the_weekday_theme_is_offered`. That test also fails on its own with the pre-fix files in place, so it is unrelated to this change (it depends on daily-mission rotation and test-DB state). The ~179 failures were already there. Earlier notes put them down to admin, YouTube, quiz and parent-mode tests needing tables and seed data the reconstructed schema lacks, plus real regressions (`docs/phase-6-closeout-report.md`). They are not triaged here. All 18 new backend tests pass.
 
 ## Production
 

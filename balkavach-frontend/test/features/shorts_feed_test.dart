@@ -379,7 +379,7 @@ void main() {
       expect(rig.embeds.history, hasLength(2));
     });
 
-    testWidgets('links inside the player never leave without a grown-up', (
+    testWidgets('links inside the player never leave in a child session', (
       tester,
     ) async {
       final rig = await _pumpFeed(tester, shorts: _page(0, 1));
@@ -387,16 +387,9 @@ void main() {
 
       rig.embeds.only().onLeaveRequested(link);
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('youtube.leaveGate')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('youtube.leaveStay')));
-      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('youtube.leaveGate')), findsNothing);
+      expect(find.textContaining('play only inside BALKAVACH'), findsOneWidget);
       expect(rig.opener.opened, isEmpty);
-
-      rig.embeds.only().onLeaveRequested(link);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('youtube.leaveOpen')));
-      await tester.pumpAndSettle();
-      expect(rig.opener.opened, [link]);
     });
 
     testWidgets('the sound button mutes the active player', (tester) async {
@@ -412,26 +405,16 @@ void main() {
       expect(rig.embeds.only().muted, isTrue);
     });
 
-    testWidgets('sharing asks a grown-up first and shares the watch link', (
-      tester,
-    ) async {
+    testWidgets('a child cannot share a watch link (it would open the '
+        'YouTube app)', (tester) async {
       final rig = await _pumpFeed(tester, shorts: _page(0, 1));
 
       await tester.tap(find.byKey(const Key('videos.shorts.share')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('video.shareGate')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('video.shareCancel')));
-      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('video.shareGate')), findsNothing);
+      expect(find.textContaining('turned off for children'), findsOneWidget);
       expect(rig.sharer.shared, isEmpty);
-
-      await tester.tap(find.byKey(const Key('videos.shorts.share')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('video.shareConfirm')));
-      await tester.pumpAndSettle();
-      expect(
-        rig.sharer.shared.single,
-        contains('youtube.com/watch?v=${_ytId(0)}'),
-      );
+      expect(rig.opener.opened, isEmpty);
     });
 
     testWidgets('a grown-up can report the Short', (tester) async {

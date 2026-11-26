@@ -20,6 +20,7 @@ import '../../../shared/widgets/state_views.dart';
 import '../data/learning_repository.dart';
 import 'stories_tab.dart' show storyReadingMinutes;
 import 'video_lock_screen.dart' show ensureVideoAllowance;
+import 'widgets/video_actions.dart' show isChildSession;
 
 /// Localised name for the categories the app ships with; any other category
 /// an administrator adds shows the name the server sent.
@@ -213,6 +214,9 @@ class LearningDetailScreen extends ConsumerStatefulWidget {
 class _LearningDetailScreenState extends ConsumerState<LearningDetailScreen> {
   bool _failed = false;
 
+  /// A child tapped a YouTube link: it stays closed (see isChildSession).
+  bool _blocked = false;
+
   // A story counts as read once the child has been on it for a fraction of its
   // reading time AND scrolled to the end. That only decides when the Panda
   // cheers: nothing is recorded or paid for reading (no policy exists yet).
@@ -264,6 +268,11 @@ class _LearningDetailScreenState extends ConsumerState<LearningDetailScreen> {
   }
 
   Future<void> _open(Uri uri) async {
+    // Children never leave for YouTube (see isChildSession).
+    if (isYouTubeUri(uri) && await isChildSession(ref)) {
+      if (mounted) setState(() => _blocked = true);
+      return;
+    }
     final opened = await ref.read(linkOpenerProvider).open(uri);
     if (mounted) setState(() => _failed = !opened);
   }
@@ -379,12 +388,12 @@ class _LearningDetailScreenState extends ConsumerState<LearningDetailScreen> {
                   ),
                 ),
               ],
-              if (_failed)
+              if (_failed || _blocked)
                 Semantics(
                   liveRegion: true,
                   child: Text(
-                    l10n.learnOpenFailed,
-                    key: const Key('learn.failed'),
+                    _blocked ? l10n.youtubeLeaveBlocked : l10n.learnOpenFailed,
+                    key: Key(_blocked ? 'learn.blocked' : 'learn.failed'),
                     textAlign: TextAlign.center,
                     style: context.text.bodyMedium?.copyWith(
                       color: colors.error,

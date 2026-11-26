@@ -660,9 +660,10 @@ void main() {
     Future<(Harness, _FakeOpener, List<YouTubeEmbedConfig>)> pump(
       WidgetTester tester, {
       Map<String, Object?>? video,
+      bool parent = false,
     }) async {
       final h = await Harness.create(
-        session: Fx.childSession(),
+        session: parent ? Fx.parentSession() : Fx.childSession(),
         prefs: onboardedPrefs,
       );
       final opener = _FakeOpener();
@@ -700,8 +701,23 @@ void main() {
       );
     });
 
-    testWidgets('leaving the player needs a grown-up', (tester) async {
+    testWidgets('a child can never leave the player for YouTube', (
+      tester,
+    ) async {
       final (_, opener, configs) = await pump(tester);
+      final link = Uri.parse('https://www.youtube.com/watch?v=aaaaaaaaaaa');
+
+      configs.last.onLeaveRequested(link);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('youtube.leaveGate')), findsNothing);
+      expect(find.textContaining('play only inside BALKAVACH'), findsOneWidget);
+      expect(opener.opened, isEmpty);
+    });
+
+    testWidgets('a parent session leaves only after confirming', (
+      tester,
+    ) async {
+      final (_, opener, configs) = await pump(tester, parent: true);
       final link = Uri.parse('https://www.youtube.com/watch?v=aaaaaaaaaaa');
 
       configs.last.onLeaveRequested(link);

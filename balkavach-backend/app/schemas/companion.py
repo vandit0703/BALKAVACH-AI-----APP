@@ -23,6 +23,12 @@ class CompanionChatRequest(BaseModel):
 	# parental consent; older apps send nothing and are treated as typed text.
 	# Client-declared: the real control is that the app never opens the mic.
 	input: Literal["text", "voice"] = "text"
+	# Which recogniser produced a voice turn. "on_device": the phone's offline
+	# recogniser, audio never leaves the device, so no consent record is needed
+	# (a parent who turned voice off still stops it). "cloud": the system
+	# recogniser that may send audio to its provider; needs parental consent.
+	# Older apps send nothing and are treated as "cloud" (the stricter rule).
+	speech: Literal["on_device", "cloud"] = "cloud"
 
 	@field_validator("text")
 	@classmethod
@@ -45,6 +51,8 @@ class CompanionVoiceConsentPublic(BaseModel):
 
 	granted: bool
 	document_version: str
+	# A parent explicitly turned voice off: no microphone at all, not even on-device.
+	refused: bool = False
 
 
 class PandaVoiceConsentPublic(BaseModel):

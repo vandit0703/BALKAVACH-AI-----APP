@@ -122,7 +122,7 @@ def companion_chat(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> CompanionChatReply:
-	if request.input == "voice" and not panda_voice.is_granted(session, child.id):
+	if request.input == "voice" and not panda_voice.voice_turn_allowed(session, child.id, request.speech):
 		# Checked before the duplicate cache so a withdrawal applies at once.
 		raise APIError(
 			403,
@@ -164,5 +164,6 @@ def companion_voice_consent(
 	return CompanionVoiceConsentPublic(
 		granted=panda_voice.is_granted(session, child.id),
 		document_version=panda_voice.PANDA_VOICE_CONSENT_VERSION,
+		refused=panda_voice.is_refused(session, child.id),
 	)
 

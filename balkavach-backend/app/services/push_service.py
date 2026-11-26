@@ -75,6 +75,11 @@ GENERIC_TEXT: dict[str, dict[str, tuple[str, str]]] = {
 		"hi": ("फिर से भेजें", "आपका मिशन दोबारा भेजने के लिए कहा गया है।"),
 		"gu": ("ફરી મોકલો", "તમારું મિશન ફરીથી મોકલવા કહ્યું છે."),
 	},
+	"interest_requested": {
+		"en": ("New topic request", "Your child asked to watch new topics."),
+		"hi": ("नए विषय का अनुरोध", "आपके बच्चे ने नए विषय देखने का अनुरोध किया है।"),
+		"gu": ("નવા વિષયની વિનંતી", "તમારા બાળકે નવા વિષયો જોવાની વિનંતી કરી છે."),
+	},
 	"reward_requested": {
 		"en": ("Reward requested", "A reward request is waiting for you."),
 		"hi": ("इनाम का अनुरोध", "एक इनाम अनुरोध स्वीकृति की प्रतीक्षा में है।"),

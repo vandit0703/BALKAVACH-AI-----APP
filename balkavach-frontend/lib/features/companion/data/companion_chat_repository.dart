@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show immutable;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/api_exception.dart';
@@ -67,6 +68,7 @@ class CompanionChatRepository {
     required String turnId,
     String? contextIntent,
     bool voice = false,
+    bool onDevice = false,
   }) => guardApi(() async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/api/v1/companion/chat',
@@ -78,6 +80,9 @@ class CompanionChatRepository {
         // Voice turns need a parent's consent; the server refuses them
         // otherwise (403 `panda_voice_consent_required`).
         'input': voice ? 'voice' : 'text',
+        // Which recogniser heard it. On-device turns need no consent record
+        // (unless a parent turned voice off); cloud turns need consent.
+        if (voice) 'speech': onDevice ? 'on_device' : 'cloud',
       },
       options: Options(sendTimeout: timeout, receiveTimeout: timeout),
     );
@@ -86,13 +91,34 @@ class CompanionChatRepository {
 
   /// `GET /api/v1/companion/voice-consent`: whether a parent agreed to the
   /// microphone for this child.
-  Future<bool> voiceConsent() => guardApi(() async {
+  Future<bool> voiceConsent() async => (await voiceConsentStatus()).granted;
+
+  /// `GET /api/v1/companion/voice-consent`: the parent's agreement (needed for
+  /// the cloud recogniser) and whether a parent turned voice off altogether
+  /// (which stops the on-device recogniser too). Older servers send no
+  /// `refused`; it then reads as false.
+  Future<PandaVoiceConsent> voiceConsentStatus() => guardApi(() async {
     final response = await _dio.get<Map<String, dynamic>>(
       '/api/v1/companion/voice-consent',
       options: Options(sendTimeout: timeout, receiveTimeout: timeout),
     );
-    return response.data?['granted'] == true;
+    return PandaVoiceConsent(
+      granted: response.data?['granted'] == true,
+      refused: response.data?['refused'] == true,
+    );
   });
+}
+
+/// The server's view of Talk to Panda's microphone for this child.
+@immutable
+class PandaVoiceConsent {
+  const PandaVoiceConsent({required this.granted, this.refused = false});
+
+  /// A parent agreed (needed for the cloud recogniser).
+  final bool granted;
+
+  /// A parent turned voice off: no microphone at all.
+  final bool refused;
 }
 
 /// The server's code when a voice turn arrives without parental consent.
