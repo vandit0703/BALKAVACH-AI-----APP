@@ -235,3 +235,105 @@ def test_only_approved_interests_reach_recommendation_ranking(api, world):
 
 	assert _put(api, token, _url(world), {"interests": [cats["stories"]], "clear_pending": True}).status_code == 200
 	assert _child_interest_slugs(_stored(api, world["child"]["id"])) == {cats["stories"]}
+
+
+# ---- the request reaches the parent (notification + push), 2026-11-26 ----------------------------------------
+
+
+def _parent_notifications(api, parent_id, notification_type="interest_requested"):
+	api.session.expire_all()
+	Notification = get_model("Notification")
+	return (
+		api.session.query(Notification)
+		.filter(Notification.recipient_user_id == parent_id, Notification.notification_type == notification_type)
+		.all()
+	)
+
+
+def test_child_request_notifies_the_parent_in_the_same_transaction(api, world):
+	cats = world["cats"]
+	res = api.post("/videos/interests/request", world["child"]["token"], {"interests": [cats["stories"]]})
+	assert res.status_code == 200, res.text
+	rows = _parent_notifications(api, world["parent"]["id"])
+	assert len(rows) == 1
+	assert "Mia" in rows[0].message  # in-app text names the child; the push text is generic
+	# The parent's notification list (bell badge) shows it.
+	listed = api.get("/notifications", world["parent"]["token"])
+	assert listed.status_code == 200, listed.text
+	body = listed.json()
+	items = body if isinstance(body, list) else body.get("items", body.get("notifications", []))
+	assert any(item.get("notification_type", item.get("type")) == "interest_requested" for item in items)
+
+
+def test_repeating_the_same_request_does_not_notify_twice(api, world):
+	cats = world["cats"]
+	child_token = world["child"]["token"]
+	for _ in range(3):
+		assert api.post("/videos/interests/request", child_token, {"interests": [cats["music"]]}).status_code == 200
+	assert len(_parent_notifications(api, world["parent"]["id"])) == 1
+	# A different request is new information for the parent.
+	assert api.post("/videos/interests/request", child_token, {"interests": [cats["science"]]}).status_code == 200
+	assert len(_parent_notifications(api, world["parent"]["id"])) == 2
+
+
+def test_rejected_request_creates_no_notification(api, world):
+	res = api.post("/videos/interests/request", world["child"]["token"], {"interests": ["not-a-topic"]})
+	assert res.status_code == 422
+	assert _parent_notifications(api, world["parent"]["id"]) == []
+
+
+def test_unrelated_parent_is_not_notified(api, world):
+	intruder = api.register_parent("Intruder")
+	api.create_family(intruder["token"], "Other Family")
+	assert api.post("/videos/interests/request", world["child"]["token"], {"interests": [world["cats"]["science"]]}).status_code == 200
+	assert _parent_notifications(api, intruder["id"]) == []
+
+
+def test_push_failure_does_not_lose_the_request(api, world, monkeypatch):
+	from app.services import push_service
+
+	def boom():
+		raise RuntimeError("FCM down")
+
+	monkeypatch.setattr(push_service, "get_push_notification_provider", boom)
+	res = api.post("/videos/interests/request", world["child"]["token"], {"interests": [world["cats"]["stories"]]})
+	assert res.status_code == 200, res.text
+	assert _stored(api, world["child"]["id"]).pending_interest_requests == [world["cats"]["stories"]]
+	assert len(_parent_notifications(api, world["parent"]["id"])) == 1
+
+
+def test_interest_request_has_a_generic_push_text_in_every_language():
+	from app.services.push_service import GENERIC_TEXT
+
+	texts = GENERIC_TEXT["interest_requested"]
+	assert set(texts) >= {"en", "hi", "gu"}
+	for title, body in texts.values():
+		assert title and body
+
+
+def _join_family(api, world, name, *, active=True):
+	"""A second parent in the child's family (no invite flow in the harness: direct, committed insert)."""
+	FamilyMember = get_model("FamilyMember")
+	parent = api.register_parent(name)
+	api.session.add(
+		FamilyMember(family_id=world["family"]["id"], user_id=parent["id"], relationship="parent", is_active=active)
+	)
+	api.session.commit()  # each request rolls back uncommitted work
+	return parent
+
+
+def test_every_active_parent_in_the_family_is_notified_once(api, world):
+	second = _join_family(api, world, "Second Parent")
+	left = _join_family(api, world, "Left Family", active=False)
+	assert api.post("/videos/interests/request", world["child"]["token"], {"interests": [world["cats"]["science"]]}).status_code == 200
+	assert len(_parent_notifications(api, world["parent"]["id"])) == 1
+	assert len(_parent_notifications(api, second["id"])) == 1
+	assert _parent_notifications(api, left["id"]) == []  # an inactive membership gets nothing
+
+
+def test_the_same_topics_in_another_order_are_not_a_new_request(api, world):
+	cats = world["cats"]
+	child_token = world["child"]["token"]
+	assert api.post("/videos/interests/request", child_token, {"interests": [cats["science"], cats["music"]]}).status_code == 200
+	assert api.post("/videos/interests/request", child_token, {"interests": [cats["music"], cats["science"]]}).status_code == 200
+	assert len(_parent_notifications(api, world["parent"]["id"])) == 1

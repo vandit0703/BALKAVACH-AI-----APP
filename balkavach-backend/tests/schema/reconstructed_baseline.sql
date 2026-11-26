@@ -283,7 +283,8 @@ CREATE TABLE redemption_requests (
 	reviewed_at timestamp,
 	review_note text,
 	fulfilled_at timestamp,
-	cancelled_at timestamp,
+	-- No cancelled_at: migration 0022 adds it. A pre-migration baseline that already had it made
+	-- `alembic upgrade head` fail with DuplicateColumn (fixed 2026-11-26).
 	created_at timestamp NOT NULL DEFAULT now()
 );
 

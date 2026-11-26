@@ -248,6 +248,16 @@ void main() {
       expect(opener.opened, [Uri.parse('https://example.com/song')]);
     });
 
+    testWidgets('a child never leaves for a YouTube link', (tester) async {
+      final opener = await pump(
+        tester,
+        _item(url: 'https://www.youtube.com/watch?v=abcdefghijk'),
+      );
+      await _tap(tester, find.byKey(const Key('learn.open')));
+      expect(find.byKey(const Key('learn.blocked')), findsOneWidget);
+      expect(opener.opened, isEmpty);
+    });
+
     testWidgets('says so when nothing can open the link', (tester) async {
       await pump(tester, _item(), opens: false);
       await _tap(tester, find.byKey(const Key('learn.open')));

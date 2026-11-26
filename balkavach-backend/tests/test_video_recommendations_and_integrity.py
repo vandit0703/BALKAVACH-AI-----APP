@@ -191,6 +191,8 @@ def test_child_cannot_bypass_parent_approval_on_interest_request(monkeypatch):
 
 	child = SimpleNamespace(
 		id=uuid4(),
+		family_id=uuid4(),
+		display_name="Mia",
 		interests=["science"],
 		pending_interest_requests=[],
 	)
@@ -205,6 +207,16 @@ def test_child_cannot_bypass_parent_approval_on_interest_request(monkeypatch):
 		def all(self):
 			return [("science", "Science"), ("stories", "Stories")]
 
+		# The route re-reads the child's row under a lock before comparing the request.
+		def with_for_update(self):
+			return self
+
+		def populate_existing(self):
+			return self
+
+		def one(self):
+			return child
+
 	class FakeSession:
 		def query(self, *args, **kwargs):
 			return FakeQuery()
@@ -215,8 +227,12 @@ def test_child_cannot_bypass_parent_approval_on_interest_request(monkeypatch):
 	monkeypatch.setattr(
 		video_routes,
 		"get_model",
-		lambda name: SimpleNamespace(slug=1, name=1, display_order=1, is_active=SimpleNamespace(is_=lambda v: True)),
+		lambda name: SimpleNamespace(id=1, slug=1, name=1, display_order=1, is_active=SimpleNamespace(is_=lambda v: True)),
 	)
+	# Parent notification is covered on PostgreSQL (tests/test_parent_interest_management_pg.py).
+	import app.services.notification_service as notifications
+
+	monkeypatch.setattr(notifications, "family_parent_ids", lambda session, family_id: [])
 	app.dependency_overrides[require_child] = lambda: child
 	app.dependency_overrides[get_db] = lambda: FakeSession()
 	try:

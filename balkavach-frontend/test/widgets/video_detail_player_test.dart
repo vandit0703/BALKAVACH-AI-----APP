@@ -292,14 +292,15 @@ void main() {
       expect(find.byKey(const Key('detail.retry')), findsNothing);
     });
 
-    testWidgets('links in the player need a grown-up', (tester) async {
+    testWidgets('links in the player never leave in a child session', (
+      tester,
+    ) async {
       final rig = await _pump(tester, youtube('a', _yt));
 
       rig.embeds.only().onLeaveRequested(Uri.parse('https://youtube.com/x'));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('youtube.leaveGate')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('youtube.leaveStay')));
-      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('youtube.leaveGate')), findsNothing);
+      expect(find.textContaining('play only inside BALKAVACH'), findsOneWidget);
       expect(rig.opener.opened, isEmpty);
     });
 

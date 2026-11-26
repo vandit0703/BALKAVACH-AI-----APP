@@ -19,6 +19,8 @@ class _QuietInput implements SpeechInput {
   @override
   Future<bool> hasPermission() async => true;
   @override
+  Future<bool> onDeviceAvailable() async => false;
+  @override
   Future<String?> localeFor(String languageCode) async => '${languageCode}_IN';
   @override
   Future<void> listen({
@@ -26,6 +28,7 @@ class _QuietInput implements SpeechInput {
     required void Function(String words) onPartial,
     required void Function(String words) onFinal,
     required void Function(SpeechInputError error) onError,
+    bool onDevice = false,
   }) async {}
   @override
   Future<void> stop() async {}

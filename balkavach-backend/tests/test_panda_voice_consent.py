@@ -198,7 +198,7 @@ def test_an_inactive_parent_cannot_change_it(db):
 		put_consent(db, parent, child, True)
 
 
-def _chat(db, child, monkeypatch, *, input_mode):
+def _chat(db, child, monkeypatch, *, input_mode, speech=None):
 	import app.api.v1.companion as companion
 
 	monkeypatch.setattr(companion, "load_child_context", lambda session, child: (None, "en"))
@@ -209,7 +209,8 @@ def _chat(db, child, monkeypatch, *, input_mode):
 			text="Hello!", mood="happy", intent="greeting", follow_up=None, safety="ok", suggestions=[]
 		),
 	)
-	request = CompanionChatRequest(text="hello panda", turn_id=uuid4(), input=input_mode)
+	extra = {} if speech is None else {"speech": speech}
+	request = CompanionChatRequest(text="hello panda", turn_id=uuid4(), input=input_mode, **extra)
 	return companion.companion_chat(request, child=child, session=db)
 
 
@@ -239,3 +240,64 @@ def test_withdrawal_stops_the_next_voice_turn(db, monkeypatch):
 def test_older_apps_without_the_input_field_count_as_typed():
 	request = CompanionChatRequest(text="hi", turn_id=uuid4())
 	assert request.input == "text"
+
+
+# ---- option B (2026-11-26): on-device recognition needs no grown-up step ------------------------------------
+#
+# Audio from the on-device recogniser never leaves the phone, so voice turns recognised on the device are
+# allowed without a consent record. A parent who explicitly turned voice off still stops them. The cloud
+# recogniser (the only option on phones without on-device recognition) still needs the parent's consent.
+
+
+def test_on_device_voice_turns_need_no_consent_record(db, monkeypatch):
+	child = make_family(db)
+	assert _chat(db, child, monkeypatch, input_mode="voice", speech="on_device").reply == "Hello!"
+
+
+def test_cloud_voice_turns_still_need_consent(db, monkeypatch):
+	child = make_family(db)
+	with pytest.raises(APIError) as refused:
+		_chat(db, child, monkeypatch, input_mode="voice", speech="cloud")
+	assert refused.value.code == "panda_voice_consent_required"
+
+
+def test_voice_turns_from_older_apps_count_as_cloud():
+	request = CompanionChatRequest(text="hi", turn_id=uuid4(), input="voice")
+	assert request.speech == "cloud"
+
+
+def test_a_parent_who_turned_voice_off_stops_on_device_voice_too(db, monkeypatch):
+	child = make_family(db)
+	parent = parent_of(db, child.family_id)
+	put_consent(db, parent, child, True)
+	put_consent(db, parent, child, False)
+
+	assert child_view(db, child).refused is True
+	with pytest.raises(APIError) as refused:
+		_chat(db, child, monkeypatch, input_mode="voice", speech="on_device")
+	assert refused.value.status_code == 403
+	assert refused.value.code == "panda_voice_consent_required"
+	# Typing still works.
+	assert _chat(db, child, monkeypatch, input_mode="text").reply == "Hello!"
+
+
+def test_no_record_is_not_a_refusal_and_a_new_grant_clears_one(db):
+	child = make_family(db)
+	parent = parent_of(db, child.family_id)
+	assert child_view(db, child).refused is False
+	put_consent(db, parent, child, True)
+	put_consent(db, parent, child, False)
+	assert child_view(db, child).refused is True
+	put_consent(db, parent, child, True)
+	view = child_view(db, child)
+	assert (view.granted, view.refused) == (True, False)
+
+
+def test_a_stale_grant_is_not_a_refusal(db, monkeypatch):
+	import app.services.panda_voice_consent_service as service
+
+	child = make_family(db)
+	parent = parent_of(db, child.family_id)
+	put_consent(db, parent, child, True)
+	monkeypatch.setattr(service, "PANDA_VOICE_CONSENT_VERSION", "panda-voice-next")
+	assert child_view(db, child).refused is False

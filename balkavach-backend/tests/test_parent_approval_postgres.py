@@ -35,6 +35,7 @@ from app.schemas.task import TaskReviewCreate
 from app.services import push_service, task_service
 from app.services import video_entitlement_service as entitlements
 from app.services.task_service import review_submission
+from app.services.mission_rewards import MISSION_STAR_REWARD, MISSION_XP_REWARD
 from app.utils import utc_naive
 
 BACKEND = Path(__file__).resolve().parent.parent
@@ -229,6 +230,50 @@ def _has_unique(session, table: str) -> bool:
 	)
 
 
+# ---- reward contract (decided 2026-11-26, docs/DEVICE_BUGS_2026-11-26_FIX_REPORT.md) --------------------------------------
+# Product rule: one approved mission pays 10 Stars and 15 XP. Every creation path stores exactly that on the task
+# (custom tasks, daily missions, mission library). Approval pays the task's stored amounts, which are exactly what the
+# parent's review queue shows ("Approve & Award +10"); a legacy row without amounts pays the 10/15 default it displays.
+
+
+def _queue_item(api, ctx, sid):
+	response = api.get(f"/reviews/submissions?family_id={ctx['family']['id']}&status=pending", ctx["parent"]["token"])
+	assert response.status_code == 200, response.text
+	return next(item for item in response.json() if item["id"] == sid)
+
+
+def test_approval_pays_exactly_what_the_review_queue_shows(api):
+	ctx, sid = _pending(api)
+	shown = _queue_item(api, ctx, sid)
+	assert (shown["star_reward"], shown["xp_reward"]) == (MISSION_STAR_REWARD, MISSION_XP_REWARD)
+	assert api.review(ctx["parent"]["token"], sid, "approved").status_code == 200
+	paid = _counts(api.session, sid)
+	assert (paid["stars"], paid["xp"]) == (shown["star_reward"], shown["xp_reward"])
+
+
+def test_a_legacy_task_without_reward_amounts_pays_the_default_it_displays(api):
+	"""If production allows NULL amounts (unknown; the code's effective_* helpers assume it may), the queue shows 10/15."""
+	ctx, sid = _pending(api)
+	api.session.execute(text("ALTER TABLE tasks ALTER COLUMN star_reward DROP NOT NULL, ALTER COLUMN xp_reward DROP NOT NULL"))
+	api.session.execute(
+		text("UPDATE tasks SET star_reward = NULL, xp_reward = NULL WHERE id = (SELECT task_id FROM task_submissions WHERE id = :s)"),
+		{"s": sid},
+	)
+	# Commit (releases the savepoint; the outer test transaction still rolls back): each request's
+	# rollback would otherwise undo this legacy state before the approval runs.
+	api.session.commit()
+	api.session.expire_all()
+	stored = api.session.execute(
+		text("SELECT star_reward, xp_reward FROM tasks WHERE id = (SELECT task_id FROM task_submissions WHERE id = :s)"),
+		{"s": sid},
+	).one()
+	assert tuple(stored) == (None, None), stored  # the legacy state really is in place
+	shown = _queue_item(api, ctx, sid)
+	assert (shown["star_reward"], shown["xp_reward"]) == (MISSION_STAR_REWARD, MISSION_XP_REWARD)
+	assert api.review(ctx["parent"]["token"], sid, "approved").status_code == 200
+	assert _counts(api.session, sid) == PAID
+
+
 # ---- 3. schema variants production might have (the live schema is unknown) ----------------------------------------------------
 
 
@@ -248,6 +293,50 @@ def test_if_the_entitlement_table_requires_a_video_target_every_mission_approval
 	response = api.review(ctx["parent"]["token"], sid, "approved")
 	assert response.status_code == 500 and response.json()["error"]["code"] == "approval_failed"
 	assert _counts(api.session, sid) == NOTHING
+
+
+# Which production rule broke approvals? Each candidate leaves a distinct signature in the server log line
+# "Mission approval failed and was rolled back (... error_type=..., sqlstate=..., constraint=..., table=..., column=...)".
+# One such line from production (2026-11-26 device report) identifies the cause; these map signature -> rule.
+@pytest.mark.parametrize(
+	("ddl", "signature"),
+	[
+		(
+			"ALTER TABLE video_access_entitlements ADD CONSTRAINT assumed_one_target CHECK "
+			"((video_id IS NOT NULL)::int + (video_collection_id IS NOT NULL)::int = 1)",
+			"sqlstate=23514 constraint=assumed_one_target table=video_access_entitlements",
+		),
+		(
+			"ALTER TABLE video_access_entitlements ALTER COLUMN video_id SET NOT NULL",
+			"sqlstate=23502 table=video_access_entitlements column=video_id",
+		),
+		(
+			"ALTER TABLE video_access_entitlements ALTER COLUMN redemption_id SET NOT NULL",
+			"sqlstate=23502 table=video_access_entitlements column=redemption_id",
+		),
+		(
+			"ALTER TABLE video_access_entitlements ALTER COLUMN expires_at SET NOT NULL",
+			"sqlstate=23502 table=video_access_entitlements column=expires_at",
+		),
+		(
+			"ALTER TABLE notifications ADD CONSTRAINT assumed_notification_types CHECK "
+			"(notification_type IN ('task_submitted','task_approved','task_rejected','task_resubmission_requested',"
+			"'badge_unlocked','streak_continued','streak_milestone','streak_new_after_break')) NOT VALID",
+			"sqlstate=23514 constraint=assumed_notification_types table=notifications",
+		),
+	],
+	ids=["one-target-check", "video_id-not-null", "redemption_id-not-null", "expires_at-not-null", "notification-type-check"],
+)
+def test_each_candidate_production_rule_leaves_a_distinct_log_signature(api, caplog, ddl, signature):
+	ctx, sid = _pending(api)
+	api.session.execute(text(ddl))  # transactional DDL: rolled back with the test
+	with caplog.at_level("ERROR", logger="app.services.task_service"):
+		response = api.review(ctx["parent"]["token"], sid, "approved")
+	assert response.status_code == 500 and response.json()["error"]["code"] == "approval_failed"
+	assert _counts(api.session, sid) == NOTHING
+	logged = " ".join(r.getMessage() for r in caplog.records if "rolled back" in r.getMessage())
+	assert "error_type=IntegrityError" in logged, logged
+	assert signature in logged, logged
 
 
 # ---- 4. concurrency on committed data, separate connections ------------------------------------------------------------------
@@ -275,7 +364,7 @@ def committed_world(isolated_test_engine):
 			child = Child(user_id=kid.id, family_id=family.id, display_name="hshs", date_of_birth=date(2017, 5, 1), is_active=True)
 			s.add(child)
 			s.flush()
-			task = Task(family_id=family.id, created_by=parent.id, assigned_child_id=child.id, title=title, description="d", star_reward=5, xp_reward=10, is_custom=True, is_active=True)
+			task = Task(family_id=family.id, created_by=parent.id, assigned_child_id=child.id, title=title, description="d", star_reward=MISSION_STAR_REWARD, xp_reward=MISSION_XP_REWARD, is_custom=True, is_active=True)
 			s.add(task)
 			s.flush()
 			sub = Submission(task_id=task.id, child_id=child.id, submission_number=1, proof_type="none", status="pending", submitted_at=utc_naive(datetime.now(timezone.utc)))

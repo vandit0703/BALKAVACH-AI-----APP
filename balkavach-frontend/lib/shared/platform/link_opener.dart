@@ -24,6 +24,16 @@ class PlatformLinkOpener implements LinkOpener {
   }
 }
 
+/// Whether [uri] points at YouTube (any of its hosts).
+bool isYouTubeUri(Uri uri) {
+  final host = uri.host.toLowerCase();
+  return host == 'youtu.be' ||
+      host == 'youtube.com' ||
+      host.endsWith('.youtube.com') ||
+      host == 'youtube-nocookie.com' ||
+      host.endsWith('.youtube-nocookie.com');
+}
+
 final linkOpenerProvider = Provider<LinkOpener>(
   (ref) => const PlatformLinkOpener(),
 );

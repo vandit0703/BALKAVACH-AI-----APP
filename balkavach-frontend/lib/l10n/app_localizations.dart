@@ -3736,6 +3736,18 @@ abstract class AppLocalizations {
   /// **'Stay here'**
   String get youtubeLeaveStay;
 
+  /// No description provided for @youtubeLeaveBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos play only inside BALKAVACH, so this link stays closed.'**
+  String get youtubeLeaveBlocked;
+
+  /// No description provided for @videoShareBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing videos is turned off for children.'**
+  String get videoShareBlocked;
+
   /// No description provided for @youtubeOtherVideoBlocked.
   ///
   /// In en, this message translates to:
@@ -5151,6 +5163,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Talking out loud to Panda needs a grown-up’s OK first. You can type to Panda instead!'**
   String get pandaVoiceNeedsParent;
+
+  /// No description provided for @pandaVoiceTurnedOff.
+  ///
+  /// In en, this message translates to:
+  /// **'A grown-up has turned off talking out loud to Panda. You can type to Panda instead!'**
+  String get pandaVoiceTurnedOff;
+
+  /// No description provided for @pandaMicExplainBodyOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Panda only listens after you tap the mic, and stops when you finish talking. Your phone turns your words into text right here on the phone, so your voice is not sent anywhere. BALKAVACH does not keep any recording. You can always type instead.'**
+  String get pandaMicExplainBodyOnDevice;
 
   /// No description provided for @pandaConsentTitle.
   ///

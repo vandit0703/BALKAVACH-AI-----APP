@@ -2224,6 +2224,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get youtubeLeaveStay => 'Stay here';
 
   @override
+  String get youtubeLeaveBlocked =>
+      'Videos play only inside BALKAVACH, so this link stays closed.';
+
+  @override
+  String get videoShareBlocked => 'Sharing videos is turned off for children.';
+
+  @override
   String get youtubeOtherVideoBlocked =>
       'That video isn\'t in BALKAVACH, so it can\'t play here.';
 
@@ -3090,6 +3097,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get pandaVoiceNeedsParent =>
       'Talking out loud to Panda needs a grown-up’s OK first. You can type to Panda instead!';
+
+  @override
+  String get pandaVoiceTurnedOff =>
+      'A grown-up has turned off talking out loud to Panda. You can type to Panda instead!';
+
+  @override
+  String get pandaMicExplainBodyOnDevice =>
+      'Panda only listens after you tap the mic, and stops when you finish talking. Your phone turns your words into text right here on the phone, so your voice is not sent anywhere. BALKAVACH does not keep any recording. You can always type instead.';
 
   @override
   String get pandaConsentTitle => 'Talk to Panda: microphone';

@@ -24,6 +24,11 @@ import '../helpers/harness.dart';
 class FakeInput implements SpeechInput {
   SpeechAvailability availability = SpeechAvailability.ready;
   bool permission = true;
+
+  /// The phone has an on-device recogniser (off by default: the cloud path).
+  bool onDevice = false;
+  int onDeviceChecks = 0;
+  bool? lastListenOnDevice;
   Map<String, String> locales = {'en': 'en_IN', 'hi': 'hi_IN', 'gu': 'gu_IN'};
   int prepares = 0;
   int listens = 0;
@@ -44,6 +49,12 @@ class FakeInput implements SpeechInput {
   Future<bool> hasPermission() async => permission;
 
   @override
+  Future<bool> onDeviceAvailable() async {
+    onDeviceChecks++;
+    return onDevice;
+  }
+
+  @override
   Future<String?> localeFor(String languageCode) async => locales[languageCode];
 
   @override
@@ -52,9 +63,11 @@ class FakeInput implements SpeechInput {
     required void Function(String words) onPartial,
     required void Function(String words) onFinal,
     required void Function(SpeechInputError error) onError,
+    bool onDevice = false,
   }) async {
     listens++;
     lastLocale = localeId;
+    lastListenOnDevice = onDevice;
     partial = onPartial;
     done = onFinal;
     failed = onError;
@@ -113,13 +126,25 @@ class FakeOutput implements SpeechOutput {
 class FakeChat extends CompanionChatRepository {
   FakeChat() : super(Dio());
 
-  final calls = <({String text, String locale, String? context, bool voice})>[];
+  final calls =
+      <
+        ({
+          String text,
+          String locale,
+          String? context,
+          bool voice,
+          bool onDevice,
+        })
+      >[];
   Completer<PandaChatReply>? pending;
   Object? error;
   bool hold = false;
 
   /// Parental microphone consent as the server reports it.
   bool consent = true;
+
+  /// A parent turned voice off (stops on-device voice too).
+  bool refused = false;
   Object? consentError;
   int consentChecks = 0;
   PandaChatReply reply = const PandaChatReply(
@@ -138,12 +163,14 @@ class FakeChat extends CompanionChatRepository {
     required String turnId,
     String? contextIntent,
     bool voice = false,
+    bool onDevice = false,
   }) async {
     calls.add((
       text: text,
       locale: locale,
       context: contextIntent,
       voice: voice,
+      onDevice: onDevice,
     ));
     if (error != null) throw error!;
     if (hold) return (pending = Completer<PandaChatReply>()).future;
@@ -151,10 +178,10 @@ class FakeChat extends CompanionChatRepository {
   }
 
   @override
-  Future<bool> voiceConsent() async {
+  Future<PandaVoiceConsent> voiceConsentStatus() async {
     consentChecks++;
     if (consentError != null) throw consentError!;
-    return consent;
+    return PandaVoiceConsent(granted: consent, refused: refused);
   }
 }
 
@@ -578,6 +605,108 @@ void main() {
     });
   });
 
+  group('on-device speech (no grown-up step)', () {
+    pandaTest('on-device recognition needs no consent record: listens on the '
+        'device and sends an on-device voice turn', (tester, w) async {
+      w.input.onDevice = true;
+      w.chat.consent = false;
+      unawaited(w.controller.startListening());
+      await flush(tester);
+
+      expect(w.state.problem, isNull);
+      expect(w.state.voiceAllowed, isTrue);
+      expect(w.state.phase, PandaPhase.listening);
+      expect(w.input.lastListenOnDevice, isTrue);
+      w.input.done!('hello panda');
+      await flush(tester);
+      expect(w.chat.calls.single.voice, isTrue);
+      expect(w.chat.calls.single.onDevice, isTrue);
+    });
+
+    pandaTest('a parent who turned voice off stops on-device voice too; '
+        'typing works', (tester, w) async {
+      w.input.onDevice = true;
+      w.chat
+        ..consent = false
+        ..refused = true;
+      await w.controller.startListening();
+      await flush(tester);
+
+      expect(w.input.prepares, 0, reason: 'no permission prompt');
+      expect(w.input.listens, 0);
+      expect(w.state.problem, PandaProblem.voiceTurnedOff);
+      expect(w.state.typing, isTrue);
+      unawaited(w.controller.send('hello'));
+      await flush(tester);
+      expect(w.chat.calls.single.voice, isFalse);
+    });
+
+    pandaTest('without an on-device recogniser the cloud one is used only '
+        'with consent', (tester, w) async {
+      w.input.onDevice = false;
+      w.chat.consent = true;
+      unawaited(w.controller.startListening());
+      await flush(tester);
+      expect(w.input.lastListenOnDevice, isFalse);
+      w.input.done!('hello panda');
+      await flush(tester);
+      expect(w.chat.calls.single.onDevice, isFalse);
+    });
+
+    pandaTest('denied microphone permission: the normal OS flow, then a '
+        'friendly message and typing', (tester, w) async {
+      w.input
+        ..onDevice = true
+        ..availability = SpeechAvailability.denied;
+      w.chat.consent = false;
+      await w.controller.startListening();
+      await flush(tester);
+      expect(w.input.prepares, 1, reason: 'the system permission is asked');
+      expect(w.input.listens, 0);
+      expect(w.state.problem, PandaProblem.micDenied);
+      expect(w.state.typing, isTrue);
+    });
+
+    pandaTest('if the on-device recogniser disappears, the mic does not '
+        'quietly fall back to the cloud', (tester, w) async {
+      w.input.onDevice = true;
+      w.chat.consent = false;
+      await w.controller.refreshVoiceConsent();
+      expect(w.state.voiceAllowed, isTrue);
+
+      w.input.onDevice = false;
+      await w.controller.startListening();
+      await flush(tester);
+      expect(w.input.listens, 0);
+      expect(w.state.problem, PandaProblem.voiceNeedsParent);
+      expect(w.state.voiceAllowed, isFalse);
+    });
+
+    pandaTest('an on-device recognition failure offers typing and is not '
+        'retried through the cloud', (tester, w) async {
+      w.input.onDevice = true;
+      w.chat.consent = true; // even with consent, no silent cloud retry
+      unawaited(w.controller.startListening());
+      await flush(tester);
+      w.input.failed!(SpeechInputError.failed);
+      await flush(tester);
+      expect(w.input.listens, 1);
+      expect(w.state.problem, PandaProblem.micUnavailable);
+      expect(w.state.typing, isTrue);
+    });
+
+    pandaTest('the voice session stops cleanly', (tester, w) async {
+      w.input.onDevice = true;
+      unawaited(w.controller.startListening());
+      await flush(tester);
+      expect(w.state.phase, PandaPhase.listening);
+      await w.controller.stop();
+      await flush(tester);
+      expect(w.state.phase, PandaPhase.idle);
+      expect(w.input.cancels, greaterThan(0));
+    });
+  });
+
   test('turn ids are fresh v4 UUIDs', () {
     final pattern = RegExp(
       r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
@@ -943,11 +1072,13 @@ void main() {
       double scale = 1,
       bool exhausted = false,
       bool consent = true,
+      bool onDevice = false,
     }) async {
       resetPandaMicExplanation();
       w = World();
       w.output.instant = true;
       w.chat.consent = consent;
+      w.input.onDevice = onDevice;
       await pumpScreen(
         tester,
         const Scaffold(body: PandaTalkSheet()),
@@ -1052,6 +1183,25 @@ void main() {
       expect(w.input.listens, 0);
       expect(find.textContaining('grown-up’s OK'), findsOneWidget);
       expect(find.byKey(const Key('panda.talk.input')), findsOneWidget);
+    });
+
+    testWidgets('with an on-device recogniser the mic is on without a '
+        'grown-up step, and the explanation says the voice stays on the '
+        'phone', (tester) async {
+      await open(tester, consent: false, onDevice: true);
+      expect(find.byIcon(Icons.mic_off_rounded), findsNothing);
+      w.input.permission = false;
+      await tester.tap(find.byKey(const Key('panda.talk.mic')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('panda.talk.micExplain')), findsOneWidget);
+      expect(find.textContaining('right here on the phone'), findsOneWidget);
+      expect(find.textContaining('Google'), findsNothing);
+      expect(find.textContaining('grown-up’s OK'), findsNothing);
+      await tester.tap(find.byKey(const Key('panda.talk.micAllow')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(w.input.prepares, 1);
+      expect(w.input.lastListenOnDevice, isTrue);
     });
 
     testWidgets('video time over: Panda opens sleepy and says so', (

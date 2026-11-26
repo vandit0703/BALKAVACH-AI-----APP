@@ -33,6 +33,9 @@ enum PandaProblem {
   /// A parent has not agreed to the microphone (or withdrew it). Typing to
   /// Panda still works.
   voiceNeedsParent,
+
+  /// A parent turned talking to Panda off (applies to every recogniser).
+  voiceTurnedOff,
 }
 
 /// Allowed moves. Anything else is ignored, so a late callback can never put
@@ -106,6 +109,7 @@ class PandaTalkState {
     this.typing = false,
     this.spokenWords = 0,
     this.voiceAllowed,
+    this.onDeviceSpeech,
   });
 
   final PandaPhase phase;
@@ -130,9 +134,15 @@ class PandaTalkState {
   /// increment is a real word boundary and moves Panda's mouth once.
   final int spokenWords;
 
-  /// Whether a parent agreed to the microphone, as last checked with the
-  /// server: null while unknown. Anything but true keeps the mic closed.
+  /// Whether voice may be used, as last checked: null while unknown.
+  /// Anything but true keeps the mic closed. True when no parent turned voice
+  /// off and either the phone recognises speech on the device (audio never
+  /// leaves it) or a parent agreed to the cloud recogniser.
   final bool? voiceAllowed;
+
+  /// The phone has an on-device recogniser, which is then the one used.
+  /// Null while unknown.
+  final bool? onDeviceSpeech;
 
   bool get busy =>
       phase == PandaPhase.listening || phase == PandaPhase.thinking;
@@ -153,6 +163,8 @@ class PandaTalkState {
     bool? typing,
     int? spokenWords,
     bool? voiceAllowed,
+    bool clearVoiceAllowed = false,
+    bool? onDeviceSpeech,
   }) => PandaTalkState(
     phase: phase ?? this.phase,
     mood: mood ?? this.mood,
@@ -164,7 +176,10 @@ class PandaTalkState {
     voiceMissing: voiceMissing ?? this.voiceMissing,
     typing: typing ?? this.typing,
     spokenWords: spokenWords ?? this.spokenWords,
-    voiceAllowed: voiceAllowed ?? this.voiceAllowed,
+    voiceAllowed: clearVoiceAllowed
+        ? null
+        : (voiceAllowed ?? this.voiceAllowed),
+    onDeviceSpeech: onDeviceSpeech ?? this.onDeviceSpeech,
   );
 }
 
@@ -247,41 +262,70 @@ class PandaTalkController extends Notifier<PandaTalkState> {
     await _say(line, mood, epoch);
   }
 
+  /// Asks the phone which recogniser it has and the server what the parent
+  /// decided. Voice is allowed unless a parent turned it off, when either the
+  /// recogniser is on-device (no audio leaves the phone, so no grown-up step)
+  /// or a parent agreed to the cloud recogniser. Throws [ApiException].
+  Future<PandaVoiceConsent> _evaluateVoice() async {
+    final onDevice = await _input.onDeviceAvailable();
+    final consent = await _chat.voiceConsentStatus();
+    state = state.copyWith(
+      onDeviceSpeech: onDevice,
+      voiceAllowed: !consent.refused && (onDevice || consent.granted),
+    );
+    return consent;
+  }
+
   /// Updates [PandaTalkState.voiceAllowed] quietly (panel opened, app
   /// resumed): no message, never touches the microphone.
   Future<void> refreshVoiceConsent() async {
     try {
-      final allowed = await _chat.voiceConsent();
-      state = state.copyWith(voiceAllowed: allowed);
+      await _evaluateVoice();
     } on ApiException {
       // Unknown stays unknown; the mic tap checks again.
     }
   }
 
-  /// Checks with the server, right before the microphone could open, that a
-  /// parent agreed. False (with a message, typing shown) when not, or when
-  /// the server cannot be asked: the microphone stays closed either way.
+  /// Checks, right before the microphone could open, that voice is allowed
+  /// ([_evaluateVoice]). False (with a message, typing shown) when not, or
+  /// when the server cannot be asked: the microphone stays closed either way.
   Future<bool> checkVoiceConsent() async {
     if (state.busy) return false;
-    final bool allowed;
+    final PandaVoiceConsent consent;
     try {
-      allowed = await _chat.voiceConsent();
+      consent = await _evaluateVoice();
     } on ApiException {
       _fail(PandaProblem.network, typing: true);
       return false;
     }
-    state = state.copyWith(voiceAllowed: allowed);
-    if (!allowed) _fail(PandaProblem.voiceNeedsParent, typing: true);
+    final allowed = state.voiceAllowed == true;
+    if (!allowed) {
+      _fail(
+        consent.refused
+            ? PandaProblem.voiceTurnedOff
+            : PandaProblem.voiceNeedsParent,
+        typing: true,
+      );
+    }
     return allowed;
   }
 
   /// The child tapped the mic (or Panda). Interrupts Panda if talking.
-  /// Requires parental consent: checked with the server first unless it was
-  /// just confirmed ([checkVoiceConsent]).
+  /// Voice must be allowed ([checkVoiceConsent]): checked first unless it was
+  /// just confirmed.
   Future<void> startListening() async {
     if (state.busy) return; // a turn is already in flight
-    // No microphone without a parent's consent, whoever calls this.
+    // Allowed because the recogniser is on-device? Make sure it still is:
+    // otherwise the plugin would quietly use the cloud recogniser, which
+    // needs a parent's consent.
+    if (state.voiceAllowed == true &&
+        state.onDeviceSpeech == true &&
+        !await _input.onDeviceAvailable()) {
+      state = state.copyWith(clearVoiceAllowed: true, onDeviceSpeech: false);
+    }
+    // No microphone unless voice is allowed, whoever calls this.
     if (state.voiceAllowed != true && !await checkVoiceConsent()) return;
+    final onDevice = state.onDeviceSpeech == true;
     final epoch = ++_epoch;
     _rest?.cancel();
     lipSync.cancel(); // the mouth stops with the voice, before anything awaits
@@ -324,7 +368,7 @@ class PandaTalkController extends Notifier<PandaTalkState> {
       },
       onFinal: (words) {
         if (epoch == _epoch && state.phase == PandaPhase.listening) {
-          unawaited(_respond(words, epoch, voice: true));
+          unawaited(_respond(words, epoch, voice: true, onDevice: onDevice));
         }
       },
       onError: (error) {
@@ -335,6 +379,9 @@ class PandaTalkController extends Notifier<PandaTalkState> {
           SpeechInputError.failed => PandaProblem.micUnavailable,
         }, typing: error != SpeechInputError.notHeard);
       },
+      // Never retried through the cloud recogniser if this fails: the child
+      // is offered typing instead.
+      onDevice: onDevice,
     );
   }
 
@@ -354,7 +401,12 @@ class PandaTalkController extends Notifier<PandaTalkState> {
     await _respond(text, epoch);
   }
 
-  Future<void> _respond(String raw, int epoch, {bool voice = false}) async {
+  Future<void> _respond(
+    String raw,
+    int epoch, {
+    bool voice = false,
+    bool onDevice = false,
+  }) async {
     final text = raw.trim();
     if (text.isEmpty) {
       _fail(PandaProblem.notHeard);
@@ -370,6 +422,7 @@ class PandaTalkController extends Notifier<PandaTalkState> {
         turnId: newTurnId(),
         contextIntent: _followUp,
         voice: voice,
+        onDevice: onDevice,
       );
       if (epoch != _epoch || state.phase != PandaPhase.thinking) return;
       _watchdog?.cancel();

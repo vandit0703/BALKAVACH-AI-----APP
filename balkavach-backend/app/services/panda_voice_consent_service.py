@@ -79,6 +79,31 @@ def is_granted(session: Session, child_id: UUID) -> bool:
 	return current_grant(session, child_id) is not None
 
 
+def is_refused(session: Session, child_id: UUID) -> bool:
+	"""A parent explicitly turned voice off: no grant in force and the newest record was withdrawn.
+
+	"No record yet" and "a grant for an older consent text" are not refusals. A refusal stops even
+	on-device recognition, so the parent's switch keeps controlling the microphone.
+	"""
+	if is_granted(session, child_id):
+		return False
+	ConsentRecord = get_model("ConsentRecord")
+	newest = (
+		session.query(ConsentRecord)
+		.filter(ConsentRecord.child_id == child_id, ConsentRecord.consent_type == CONSENT_TYPE)
+		.order_by(ConsentRecord.created_at.desc())
+		.first()
+	)
+	return newest is not None and newest.revoked_at is not None
+
+
+def voice_turn_allowed(session: Session, child_id: UUID, speech: str) -> bool:
+	"""On-device recognition: allowed unless a parent turned voice off. Cloud: needs consent."""
+	if speech == "on_device":
+		return not is_refused(session, child_id)
+	return is_granted(session, child_id)
+
+
 def describe(session: Session, child_id: UUID) -> dict:
 	grant = current_grant(session, child_id)
 	return {

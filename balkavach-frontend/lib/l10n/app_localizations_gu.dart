@@ -2213,6 +2213,13 @@ class AppLocalizationsGu extends AppLocalizations {
   String get youtubeLeaveStay => 'અહીં જ રહો';
 
   @override
+  String get youtubeLeaveBlocked =>
+      'વીડિયો ફક્ત BALKAVACH ની અંદર જ ચાલે છે, તેથી આ લિંક ખુલશે નહીં.';
+
+  @override
+  String get videoShareBlocked => 'બાળકો માટે વીડિયો શેર કરવાનું બંધ છે.';
+
+  @override
   String get youtubeOtherVideoBlocked =>
       'આ વિડિયો BALKAVACH માં નથી, તેથી અહીં ચાલી શકતો નથી.';
 
@@ -3072,6 +3079,14 @@ class AppLocalizationsGu extends AppLocalizations {
   @override
   String get pandaVoiceNeedsParent =>
       'પાંડા સાથે બોલીને વાત કરવા માટે પહેલાં કોઈ મોટાની હા જોઈએ. ત્યાં સુધી તમે પાંડાને લખીને વાત કરી શકો!';
+
+  @override
+  String get pandaVoiceTurnedOff =>
+      'કોઈ મોટાએ પાંડા સાથે બોલીને વાત કરવાનું બંધ કર્યું છે. તમે પાંડાને લખીને વાત કરી શકો છો!';
+
+  @override
+  String get pandaMicExplainBodyOnDevice =>
+      'પાંડા ત્યારે જ સાંભળે છે જ્યારે તમે માઇક દબાવો, અને તમે બોલવાનું પૂરું કરો ત્યારે અટકી જાય છે. તમારો ફોન તમારા શબ્દોને ફોન પર જ લખાણમાં ફેરવે છે, તેથી તમારો અવાજ ક્યાંય મોકલાતો નથી. BALKAVACH કોઈ રેકોર્ડિંગ રાખતું નથી. તમે હંમેશાં લખીને પણ વાત કરી શકો છો.';
 
   @override
   String get pandaConsentTitle => 'પાંડા સાથે વાત: માઇક્રોફોન';

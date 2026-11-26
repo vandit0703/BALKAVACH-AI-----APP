@@ -229,6 +229,10 @@ def update_task(
 		raise HTTPException(status_code=404, detail="Task not found")
 	_require_family(session, task.family_id, parent.id)
 	updates = request.model_dump(exclude_unset=True)
+	# Mission rewards are fixed server-side (10 Stars / 15 XP, set at creation). Like create_task, ignore any
+	# amounts a client sends: otherwise a scripted parent client could make approval pay inflated rewards.
+	updates.pop("star_reward", None)
+	updates.pop("xp_reward", None)
 	if updates.get("due_at") is not None:
 		updates["due_at"] = utc_naive(updates["due_at"])
 	if "assigned_child_id" in updates and updates["assigned_child_id"] is not None:

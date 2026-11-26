@@ -59,7 +59,10 @@ CATEGORIES: tuple[Category, ...] = (
 	Category("new_missions", frozenset({"task_assigned", "daily_missions_ready"})),
 	Category(
 		"mission_reviews",
-		frozenset({"task_submitted", "task_approved", "task_rejected", "task_resubmission_requested"}),
+		# interest_requested: a child's topic request waiting for the parent's review.
+		frozenset(
+			{"task_submitted", "task_approved", "task_rejected", "task_resubmission_requested", "interest_requested"}
+		),
 	),
 	Category(
 		"rewards",
