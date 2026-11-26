@@ -79,6 +79,7 @@ class VideoCategory(Base):
 	__tablename__ = "video_categories"
 	id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
 	name: Mapped[str] = mapped_column(String, default="Learn")
+	slug: Mapped[str | None] = mapped_column(String)
 	is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 	display_order: Mapped[int] = mapped_column(Integer, default=0)
 

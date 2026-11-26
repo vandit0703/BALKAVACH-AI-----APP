@@ -3630,6 +3630,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get interestsEmpty => 'No topics available yet.';
 
   @override
+  String get interestsChildNotLinked =>
+      'This child isn\'t linked to your account, so their topics can\'t be changed here.';
+
+  @override
+  String get interestsApproveHint =>
+      'Approving replaces the current topics with the ones your child asked for.';
+
+  @override
+  String get interestsRequestPickOne => 'Pick at least one topic to ask for.';
+
+  @override
+  String get interestsParentActiveTitle => 'Approved topics';
+
+  @override
+  String get interestsParentChooseTitle => 'Choose topics';
+
+  @override
   String get childLinkTitle => 'Link child device';
 
   @override

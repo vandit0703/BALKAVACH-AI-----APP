@@ -8,6 +8,8 @@ import '../../../l10n/app_localizations.dart';
 import '../../../shared/celebration/activity_completion.dart';
 import '../../../shared/celebration/celebration_queue.dart';
 import '../../../shared/celebration/panda_celebration.dart';
+import '../../learning/data/video_feed_repository.dart'
+    show videoAllowanceProvider;
 import '../../progress/data/progress_repository.dart';
 import '../../progress/presentation/progress_milestone_celebrator.dart';
 import '../data/approval_celebration_store.dart';
@@ -101,7 +103,16 @@ class _MissionApprovalCelebratorState
       return;
     }
     var celebrated = false;
-    for (final approval in store.pending(childId, submissions)) {
+    final approvals = store.pending(childId, submissions).toList();
+    if (approvals.isNotEmpty) {
+      // Each approval also unlocked video time on the server: reload the
+      // balance now (not after the celebration), so Home and the players
+      // stop showing a stale lock without a sign-out or a push.
+      ref
+        ..invalidate(childNotificationsProvider)
+        ..invalidate(videoAllowanceProvider);
+    }
+    for (final approval in approvals) {
       if (!mounted) return;
       // One celebration at a time across the whole app (approvals, level-ups,
       // badges), in the order they were detected.

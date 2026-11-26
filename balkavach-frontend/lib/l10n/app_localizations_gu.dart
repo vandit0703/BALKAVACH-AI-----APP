@@ -3614,6 +3614,24 @@ class AppLocalizationsGu extends AppLocalizations {
   String get interestsEmpty => 'હજુ સુધી કોઈ વિષયો ઉપલબ્ધ નથી.';
 
   @override
+  String get interestsChildNotLinked =>
+      'આ બાળક તમારા ખાતા સાથે જોડાયેલું નથી, તેથી અહીં તેના વિષયો બદલી શકાતા નથી.';
+
+  @override
+  String get interestsApproveHint =>
+      'મંજૂરી આપવાથી હાલના વિષયોની જગ્યાએ બાળકે માંગેલા વિષયો આવી જશે.';
+
+  @override
+  String get interestsRequestPickOne =>
+      'માંગવા માટે ઓછામાં ઓછો એક વિષય પસંદ કરો.';
+
+  @override
+  String get interestsParentActiveTitle => 'મંજૂર વિષયો';
+
+  @override
+  String get interestsParentChooseTitle => 'વિષયો પસંદ કરો';
+
+  @override
   String get childLinkTitle => 'બાળકનું ડિવાઇસ લિંક કરો';
 
   @override

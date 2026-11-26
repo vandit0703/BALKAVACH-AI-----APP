@@ -3629,6 +3629,23 @@ class AppLocalizationsHi extends AppLocalizations {
   String get interestsEmpty => 'अभी तक कोई विषय उपलब्ध नहीं है।';
 
   @override
+  String get interestsChildNotLinked =>
+      'यह बच्चा आपके खाते से जुड़ा नहीं है, इसलिए यहाँ उसके विषय नहीं बदले जा सकते।';
+
+  @override
+  String get interestsApproveHint =>
+      'मंज़ूरी देने पर मौजूदा विषयों की जगह बच्चे के माँगे गए विषय लग जाएँगे।';
+
+  @override
+  String get interestsRequestPickOne => 'माँगने के लिए कम से कम एक विषय चुनें।';
+
+  @override
+  String get interestsParentActiveTitle => 'मंज़ूर विषय';
+
+  @override
+  String get interestsParentChooseTitle => 'विषय चुनें';
+
+  @override
   String get childLinkTitle => 'बच्चे का डिवाइस लिंक करें';
 
   @override

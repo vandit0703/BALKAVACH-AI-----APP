@@ -18,6 +18,7 @@ from app.services.notification_service import create_notification, family_parent
 from app.services.progress_service import badge_qualifies
 from app.services.timezone_service import local_date_of
 from app.services.upload_service import claim_upload_for_submission, proof_url
+from app.services.video_entitlement_service import missing_mission_allowance_columns
 from app.utils import utc_naive
 
 logger = logging.getLogger(__name__)
@@ -196,8 +197,19 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 			return submission
 		raise APIError(409, "submission_already_reviewed", "This submission has already been reviewed")
 	if request.decision == "approved":
-		# Mission approval credits stars/XP only; it must not create reward redemptions or video entitlements.
-		pass
+		missing = missing_mission_allowance_columns()
+		if missing:
+			# Fail before writing anything: an approval pays stars, XP and video time together or not at all.
+			logger.critical(
+				"Mission approval refused: the database lacks the video allowance schema (%s). "
+				"Apply migration 0013_mission_video_entitlement.",
+				", ".join(missing),
+			)
+			raise APIError(
+				503,
+				"video_allowance_unavailable",
+				"Video time cannot be granted right now, so this mission was not approved. Nothing was awarded.",
+			)
 
 	approved_at = datetime.now(timezone.utc)  # one instant for every write this approval makes
 	now = utc_naive(approved_at)
@@ -355,6 +367,34 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 					session, child.user_id, "streak_continued", c_streak
 				)
 
+		# Each approved mission unlocks 900 s of video time (whole or nothing, see
+		# grant_mission_video_entitlement), in this same transaction: if anything below fails,
+		# _all_or_nothing rolls back the approval, stars, XP and the grant together.
+		from app.services import video_entitlement_service as entitlements
+		from app.services.notification_service import notify_video_entitlement_event
+
+		already_granted = entitlements.has_mission_entitlement_for(session, submission.id)
+		entitlement = entitlements.grant_mission_video_entitlement(
+			session, child, task, submission, now_utc=approved_at
+		)
+		granted_seconds = int(getattr(entitlement, "granted_seconds", 0) or 0)
+		video_grant = {
+			"attempted": True,
+			"existing": already_granted,
+			"seconds": 0 if already_granted else granted_seconds,
+		}
+		if entitlement is not None and not already_granted and granted_seconds > 0:
+			notify_video_entitlement_event(
+				session,
+				child.user_id,
+				"mission_video_time_granted",
+				minutes_granted=granted_seconds // 60,
+				task_id=task.id,
+				submission_id=submission.id,
+			)
+	else:
+		video_grant = {"attempted": False, "existing": False, "seconds": 0}
+
 	ChildProfile = get_model("ChildProfile")
 	child = session.query(ChildProfile).filter(ChildProfile.id == submission.child_id).one()
 	create_notification(
@@ -372,5 +412,23 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 		session.refresh(submission)
 	except Exception:
 		session.rollback()
+		# Internal ids only: no names, tokens or other personal data.
+		logger.warning(
+			"Mission review rolled back (submission=%s child=%s decision=%s video_grant_attempted=%s)",
+			submission_id,
+			child.id,
+			request.decision,
+			video_grant["attempted"],
+		)
 		raise
+	logger.info(
+		"Mission review committed (submission=%s child=%s decision=%s video_grant_attempted=%s "
+		"existing_entitlement=%s seconds_granted=%s)",
+		submission.id,
+		child.id,
+		request.decision,
+		video_grant["attempted"],
+		video_grant["existing"],
+		video_grant["seconds"],
+	)
 	return submission

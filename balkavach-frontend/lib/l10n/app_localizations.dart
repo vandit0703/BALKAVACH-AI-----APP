@@ -6052,6 +6052,36 @@ abstract class AppLocalizations {
   /// **'No topics available yet.'**
   String get interestsEmpty;
 
+  /// No description provided for @interestsChildNotLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'This child isn\'t linked to your account, so their topics can\'t be changed here.'**
+  String get interestsChildNotLinked;
+
+  /// No description provided for @interestsApproveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Approving replaces the current topics with the ones your child asked for.'**
+  String get interestsApproveHint;
+
+  /// No description provided for @interestsRequestPickOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick at least one topic to ask for.'**
+  String get interestsRequestPickOne;
+
+  /// No description provided for @interestsParentActiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved topics'**
+  String get interestsParentActiveTitle;
+
+  /// No description provided for @interestsParentChooseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose topics'**
+  String get interestsParentChooseTitle;
+
   /// No description provided for @childLinkTitle.
   ///
   /// In en, this message translates to:

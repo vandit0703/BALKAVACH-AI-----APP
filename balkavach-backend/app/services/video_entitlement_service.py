@@ -168,6 +168,17 @@ def missing_mission_allowance_columns() -> list[str]:
     return [name for name in MISSION_ALLOWANCE_COLUMNS if not hasattr(model, name)]
 
 
+def has_mission_entitlement_for(session: Session, submission_id: UUID) -> bool:
+    """Whether this submission already earned an entitlement (the grant's idempotency key)."""
+    VideoAccessEntitlement = get_model("VideoAccessEntitlement")
+    return (
+        session.query(VideoAccessEntitlement.id)
+        .filter(VideoAccessEntitlement.submission_id == submission_id)
+        .first()
+        is not None
+    )
+
+
 def grant_mission_video_entitlement(
     session: Session,
     child,

@@ -32,11 +32,18 @@ class ParentChildInterestsCard extends ConsumerStatefulWidget {
 
 class _ParentChildInterestsCardState
     extends ConsumerState<ParentChildInterestsCard> {
+  /// The last server-confirmed state for [_ParentChildInterestsCardState._owner].
   ChildInterests? _data;
   Set<String> _selected = {};
   Object? _error;
   bool _loading = true;
   bool _saving = false;
+
+  /// Which family/child the state above belongs to. A response for any other
+  /// child (the widget was reused for a sibling) is dropped.
+  late String _owner = _ownerKey;
+
+  String get _ownerKey => '${widget.familyId}/${widget.childId}';
 
   @override
   void initState() {
@@ -44,7 +51,30 @@ class _ParentChildInterestsCardState
     unawaited(_load());
   }
 
+  @override
+  void didUpdateWidget(covariant ParentChildInterestsCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.familyId != widget.familyId ||
+        oldWidget.childId != widget.childId) {
+      // Never show (or save) one child's topics on another child's profile.
+      _owner = _ownerKey;
+      _data = null;
+      _selected = {};
+      _error = null;
+      _saving = false;
+      unawaited(_load());
+    }
+  }
+
+  bool get _dirty {
+    final data = _data;
+    if (data == null) return false;
+    final saved = data.interests.toSet();
+    return saved.length != _selected.length || !saved.containsAll(_selected);
+  }
+
   Future<void> _load() async {
+    final owner = _ownerKey;
     setState(() {
       _loading = true;
       _error = null;
@@ -53,14 +83,14 @@ class _ParentChildInterestsCardState
       final data = await ref
           .read(familyRepositoryProvider)
           .getChildInterests(widget.familyId, widget.childId);
-      if (!mounted) return;
+      if (!mounted || owner != _owner) return;
       setState(() {
         _data = data;
         _selected = data.interests.toSet();
         _loading = false;
       });
     } on Object catch (e) {
-      if (!mounted) return;
+      if (!mounted || owner != _owner) return;
       setState(() {
         _error = e;
         _loading = false;
@@ -68,12 +98,17 @@ class _ParentChildInterestsCardState
     }
   }
 
+  /// Sends [interests] as the child's approved topics. The UI changes only
+  /// after the server confirms; on failure the parent's selection is kept.
   Future<void> _save({
     required List<String> interests,
-    bool clearPending = true,
+    required bool clearPending,
   }) async {
+    if (_saving) return; // one request at a time
+    final owner = _ownerKey;
     setState(() => _saving = true);
     final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final updated = await ref
           .read(familyRepositoryProvider)
@@ -83,27 +118,34 @@ class _ParentChildInterestsCardState
             interests,
             clearPending: clearPending,
           );
-      if (!mounted) return;
+      if (!mounted || owner != _owner) return;
       setState(() {
         _data = updated;
         _selected = updated.interests.toSet();
         _saving = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.interestsSaved)));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.interestsSaved)));
     } on Object catch (e) {
-      if (!mounted) return;
+      if (!mounted || owner != _owner) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(describeError(l10n, e))));
+      messenger.showSnackBar(SnackBar(content: Text(_errorText(l10n, e))));
     }
   }
+
+  /// 404 from these routes means the child is not in this parent's family
+  /// (the server checks membership); 503 means the server lacks the columns.
+  String _errorText(AppLocalizations l10n, Object error) => switch (error) {
+    NotFoundException() => l10n.interestsChildNotLinked,
+    ServerException(statusCode: 503) => l10n.interestsUnavailable,
+    _ => describeError(l10n, error),
+  };
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final muted = context.text.bodySmall?.copyWith(
+      color: context.colors.onSurfaceVariant,
+    );
     return AppCard(
       key: const Key('parent.interests.card'),
       child: Column(
@@ -111,19 +153,41 @@ class _ParentChildInterestsCardState
         spacing: AppSpacing.sm,
         children: [
           SectionHeader(title: l10n.interestsTitle),
-          Text(
-            l10n.interestsParentSubtitle,
-            style: context.text.bodySmall?.copyWith(
-              color: context.colors.onSurfaceVariant,
-            ),
-          ),
-          if (_loading)
-            const LinearProgressIndicator()
-          else if (_error != null)
-            ErrorView(error: _error!, onRetry: _load)
-          else if (_data == null || _data!.availableCategories.isEmpty)
-            Text(l10n.interestsEmpty)
+          Text(l10n.interestsParentSubtitle, style: muted),
+          if (_loading && _data == null)
+            const LinearProgressIndicator(key: Key('parent.interests.loading'))
+          else if (_data == null)
+            ErrorView(
+              key: const Key('parent.interests.error'),
+              error: _error ?? const UnknownApiException(message: 'No data'),
+              message: _error == null ? null : _errorText(l10n, _error!),
+              onRetry: _load,
+            )
+          else if (_data!.availableCategories.isEmpty)
+            Text(l10n.interestsEmpty, key: const Key('parent.interests.empty'))
           else ...[
+            Text(
+              l10n.interestsParentActiveTitle,
+              style: context.text.titleSmall,
+            ),
+            if (_data!.interests.isEmpty)
+              Text(
+                l10n.interestsActiveNone,
+                key: const Key('parent.interests.activeNone'),
+                style: muted,
+              )
+            else
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  for (final slug in _data!.interests)
+                    Chip(
+                      key: Key('parent.interests.active.$slug'),
+                      label: Text(_nameFor(slug)),
+                    ),
+                ],
+              ),
             if (_data!.pendingRequests.isNotEmpty)
               Container(
                 key: const Key('parent.interests.pending'),
@@ -145,31 +209,38 @@ class _ParentChildInterestsCardState
                       runSpacing: AppSpacing.xs,
                       children: [
                         for (final slug in _data!.pendingRequests)
-                          Chip(label: Text(_nameFor(slug))),
+                          Chip(
+                            key: Key('parent.interests.pendingItem.$slug'),
+                            label: Text(_nameFor(slug)),
+                          ),
                       ],
                     ),
+                    Text(l10n.interestsApproveHint, style: muted),
                     Wrap(
                       spacing: AppSpacing.sm,
                       children: [
+                        // The child's request is the full set of topics they
+                        // want (their picker starts from the approved ones),
+                        // so approving replaces the approved set with it.
                         FilledButton(
                           key: const Key('parent.interests.approve'),
                           onPressed: _saving
                               ? null
                               : () => _save(
-                                  interests: {
-                                    ..._selected,
-                                    ..._data!.pendingRequests,
-                                  }.toList(),
+                                  interests: _data!.pendingRequests,
                                   clearPending: true,
                                 ),
                           child: Text(l10n.interestsApproveAll),
                         ),
+                        // Dismissing keeps the server's approved topics; it
+                        // never saves unsaved chip edits behind the parent's
+                        // back.
                         TextButton(
                           key: const Key('parent.interests.reject'),
                           onPressed: _saving
                               ? null
                               : () => _save(
-                                  interests: _selected.toList(),
+                                  interests: _data!.interests,
                                   clearPending: true,
                                 ),
                           child: Text(l10n.interestsRejectAll),
@@ -179,6 +250,10 @@ class _ParentChildInterestsCardState
                   ],
                 ),
               ),
+            Text(
+              l10n.interestsParentChooseTitle,
+              style: context.text.titleSmall,
+            ),
             Wrap(
               spacing: AppSpacing.xs,
               runSpacing: AppSpacing.xs,
@@ -200,12 +275,17 @@ class _ParentChildInterestsCardState
                   ),
               ],
             ),
+            // Saving the parent's own choice leaves a child request waiting.
             PrimaryButton(
               key: const Key('parent.interests.save'),
               label: l10n.interestsSave,
               loading: _saving,
-              onPressed: () =>
-                  _save(interests: _selected.toList(), clearPending: false),
+              onPressed: _dirty
+                  ? () => _save(
+                      interests: _selected.toList(),
+                      clearPending: false,
+                    )
+                  : null,
             ),
           ],
         ],
@@ -431,6 +511,9 @@ class _ChildInterestsCardState extends ConsumerState<ChildInterestsCard> {
   }
 
   Future<void> _submitRequest() async {
+    // One request at a time; an empty request would leave the parent nothing
+    // to review (the server refuses it with 422).
+    if (_sending || _requested.isEmpty) return;
     setState(() => _sending = true);
     final l10n = AppLocalizations.of(context);
     try {
@@ -459,10 +542,13 @@ class _ChildInterestsCardState extends ConsumerState<ChildInterestsCard> {
 
   /// `GET /videos/interests` never answers 404 itself (a child session gets
   /// 401/403): a 404 means the server does not offer interests yet.
-  String _errorText(AppLocalizations l10n, Object error) =>
-      error is NotFoundException
-      ? l10n.interestsUnavailable
-      : describeError(l10n, error);
+  String _errorText(AppLocalizations l10n, Object error) => switch (error) {
+    NotFoundException() => l10n.interestsUnavailable,
+    ServerException(statusCode: 503) => l10n.interestsUnavailable,
+    ValidationException(code: 'interest_request_empty') =>
+      l10n.interestsRequestPickOne,
+    _ => describeError(l10n, error),
+  };
 
   String _nameFor(String slug) {
     for (final cat
@@ -556,10 +642,22 @@ class _ChildInterestsCardState extends ConsumerState<ChildInterestsCard> {
                     ),
                 ],
               ),
+              if (_requested.isEmpty)
+                Text(
+                  l10n.interestsRequestPickOne,
+                  key: const Key('child.interests.pickOne'),
+                  style: muted,
+                ),
+              if (_sending)
+                const LinearProgressIndicator(
+                  key: Key('child.interests.sending'),
+                ),
               SecondaryButton(
                 key: const Key('child.interests.request'),
                 label: l10n.interestsRequestSave,
-                onPressed: _sending ? null : _submitRequest,
+                onPressed: _sending || _requested.isEmpty
+                    ? null
+                    : _submitRequest,
               ),
             ],
           ],

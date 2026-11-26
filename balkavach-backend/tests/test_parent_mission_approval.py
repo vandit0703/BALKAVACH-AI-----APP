@@ -77,7 +77,7 @@ def assignment_status(session):
 # ---- approve ---------------------------------------------------------------------------------------------------
 
 
-def test_approving_pays_mission_stars_and_xp_exactly_once_without_video_entitlement(client):
+def test_approving_pays_ten_stars_fifteen_xp_and_fifteen_minutes_exactly_once(client):
 	http, family, session = client
 	item = make_submission(session, family)
 	assert counts(http, family) == {"pending": 1, "approved": 0, "retry": 0}
@@ -86,21 +86,19 @@ def test_approving_pays_mission_stars_and_xp_exactly_once_without_video_entitlem
 
 	assert response.status_code == 200, response.text
 	assert response.json()["status"] == "approved" and response.json()["id"] == str(item.submission.id)
-	assert paid(session) == ([10], [15], [], 1)
+	assert paid(session) == ([10], [15], [900], 1)
 	assert assignment_status(session) == "approved"
 	assert session.query(ChildProgress).one().total_xp == 15
 	assert counts(http, family) == {"pending": 0, "approved": 1, "retry": 0}
 	kinds = {row.notification_type for row in session.query(Notification)}
-	assert "task_approved" in kinds
-	assert "mission_video_time_granted" not in kinds
+	assert {"task_approved", "mission_video_time_granted"} <= kinds
 
 
-def test_the_queue_shows_configured_star_and_xp_rewards(client):
+def test_the_queue_shows_what_an_approval_pays_from_the_backend(client):
 	http, family, session = client
 	make_submission(session, family)
 	item = http.get(f"/api/v1/reviews/submissions?family_id={family.family_id}&status=pending").json()[0]
-	assert item["star_reward"] == 10
-	assert item["xp_reward"] == 15
+	assert (item["star_reward"], item["xp_reward"], item["video_minutes_reward"]) == (10, 15, 15)
 
 
 def test_approval_pays_and_displays_configured_task_rewards(client):
@@ -114,11 +112,11 @@ def test_approval_pays_and_displays_configured_task_rewards(client):
 
 	response = review(http, item.submission)
 	assert response.status_code == 200, response.text
-	assert paid(session) == ([25], [40], [], 1)
+	assert paid(session) == ([25], [40], [900], 1)
 	assert session.query(ChildProgress).one().total_xp == 40
 
 
-def test_mission_approval_never_creates_video_entitlement_even_when_daily_cap_is_full(client):
+def test_the_three_rewards_are_independent_a_full_daily_cap_still_pays_stars_and_xp(client):
 	http, family, session = client
 	row = session.query(shared.FamilySetting).one()
 	row.video_settings = {"daily_limit_seconds": 900}
@@ -131,7 +129,7 @@ def test_mission_approval_never_creates_video_entitlement_even_when_daily_cap_is
 
 	stars, xp, seconds, reviews = paid(session)
 	assert (stars, xp) == ([10, 10], [15, 15])
-	assert seconds == []
+	assert seconds == [900], "the second mission found the daily cap full and unlocked no time"
 
 
 # ---- reject and retry --------------------------------------------------------------------------------------------
@@ -166,10 +164,9 @@ def test_repeating_an_approval_returns_the_existing_result_and_pays_nothing_more
 
 	assert first.status_code == again.status_code == third.status_code == 200
 	assert again.json() == first.json()
-	assert paid(session) == ([10], [15], [], 1)
+	assert paid(session) == ([10], [15], [900], 1)
 	assert session.query(ChildProgress).one().total_xp == 15
 	assert session.query(Notification).filter_by(notification_type="task_approved").count() == 1
-	assert session.query(Notification).filter_by(notification_type="mission_video_time_granted").count() == 0
 
 
 def test_a_conflicting_second_decision_is_refused_and_changes_nothing(client):
@@ -179,7 +176,7 @@ def test_a_conflicting_second_decision_is_refused_and_changes_nothing(client):
 	response = review(http, item.submission, "rejected")
 	assert response.status_code == 409
 	assert response.json()["error"]["code"] == "submission_already_reviewed"
-	assert paid(session) == ([10], [15], [], 1)
+	assert paid(session) == ([10], [15], [900], 1)
 	assert status_of(session, item.submission) == "approved"
 
 
@@ -245,19 +242,17 @@ def test_a_bad_decision_is_a_validation_error(client):
 # ---- failures are atomic and named -----------------------------------------------------------------------------------
 
 
-def test_a_failed_approval_is_atomic_and_the_retry_succeeds(client, monkeypatch):
+def test_a_failing_allowance_grant_rolls_everything_back_with_a_clear_error_and_the_retry_succeeds(client, monkeypatch):
 	http, family, session = client
 	item = make_submission(session, family)
-	real_commit = session.commit
-	calls = {"count": 0}
+	from app.services import video_entitlement_service as entitlements
 
-	def boom():
-		calls["count"] += 1
-		if calls["count"] == 1:
-			raise RuntimeError("simulated commit failure")
-		return real_commit()
+	real = entitlements.grant_mission_video_entitlement
 
-	monkeypatch.setattr(session, "commit", boom)
+	def boom(*args, **kwargs):
+		raise RuntimeError("entitlement table exploded")
+
+	monkeypatch.setattr(entitlements, "grant_mission_video_entitlement", boom)
 	response = review(http, item.submission)
 
 	assert response.status_code == 500
@@ -270,9 +265,10 @@ def test_a_failed_approval_is_atomic_and_the_retry_succeeds(client, monkeypatch)
 	assert session.query(ChildProgress).count() == 0
 	assert counts(http, family) == {"pending": 1, "approved": 0, "retry": 0}
 
+	monkeypatch.setattr(entitlements, "grant_mission_video_entitlement", real)
 	retry = review(http, item.submission)
 	assert retry.status_code == 200
-	assert paid(session) == ([10], [15], [], 1)
+	assert paid(session) == ([10], [15], [900], 1)
 
 
 def test_a_duplicate_reward_row_fails_the_whole_approval_instead_of_half_paying(client):
@@ -292,13 +288,19 @@ def test_a_duplicate_reward_row_fails_the_whole_approval_instead_of_half_paying(
 	assert status_of(session, item.submission) == "pending"
 
 
-def test_mission_approval_does_not_require_video_allowance_schema(client):
+def test_a_database_without_the_allowance_columns_is_refused_before_anything_is_written(client, monkeypatch):
 	http, family, session = client
 	item = make_submission(session, family)
+	monkeypatch.setattr(task_service, "missing_mission_allowance_columns", lambda: ["submission_id", "source_type"])
 	response = review(http, item.submission)
-	assert response.status_code == 200, response.text
-	assert response.json()["status"] == "approved"
-	assert paid(session) == ([10], [15], [], 1)
+	assert response.status_code == 503
+	body = response.json()["error"]
+	assert body["code"] == "video_allowance_unavailable"
+	assert "submission_id" not in body["message"], "column names go to the log, not to a parent's screen"
+	assert paid(session) == NOTHING
+	assert status_of(session, item.submission) == "pending"
+	# Declining or asking for a retry pays nothing, so it does not depend on the allowance schema.
+	assert review(http, item.submission, "rejected").status_code == 200
 
 
 def test_the_schema_check_names_missing_columns(monkeypatch):

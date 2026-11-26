@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, require_admin_permission, require_child, require_parent
+from app.core.exceptions import APIError
 from app.integrations.youtube import YouTubeError, get_youtube_client, to_api_error
 from app.db.base import get_model
 from app.db.session import get_db
@@ -127,6 +128,10 @@ def request_video_interests(
 		# Schema without migration 0022: refuse rather than report a request
 		# that was never stored.
 		raise HTTPException(status_code=503, detail="Interest requests are not available yet")
+	if not requested:
+		# Nothing valid to ask for (empty, unknown or inactive topics). Storing [] would answer 200
+		# while the parent sees no request at all, and would wipe a request already waiting.
+		raise APIError(422, "interest_request_empty", "Choose at least one available topic.")
 	child.pending_interest_requests = requested
 	session.commit()
 	return {

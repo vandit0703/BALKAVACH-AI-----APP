@@ -53,7 +53,10 @@ void main() {
     final put = h.backend
         .requestsTo('PUT', '/api/v1/families/fam-1/children/child-1/interests')
         .single;
-    expect((put.data as Map)['interests'], containsAll(['science', 'stories']));
+    // The child's request is the full set they want, so approving applies it
+    // exactly (a union could never approve a request to drop a topic).
+    expect((put.data as Map)['interests'], ['stories']);
+    expect((put.data as Map)['clear_pending'], isTrue);
     expect(find.byKey(const Key('parent.interests.pending')), findsNothing);
   });
 
