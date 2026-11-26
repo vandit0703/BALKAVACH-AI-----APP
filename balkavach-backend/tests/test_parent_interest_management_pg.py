@@ -309,3 +309,31 @@ def test_interest_request_has_a_generic_push_text_in_every_language():
 	assert set(texts) >= {"en", "hi", "gu"}
 	for title, body in texts.values():
 		assert title and body
+
+
+def _join_family(api, world, name, *, active=True):
+	"""A second parent in the child's family (no invite flow in the harness: direct, committed insert)."""
+	FamilyMember = get_model("FamilyMember")
+	parent = api.register_parent(name)
+	api.session.add(
+		FamilyMember(family_id=world["family"]["id"], user_id=parent["id"], relationship="parent", is_active=active)
+	)
+	api.session.commit()  # each request rolls back uncommitted work
+	return parent
+
+
+def test_every_active_parent_in_the_family_is_notified_once(api, world):
+	second = _join_family(api, world, "Second Parent")
+	left = _join_family(api, world, "Left Family", active=False)
+	assert api.post("/videos/interests/request", world["child"]["token"], {"interests": [world["cats"]["science"]]}).status_code == 200
+	assert len(_parent_notifications(api, world["parent"]["id"])) == 1
+	assert len(_parent_notifications(api, second["id"])) == 1
+	assert _parent_notifications(api, left["id"]) == []  # an inactive membership gets nothing
+
+
+def test_the_same_topics_in_another_order_are_not_a_new_request(api, world):
+	cats = world["cats"]
+	child_token = world["child"]["token"]
+	assert api.post("/videos/interests/request", child_token, {"interests": [cats["science"], cats["music"]]}).status_code == 200
+	assert api.post("/videos/interests/request", child_token, {"interests": [cats["music"], cats["science"]]}).status_code == 200
+	assert len(_parent_notifications(api, world["parent"]["id"])) == 1

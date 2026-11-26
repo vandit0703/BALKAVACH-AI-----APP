@@ -15,6 +15,7 @@ from app.schemas.task import TaskReviewCreate, TaskSubmissionCreate
 from app.services.child_age import ensure_task_age_eligible
 from app.services.ledger_service import lifetime_stars_earned, star_balance, xp_total
 from app.services.notification_service import create_notification, family_parent_ids
+from app.services.mission_rewards import effective_star_reward, effective_xp_reward
 from app.services.progress_service import badge_qualifies
 from app.services.timezone_service import local_date_of
 from app.services.upload_service import claim_upload_for_submission, proof_url
@@ -240,8 +241,10 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 	if request.decision == "approved":
 		# The task's configured amounts are locked with the task and paid once per submission. Ledger keys
 		# remain submission-scoped, so a retry cannot add a second reward.
-		stars_awarded = int(task.star_reward or 0)
-		xp_awarded = int(task.xp_reward or 0)
+		# Same helpers as the parent's review queue (reviews.py), so the amount paid is always the amount
+		# shown on "Approve & Award": a legacy row without amounts pays the 10/15 default it displays.
+		stars_awarded = effective_star_reward(task.star_reward)
+		xp_awarded = effective_xp_reward(task.xp_reward)
 		StarTransaction = get_model("StarTransaction")
 		session.add(
 			StarTransaction(

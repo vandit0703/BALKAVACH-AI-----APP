@@ -211,3 +211,152 @@ Not run: no APK build, no integration tests on a device or emulator, and no real
 3. Run migration 0023 in production once it has been reviewed.
 4. Decide whether to back-fill video time for missions approved from 22 to 26 Nov.
 5. Configure FCM on the VPS so interest-request pushes are delivered (`docs/FCM_FIREBASE_CLI_AUDIT.md`).
+
+---
+
+# Follow-up review (2026-11-26 evening)
+
+HEAD `8b2090b` ("check", committed by the owner at 18:46; it contains everything above plus `google-services.json`). The changes below are uncommitted on top of it. Nothing was deployed, pushed or migrated, and no production system was touched. The approval/video issue stays **BLOCKED** until the production journal line gives the SQLSTATE, constraint, table and column.
+
+## 1. Reward contract: fixed 10 Stars / 15 XP
+
+**Decision (from the existing product documents and code, not invented here):** one approved mission pays **10 Stars and 15 XP**.
+- `mission_rewards.py` defines `MISSION_STAR_REWARD = 10` and `MISSION_XP_REWARD = 15`.
+- The custom-task API, daily missions and the mission library all store exactly those amounts on the task.
+- `docs/mission-library-plan.md`, `docs/phase-6-parent-audit-and-plan.md` and `docs/SECURITY_AUDIT.md` (SEC-04) state the rule.
+
+Approval pays the amounts stored on the task. Those are exactly what the parent's review queue shows ("Approve & Award +10").
+
+**What the 4 failing concurrency tests showed:** their fixture inserted a task with 5 Stars / 10 XP straight into the database, a state no creation path can produce. The fixture now uses the product constants. No behaviour was changed to make them pass.
+
+**Two real defects found and fixed while checking the contract:**
+
+| Defect | Fix | Test |
+|---|---|---|
+| `PATCH /tasks/{id}` applied client-sent `star_reward` / `xp_reward`, so a scripted parent client could make approval pay inflated amounts (SEC-04 on the update path). The existing test `test_a_parent_cannot_change_a_missions_reward` had been failing for this reason. | `app/api/v1/tasks.py`: the update ignores reward fields, as creation already did. Clients that send them still get 200. | `test_api_mission_rewards.py` now passes |
+| The queue displays `effective_star_reward(...)` (NULL falls back to 10/15) but approval paid `int(task.star_reward or 0)`. A legacy row without amounts would show +10 and pay 0. | `app/services/task_service.py`: approval uses the same `effective_*` helpers, so the amount paid is always the amount shown. | `test_a_legacy_task_without_reward_amounts_pays_the_default_it_displays` (failed before the fix: 0/0 paid), `test_approval_pays_exactly_what_the_review_queue_shows` |
+
+**Open (owner):** production may hold legacy custom tasks with amounts other than 10/15, created before creation was fixed. They are paid as displayed. Normalising them would be a production data change.
+
+## 2. Migration 0022 `DuplicateColumn`
+
+- **Cause:** the local reconstructed baseline (`tests/schema/reconstructed_baseline.sql`), which is meant to be the schema *before* migration 0001, already contained `redemption_requests.cancelled_at`, a column added only by 0022.
+- **Ruled out:** the test does not apply migrations twice. It builds a fresh database, loads the baseline once and runs `upgrade head` once.
+- A scan of every migration's `add_column` / `create_table` against the baseline found this as the **only** overlap.
+- **Fix:** the column was removed from the reconstructed baseline (a local test asset). No migration file or revision id was changed.
+- `test_a_database_without_migration_0013_refuses_approval_before_writing_anything` now builds baseline → head cleanly and passes.
+- **Production caution (unchanged):** 0022 is not idempotent (plain `add_column`). Before running it in production, check whether `redemption_requests.cancelled_at` already exists. If it does, 0022 needs a reviewed conditional variant.
+
+## 3. Interest-request notification review
+
+| Criterion | Result |
+|---|---|
+| Authorization | OK. The child comes from the token. Recipients are active members of that child's own family whose user is an active parent. |
+| Transaction safety | OK. The request and notifications commit together. The push is staged and discarded on rollback. |
+| Duplicate suppression | **Two weaknesses fixed** in `app/api/v1/videos.py`. (a) The same topics in another order notified again; the comparison is now set-based. (b) Two simultaneous identical requests could both notify; the child row is now locked (`FOR UPDATE`, re-read) before comparing. |
+| Multiple parents | Each active parent is notified once; an inactive membership gets nothing (new test). |
+| FCM failure | Push runs after commit; provider errors are logged and cannot undo the request (tested). |
+
+A mock-based test (`test_video_recommendations_and_integrity.py::test_child_cannot_bypass_parent_approval_on_interest_request`) had been broken by the earlier notification change and was missed by the first, narrower comparison. Its fakes were extended and it passes.
+
+**Remaining uncertainty:** the row-lock fix has no concurrency test (two simultaneous HTTP requests).
+
+## 4. Panda on-device speech review
+
+**Conclusion:** the app does not use the cloud recogniser unless the parent consented, with one narrow residual risk (below).
+
+- There is exactly one route to the microphone: `PandaTalkSheet._mic` → `PandaTalkController.startListening` → `SpeechInput.listen` → `SpeechToText.listen`.
+- `startListening` calls `listen(onDevice: true)` only when the native check (`MainActivity` channel `balkavach/speech`: API ≥ 31 and `SpeechRecognizer.isOnDeviceRecognitionAvailable`) returned true for this tap.
+- Otherwise voice requires the server-reported parent consent. Availability is re-checked right before listening.
+- A failed on-device listen is never retried through the cloud.
+- **Plugin (speech_to_text 7.5.0):**
+  - `SpeechListenOptions.onDevice` is forwarded to Android.
+  - `intentLookup`, which ignores `onDevice`, is only enabled through `initialize(options:)`, which the app never passes.
+  - With `onDevice: true` the plugin creates `createOnDeviceSpeechRecognizer` when the same Android check passes.
+- **Residual risk:**
+  - The plugin repeats the availability check itself. If on-device recognition vanished in the milliseconds between our check and the plugin's, the plugin would create the cloud recogniser. Closing this completely needs a native recogniser of our own or a plugin patch.
+  - The server cannot verify the client's `speech: "on_device"` claim. The control is in the app.
+- The Kotlin channel **compiles**: `flutter build apk --debug` produced `build/app/tmp/kotlin-classes/debug/com/balkavach/balkavach_app/MainActivity.class`. The build then failed at `:app:mergeDebugNativeLibs` with "Insufficient system resources" (machine memory), so **no APK was produced**. The channel has not been run on a device.
+
+## 5. Child-session YouTube blocking review
+
+| Entry point | Child session |
+|---|---|
+| Feed, Shorts and detail players: any link the WebView tries to open outside the player (`decidePlayerNavigation` → `onLeaveRequested` → `askGrownUpThenOpen`) | Blocked with a message |
+| Another video loading inside the player | Swapped back to the approved id (`onForeignVideo`); existing behaviour |
+| Share on a video (Shorts, detail player) | Blocked |
+| YouTube links on the learning detail screen | Blocked |
+| Non-YouTube learning links | Still open in the browser (admin-curated content) |
+| Rewards "share my progress" | Shares text only, no link, via the system share sheet. Not a YouTube route, but it does open other apps |
+| Invite screen | Parent settings only |
+| Other `url_launcher` use | None outside `PlatformLinkOpener` |
+
+**Remaining uncertainty:**
+- A non-YouTube link that redirects to YouTube in the browser is not blocked.
+- Nothing has been checked on a device.
+
+## 6. Test runs
+
+All local. PostgreSQL is the `scripts/testenv.py` cluster with the reconstructed baseline, **not** production's schema.
+
+| Run | Result |
+|---|---|
+| Full backend suite, current tree | 174 failed, 1300 passed, 1 skipped |
+| Full backend suite, `e4ca3d3` (before any of today's changes; clean `git archive` copy, same DB and venv) | 182 failed, 1271 passed, 1 skipped |
+| Difference | **No new failures.** 6 fixed (4 concurrency, pre-0013 migration, reward PATCH). Two catalogue-fixture tests differ only because the archived copy lacks the Flutter fixture file. The Redis stand-in stayed up in both runs (0 rate-limiter errors). |
+| `test_parent_approval_postgres.py` | 30 passed |
+| Interest, contract, integrity and push files | all pass |
+| **Full Flutter suite:** 79 files in 10 batches of 8, `flutter test -j 1` per batch | **2,777 passed, 0 failed, no crashes** |
+| `flutter analyze` | 2 info-level issues, both in test files this work does not touch |
+| `flutter build apk --debug` | **Failed** after 6 min at `:app:mergeDebugNativeLibs`: "Insufficient system resources exist to complete the requested service". Kotlin and Dart compiled before that point; no APK was produced. Retry with Chrome closed and no other Gradle daemon running. |
+
+**Memory:** the earlier full runs crashed because the machine's commit limit was nearly exhausted (Chrome about 3.6 GB, a Gradle/Kotlin daemon about 2.8 GB) and three orphaned `flutter_tester` processes from those crashed runs were still alive. The orphans were stopped. Batching restarts the flutter tool's compiler between batches. The batch runner lives outside the repo and records crashes separately from test failures. To free more memory, close Chrome tabs and run `android/gradlew --stop` when not building.
+
+## 7. Real-device verification checklist
+
+Use one phone on Android 12+ with on-device speech (for example a recent Pixel) and one on Android 11 or without on-device speech. Use two parent accounts in one family, one child account, and a backend that has these changes (see the build plan).
+
+**Panda voice**
+1. Android 12+ phone, no consent record: tap the mic → the explanation says the voice stays on the phone (no "Google") → allow the permission → Panda hears and answers.
+2. A parent turns Panda voice off in Settings → the child sees "A grown-up has turned off talking…"; typing works.
+3. The parent turns it on again → voice works.
+4. Android 11 phone without consent → "needs a grown-up's OK"; with consent → voice works (cloud recogniser).
+5. Deny the permission; then "Don't ask again" → friendly message and text box, no crash.
+6. Hindi and Gujarati on the Android 12+ phone: note whether on-device recognition works, or the child gets typed chat.
+7. Airplane mode on the Android 12+ phone: recognition should still produce words (proof that it is on-device); the reply needs the network.
+
+**YouTube**
+8. Child session: tap the YouTube logo or title in the feed, Shorts and detail players → message, the YouTube app does not open.
+9. Child session: Share on a video → message, no share sheet.
+10. Child session: a learning item with a YouTube link → message.
+11. Parent session: the same taps show the grown-up dialog.
+
+**Interest requests**
+12. The child sends a topic request → both parents get "New topic request" in the bell, and a push if FCM is configured on that server.
+13. The child sends the same topics again, or reordered → no second notification.
+14. A parent approves on the child's profile → the pending list clears.
+
+**Rewards**
+15. A parent approves a mission → the child gets exactly what the button showed (+10 Stars, +15 XP). Video time depends on the blocked production fix.
+
+**Mini-player**
+16. If a floating window appears: `adb shell dumpsys activity activities | grep -i -A3 pinned` names the owning app.
+
+## 8. APK build plan
+
+Facts:
+- `applicationId` is `com.balkavach.balkavach_app`; the version is `1.0.0+1` (pubspec).
+- Release signing comes from `android/key.properties`, which exists and is git-ignored. The build refuses an unsigned or debug-signed release.
+- Google Services is applied when `google-services.json` exists (it now does, and it is committed).
+- **The app's default API is production** (`https://api.balkavach.tech`). Override it with `--dart-define=API_BASE_URL=…`.
+- Debug builds have no cleartext exception, so a phone cannot reach a local `http://` backend.
+
+Steps (each build is local; installing on a phone and any deployment need the owner's go-ahead):
+1. **Choose the backend for device testing.**
+   - (a) **Recommended:** a staging or HTTPS test server running this backend. Build with `--dart-define=API_BASE_URL=https://<staging>`.
+   - (b) A local backend through `adb reverse tcp:8000 tcp:8000`. This needs a debug-only `android:usesCleartextTraffic="true"` in `android/app/src/debug/AndroidManifest.xml` (a code change, not made).
+   - (c) Production, only after the backend is deployed. Otherwise on-device Panda voice turns are refused by the old server and interest notifications are absent.
+2. Debug APK for testers: `flutter build apk --debug --dart-define=API_BASE_URL=<chosen>`. Output: `build/app/outputs/flutter-apk/app-debug.apk`.
+3. Release candidate: bump `version:` in `pubspec.yaml` (for example `1.0.1+2`), then `flutter build apk --release --dart-define=API_BASE_URL=https://api.balkavach.tech`, or `flutter build appbundle --release` for Play. Check that the signing report shows the upload key: `cd android && ./gradlew signingReport`.
+4. Before release, run the device checklist above on the release build, not only debug.
+5. Free memory before building: close Chrome and run `android/gradlew --stop` between builds.

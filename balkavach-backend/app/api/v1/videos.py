@@ -132,7 +132,18 @@ def request_video_interests(
 		# Nothing valid to ask for (empty, unknown or inactive topics). Storing [] would answer 200
 		# while the parent sees no request at all, and would wipe a request already waiting.
 		raise APIError(422, "interest_request_empty", "Choose at least one available topic.")
-	changed = requested != list(child.pending_interest_requests or [])
+	# Lock the child's row so two simultaneous identical requests (a double tap) are serialised: the second
+	# one sees the first one's list and notifies no one. populate_existing re-reads the locked row.
+	ChildProfile = get_model("ChildProfile")
+	child = (
+		session.query(ChildProfile)
+		.filter(ChildProfile.id == child.id)
+		.with_for_update()
+		.populate_existing()
+		.one()
+	)
+	# The same topics in another order are the same request.
+	changed = set(requested) != set(child.pending_interest_requests or [])
 	child.pending_interest_requests = requested
 	if changed:
 		# Tell every parent in the family, in the same transaction as the request: the in-app

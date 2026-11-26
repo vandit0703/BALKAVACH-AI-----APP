@@ -35,6 +35,7 @@ from app.schemas.task import TaskReviewCreate
 from app.services import push_service, task_service
 from app.services import video_entitlement_service as entitlements
 from app.services.task_service import review_submission
+from app.services.mission_rewards import MISSION_STAR_REWARD, MISSION_XP_REWARD
 from app.utils import utc_naive
 
 BACKEND = Path(__file__).resolve().parent.parent
@@ -229,6 +230,50 @@ def _has_unique(session, table: str) -> bool:
 	)
 
 
+# ---- reward contract (decided 2026-11-26, docs/DEVICE_BUGS_2026-11-26_FIX_REPORT.md) --------------------------------------
+# Product rule: one approved mission pays 10 Stars and 15 XP. Every creation path stores exactly that on the task
+# (custom tasks, daily missions, mission library). Approval pays the task's stored amounts, which are exactly what the
+# parent's review queue shows ("Approve & Award +10"); a legacy row without amounts pays the 10/15 default it displays.
+
+
+def _queue_item(api, ctx, sid):
+	response = api.get(f"/reviews/submissions?family_id={ctx['family']['id']}&status=pending", ctx["parent"]["token"])
+	assert response.status_code == 200, response.text
+	return next(item for item in response.json() if item["id"] == sid)
+
+
+def test_approval_pays_exactly_what_the_review_queue_shows(api):
+	ctx, sid = _pending(api)
+	shown = _queue_item(api, ctx, sid)
+	assert (shown["star_reward"], shown["xp_reward"]) == (MISSION_STAR_REWARD, MISSION_XP_REWARD)
+	assert api.review(ctx["parent"]["token"], sid, "approved").status_code == 200
+	paid = _counts(api.session, sid)
+	assert (paid["stars"], paid["xp"]) == (shown["star_reward"], shown["xp_reward"])
+
+
+def test_a_legacy_task_without_reward_amounts_pays_the_default_it_displays(api):
+	"""If production allows NULL amounts (unknown; the code's effective_* helpers assume it may), the queue shows 10/15."""
+	ctx, sid = _pending(api)
+	api.session.execute(text("ALTER TABLE tasks ALTER COLUMN star_reward DROP NOT NULL, ALTER COLUMN xp_reward DROP NOT NULL"))
+	api.session.execute(
+		text("UPDATE tasks SET star_reward = NULL, xp_reward = NULL WHERE id = (SELECT task_id FROM task_submissions WHERE id = :s)"),
+		{"s": sid},
+	)
+	# Commit (releases the savepoint; the outer test transaction still rolls back): each request's
+	# rollback would otherwise undo this legacy state before the approval runs.
+	api.session.commit()
+	api.session.expire_all()
+	stored = api.session.execute(
+		text("SELECT star_reward, xp_reward FROM tasks WHERE id = (SELECT task_id FROM task_submissions WHERE id = :s)"),
+		{"s": sid},
+	).one()
+	assert tuple(stored) == (None, None), stored  # the legacy state really is in place
+	shown = _queue_item(api, ctx, sid)
+	assert (shown["star_reward"], shown["xp_reward"]) == (MISSION_STAR_REWARD, MISSION_XP_REWARD)
+	assert api.review(ctx["parent"]["token"], sid, "approved").status_code == 200
+	assert _counts(api.session, sid) == PAID
+
+
 # ---- 3. schema variants production might have (the live schema is unknown) ----------------------------------------------------
 
 
@@ -319,7 +364,7 @@ def committed_world(isolated_test_engine):
 			child = Child(user_id=kid.id, family_id=family.id, display_name="hshs", date_of_birth=date(2017, 5, 1), is_active=True)
 			s.add(child)
 			s.flush()
-			task = Task(family_id=family.id, created_by=parent.id, assigned_child_id=child.id, title=title, description="d", star_reward=5, xp_reward=10, is_custom=True, is_active=True)
+			task = Task(family_id=family.id, created_by=parent.id, assigned_child_id=child.id, title=title, description="d", star_reward=MISSION_STAR_REWARD, xp_reward=MISSION_XP_REWARD, is_custom=True, is_active=True)
 			s.add(task)
 			s.flush()
 			sub = Submission(task_id=task.id, child_id=child.id, submission_number=1, proof_type="none", status="pending", submitted_at=utc_naive(datetime.now(timezone.utc)))
