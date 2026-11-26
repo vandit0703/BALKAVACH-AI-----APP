@@ -1,6 +1,7 @@
 import 'package:balkavach_app/core/routing/app_routes.dart';
 import 'package:balkavach_app/core/theme/app_theme.dart';
 import 'package:balkavach_app/features/learning/data/learning_repository.dart';
+import 'package:balkavach_app/features/learning/data/playable_video.dart';
 import 'package:balkavach_app/features/learning/presentation/learning_hub_screen.dart';
 import 'package:balkavach_app/features/learning/presentation/learning_screen.dart';
 import 'package:balkavach_app/features/learning/presentation/stories_tab.dart';
@@ -147,9 +148,24 @@ Map<String, Object?> _story({String id = 'story-1', String? text}) => {
   'metered_video_id': null,
 };
 
+Map<String, Object?> _short(int i) => {
+  'id': 's$i',
+  'title': 'Short number $i',
+  'description': null,
+  'thumbnail_url': null,
+  'duration_seconds': 40,
+  'category_id': null,
+  'language_code': 'en',
+  'content_rating': 'educational',
+  'video_source': 'youtube',
+  'youtube_video_id': 'abcdefghi${i.toString().padLeft(2, '0')}',
+  'channel_name': 'Kids Channel',
+};
+
 Future<Harness> _harness({
   List<Object?> quizzes = const [],
   List<Object?> content = const [],
+  List<Object?> shorts = const [],
 }) async {
   final h = await Harness.create(session: Fx.childSession());
   h.backend
@@ -157,7 +173,8 @@ Future<Harness> _harness({
     ..reply('GET', '/api/v1/quizzes/history', <Object?>[])
     ..reply('GET', '/api/v1/educational-content', content)
     ..reply('GET', '/api/v1/videos/feed', <Object?>[])
-    ..reply('GET', '/api/v1/videos/shorts', <Object?>[]);
+    ..reply('GET', '/api/v1/videos/shorts', shorts)
+    ..reply('GET', '/api/v1/video-access/allowance', Fx.allowance());
   return h;
 }
 
@@ -182,6 +199,20 @@ GoRouter _router(String initial) => GoRouter(
                   LearningDetailScreen(item: state.extra! as LearningItem),
             ),
           ],
+        ),
+        // Stands in for the full-screen Shorts player: records what it was
+        // opened with (real playback is covered by watch_home_test).
+        GoRoute(
+          path: 'shorts',
+          builder: (_, state) {
+            final launch = state.extra! as ShortsLaunch;
+            return Scaffold(
+              body: Text(
+                'SHORTS ${launch.initialIndex} of '
+                '${launch.initialVideos.length}',
+              ),
+            );
+          },
         ),
         GoRoute(
           path: 'quizzes/result/:attemptId',
@@ -315,14 +346,15 @@ void main() {
   });
 
   group('Learning Hub', () {
-    testWidgets('shows Videos, Quizzes and Stories as three working tabs', (
+    testWidgets('shows Videos, Quizzes and Shorts as three working tabs', (
       tester,
     ) async {
-      final h = await _harness(quizzes: [_quiz()], content: [_story()]);
+      final h = await _harness(quizzes: [_quiz()], shorts: [_short(1)]);
       await _pump(tester, h);
-      for (final key in ['videos', 'quizzes', 'stories']) {
+      for (final key in ['videos', 'quizzes', 'shorts']) {
         expect(find.byKey(Key('hub.tab.$key')), findsOneWidget);
       }
+      expect(find.byKey(const Key('hub.tab.stories')), findsNothing);
       // Videos is the first tab; its empty state is a real, working view.
       expect(find.byKey(const Key('videos.learn.empty')), findsOneWidget);
 
@@ -330,8 +362,8 @@ void main() {
       for (var i = 0; i < 3; i++) {
         await _tap(tester, find.byKey(const Key('hub.tab.quizzes')));
         expect(find.byKey(const Key('quiz.$_quizId')), findsOneWidget);
-        await _tap(tester, find.byKey(const Key('hub.tab.stories')));
-        expect(find.text('The Kind Lion'), findsOneWidget);
+        await _tap(tester, find.byKey(const Key('hub.tab.shorts')));
+        expect(find.byKey(const Key('hub.short.feed:s1')), findsOneWidget);
         await _tap(tester, find.byKey(const Key('hub.tab.videos')));
         expect(find.byKey(const Key('videos.learn.empty')), findsOneWidget);
       }
@@ -385,37 +417,86 @@ void main() {
         ..reply('GET', '/api/v1/videos/feed', <Object?>[]);
       await _pump(tester, failing, initial: AppRoutes.childLearnTab('quizzes'));
       expect(find.byKey(const Key('quizzes.error')), findsOneWidget);
+
+      // Retry makes a real new request, and a recovered server shows quizzes.
+      final requestsBefore = failing.backend
+          .requestsTo('GET', '/api/v1/quizzes')
+          .length;
+      failing.backend.reply('GET', '/api/v1/quizzes', [_quiz()]);
+      await _tap(tester, find.text('Try again'));
+      expect(
+        failing.backend.requestsTo('GET', '/api/v1/quizzes').length,
+        greaterThan(requestsBefore),
+      );
+      expect(find.byKey(const Key('quiz.$_quizId')), findsOneWidget);
     });
 
-    testWidgets('stories: listing with reading time, empty state, reading', (
+    testWidgets('quizzes: a server without the quiz feature (404) says so '
+        'instead of a generic not-found', (tester) async {
+      final h = await _harness();
+      h.backend.reply('GET', '/api/v1/quizzes', {
+        'error': {'code': 'http_error', 'message': 'Not Found'},
+      }, status: 404);
+      await _pump(tester, h, initial: AppRoutes.childLearnTab('quizzes'));
+      expect(find.byKey(const Key('quizzes.error')), findsOneWidget);
+      expect(
+        find.text("Quizzes aren't ready yet. Please try again later."),
+        findsOneWidget,
+      );
+      expect(find.text("We couldn't find that."), findsNothing);
+      expect(find.text('Try again'), findsOneWidget);
+    });
+
+    testWidgets('shorts: grid of approved Shorts opens the Shorts player at '
+        'the tapped Short; empty state', (tester) async {
+      final h = await _harness(shorts: [_short(0), _short(1), _short(2)]);
+      await _pump(tester, h, initial: AppRoutes.childLearnTab('shorts'));
+      expect(find.byKey(const Key('hub.shorts.grid')), findsOneWidget);
+      expect(find.text('Short number 1'), findsOneWidget);
+      await _tap(tester, find.byKey(const Key('hub.short.feed:s1')));
+      // The server confirmed time remains before anything opened.
+      expect(
+        h.backend.requestsTo('GET', '/api/v1/video-access/allowance'),
+        isNotEmpty,
+      );
+      expect(find.text('SHORTS 1 of 3'), findsOneWidget);
+
+      final empty = await _harness();
+      await _pump(tester, empty, initial: AppRoutes.childLearnTab('shorts'));
+      expect(find.byKey(const Key('hub.shorts.empty')), findsOneWidget);
+    });
+
+    testWidgets('shorts: a failed load can be retried', (tester) async {
+      final h = await _harness();
+      h.backend.on(
+        'GET',
+        '/api/v1/videos/shorts',
+        (_) => const FakeReply.fail(DioExceptionType.connectionError),
+      );
+      await _pump(tester, h, initial: AppRoutes.childLearnTab('shorts'));
+      expect(find.byKey(const Key('hub.shorts.error')), findsOneWidget);
+      h.backend.reply('GET', '/api/v1/videos/shorts', [_short(4)]);
+      await _tap(tester, find.text('Try again'));
+      expect(find.byKey(const Key('hub.short.feed:s4')), findsOneWidget);
+    });
+
+    testWidgets('stories stay readable in the app from the Videos tab', (
       tester,
     ) async {
       final h = await _harness(content: [_story()]);
-      final router = await _pump(
-        tester,
-        h,
-        initial: AppRoutes.childLearnTab('stories'),
-      );
+      final router = await _pump(tester, h);
       expect(find.text('The Kind Lion'), findsOneWidget);
-      expect(find.text('2 min read'), findsOneWidget);
-      await _tap(tester, find.byKey(const Key('story.story-1')));
+      await _tap(tester, find.text('The Kind Lion'));
       // The story is read in the app: text shown, nothing opens outside it.
       expect(find.byKey(const Key('story.text')), findsOneWidget);
       expect(find.byKey(const Key('learn.open')), findsNothing);
       expect(find.byKey(const Key('learn.blocker')), findsNothing);
       router.pop();
       await tester.pumpAndSettle();
-      // Back returns to the Stories tab.
       expect(find.text('The Kind Lion'), findsOneWidget);
-
-      final empty = await _harness();
-      await _pump(tester, empty, initial: AppRoutes.childLearnTab('stories'));
-      expect(find.byKey(const Key('stories.empty')), findsOneWidget);
     });
 
-    testWidgets('curated non-story items stay reachable from Videos', (
-      tester,
-    ) async {
+    testWidgets('curated items stay reachable from Videos', (tester) async {
       final link = _story(id: 'link-1')
         ..['content_type'] = 'link'
         ..['title'] = 'A curated link'
@@ -424,10 +505,8 @@ void main() {
       await _pump(tester, h);
       expect(find.text('More to explore'), findsOneWidget);
       expect(find.text('A curated link'), findsOneWidget);
-      expect(
-        find.text('The Kind Lion'),
-        findsNothing,
-      ); // stories live elsewhere
+      // With no Stories tab, stories are listed here too.
+      expect(find.text('The Kind Lion'), findsOneWidget);
     });
 
     test('reading time is at least a minute and grows with length', () {
@@ -436,9 +515,9 @@ void main() {
       expect(storyReadingMinutes(List.filled(600, 'w').join(' ')), 5);
     });
 
-    for (final (locale, videos, quizzes, stories) in [
-      (const Locale('hi'), 'वीडियो', 'क्विज़', 'कहानियाँ'),
-      (const Locale('gu'), 'વિડિઓ', 'ક્વિઝ', 'વાર્તાઓ'),
+    for (final (locale, videos, quizzes, shorts) in [
+      (const Locale('hi'), 'वीडियो', 'क्विज़', 'शॉर्ट्स'),
+      (const Locale('gu'), 'વિડિઓ', 'ક્વિઝ', 'શોર્ટ્સ'),
     ]) {
       testWidgets('tabs are localised for ${locale.languageCode}', (
         tester,
@@ -447,7 +526,7 @@ void main() {
         await _pump(tester, h, locale: locale);
         expect(find.text(videos), findsOneWidget);
         expect(find.text(quizzes), findsOneWidget);
-        expect(find.text(stories), findsOneWidget);
+        expect(find.text(shorts), findsOneWidget);
         await _tap(tester, find.byKey(const Key('hub.tab.quizzes')));
         expect(find.textContaining('10'), findsWidgets);
         expect(tester.takeException(), isNull);
@@ -468,6 +547,20 @@ void main() {
           textScale: scale,
           locale: const Locale('gu'),
         );
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('shorts grid does not overflow: $name', (tester) async {
+        final h = await _harness(shorts: [_short(0), _short(1), _short(2)]);
+        await _pump(
+          tester,
+          h,
+          initial: AppRoutes.childLearnTab('shorts'),
+          size: size,
+          textScale: scale,
+          locale: const Locale('gu'),
+        );
+        expect(find.byKey(const Key('hub.shorts.grid')), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
     }

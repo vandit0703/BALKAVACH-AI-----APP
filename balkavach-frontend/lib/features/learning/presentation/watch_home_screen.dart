@@ -20,6 +20,8 @@ import '../data/playable_video.dart';
 import '../data/video_feed_repository.dart';
 import 'video_lock_screen.dart';
 import 'video_player_screen.dart' show formatPlaybackTime;
+import 'widgets/learn_hub_entry.dart';
+import 'widgets/short_card.dart';
 import 'widgets/video_actions.dart';
 import 'widgets/video_allowance_card.dart';
 
@@ -290,6 +292,7 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
             sliver: SliverToBoxAdapter(child: _Heading(l10n: l10n)),
           ),
           const SliverToBoxAdapter(child: VideoAllowanceCard()),
+          const SliverToBoxAdapter(child: LearnHubEntry()),
           if (continueVideos.isNotEmpty) ...[
             // _SectionHeader is itself a sliver, so it sits beside the row
             // in the scroll view, never inside a box widget like a Column.
@@ -412,7 +415,7 @@ class _WatchHomeScreenState extends ConsumerState<WatchHomeScreen>
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
         itemCount: shorts.length,
         separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
-        itemBuilder: (context, index) => _ShortCard(
+        itemBuilder: (context, index) => ShortCard(
           video: PlayableVideo.fromFeed(shorts[index]),
           onTap: () => _openShort(index),
         ),
@@ -593,82 +596,6 @@ class _SectionHeader extends StatelessWidget {
 }
 
 /// A portrait card: Shorts look different from regular videos at a glance.
-class _ShortCard extends StatelessWidget {
-  const _ShortCard({required this.video, required this.onTap});
-
-  final PlayableVideo video;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return SizedBox(
-      width: 132,
-      child: Material(
-        color: AppPalette.navy,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          key: Key('watch.short.${video.key}'),
-          onTap: onTap,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              VideoThumbnail(
-                url: video.thumbnailUrl,
-                placeholderColor: AppPalette.navy,
-                iconColor: AppPalette.onPrimary,
-              ),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Color(0xCC000000)],
-                    stops: [0.45, 1],
-                  ),
-                ),
-              ),
-              if (!video.isPlayable)
-                const Center(
-                  child: Icon(
-                    Icons.lock_rounded,
-                    key: Key('watch.short.locked'),
-                    size: 36,
-                    color: AppPalette.onPrimary,
-                  ),
-                ),
-              Positioned(
-                top: AppSpacing.sm,
-                left: AppSpacing.sm,
-                child: EyebrowPill(
-                  icon: Icons.bolt_rounded,
-                  label: l10n.videoBadgeShort,
-                  background: AppPalette.star,
-                  foreground: AppPalette.navy,
-                ),
-              ),
-              Positioned(
-                left: AppSpacing.sm,
-                right: AppSpacing.sm,
-                bottom: AppSpacing.sm,
-                child: Text(
-                  video.title,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.text.titleSmall?.copyWith(
-                    color: AppPalette.onPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// A landscape card for a regular video.
 class _VideoCard extends StatelessWidget {
   const _VideoCard({required this.video, required this.onTap, super.key});

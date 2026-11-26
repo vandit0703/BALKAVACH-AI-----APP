@@ -437,6 +437,58 @@ void main() {
       expect(find.text('Missions'), findsWidgets);
     });
 
+    testWidgets('Learn & play is always on Home and opens Quizzes; Back '
+        'returns Home', (tester) async {
+      // No grown-up picks: the old only way into the hub was hidden then.
+      await _pumpHome(
+        tester,
+        shorts: _someShorts,
+        videos: _someVideos,
+        routes: (backend) => backend
+          ..reply('GET', '/api/v1/quizzes', [
+            {
+              'id': 'quiz-1',
+              'title': 'Animals quiz',
+              'description': null,
+              'subject': 'science',
+              'difficulty': 'easy',
+              'language_code': 'en',
+              'age_min': 4,
+              'age_max': 15,
+              'question_count': 2,
+              'pass_percent': 60,
+              'star_reward': 0,
+              'xp_reward': 0,
+              'allow_retry': true,
+              'status': 'pending',
+              'attempts': 0,
+              'best_score_percent': null,
+              'reward_claimed': false,
+              'can_start': true,
+            },
+          ])
+          ..reply('GET', '/api/v1/quizzes/history', <Object?>[]),
+      );
+
+      expect(find.byKey(const Key('watch.picked.header')), findsNothing);
+      expect(find.byKey(const Key('watch.learnHub')), findsOneWidget);
+      for (final tab in ['videos', 'quizzes', 'shorts']) {
+        expect(find.byKey(Key('watch.learnHub.$tab')), findsOneWidget);
+      }
+
+      await tester.tap(find.byKey(const Key('watch.learnHub.quizzes')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('hub.tab.quizzes')), findsOneWidget);
+      expect(find.byKey(const Key('quiz.quiz-1')), findsOneWidget);
+      // The hub lives inside the child shell: the bottom bar stays.
+      expect(find.byType(NavigationBar), findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('watch.learnHub')), findsOneWidget);
+      expect(find.byKey(const Key('hub.tab.quizzes')), findsNothing);
+    });
+
     testWidgets('a Shorts failure can be retried without losing videos', (
       tester,
     ) async {

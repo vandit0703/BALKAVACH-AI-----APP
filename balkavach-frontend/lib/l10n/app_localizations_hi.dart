@@ -3225,6 +3225,37 @@ class AppLocalizationsHi extends AppLocalizations {
   String get hubTabStories => 'कहानियाँ';
 
   @override
+  String get hubTabShorts => 'शॉर्ट्स';
+
+  @override
+  String get hubShortsEmpty =>
+      'अभी देखने के लिए कोई शॉर्ट्स नहीं हैं। जल्द ही फिर देखना!';
+
+  @override
+  String get learnHubEntryTitle => 'सीखो और खेलो';
+
+  @override
+  String get quizzesUnavailable =>
+      'क्विज़ अभी तैयार नहीं हैं। कृपया बाद में फिर कोशिश करें।';
+
+  @override
+  String get interestsUnavailable =>
+      'वीडियो रुचियाँ अभी तैयार नहीं हैं। कृपया बाद में फिर कोशिश करें।';
+
+  @override
+  String get interestsActiveTitle => 'तुम्हारे विषय (माता-पिता द्वारा स्वीकृत)';
+
+  @override
+  String get interestsActiveNone => 'अभी कोई विषय नहीं चुना गया।';
+
+  @override
+  String get interestsPendingChildTitle =>
+      'तुमने माँगे (माता-पिता की मंज़ूरी बाकी)';
+
+  @override
+  String get interestsAskTitle => 'बदलाव माँगो';
+
+  @override
   String get hubMoreToExplore => 'और देखें';
 
   @override

@@ -24,6 +24,7 @@ class VideoAllowance {
     required this.isExhausted,
     required this.activeEntitlementsCount,
     int? freeRemainingSeconds,
+    this.freeAllowanceSeconds = 0,
     this.missionRemainingSeconds = 0,
   }) : freeRemainingSeconds = freeRemainingSeconds ?? 0;
 
@@ -42,6 +43,9 @@ class VideoAllowance {
         (json['active_entitlements_count'] as num?)?.toInt() ?? 0,
     freeRemainingSeconds:
         (json['free_remaining_seconds'] as num?)?.toInt() ?? 0,
+    // Missing means no free allowance: never assume the legacy 15 minutes.
+    freeAllowanceSeconds:
+        (json['free_allowance_seconds'] as num?)?.toInt() ?? 0,
     missionRemainingSeconds:
         (json['mission_remaining_seconds'] as num?)?.toInt() ?? 0,
   );
@@ -56,6 +60,10 @@ class VideoAllowance {
   final bool isExhausted;
   final int activeEntitlementsCount;
   final int freeRemainingSeconds;
+
+  /// Today's free allowance as the server reports it (0 under the current
+  /// rules: video time is earned through approved missions only).
+  final int freeAllowanceSeconds;
   final int missionRemainingSeconds;
 
   int get remainingMinutes => (remainingSeconds / 60).ceil();

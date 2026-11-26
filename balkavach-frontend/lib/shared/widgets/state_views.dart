@@ -67,10 +67,14 @@ class LoadingView extends StatelessWidget {
 }
 
 class ErrorView extends StatelessWidget {
-  const ErrorView({required this.error, this.onRetry, super.key});
+  const ErrorView({required this.error, this.onRetry, this.message, super.key});
 
   final Object error;
   final VoidCallback? onRetry;
+
+  /// Replaces the generic text for [error] when a screen knows better, e.g.
+  /// a 404 that means the server does not offer the feature yet.
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +93,7 @@ class ErrorView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              describeError(l10n, error),
+              message ?? describeError(l10n, error),
               textAlign: TextAlign.center,
               style: context.text.bodyLarge,
             ),

@@ -5,7 +5,8 @@ Mission reward allowance rules:
 - Each approved mission grants 900 seconds (15 minutes) of video access.
 - Daily stacking is additive (15m, 30m, 45m, 60m).
 - Mission grants have a separate daily cap of 3,600 seconds (60 minutes) by default,
-  configurable up to 14,400 seconds (4 hours). The 900-second free allowance is additional.
+  configurable up to 14,400 seconds (4 hours). The free daily allowance is zero
+  (FREE_DAILY_ALLOWANCE_SECONDS); video time is earned through approved missions only.
 - The daily cap is enforced against the total mission allowance *granted today* in the
   family's local calendar day, NOT remaining balance. Consumed time does not create room.
 - Idempotency is enforced by unique submission_id on video_access_entitlements.

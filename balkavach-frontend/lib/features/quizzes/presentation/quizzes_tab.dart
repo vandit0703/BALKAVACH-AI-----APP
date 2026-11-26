@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/errors/api_exception.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -57,6 +58,11 @@ class QuizzesTab extends ConsumerWidget {
             ErrorView(
               key: const Key('quizzes.error'),
               error: error,
+              // GET /quizzes never answers 404 itself: a 404 means the server
+              // does not have the quiz feature yet, not that it is empty.
+              message: error is NotFoundException
+                  ? l10n.quizzesUnavailable
+                  : null,
               onRetry: () => ref.invalidate(quizzesProvider),
             ),
           ],

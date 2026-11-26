@@ -3211,6 +3211,37 @@ class AppLocalizationsGu extends AppLocalizations {
   String get hubTabStories => 'વાર્તાઓ';
 
   @override
+  String get hubTabShorts => 'શોર્ટ્સ';
+
+  @override
+  String get hubShortsEmpty =>
+      'અત્યારે જોવા માટે કોઈ શોર્ટ્સ નથી. જલ્દી ફરી જોજો!';
+
+  @override
+  String get learnHubEntryTitle => 'શીખો અને રમો';
+
+  @override
+  String get quizzesUnavailable =>
+      'ક્વિઝ હજુ તૈયાર નથી. કૃપા કરીને પછી ફરી પ્રયાસ કરો.';
+
+  @override
+  String get interestsUnavailable =>
+      'વિડિયો રુચિઓ હજુ તૈયાર નથી. કૃપા કરીને પછી ફરી પ્રયાસ કરો.';
+
+  @override
+  String get interestsActiveTitle => 'તમારા વિષયો (માતા-પિતા દ્વારા મંજૂર)';
+
+  @override
+  String get interestsActiveNone => 'હજુ કોઈ વિષય પસંદ કર્યો નથી.';
+
+  @override
+  String get interestsPendingChildTitle =>
+      'તમે માંગ્યા (માતા-પિતાની મંજૂરી બાકી)';
+
+  @override
+  String get interestsAskTitle => 'ફેરફાર માંગો';
+
+  @override
   String get hubMoreToExplore => 'વધુ જુઓ';
 
   @override

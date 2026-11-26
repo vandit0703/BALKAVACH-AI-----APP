@@ -589,9 +589,11 @@ class VideoAllowancePublic(BaseModel):
 	total_earned_today_seconds: int
 	consumed_today_seconds: int
 	remaining_seconds: int
-	free_allowance_seconds: int = 900
+	# Free daily allowance is zero (earned via approved missions only); a
+	# missing value must never restore the legacy 900-second free allowance.
+	free_allowance_seconds: int = 0
 	free_consumed_seconds: int = 0
-	free_remaining_seconds: int = 900
+	free_remaining_seconds: int = 0
 	mission_remaining_seconds: int = 0
 	daily_cap_seconds: int
 	is_exhausted: bool

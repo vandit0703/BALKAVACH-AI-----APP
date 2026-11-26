@@ -8,20 +8,21 @@ import '../../quizzes/presentation/quizzes_tab.dart';
 import '../data/learning_repository.dart';
 import '../data/video_feed_repository.dart';
 import 'learning_screen.dart' show LearningCard;
-import 'stories_tab.dart';
+import 'shorts_tab.dart';
 import 'video_feed_screen.dart' show VideoFeedList;
 
 /// The Learning Hub: three working sections, each backed by its own server
-/// data: Videos, Quizzes and Stories. Switching tabs keeps each section's
+/// data: Videos, Quizzes and Shorts. Switching tabs keeps each section's
 /// scroll position and loaded pages, and a player or quiz opened from here
-/// returns to the same tab.
+/// returns to the same tab. Stories (article items) stay readable from the
+/// Videos tab's "More to explore" list.
 class LearningHubScreen extends ConsumerStatefulWidget {
   const LearningHubScreen({this.initialTab = 'videos', super.key});
 
-  /// `videos`, `quizzes` or `stories`; anything else opens Videos.
+  /// `videos`, `quizzes` or `shorts`; anything else opens Videos.
   final String initialTab;
 
-  static const tabNames = ['videos', 'quizzes', 'stories'];
+  static const tabNames = ['videos', 'quizzes', 'shorts'];
 
   @override
   ConsumerState<LearningHubScreen> createState() => _LearningHubScreenState();
@@ -60,14 +61,11 @@ class _LearningHubScreenState extends ConsumerState<LearningHubScreen>
     super.dispose();
   }
 
-  /// Curated non-story items (videos, links, documents, activities) the
+  /// Curated items (stories, videos, links, documents, activities) the
   /// administrator picked; they stay reachable from the Videos tab.
   List<Widget> _curatedPicks(AppLocalizations l10n) {
-    final items = [
-      for (final item
-          in ref.watch(learningItemsProvider).value ?? const <LearningItem>[])
-        if (!isStory(item)) item,
-    ];
+    final items =
+        ref.watch(learningItemsProvider).value ?? const <LearningItem>[];
     if (items.isEmpty) return const [];
     final categories = ref.watch(learningCategoriesProvider).value ?? const [];
     return [
@@ -93,7 +91,7 @@ class _LearningHubScreenState extends ConsumerState<LearningHubScreen>
           tabs: [
             Tab(key: const Key('hub.tab.videos'), text: l10n.hubTabVideos),
             Tab(key: const Key('hub.tab.quizzes'), text: l10n.hubTabQuizzes),
-            Tab(key: const Key('hub.tab.stories'), text: l10n.hubTabStories),
+            Tab(key: const Key('hub.tab.shorts'), text: l10n.hubTabShorts),
           ],
         ),
         Expanded(
@@ -105,7 +103,7 @@ class _LearningHubScreenState extends ConsumerState<LearningHubScreen>
                 header: _curatedPicks(l10n),
               ),
               const QuizzesTab(),
-              const StoriesTab(),
+              const ShortsTab(),
             ],
           ),
         ),

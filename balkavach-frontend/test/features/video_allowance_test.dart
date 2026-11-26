@@ -53,10 +53,30 @@ void main() {
   });
 
   group('VideoAllowanceCard Widget', () {
-    testWidgets(
-      'displays active remaining time badge when allowance is active',
-      (tester) async {
-        const activeAllowance = VideoAllowance(
+    Future<void> pumpCard(WidgetTester tester, VideoAllowance allowance) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            videoAllowanceProvider.overrideWith(
+              (ref) => Future.value(allowance),
+            ),
+          ],
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(body: VideoAllowanceCard()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('900 earned mission seconds show as 15 minutes, with no free '
+        'allowance line', (tester) async {
+      // Free daily allowance is zero; one approved mission granted 900 s.
+      await pumpCard(
+        tester,
+        const VideoAllowance(
           childId: 'child-123',
           localDate: '2026-11-13',
           timezone: 'UTC',
@@ -66,83 +86,111 @@ void main() {
           dailyCapSeconds: 3600,
           isExhausted: false,
           activeEntitlementsCount: 1,
-        );
+          missionRemainingSeconds: 900,
+        ),
+      );
 
-        await tester.pumpWidget(
-          ProviderScope(
-            overrides: [
-              videoAllowanceProvider.overrideWith(
-                (ref) => Future.value(activeAllowance),
-              ),
-            ],
-            child: const MaterialApp(
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              home: Scaffold(body: VideoAllowanceCard()),
-            ),
-          ),
-        );
+      expect(find.byKey(const Key('watch.allowance.card')), findsOneWidget);
+      expect(find.text('15m video time left today'), findsOneWidget);
+      expect(find.text('Mission video: 15 extra minutes'), findsOneWidget);
+      expect(find.byKey(const Key('watch.allowance.free')), findsNothing);
+      expect(find.textContaining('Daily free video'), findsNothing);
+      expect(find.byIcon(Icons.hourglass_top_rounded), findsOneWidget);
+    });
 
-        await tester.pumpAndSettle();
+    testWidgets('earned time carried over from an earlier day still shows', (
+      tester,
+    ) async {
+      // Nothing earned today, but 600 s of an earlier grant are unused.
+      await pumpCard(
+        tester,
+        const VideoAllowance(
+          childId: 'child-123',
+          localDate: '2026-11-14',
+          timezone: 'UTC',
+          totalEarnedTodaySeconds: 0,
+          consumedTodaySeconds: 0,
+          remainingSeconds: 600,
+          dailyCapSeconds: 3600,
+          isExhausted: false,
+          activeEntitlementsCount: 1,
+          missionRemainingSeconds: 600,
+        ),
+      );
 
-        expect(find.byKey(const Key('watch.allowance.card')), findsOneWidget);
-        expect(
-          find.textContaining('15m video time left today'),
-          findsOneWidget,
-        );
-        expect(
-          find.text('Daily free video: 15 of 15 minutes left'),
-          findsOneWidget,
-        );
-        expect(find.byIcon(Icons.hourglass_top_rounded), findsOneWidget);
-      },
-    );
+      expect(find.text('10m video time left today'), findsOneWidget);
+      expect(find.textContaining('Daily free video'), findsNothing);
+    });
 
-    testWidgets(
-      'displays locked message and mission action when allowance is exhausted',
-      (tester) async {
-        const exhaustedAllowance = VideoAllowance(
+    testWidgets('zero free allowance and no earned time: locked, no free '
+        'minutes are suggested', (tester) async {
+      await pumpCard(
+        tester,
+        const VideoAllowance(
           childId: 'child-123',
           localDate: '2026-11-13',
           timezone: 'UTC',
-          totalEarnedTodaySeconds: 900,
-          consumedTodaySeconds: 900,
+          totalEarnedTodaySeconds: 0,
+          consumedTodaySeconds: 0,
           remainingSeconds: 0,
           dailyCapSeconds: 3600,
           isExhausted: true,
           activeEntitlementsCount: 0,
-        );
+        ),
+      );
 
-        await tester.pumpWidget(
-          ProviderScope(
-            overrides: [
-              videoAllowanceProvider.overrideWith(
-                (ref) => Future.value(exhaustedAllowance),
-              ),
-            ],
-            child: const MaterialApp(
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              home: Scaffold(body: VideoAllowanceCard()),
-            ),
-          ),
-        );
+      expect(find.byKey(const Key('watch.allowance.card')), findsOneWidget);
+      expect(find.text('Video time locked'), findsOneWidget);
+      expect(find.textContaining('Daily free video'), findsNothing);
+      expect(find.textContaining('15'), findsNothing);
+      expect(
+        find.byKey(const Key('watch.allowance.toMissions')),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.lock_clock_rounded), findsOneWidget);
+    });
 
-        await tester.pumpAndSettle();
+    testWidgets('a free allowance is shown only when the server reports one, '
+        'with the server total', (tester) async {
+      // An older server that still grants free time reports it explicitly;
+      // the card shows the server's own numbers, never a fixed 15.
+      await pumpCard(
+        tester,
+        VideoAllowance.fromJson(const {
+          'child_id': 'child-123',
+          'local_date': '2026-11-13',
+          'timezone': 'UTC',
+          'total_earned_today_seconds': 600,
+          'consumed_today_seconds': 0,
+          'remaining_seconds': 600,
+          'free_allowance_seconds': 600,
+          'free_remaining_seconds': 300,
+          'daily_cap_seconds': 3600,
+          'is_exhausted': false,
+          'active_entitlements_count': 0,
+        }),
+      );
 
-        expect(find.byKey(const Key('watch.allowance.card')), findsOneWidget);
-        expect(find.text('Video time locked'), findsOneWidget);
-        expect(
-          find.text('Daily free video: 0 of 15 minutes left'),
-          findsOneWidget,
-        );
-        expect(
-          find.byKey(const Key('watch.allowance.toMissions')),
-          findsOneWidget,
-        );
-        expect(find.byIcon(Icons.lock_clock_rounded), findsOneWidget);
-      },
-    );
+      expect(
+        find.text('Daily free video: 5 of 10 minutes left'),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('VideoAllowance free allowance parsing', () {
+    test('a response without free fields means no free allowance', () {
+      final allowance = VideoAllowance.fromJson(const {
+        'child_id': 'child-123',
+        'local_date': '2026-11-13',
+        'remaining_seconds': 0,
+        'is_exhausted': true,
+        'active_entitlements_count': 0,
+      });
+      expect(allowance.freeAllowanceSeconds, 0);
+      expect(allowance.freeRemainingSeconds, 0);
+      expect(allowance.remainingSeconds, 0);
+    });
   });
 
   group('VideoTimeExhaustedDialog', () {

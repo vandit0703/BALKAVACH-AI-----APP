@@ -5368,6 +5368,60 @@ abstract class AppLocalizations {
   /// **'Stories'**
   String get hubTabStories;
 
+  /// No description provided for @hubTabShorts.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorts'**
+  String get hubTabShorts;
+
+  /// No description provided for @hubShortsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No Shorts to watch right now. Check back soon!'**
+  String get hubShortsEmpty;
+
+  /// No description provided for @learnHubEntryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn & play'**
+  String get learnHubEntryTitle;
+
+  /// No description provided for @quizzesUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Quizzes aren\'t ready yet. Please try again later.'**
+  String get quizzesUnavailable;
+
+  /// No description provided for @interestsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Video interests aren\'t ready yet. Please try again later.'**
+  String get interestsUnavailable;
+
+  /// No description provided for @interestsActiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your topics (approved by your parent)'**
+  String get interestsActiveTitle;
+
+  /// No description provided for @interestsActiveNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No topics chosen yet.'**
+  String get interestsActiveNone;
+
+  /// No description provided for @interestsPendingChildTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You asked for (waiting for your parent)'**
+  String get interestsPendingChildTitle;
+
+  /// No description provided for @interestsAskTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for changes'**
+  String get interestsAskTitle;
+
   /// No description provided for @hubMoreToExplore.
   ///
   /// In en, this message translates to:

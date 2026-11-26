@@ -3228,6 +3228,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hubTabStories => 'Stories';
 
   @override
+  String get hubTabShorts => 'Shorts';
+
+  @override
+  String get hubShortsEmpty => 'No Shorts to watch right now. Check back soon!';
+
+  @override
+  String get learnHubEntryTitle => 'Learn & play';
+
+  @override
+  String get quizzesUnavailable =>
+      'Quizzes aren\'t ready yet. Please try again later.';
+
+  @override
+  String get interestsUnavailable =>
+      'Video interests aren\'t ready yet. Please try again later.';
+
+  @override
+  String get interestsActiveTitle => 'Your topics (approved by your parent)';
+
+  @override
+  String get interestsActiveNone => 'No topics chosen yet.';
+
+  @override
+  String get interestsPendingChildTitle =>
+      'You asked for (waiting for your parent)';
+
+  @override
+  String get interestsAskTitle => 'Ask for changes';
+
+  @override
   String get hubMoreToExplore => 'More to explore';
 
   @override

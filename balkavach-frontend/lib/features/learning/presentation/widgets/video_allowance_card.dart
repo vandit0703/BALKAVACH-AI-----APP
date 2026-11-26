@@ -77,16 +77,20 @@ class VideoAllowanceCard extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          l10n.videoFreeRemaining(
-                            (allowance.freeRemainingSeconds + 59) ~/ 60,
-                            15,
+                        // Only a server-reported free allowance is shown,
+                        // with the server's own total (never a fixed 15).
+                        if (allowance.freeAllowanceSeconds > 0)
+                          Text(
+                            l10n.videoFreeRemaining(
+                              (allowance.freeRemainingSeconds + 59) ~/ 60,
+                              (allowance.freeAllowanceSeconds + 59) ~/ 60,
+                            ),
+                            key: const Key('watch.allowance.free'),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colors.onSurfaceVariant,
+                            ),
                           ),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: colors.onSurfaceVariant,
-                          ),
-                        ),
                         if (allowance.missionRemainingSeconds > 0)
                           Text(
                             l10n.videoMissionRemaining(

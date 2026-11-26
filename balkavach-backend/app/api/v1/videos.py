@@ -123,9 +123,12 @@ def request_video_interests(
 	)
 	allowed = {str(slug).lower() for slug, _ in cats if slug}
 	requested = list(dict.fromkeys(str(item).strip().lower() for item in raw if str(item).strip().lower() in allowed))
-	if hasattr(child, "pending_interest_requests"):
-		child.pending_interest_requests = requested
-		session.commit()
+	if not hasattr(child, "pending_interest_requests"):
+		# Schema without migration 0022: refuse rather than report a request
+		# that was never stored.
+		raise HTTPException(status_code=503, detail="Interest requests are not available yet")
+	child.pending_interest_requests = requested
+	session.commit()
 	return {
 		"interests": list(getattr(child, "interests", None) or []),
 		"pending_requests": requested,

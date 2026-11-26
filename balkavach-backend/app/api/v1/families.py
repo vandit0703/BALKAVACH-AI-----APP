@@ -351,11 +351,14 @@ def update_child_interests(
 	)
 	if child is None:
 		raise HTTPException(status_code=404, detail="Child profile not found")
+	if not hasattr(child, "interests"):
+		# Schema without migration 0022: refuse rather than report a save that
+		# was never stored.
+		raise HTTPException(status_code=503, detail="Child interests are not available yet")
 	categories = _valid_interest_categories(session)
 	allowed = {c["slug"].lower() for c in categories}
 	normalized = list(dict.fromkeys(s.strip().lower() for s in body.interests if s and s.strip().lower() in allowed))
-	if hasattr(child, "interests"):
-		child.interests = normalized
+	child.interests = normalized
 	if body.clear_pending and hasattr(child, "pending_interest_requests"):
 		child.pending_interest_requests = []
 	now = utc_naive(datetime.now(timezone.utc))

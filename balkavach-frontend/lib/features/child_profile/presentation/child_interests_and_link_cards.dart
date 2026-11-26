@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/errors/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
@@ -203,10 +204,8 @@ class _ParentChildInterestsCardState
               key: const Key('parent.interests.save'),
               label: l10n.interestsSave,
               loading: _saving,
-              onPressed: () => _save(
-                interests: _selected.toList(),
-                clearPending: false,
-              ),
+              onPressed: () =>
+                  _save(interests: _selected.toList(), clearPending: false),
             ),
           ],
         ],
@@ -370,6 +369,10 @@ class _ParentChildLinkCardState extends ConsumerState<ParentChildLinkCard> {
 }
 
 /// Child-side interests viewer & change-request card (DEC-04).
+///
+/// Shows the parent-approved active topics, any requests still waiting for a
+/// parent, and lets the child ask for changes. A request never changes the
+/// active topics: only a parent's approval does (server-enforced).
 class ChildInterestsCard extends ConsumerStatefulWidget {
   const ChildInterestsCard({super.key});
 
@@ -378,8 +381,13 @@ class ChildInterestsCard extends ConsumerStatefulWidget {
 }
 
 class _ChildInterestsCardState extends ConsumerState<ChildInterestsCard> {
+  /// The last successful server answer.
   ChildInterests? _data;
   Set<String> _requested = {};
+
+  /// The child changed the selection since the last server answer; a refresh
+  /// must not overwrite what they picked.
+  bool _edited = false;
   bool _loading = true;
   bool _sending = false;
   Object? _error;
@@ -390,6 +398,16 @@ class _ChildInterestsCardState extends ConsumerState<ChildInterestsCard> {
     unawaited(_load());
   }
 
+  void _apply(ChildInterests parsed) {
+    _data = parsed;
+    if (!_edited) {
+      _requested = parsed.pendingRequests.isNotEmpty
+          ? parsed.pendingRequests.toSet()
+          : parsed.interests.toSet();
+    }
+  }
+
+  /// Every call is a fresh request with the current session's token.
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -400,10 +418,7 @@ class _ChildInterestsCardState extends ConsumerState<ChildInterestsCard> {
       if (!mounted) return;
       final parsed = ChildInterests.fromJson(json);
       setState(() {
-        _data = parsed;
-        _requested = parsed.pendingRequests.isNotEmpty
-            ? parsed.pendingRequests.toSet()
-            : parsed.interests.toSet();
+        _apply(parsed);
         _loading = false;
       });
     } on Object catch (e) {
@@ -425,7 +440,8 @@ class _ChildInterestsCardState extends ConsumerState<ChildInterestsCard> {
       if (!mounted) return;
       final parsed = ChildInterests.fromJson(json);
       setState(() {
-        _data = parsed;
+        _edited = false;
+        _apply(parsed);
         _sending = false;
       });
       ScaffoldMessenger.of(
@@ -433,16 +449,45 @@ class _ChildInterestsCardState extends ConsumerState<ChildInterestsCard> {
       ).showSnackBar(SnackBar(content: Text(l10n.interestsRequestSent)));
     } on Object catch (e) {
       if (!mounted) return;
+      // The child's selection stays as it was, so they can simply try again.
       setState(() => _sending = false);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(describeError(l10n, e))));
+      ).showSnackBar(SnackBar(content: Text(_errorText(l10n, e))));
     }
   }
+
+  /// `GET /videos/interests` never answers 404 itself (a child session gets
+  /// 401/403): a 404 means the server does not offer interests yet.
+  String _errorText(AppLocalizations l10n, Object error) =>
+      error is NotFoundException
+      ? l10n.interestsUnavailable
+      : describeError(l10n, error);
+
+  String _nameFor(String slug) {
+    for (final cat
+        in _data?.availableCategories ?? const <InterestCategoryOption>[]) {
+      if (cat.slug == slug) return cat.name;
+    }
+    return slug;
+  }
+
+  Widget _topicChips(String keyPrefix, List<String> slugs) => Wrap(
+    spacing: AppSpacing.xs,
+    runSpacing: AppSpacing.xs,
+    children: [
+      for (final slug in slugs)
+        Chip(key: Key('$keyPrefix.$slug'), label: Text(_nameFor(slug))),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final data = _data;
+    final muted = context.text.bodySmall?.copyWith(
+      color: context.colors.onSurfaceVariant,
+    );
     return AppCard(
       key: const Key('child.interests.card'),
       child: Column(
@@ -450,50 +495,73 @@ class _ChildInterestsCardState extends ConsumerState<ChildInterestsCard> {
         spacing: AppSpacing.sm,
         children: [
           SectionHeader(title: l10n.interestsTitle),
-          Text(
-            l10n.interestsChildSubtitle,
-            style: context.text.bodySmall?.copyWith(
-              color: context.colors.onSurfaceVariant,
-            ),
-          ),
-          if (_loading)
-            const LinearProgressIndicator()
-          else if (_error != null)
-            ErrorView(error: _error!, onRetry: _load)
-          else if (_data == null || _data!.availableCategories.isEmpty)
-            Text(l10n.interestsEmpty)
+          Text(l10n.interestsChildSubtitle, style: muted),
+          if (_loading && data == null)
+            const LinearProgressIndicator(key: Key('child.interests.loading'))
+          else if (data == null)
+            ErrorView(
+              key: const Key('child.interests.error'),
+              error: _error!,
+              message: _errorText(l10n, _error!),
+              onRetry: _load,
+            )
           else ...[
-            if (_data!.pendingRequests.isNotEmpty)
-              EyebrowPill(
-                icon: Icons.hourglass_top_rounded,
-                label: l10n.interestsPendingBadge,
+            Text(l10n.interestsActiveTitle, style: context.text.titleSmall),
+            if (data.interests.isEmpty)
+              Text(
+                l10n.interestsActiveNone,
+                key: const Key('child.interests.activeNone'),
+                style: muted,
+              )
+            else
+              _topicChips('child.interests.active', data.interests),
+            if (data.pendingRequests.isNotEmpty) ...[
+              Text(
+                l10n.interestsPendingChildTitle,
+                key: const Key('child.interests.pending'),
+                style: context.text.titleSmall,
               ),
-            Wrap(
-              spacing: AppSpacing.xs,
-              runSpacing: AppSpacing.xs,
-              children: [
-                for (final cat in _data!.availableCategories)
-                  FilterChip(
-                    key: Key('child.interest.${cat.slug}'),
-                    label: Text(cat.name),
-                    selected: _requested.contains(cat.slug),
-                    onSelected: _sending
-                        ? null
-                        : (v) => setState(() {
-                            if (v) {
-                              _requested.add(cat.slug);
-                            } else {
-                              _requested.remove(cat.slug);
-                            }
-                          }),
-                  ),
-              ],
-            ),
-            SecondaryButton(
-              key: const Key('child.interests.request'),
-              label: l10n.interestsRequestSave,
-              onPressed: _sending ? null : _submitRequest,
-            ),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: EyebrowPill(
+                  icon: Icons.hourglass_top_rounded,
+                  label: l10n.interestsPendingBadge,
+                ),
+              ),
+              _topicChips('child.interests.pendingItem', data.pendingRequests),
+            ],
+            if (data.availableCategories.isEmpty)
+              Text(l10n.interestsEmpty, key: const Key('child.interests.empty'))
+            else ...[
+              Text(l10n.interestsAskTitle, style: context.text.titleSmall),
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  for (final cat in data.availableCategories)
+                    FilterChip(
+                      key: Key('child.interest.${cat.slug}'),
+                      label: Text(cat.name),
+                      selected: _requested.contains(cat.slug),
+                      onSelected: _sending
+                          ? null
+                          : (v) => setState(() {
+                              _edited = true;
+                              if (v) {
+                                _requested.add(cat.slug);
+                              } else {
+                                _requested.remove(cat.slug);
+                              }
+                            }),
+                    ),
+                ],
+              ),
+              SecondaryButton(
+                key: const Key('child.interests.request'),
+                label: l10n.interestsRequestSave,
+                onPressed: _sending ? null : _submitRequest,
+              ),
+            ],
           ],
         ],
       ),
