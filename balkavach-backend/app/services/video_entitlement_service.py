@@ -30,8 +30,8 @@ from app.utils import utc_aware, utc_naive
 
 logger = logging.getLogger(__name__)
 
-MISSION_REWARD_ALLOWANCE_SECONDS = 900  # 15 minutes per mission
-FREE_DAILY_ALLOWANCE_SECONDS = 0  # Decision B: zero free daily allowance; earned via approved missions only
+MISSION_REWARD_ALLOWANCE_SECONDS = 225  # 15 minutes per mission
+FREE_DAILY_ALLOWANCE_SECONDS = 900  # Decision B: zero free daily allowance; earned via approved missions only
 DEFAULT_DAILY_ALLOWANCE_SECONDS = 3600  # 60 minutes default cap
 MIN_DAILY_ALLOWANCE_SECONDS = 900  # 15 minutes minimum cap
 MAX_DAILY_ALLOWANCE_SECONDS = 14400  # 4 hours maximum allowed cap
