@@ -712,6 +712,28 @@ def _audit_daily_missions(session_factory, *, database: bool, as_json: bool) -> 
 	return 0
 
 
+def _seed_quizzes(session_factory, *, apply: bool, publish: bool) -> int:
+	"""Validate and optionally seed the localized quiz pack (idempotent, transactional)."""
+	from app.services.quiz_seed_service import seed_quizzes
+
+	if session_factory is None:
+		report = seed_quizzes(None, apply=False, publish=publish)
+	else:
+		try:
+			with session_factory() as session:
+				report = seed_quizzes(session, apply=apply, publish=publish)
+		except SQLAlchemyError:
+			print("Database operation failed; nothing was committed.", file=sys.stderr)
+			return 2
+	for err in report["errors"][:10]:
+		print(f"INVALID: {err}", file=sys.stderr)
+	print(
+		f"created={report['created']}, updated={report['updated']}, "
+		f"skipped={report['skipped']}, invalid={report['invalid']}"
+	)
+	return 1 if report["invalid"] > 0 else 0
+
+
 def main(argv: list[str] | None = None) -> int:
 	parser = argparse.ArgumentParser(prog="python -m app.cli")
 	commands = parser.add_subparsers(dest="command", required=True)
@@ -794,7 +816,28 @@ def main(argv: list[str] | None = None) -> int:
 	)
 	audit.add_argument("--database", action="store_true", help="Audit the stored rows (SELECT only) instead of the catalogue source")
 	audit.add_argument("--json", action="store_true", help="Print the full per-variation report as JSON")
+	quizzes = commands.add_parser(
+		"seed-quizzes",
+		help="Validate the localized quiz content pack; with --apply, insert/update quizzes idempotently",
+	)
+	quizzes.add_argument("--dry-run", action="store_true", help="Validate without writing (default)")
+	quizzes.add_argument("--apply", action="store_true", help="Write to the configured database")
+	quizzes.add_argument("--publish", action="store_true", help="Publish seeded quizzes (requires --apply)")
 	args = parser.parse_args(argv)
+
+	if args.command == "seed-quizzes":
+		if args.dry_run and args.apply:
+			parser.error("--dry-run and --apply cannot be combined")
+		if args.publish and not args.apply:
+			parser.error("--publish requires --apply")
+		factory = None
+		if args.apply:
+			from app.db.session import SessionLocal as factory
+
+			if factory is None:
+				print("DATABASE_URL is not configured", file=sys.stderr)
+				return 2
+		return _seed_quizzes(factory, apply=args.apply, publish=args.publish)
 
 	if args.command == "audit-daily-missions":
 		factory = None
