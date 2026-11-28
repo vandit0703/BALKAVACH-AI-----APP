@@ -3137,6 +3137,78 @@ class AppLocalizationsGu extends AppLocalizations {
       'આ માહિતી બદલાઈ ગઈ છે. કૃપા કરીને ઍપ અપડેટ કરો, પછી ફરી પ્રયાસ કરો.';
 
   @override
+  String get pandaChatAccessTitle => 'પાંડા ચેટની પરવાનગી';
+
+  @override
+  String get pandaChatAccessEntrySubtitle =>
+      'વિનંતીઓ જુઓ અને કયાં બાળકો પાંડા સાથે ચેટ કરી શકે તે પસંદ કરો';
+
+  @override
+  String get pandaChatAccessIntro =>
+      'દરેક બાળક માટે માતા-પિતાની મંજૂરી પછી જ લખીને ચેટ શરૂ થાય છે. તમે ગમે ત્યારે પરવાનગી પાછી લઈ શકો છો.';
+
+  @override
+  String get pandaChatParentOnly =>
+      'પાંડા ચેટની પરવાનગી ફક્ત માતા-પિતા બદલી શકે છે.';
+
+  @override
+  String get pandaChatAccessNotRequested => 'કોઈ વિનંતી નથી';
+
+  @override
+  String get pandaChatAccessPending => 'તમારા નિર્ણયની રાહ છે';
+
+  @override
+  String get pandaChatAccessApproved => 'મંજૂર';
+
+  @override
+  String get pandaChatAccessRejected => 'મંજૂર નથી';
+
+  @override
+  String get pandaChatAccessRevoked => 'પરવાનગી પાછી લીધી';
+
+  @override
+  String get pandaChatAccessApprove => 'મંજૂર કરો';
+
+  @override
+  String get pandaChatAccessReject => 'નામંજૂર કરો';
+
+  @override
+  String get pandaChatAccessRevoke => 'પરવાનગી પાછી લો';
+
+  @override
+  String get pandaChatAccessSaveFailed =>
+      'પાંડા ચેટની પરવાનગી બદલી શકાઈ નહીં. કૃપા કરીને ફરી પ્રયાસ કરો.';
+
+  @override
+  String get pandaChatAccessChecking => 'મોટા વ્યક્તિને પૂછી રહ્યા છીએ…';
+
+  @override
+  String get pandaChatAccessPendingChild =>
+      'તમારી વિનંતી મોટા વ્યક્તિના જવાબની રાહ જોઈ રહી છે. થોડી વાર પછી તપાસજો!';
+
+  @override
+  String get pandaChatAccessAskChild =>
+      'પાંડા સાથે ચેટ કરવા માટે કોઈ મોટા વ્યક્તિને પૂછો.';
+
+  @override
+  String get pandaChatAccessRejectedChild =>
+      'તમારા મોટા વ્યક્તિએ હજી મંજૂરી આપી નથી. તમે ફરીથી પૂછી શકો છો.';
+
+  @override
+  String get pandaChatAccessRevokedChild =>
+      'હમણાં માટે પાંડા ચેટ બંધ છે. તમે તમારા મોટા વ્યક્તિને ફરીથી પૂછી શકો છો.';
+
+  @override
+  String get pandaChatAccessRequestButton => 'મારા મોટા વ્યક્તિને પૂછો';
+
+  @override
+  String get pandaChatAccessCheckAgain => 'ફરી તપાસો';
+
+  @override
+  String get pandaChatAccessRequestFailed =>
+      'હું વિનંતી મોકલી શક્યો નહીં. કૃપા કરીને ફરી પ્રયાસ કરો.';
+
+  @override
   String get missionsUnfinishedTitle => 'તમારા મિશન આગળ વધારો';
 
   @override

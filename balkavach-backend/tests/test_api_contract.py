@@ -107,6 +107,8 @@ def test_a_second_family_cannot_reach_the_first_familys_resources(api):
         ("get", f"/settings/families/{fam}", None),
         ("patch", f"/settings/families/{fam}", {"default_language": "gu"}),
         ("get", f"/settings/families/{fam}/consents", None),
+        ("get", f"/settings/families/{fam}/panda-chat-access", None),
+        ("put", f"/settings/families/{fam}/children/{kid}/panda-chat-access", {"action": "approve"}),
     ]
     for method, path, body in parent_b_attempts:
         response = api.client.request(method.upper(), f"/api/v1{path}", headers=api.auth(pb), json=body)

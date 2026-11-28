@@ -124,6 +124,9 @@ class PandaVoiceConsent {
 /// The server's code when a voice turn arrives without parental consent.
 const kPandaVoiceConsentRequired = 'panda_voice_consent_required';
 
+/// The server's code when text chat has not been approved for this child.
+const kPandaChatAccessRequired = 'panda_chat_access_required';
+
 final companionChatRepositoryProvider = Provider<CompanionChatRepository>(
   (ref) => CompanionChatRepository(ref.watch(apiDioProvider)),
 );

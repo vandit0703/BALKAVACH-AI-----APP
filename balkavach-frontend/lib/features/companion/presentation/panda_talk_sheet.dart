@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/errors/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
@@ -10,6 +11,7 @@ import '../../../shared/models/app_assets.dart';
 import '../../authentication/presentation/session_controller.dart';
 import '../../learning/data/video_feed_repository.dart';
 import '../data/companion_chat_repository.dart';
+import '../data/panda_chat_access_repository.dart';
 import '../data/speech_services.dart';
 import '../domain/companion_director.dart';
 import '../domain/panda_interaction.dart';
@@ -109,6 +111,10 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
     with WidgetsBindingObserver {
   final _text = TextEditingController();
   bool _greeted = false;
+  PandaChatAccessStatus? _chatAccess;
+  bool _chatAccessLoading = true;
+  bool _requestingChatAccess = false;
+  bool _chatAccessFailed = false;
 
   PandaTalkController get _controller =>
       ref.read(pandaTalkControllerProvider.notifier);
@@ -130,6 +136,7 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
         unawaited(_greet());
         // Greys the mic when no parent has agreed; typing always works.
         unawaited(_controller.refreshVoiceConsent());
+        unawaited(_refreshChatAccess());
       });
     }
   }
@@ -172,6 +179,45 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
     } else {
       // A parent may have changed the microphone consent meanwhile.
       unawaited(_controller.refreshVoiceConsent());
+      unawaited(_refreshChatAccess());
+    }
+  }
+
+  Future<void> _refreshChatAccess() async {
+    try {
+      final status = await ref
+          .read(pandaChatAccessRepositoryProvider)
+          .childStatus();
+      if (!mounted) return;
+      setState(() {
+        _chatAccess = status;
+        _chatAccessFailed = false;
+        _chatAccessLoading = false;
+      });
+    } on ApiException {
+      if (!mounted) return;
+      setState(() {
+        _chatAccessFailed = true;
+        _chatAccessLoading = false;
+      });
+    }
+  }
+
+  Future<void> _requestChatAccess() async {
+    setState(() => _requestingChatAccess = true);
+    try {
+      final status = await ref
+          .read(pandaChatAccessRepositoryProvider)
+          .requestAccess();
+      if (!mounted) return;
+      setState(() {
+        _chatAccess = status;
+        _chatAccessFailed = false;
+      });
+    } on ApiException {
+      if (mounted) setState(() => _chatAccessFailed = true);
+    } finally {
+      if (mounted) setState(() => _requestingChatAccess = false);
     }
   }
 
@@ -183,6 +229,7 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
   }
 
   Future<void> _mic() async {
+    if (_chatAccess?.approved != true) return;
     final state = ref.read(pandaTalkControllerProvider);
     if (state.phase == PandaPhase.listening) {
       await _controller.finishListening();
@@ -240,6 +287,7 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
   }
 
   void _send([String? value]) {
+    if (_chatAccess?.approved != true) return;
     final text = (value ?? _text.text).trim();
     if (text.isEmpty) return;
     _text.clear();
@@ -251,6 +299,14 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
     final l10n = AppLocalizations.of(context);
     final colors = context.colors;
     final state = ref.watch(pandaTalkControllerProvider);
+    ref.listen(
+      pandaTalkControllerProvider.select((value) => value.problem),
+      (previous, next) {
+        if (next == PandaProblem.chatNeedsParent) {
+          unawaited(_refreshChatAccess());
+        }
+      },
+    );
     // Keeps the real allowance loaded for the opening line.
     ref.watch(videoAllowanceProvider);
     final media = MediaQuery.of(context);
@@ -278,7 +334,9 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
       PandaProblem.busy => l10n.pandaErrorBusy,
       PandaProblem.voiceNeedsParent => l10n.pandaVoiceNeedsParent,
       PandaProblem.voiceTurnedOff => l10n.pandaVoiceTurnedOff,
+      PandaProblem.chatNeedsParent => l10n.pandaChatAccessAskChild,
     };
+    final chatAllowed = _chatAccess?.approved == true;
     final childSaid = state.phase == PandaPhase.listening
         ? state.heard
         : state.childText;
@@ -389,7 +447,18 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
                 text: l10n.pandaVoiceMissing,
               ),
             ],
-            if (!state.busy) ...[
+            if (!chatAllowed) ...[
+              const SizedBox(height: AppSpacing.md),
+              _ChatAccessPrompt(
+                status: _chatAccess?.status,
+                loading: _chatAccessLoading,
+                requesting: _requestingChatAccess,
+                failed: _chatAccessFailed,
+                onRequest: _requestChatAccess,
+                onRefresh: _refreshChatAccess,
+              ),
+            ],
+            if (chatAllowed && !state.busy) ...[
               const SizedBox(height: AppSpacing.md),
               Wrap(
                 spacing: AppSpacing.sm,
@@ -413,7 +482,7 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
               ),
             ],
             const SizedBox(height: AppSpacing.md),
-            if (state.typing)
+            if (chatAllowed && state.typing)
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: Row(
@@ -442,7 +511,8 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
                   ],
                 ),
               ),
-            Wrap(
+            if (chatAllowed)
+              Wrap(
               alignment: WrapAlignment.center,
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
@@ -500,6 +570,80 @@ String _suggestion(AppLocalizations l10n, PandaSuggestion s) => switch (s) {
   PandaSuggestion.draw => l10n.pandaSuggestDraw,
   PandaSuggestion.stars => l10n.pandaSuggestStars,
 };
+
+class _ChatAccessPrompt extends StatelessWidget {
+  const _ChatAccessPrompt({
+    required this.status,
+    required this.loading,
+    required this.requesting,
+    required this.failed,
+    required this.onRequest,
+    required this.onRefresh,
+  });
+
+  final String? status;
+  final bool loading;
+  final bool requesting;
+  final bool failed;
+  final VoidCallback onRequest;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final message = loading
+        ? l10n.pandaChatAccessChecking
+        : failed
+        ? l10n.pandaChatAccessRequestFailed
+        : switch (status) {
+            'pending' => l10n.pandaChatAccessPendingChild,
+            'rejected' => l10n.pandaChatAccessRejectedChild,
+            'revoked' => l10n.pandaChatAccessRevokedChild,
+            _ => l10n.pandaChatAccessAskChild,
+          };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(message, textAlign: TextAlign.center),
+        const SizedBox(height: AppSpacing.sm),
+        if (loading)
+          const Center(child: CircularProgressIndicator())
+        else if (status == 'pending' && !failed)
+          Align(
+            alignment: AlignmentDirectional.center,
+            child: TextButton.icon(
+              onPressed: onRefresh,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(l10n.pandaChatAccessCheckAgain),
+            ),
+          )
+        else
+          Align(
+            alignment: AlignmentDirectional.center,
+            child: FilledButton.icon(
+              key: const Key('panda.talk.requestAccess'),
+              onPressed: requesting
+                  ? null
+                  : failed
+                  ? onRefresh
+                  : onRequest,
+              icon: requesting
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(failed ? Icons.refresh_rounded : Icons.person_add_alt_1_rounded),
+              label: Text(
+                failed
+                    ? l10n.pandaChatAccessCheckAgain
+                    : l10n.pandaChatAccessRequestButton,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
 
 class _Bubble extends StatelessWidget {
   const _Bubble({

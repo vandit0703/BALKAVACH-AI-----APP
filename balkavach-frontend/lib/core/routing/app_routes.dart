@@ -25,6 +25,7 @@ abstract final class AppRoutes {
   static const parentSettings = '/parent/settings';
   static const parentNotificationSettings = '/parent/settings/notifications';
   static const parentPandaVoiceConsent = '/parent/settings/panda-voice';
+    static const parentPandaChatAccess = '/parent/settings/panda-chat';
   static const parentHelpSupport = '/parent/settings/help';
   static const parentRewards = '/parent/rewards';
   static const parentNewReward = '/parent/rewards/new';

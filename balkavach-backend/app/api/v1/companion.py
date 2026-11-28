@@ -13,7 +13,13 @@ from app.core.exceptions import APIError
 from app.core.rate_limit import FixedWindowLimiter, enforce
 from app.db.base import get_model
 from app.db.session import get_db
-from app.schemas.companion import CompanionChatReply, CompanionChatRequest, CompanionVoiceConsentPublic
+from app.schemas.companion import (
+	CompanionChatReply,
+	CompanionChatRequest,
+	CompanionVoiceConsentPublic,
+	PandaChatAccessPublic,
+)
+from app.services import panda_chat_access_service as panda_chat_access
 from app.services import panda_voice_consent_service as panda_voice
 from app.services.companion_chat_service import ChildContext, compose_reply, safe_first_name
 
@@ -122,6 +128,12 @@ def companion_chat(
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> CompanionChatReply:
+	if not panda_chat_access.chat_allowed(session, child.id):
+		raise APIError(
+			403,
+			"panda_chat_access_required",
+			"Ask your parent to approve Panda chat first.",
+		)
 	if request.input == "voice" and not panda_voice.voice_turn_allowed(session, child.id, request.speech):
 		# Checked before the duplicate cache so a withdrawal applies at once.
 		raise APIError(
@@ -166,4 +178,22 @@ def companion_voice_consent(
 		document_version=panda_voice.PANDA_VOICE_CONSENT_VERSION,
 		refused=panda_voice.is_refused(session, child.id),
 	)
+
+
+@router.get("/chat-access", response_model=PandaChatAccessPublic)
+def companion_chat_access(
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> PandaChatAccessPublic:
+	"""The signed-in child's own Panda text-chat access state."""
+	return PandaChatAccessPublic.model_validate(panda_chat_access.status(session, child.id))
+
+
+@router.post("/chat-access/request", response_model=PandaChatAccessPublic)
+def request_companion_chat_access(
+	child=Depends(require_child),
+	session: Session = Depends(get_db),
+) -> PandaChatAccessPublic:
+	"""Ask active parents in this child's family to approve Panda text chat."""
+	return PandaChatAccessPublic.model_validate(panda_chat_access.request_access(session, child))
 

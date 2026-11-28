@@ -27,7 +27,7 @@ class ConsentRecord(World):
 	id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
 	family_id: Mapped[UUID] = mapped_column(Uuid)
 	child_id: Mapped[UUID | None] = mapped_column(Uuid)
-	parent_user_id: Mapped[UUID] = mapped_column(Uuid)
+	parent_user_id: Mapped[UUID | None] = mapped_column(Uuid)
 	consent_type: Mapped[str] = mapped_column(String)
 	document_version: Mapped[str] = mapped_column(String)
 	accepted: Mapped[bool] = mapped_column(Boolean)
@@ -42,8 +42,12 @@ WORLD = {**MODELS, "ConsentRecord": ConsentRecord}
 @pytest.fixture
 def db(world_session, monkeypatch):
 	import app.services.panda_voice_consent_service as service
+	import app.services.panda_chat_access_service as chat_access
+	import app.services.notification_service as notifications
 
 	monkeypatch.setattr(service, "get_model", WORLD.__getitem__)
+	monkeypatch.setattr(chat_access, "get_model", WORLD.__getitem__)
+	monkeypatch.setattr(notifications, "get_model", WORLD.__getitem__)
 	return world_session
 
 
@@ -54,6 +58,14 @@ def parent_of(db, family_id):
 	db.add(FamilyMember(family_id=family_id, user_id=parent.id))
 	db.commit()
 	return parent
+
+
+def grant_chat_access(db, child, parent=None):
+	from app.services import panda_chat_access_service as access
+
+	parent = parent or parent_of(db, child.family_id)
+	access.request_access(db, child)
+	return access.decide_access(db, child.family_id, child.id, parent.id, "approve")
 
 
 def version():
@@ -216,6 +228,7 @@ def _chat(db, child, monkeypatch, *, input_mode, speech=None):
 
 def test_voice_turns_need_consent_typed_turns_do_not(db, monkeypatch):
 	child = make_family(db)
+	grant_chat_access(db, child)
 
 	with pytest.raises(APIError) as refused:
 		_chat(db, child, monkeypatch, input_mode="voice")
@@ -228,6 +241,7 @@ def test_voice_turns_need_consent_typed_turns_do_not(db, monkeypatch):
 def test_withdrawal_stops_the_next_voice_turn(db, monkeypatch):
 	child = make_family(db)
 	parent = parent_of(db, child.family_id)
+	grant_chat_access(db, child, parent)
 	put_consent(db, parent, child, True)
 	assert _chat(db, child, monkeypatch, input_mode="voice").reply == "Hello!"
 
@@ -251,11 +265,13 @@ def test_older_apps_without_the_input_field_count_as_typed():
 
 def test_on_device_voice_turns_need_no_consent_record(db, monkeypatch):
 	child = make_family(db)
+	grant_chat_access(db, child)
 	assert _chat(db, child, monkeypatch, input_mode="voice", speech="on_device").reply == "Hello!"
 
 
 def test_cloud_voice_turns_still_need_consent(db, monkeypatch):
 	child = make_family(db)
+	grant_chat_access(db, child)
 	with pytest.raises(APIError) as refused:
 		_chat(db, child, monkeypatch, input_mode="voice", speech="cloud")
 	assert refused.value.code == "panda_voice_consent_required"
@@ -269,6 +285,7 @@ def test_voice_turns_from_older_apps_count_as_cloud():
 def test_a_parent_who_turned_voice_off_stops_on_device_voice_too(db, monkeypatch):
 	child = make_family(db)
 	parent = parent_of(db, child.family_id)
+	grant_chat_access(db, child, parent)
 	put_consent(db, parent, child, True)
 	put_consent(db, parent, child, False)
 
@@ -301,3 +318,46 @@ def test_a_stale_grant_is_not_a_refusal(db, monkeypatch):
 	put_consent(db, parent, child, True)
 	monkeypatch.setattr(service, "PANDA_VOICE_CONSENT_VERSION", "panda-voice-next")
 	assert child_view(db, child).refused is False
+
+
+def test_chat_access_request_is_child_scoped_and_notifies_each_parent(db, monkeypatch):
+	from app.services import notification_service
+	from app.services import panda_chat_access_service as access
+
+	child = make_family(db)
+	first = parent_of(db, child.family_id)
+	second = parent_of(db, child.family_id)
+	notifications = []
+	monkeypatch.setattr(
+		notification_service,
+		"create_notification",
+		lambda session, recipient, kind, title, message, **kwargs: notifications.append(
+			(recipient, kind, title, message)
+		),
+	)
+
+	requested = access.request_access(db, child)
+	assert requested["status"] == "pending"
+	assert access.request_access(db, child)["status"] == "pending"
+	assert [notice[0] for notice in notifications] == [first.id, second.id]
+	assert all(notice[1] == "panda_chat_access_requested" for notice in notifications)
+	assert all("hello panda" not in notice[3] for notice in notifications)
+	request = db.query(ConsentRecord).one()
+	assert request.parent_user_id is None and request.accepted is False and request.revoked_at is None
+
+	approved = access.decide_access(db, child.family_id, child.id, first.id, "approve")
+	assert approved["status"] == "approved"
+	assert access.chat_allowed(db, child.id) is True
+
+	sibling = make_family(db)
+	assert access.chat_allowed(db, sibling.id) is False
+
+	revoked = access.decide_access(db, child.family_id, child.id, second.id, "revoke")
+	assert revoked["status"] == "revoked"
+	assert access.chat_allowed(db, child.id) is False
+
+	new_request = access.request_access(db, child)
+	assert new_request["status"] == "pending"
+	rejected = access.decide_access(db, child.family_id, child.id, second.id, "reject")
+	assert rejected["status"] == "rejected"
+	assert access.chat_allowed(db, child.id) is False

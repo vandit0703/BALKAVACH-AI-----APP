@@ -36,6 +36,9 @@ enum PandaProblem {
 
   /// A parent turned talking to Panda off (applies to every recogniser).
   voiceTurnedOff,
+
+  /// A parent has not approved text chat, or has since revoked it.
+  chatNeedsParent,
 }
 
 /// Allowed moves. Anything else is ignored, so a late callback can never put
@@ -443,6 +446,10 @@ class PandaTalkController extends Notifier<PandaTalkState> {
         await _input.cancel().catchError((_) {});
         await _output.stop();
         _fail(PandaProblem.voiceNeedsParent, typing: true);
+        return;
+      }
+      if (error.code == kPandaChatAccessRequired) {
+        _fail(PandaProblem.chatNeedsParent);
         return;
       }
       _fail(error.statusCode == 429 ? PandaProblem.busy : PandaProblem.network);

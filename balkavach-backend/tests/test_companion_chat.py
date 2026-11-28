@@ -241,6 +241,26 @@ def test_unknown_topic_gets_a_gentle_fallback():
 	assert result.mood == "curious"
 
 
+@pytest.mark.parametrize(
+	"text,intent,catalogue_key",
+	[
+		("Tell me a joke", "joke", "joke"),
+		("Tell me a story", "draw", "draw"),
+		("Ask me a riddle", "fallback", "fallback"),
+		("Let's play a game", "fallback", "fallback"),
+		("Hello Panda", "greeting", "greeting"),
+	],
+)
+def test_common_text_prompts_use_the_existing_authored_catalogue(text, intent, catalogue_key):
+	result = compose_reply(text, "en", ChildContext(), rng=random.Random(0))
+	assert result.intent == intent
+	expected = {
+		line.format(name="friend", mission="", minutes="0", streak="0")
+		for line in CATALOGUE[catalogue_key]["en"]
+	}
+	assert result.text in expected
+
+
 def test_unsupported_locale_falls_back_to_english():
 	assert compose_reply("hello", "fr", ChildContext(), rng=random.Random(0)).text.startswith(("Hi", "Hello"))
 
@@ -260,6 +280,7 @@ def client(monkeypatch):
 	child = SimpleNamespace(id=uuid4(), user_id=uuid4(), family_id=uuid4(), display_name="Aarav")
 	monkeypatch.setattr(companion, "chat_limiter", companion.FixedWindowLimiter())
 	monkeypatch.setattr(companion, "turn_cache", companion._TurnCache())
+	monkeypatch.setattr(companion.panda_chat_access, "chat_allowed", lambda *_: True)
 	calls = {"context": 0}
 
 	def fake_context(session, c):
@@ -294,6 +315,41 @@ def test_duplicate_turn_is_answered_once(client):
 	first = http.post("/api/v1/companion/chat", json={"text": "joke", "locale": "en", "turn_id": turn}).json()
 	second = http.post("/api/v1/companion/chat", json={"text": "joke", "locale": "en", "turn_id": turn}).json()
 	assert first == second
+	assert calls["context"] == 1
+
+
+def test_chat_endpoint_requires_parent_approval(client, monkeypatch):
+	http, calls = client
+	from app.api.v1 import companion
+
+	monkeypatch.setattr(companion.panda_chat_access, "chat_allowed", lambda *_: False)
+	response = http.post(
+		"/api/v1/companion/chat",
+		json={"text": "tell me a joke", "turn_id": str(uuid4())},
+	)
+	assert response.status_code == 403
+	assert response.json()["error"]["code"] == "panda_chat_access_required"
+	assert calls["context"] == 0
+
+
+def test_chat_endpoint_rechecks_approval_before_returning_cached_turn(client, monkeypatch):
+	http, calls = client
+	from app.api.v1 import companion
+
+	allowed = True
+	monkeypatch.setattr(companion.panda_chat_access, "chat_allowed", lambda *_: allowed)
+	turn_id = str(uuid4())
+	first = http.post(
+		"/api/v1/companion/chat",
+		json={"text": "tell me a joke", "turn_id": turn_id},
+	)
+	assert first.status_code == 200
+	allowed = False
+	second = http.post(
+		"/api/v1/companion/chat",
+		json={"text": "tell me a joke", "turn_id": turn_id},
+	)
+	assert second.status_code == 403
 	assert calls["context"] == 1
 
 

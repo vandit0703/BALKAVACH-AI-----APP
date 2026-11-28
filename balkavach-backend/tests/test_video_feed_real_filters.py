@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import event
 
 from app.integrations.youtube import YouTubeQuotaError, YouTubeUnavailableError
 from app.services import charging_path
@@ -25,6 +26,7 @@ from tests.feed_world import (
 	FakeYouTube,
 	VideoCategory,
 	YouTubeContentReview,
+	Video,
 	add_video,
 	add_youtube,
 	feed_db,  # noqa: F401  (fixture)
@@ -201,6 +203,49 @@ def test_pagination_returns_every_eligible_video_exactly_once(feed_db):
 	assert len(seen) == 7
 	assert len(set(seen)) == 7
 	assert set(seen) == {f"V{i}" for i in range(7)}
+
+
+def test_large_feed_first_page_materializes_only_twenty_of_5806_videos(feed_db):
+	child = make_child(feed_db)
+	feed_db.add_all(
+		Video(
+			title=f"Catalogue {index}",
+			duration_seconds=300,
+			language_code="en",
+			video_source="hosted",
+			external_video_id=f"hosted-{index}",
+			age_min=3,
+			age_max=15,
+			content_rating="general",
+			is_published=True,
+			display_order=index,
+		)
+		for index in range(5806)
+	)
+	feed_db.commit()
+	feed_db.expunge_all()
+	loaded_video_ids = []
+	select_statements = []
+
+	def video_loaded(video, _context):
+		loaded_video_ids.append(video.id)
+
+	def statement_executed(_connection, _cursor, statement, _parameters, _context, _many):
+		if statement.lstrip().upper().startswith("SELECT"):
+			select_statements.append(statement)
+
+	event.listen(Video, "load", video_loaded)
+	event.listen(feed_db.bind, "before_cursor_execute", statement_executed)
+	try:
+		page = eligible_feed(feed_db, child, None, 20, 0, video_format="regular", seed="large-catalogue")
+	finally:
+		event.remove(Video, "load", video_loaded)
+		event.remove(feed_db.bind, "before_cursor_execute", statement_executed)
+
+	assert len(page) == 20
+	assert len(loaded_video_ids) == 20
+	assert len(select_statements) == 2  # child language plus one ranked page query
+	assert any("LIMIT" in statement.upper() and "OFFSET" in statement.upper() for statement in select_statements)
 
 
 # ---- diagnostics explain the same rules ------------------------------------------------------------------------

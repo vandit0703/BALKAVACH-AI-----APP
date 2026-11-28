@@ -12,12 +12,13 @@ from ``tests/video_world.py``; the video tables are declared here with every col
 
 from __future__ import annotations
 
+import hashlib
 from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import JSON, Boolean, Date, DateTime, Integer, String, Uuid, create_engine
+from sqlalchemy import JSON, Boolean, Date, DateTime, Integer, String, Uuid, create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -187,6 +188,13 @@ def feed_db(monkeypatch) -> Session:
 			monkeypatch.setattr(module, "has_model", _has_model)
 	monkeypatch.setattr(charging, "has_model", _has_model)  # no video_play_tickets table: tickets stay inactive
 	engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+	event.listen(
+		engine,
+		"connect",
+		lambda connection, _: connection.create_function(
+			"md5", 1, lambda value: hashlib.md5(value.encode("utf-8")).hexdigest()
+		),
+	)
 	Base.metadata.create_all(engine)
 	allowance_tables.Base.metadata.create_all(engine, tables=_SHARED_TABLES)
 	session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)()

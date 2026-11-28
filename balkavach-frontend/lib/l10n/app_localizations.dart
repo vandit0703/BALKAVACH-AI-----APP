@@ -5254,6 +5254,132 @@ abstract class AppLocalizations {
   /// **'This explanation has changed. Please update the app, then try again.'**
   String get pandaConsentOutdated;
 
+  /// No description provided for @pandaChatAccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Panda chat access'**
+  String get pandaChatAccessTitle;
+
+  /// No description provided for @pandaChatAccessEntrySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review requests and choose which children can chat with Panda'**
+  String get pandaChatAccessEntrySubtitle;
+
+  /// No description provided for @pandaChatAccessIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Text chat is available only after a parent approves it for each child. You can revoke access at any time.'**
+  String get pandaChatAccessIntro;
+
+  /// No description provided for @pandaChatParentOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only a parent can change Panda chat access.'**
+  String get pandaChatParentOnly;
+
+  /// No description provided for @pandaChatAccessNotRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'No request'**
+  String get pandaChatAccessNotRequested;
+
+  /// No description provided for @pandaChatAccessPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for your decision'**
+  String get pandaChatAccessPending;
+
+  /// No description provided for @pandaChatAccessApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved'**
+  String get pandaChatAccessApproved;
+
+  /// No description provided for @pandaChatAccessRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not approved'**
+  String get pandaChatAccessRejected;
+
+  /// No description provided for @pandaChatAccessRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'Access revoked'**
+  String get pandaChatAccessRevoked;
+
+  /// No description provided for @pandaChatAccessApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get pandaChatAccessApprove;
+
+  /// No description provided for @pandaChatAccessReject.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get pandaChatAccessReject;
+
+  /// No description provided for @pandaChatAccessRevoke.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke access'**
+  String get pandaChatAccessRevoke;
+
+  /// No description provided for @pandaChatAccessSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn’t update Panda chat access. Please try again.'**
+  String get pandaChatAccessSaveFailed;
+
+  /// No description provided for @pandaChatAccessChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking with your grown-up…'**
+  String get pandaChatAccessChecking;
+
+  /// No description provided for @pandaChatAccessPendingChild.
+  ///
+  /// In en, this message translates to:
+  /// **'Your request is waiting for a grown-up. Check back soon!'**
+  String get pandaChatAccessPendingChild;
+
+  /// No description provided for @pandaChatAccessAskChild.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a grown-up to let you chat with Panda.'**
+  String get pandaChatAccessAskChild;
+
+  /// No description provided for @pandaChatAccessRejectedChild.
+  ///
+  /// In en, this message translates to:
+  /// **'Your grown-up did not approve this yet. You can ask again.'**
+  String get pandaChatAccessRejectedChild;
+
+  /// No description provided for @pandaChatAccessRevokedChild.
+  ///
+  /// In en, this message translates to:
+  /// **'Panda chat is turned off for now. You can ask your grown-up again.'**
+  String get pandaChatAccessRevokedChild;
+
+  /// No description provided for @pandaChatAccessRequestButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask my grown-up'**
+  String get pandaChatAccessRequestButton;
+
+  /// No description provided for @pandaChatAccessCheckAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Check again'**
+  String get pandaChatAccessCheckAgain;
+
+  /// No description provided for @pandaChatAccessRequestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'I couldn’t send that request. Please try again.'**
+  String get pandaChatAccessRequestFailed;
+
   /// No description provided for @missionsUnfinishedTitle.
   ///
   /// In en, this message translates to:

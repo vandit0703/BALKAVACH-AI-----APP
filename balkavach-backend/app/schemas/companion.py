@@ -73,3 +73,19 @@ class PandaVoiceConsentUpdate(BaseModel):
 	granted: bool
 	# Required to grant: the consent-text version the parent was shown.
 	document_version: str | None = Field(default=None, min_length=1, max_length=40)
+
+
+class PandaChatAccessPublic(BaseModel):
+	child_id: UUID
+	status: Literal["not_requested", "pending", "approved", "rejected", "revoked"]
+	requested_at: datetime | None
+	decided_at: datetime | None
+	decided_by: UUID | None
+
+	@field_serializer("requested_at", "decided_at")
+	def serialize_timestamp(self, value: datetime | None) -> datetime | None:
+		return utc_aware(value) if value else None
+
+
+class PandaChatAccessDecision(BaseModel):
+	action: Literal["approve", "reject", "revoke"]

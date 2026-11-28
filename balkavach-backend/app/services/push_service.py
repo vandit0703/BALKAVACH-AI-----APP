@@ -40,6 +40,11 @@ logger = logging.getLogger(__name__)
 _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="push")
 
 GENERIC_TEXT: dict[str, dict[str, tuple[str, str]]] = {
+	"panda_chat_access_requested": {
+		"en": ("Panda chat request", "Your child asked to chat with Panda."),
+		"hi": ("पांडा चैट का अनुरोध", "आपके बच्चे ने पांडा से चैट करने की अनुमति माँगी है।"),
+		"gu": ("પાંડા ચેટની વિનંતી", "તમારા બાળકે પાંડા સાથે ચેટ કરવાની પરવાનગી માગી છે."),
+	},
 	"parent_mode_locked": {
 		"en": ("Parent sign-in locked", "Several incorrect parent sign-in attempts were made on a child's device."),
 		"hi": ("पैरेंट साइन-इन लॉक", "बच्चे के डिवाइस पर पैरेंट साइन-इन के कई गलत प्रयास हुए।"),

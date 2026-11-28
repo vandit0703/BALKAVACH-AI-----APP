@@ -8,8 +8,14 @@ from app.core.dependencies import get_current_user, require_parent
 from app.db.base import get_model
 from app.db.session import get_db
 from app.schemas.notification import NotificationPreferencesPublic, NotificationPreferencesUpdate
-from app.schemas.companion import PandaVoiceConsentPublic, PandaVoiceConsentUpdate
+from app.schemas.companion import (
+	PandaChatAccessDecision,
+	PandaChatAccessPublic,
+	PandaVoiceConsentPublic,
+	PandaVoiceConsentUpdate,
+)
 from app.services import notification_preferences_service as notification_preferences
+from app.services import panda_chat_access_service as panda_chat_access
 from app.services import panda_voice_consent_service as panda_voice
 from app.schemas.settings import (
 	ConsentCreate,
@@ -287,4 +293,38 @@ def set_panda_voice_consent(
 	else:
 		result = panda_voice.revoke(session, child)
 	return PandaVoiceConsentPublic.model_validate(result)
+
+
+@router.get(
+	"/families/{family_id}/panda-chat-access",
+	response_model=list[PandaChatAccessPublic],
+)
+def get_panda_chat_access(
+	family_id: UUID,
+	parent=Depends(require_parent),
+	session: Session = Depends(get_db),
+) -> list[PandaChatAccessPublic]:
+	"""List each active child's Panda text-chat access for a family parent."""
+	return [
+		PandaChatAccessPublic.model_validate(row)
+		for row in panda_chat_access.family_statuses(session, family_id, parent.id)
+	]
+
+
+@router.put(
+	"/families/{family_id}/children/{child_id}/panda-chat-access",
+	response_model=PandaChatAccessPublic,
+)
+def decide_panda_chat_access(
+	family_id: UUID,
+	child_id: UUID,
+	request: PandaChatAccessDecision,
+	parent=Depends(require_parent),
+	session: Session = Depends(get_db),
+) -> PandaChatAccessPublic:
+	"""Approve, reject or revoke Panda text-chat access for this child only."""
+	result = panda_chat_access.decide_access(
+		session, family_id, child_id, parent.id, request.action
+	)
+	return PandaChatAccessPublic.model_validate(result)
 

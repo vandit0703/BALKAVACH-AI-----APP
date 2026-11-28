@@ -53,6 +53,25 @@ def test_unseen_videos_are_prioritized_over_in_progress_and_finished(feed_db):
     assert titles[3] == "Finished"
 
 
+def test_early_skips_rank_after_in_progress_and_before_completed(feed_db):
+    child = make_child(feed_db)
+    add_youtube(feed_db, title="Unseen")
+    progress = add_youtube(feed_db, title="InProgress").video
+    skipped = add_youtube(feed_db, title="EarlySkip").video
+    finished = add_youtube(feed_db, title="Finished").video
+    now = utc_naive(datetime.now(timezone.utc))
+    _mark_history(feed_db, child, progress, completed=False, last_watched_at=now, position=40)
+    _mark_history(feed_db, child, skipped, completed=False, last_watched_at=now, position=5)
+    _mark_history(feed_db, child, finished, completed=True, last_watched_at=now)
+
+    assert _titles(feed_db, child, seed="watch-buckets") == [
+        "Unseen",
+        "InProgress",
+        "EarlySkip",
+        "Finished",
+    ]
+
+
 def test_same_seed_keeps_feed_stable_but_different_sessions_rotate_unseen(feed_db):
     child = make_child(feed_db)
     for index in range(8):

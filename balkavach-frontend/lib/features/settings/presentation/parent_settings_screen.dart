@@ -530,6 +530,20 @@ class _PreferencesCard extends ConsumerWidget {
                     onTap: () =>
                         context.push(AppRoutes.parentPandaVoiceConsent),
                   ),
+                if (familyId != null)
+                  ListTile(
+                    key: const Key('settings.pandaChatAccess'),
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(
+                      radius: 22,
+                      backgroundColor: colors.surfaceContainerHigh,
+                      child: Icon(Icons.chat_bubble_outline_rounded, color: colors.primary),
+                    ),
+                    title: Text(l10n.pandaChatAccessTitle),
+                    subtitle: Text(l10n.pandaChatAccessEntrySubtitle),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push(AppRoutes.parentPandaChatAccess),
+                  ),
                 const SizedBox(height: AppSpacing.sm),
                 _InfoRow(
                   key: const Key('settings.email'),

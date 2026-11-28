@@ -3153,6 +3153,78 @@ class AppLocalizationsHi extends AppLocalizations {
       'यह जानकारी बदल गई है। कृपया ऐप अपडेट करें, फिर कोशिश करें।';
 
   @override
+  String get pandaChatAccessTitle => 'पांडा चैट की अनुमति';
+
+  @override
+  String get pandaChatAccessEntrySubtitle =>
+      'अनुरोध देखें और चुनें कि कौन-से बच्चे पांडा से चैट कर सकते हैं';
+
+  @override
+  String get pandaChatAccessIntro =>
+      'हर बच्चे के लिए माता-पिता की मंज़ूरी मिलने के बाद ही टेक्स्ट चैट चालू होती है। आप कभी भी अनुमति वापस ले सकते हैं।';
+
+  @override
+  String get pandaChatParentOnly =>
+      'पांडा चैट की अनुमति सिर्फ़ माता-पिता बदल सकते हैं।';
+
+  @override
+  String get pandaChatAccessNotRequested => 'कोई अनुरोध नहीं';
+
+  @override
+  String get pandaChatAccessPending => 'आपके फ़ैसले का इंतज़ार है';
+
+  @override
+  String get pandaChatAccessApproved => 'मंज़ूर';
+
+  @override
+  String get pandaChatAccessRejected => 'मंज़ूर नहीं';
+
+  @override
+  String get pandaChatAccessRevoked => 'अनुमति वापस ली गई';
+
+  @override
+  String get pandaChatAccessApprove => 'मंज़ूर करें';
+
+  @override
+  String get pandaChatAccessReject => 'मना करें';
+
+  @override
+  String get pandaChatAccessRevoke => 'अनुमति वापस लें';
+
+  @override
+  String get pandaChatAccessSaveFailed =>
+      'पांडा चैट की अनुमति बदल नहीं सके। कृपया फिर कोशिश करें।';
+
+  @override
+  String get pandaChatAccessChecking => 'बड़े से पूछ रहे हैं…';
+
+  @override
+  String get pandaChatAccessPendingChild =>
+      'तुम्हारा अनुरोध बड़े के जवाब का इंतज़ार कर रहा है। थोड़ी देर बाद देखना!';
+
+  @override
+  String get pandaChatAccessAskChild =>
+      'पांडा से चैट करने के लिए किसी बड़े से पूछो।';
+
+  @override
+  String get pandaChatAccessRejectedChild =>
+      'तुम्हारे बड़े ने अभी मंज़ूरी नहीं दी। तुम फिर से पूछ सकते हो।';
+
+  @override
+  String get pandaChatAccessRevokedChild =>
+      'अभी पांडा चैट बंद है। तुम अपने बड़े से फिर पूछ सकते हो।';
+
+  @override
+  String get pandaChatAccessRequestButton => 'अपने बड़े से पूछो';
+
+  @override
+  String get pandaChatAccessCheckAgain => 'फिर से देखो';
+
+  @override
+  String get pandaChatAccessRequestFailed =>
+      'मैं अनुरोध नहीं भेज पाया। कृपया फिर कोशिश करो।';
+
+  @override
   String get missionsUnfinishedTitle => 'अपने मिशन जारी रखो';
 
   @override

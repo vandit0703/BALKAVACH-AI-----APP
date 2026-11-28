@@ -248,19 +248,18 @@ void main() {
       final rig = await _pumpFeed(
         tester,
         reply: (offset) =>
-            FakeReply(200, offset == 0 ? _page(0, 10) : _page(10, 1)),
+            FakeReply(200, offset == 0 ? _page(0, 20) : _page(20, 1)),
       );
 
-      for (var i = 0; i < 8; i++) {
+      for (var i = 0; i < 18; i++) {
         await _swipeUp(tester);
       }
-      expect(find.text('Short 8'), findsOneWidget);
+      expect(find.text('Short 18'), findsOneWidget);
+      final requests = rig.h.backend.requestsTo('GET', _shortsPath);
+      expect(requests.first.queryParameters['limit'], 20);
       expect(
-        rig.h.backend
-            .requestsTo('GET', _shortsPath)
-            .map((r) => r.queryParameters['offset'])
-            .toList(),
-        [0, 10],
+        requests.map((r) => r.queryParameters['offset']).toList(),
+        [0, 20],
       );
 
       for (var i = 0; i < 3; i++) {
@@ -309,21 +308,21 @@ void main() {
       await _pumpFeed(
         tester,
         reply: (offset) {
-          if (offset == 0) return FakeReply(200, _page(0, 10));
+          if (offset == 0) return FakeReply(200, _page(0, 20));
           if (failNext) {
             failNext = false;
             return FakeReply.error(503, 'unavailable', 'later');
           }
-          return FakeReply(200, _page(10, 2));
+          return FakeReply(200, _page(20, 2));
         },
       );
-      for (var i = 0; i < 10; i++) {
+      for (var i = 0; i < 20; i++) {
         await _swipeUp(tester);
       }
       expect(find.byKey(const Key('videos.shorts.pageError')), findsOneWidget);
       await tester.tap(find.text('Try again'));
       await tester.pumpAndSettle();
-      expect(find.text('Short 10'), findsOneWidget);
+      expect(find.text('Short 20'), findsOneWidget);
     });
 
     testWidgets('a hosted Short is shown locked and never played', (

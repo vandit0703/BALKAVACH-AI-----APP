@@ -3155,6 +3155,78 @@ class AppLocalizationsEn extends AppLocalizations {
       'This explanation has changed. Please update the app, then try again.';
 
   @override
+  String get pandaChatAccessTitle => 'Panda chat access';
+
+  @override
+  String get pandaChatAccessEntrySubtitle =>
+      'Review requests and choose which children can chat with Panda';
+
+  @override
+  String get pandaChatAccessIntro =>
+      'Text chat is available only after a parent approves it for each child. You can revoke access at any time.';
+
+  @override
+  String get pandaChatParentOnly =>
+      'Only a parent can change Panda chat access.';
+
+  @override
+  String get pandaChatAccessNotRequested => 'No request';
+
+  @override
+  String get pandaChatAccessPending => 'Waiting for your decision';
+
+  @override
+  String get pandaChatAccessApproved => 'Approved';
+
+  @override
+  String get pandaChatAccessRejected => 'Not approved';
+
+  @override
+  String get pandaChatAccessRevoked => 'Access revoked';
+
+  @override
+  String get pandaChatAccessApprove => 'Approve';
+
+  @override
+  String get pandaChatAccessReject => 'Reject';
+
+  @override
+  String get pandaChatAccessRevoke => 'Revoke access';
+
+  @override
+  String get pandaChatAccessSaveFailed =>
+      'We couldn’t update Panda chat access. Please try again.';
+
+  @override
+  String get pandaChatAccessChecking => 'Checking with your grown-up…';
+
+  @override
+  String get pandaChatAccessPendingChild =>
+      'Your request is waiting for a grown-up. Check back soon!';
+
+  @override
+  String get pandaChatAccessAskChild =>
+      'Ask a grown-up to let you chat with Panda.';
+
+  @override
+  String get pandaChatAccessRejectedChild =>
+      'Your grown-up did not approve this yet. You can ask again.';
+
+  @override
+  String get pandaChatAccessRevokedChild =>
+      'Panda chat is turned off for now. You can ask your grown-up again.';
+
+  @override
+  String get pandaChatAccessRequestButton => 'Ask my grown-up';
+
+  @override
+  String get pandaChatAccessCheckAgain => 'Check again';
+
+  @override
+  String get pandaChatAccessRequestFailed =>
+      'I couldn’t send that request. Please try again.';
+
+  @override
   String get missionsUnfinishedTitle => 'Continue Your Missions';
 
   @override

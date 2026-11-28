@@ -109,7 +109,7 @@ class _ShortsFeedState extends ConsumerState<ShortsFeed> {
     _pager = VideoFeedPager(
       ref.read(videoFeedRepositoryProvider),
       VideoFeedKind.shorts,
-      pageSize: 10,
+      pageSize: 20,
       seed: launch.seed,
       initialItems: launch.initialVideos,
       initialOffset: launch.nextOffset,

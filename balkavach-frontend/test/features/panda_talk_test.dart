@@ -5,6 +5,7 @@ import 'dart:async';
 
 import 'package:balkavach_app/core/errors/api_exception.dart';
 import 'package:balkavach_app/features/companion/data/companion_chat_repository.dart';
+import 'package:balkavach_app/features/companion/data/panda_chat_access_repository.dart';
 import 'package:balkavach_app/features/companion/data/speech_services.dart';
 import 'package:balkavach_app/features/companion/domain/lip_sync.dart';
 import 'package:balkavach_app/features/companion/domain/panda_interaction.dart';
@@ -185,10 +186,34 @@ class FakeChat extends CompanionChatRepository {
   }
 }
 
+class FakePandaChatAccessRepository extends PandaChatAccessRepository {
+  FakePandaChatAccessRepository() : super(Dio());
+
+  PandaChatAccessStatus access = const PandaChatAccessStatus(
+    childId: 'child-1',
+    status: 'approved',
+  );
+  int requests = 0;
+
+  @override
+  Future<PandaChatAccessStatus> childStatus() async => access;
+
+  @override
+  Future<PandaChatAccessStatus> requestAccess() async {
+    requests++;
+    access = const PandaChatAccessStatus(
+      childId: 'child-1',
+      status: 'pending',
+    );
+    return access;
+  }
+}
+
 class World {
   final input = FakeInput();
   final output = FakeOutput();
   final chat = FakeChat();
+  final chatAccess = FakePandaChatAccessRepository();
 
   List<Override> get overrides => [
     speechInputProvider.overrideWithValue(input),
@@ -1084,6 +1109,7 @@ void main() {
         const Scaffold(body: PandaTalkSheet()),
         overrides: [
           ...w.overrides,
+          pandaChatAccessRepositoryProvider.overrideWithValue(w.chatAccess),
           videoAllowanceProvider.overrideWith(
             (ref) async => VideoAllowance(
               childId: 'c',
@@ -1117,6 +1143,44 @@ void main() {
       expect(w.chat.calls.single.text, 'joke');
       expect(find.textContaining('schools'), findsOneWidget);
       expect(find.byKey(const Key('panda.talk.child')), findsOneWidget);
+    });
+
+    testWidgets('an unapproved child can request access but cannot chat yet', (
+      tester,
+    ) async {
+      w = World()..chatAccess.access = const PandaChatAccessStatus(
+        childId: 'child-1',
+        status: 'not_requested',
+      );
+      w.output.instant = true;
+      await pumpScreen(
+        tester,
+        const Scaffold(body: PandaTalkSheet()),
+        overrides: [
+          ...w.overrides,
+          pandaChatAccessRepositoryProvider.overrideWithValue(w.chatAccess),
+          videoAllowanceProvider.overrideWith(
+            (ref) async => const VideoAllowance(
+              childId: 'c',
+              localDate: '2026-11-19',
+              timezone: 'UTC',
+              totalEarnedTodaySeconds: 900,
+              consumedTodaySeconds: 0,
+              remainingSeconds: 900,
+              dailyCapSeconds: 4500,
+              isExhausted: false,
+              activeEntitlementsCount: 1,
+            ),
+          ),
+        ],
+      );
+
+      expect(find.byKey(const Key('panda.talk.input')), findsNothing);
+      await tester.tap(find.byKey(const Key('panda.talk.requestAccess')));
+      await tester.pumpAndSettle();
+      expect(w.chatAccess.requests, 1);
+      expect(find.textContaining('waiting for a grown-up'), findsOneWidget);
+      expect(w.chat.calls, isEmpty);
     });
 
     testWidgets('suggestion chips send their topic', (tester) async {
