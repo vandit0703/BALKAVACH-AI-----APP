@@ -14,8 +14,10 @@ page's own script/style and same-origin requests.
 import json
 import secrets
 
-from fastapi import APIRouter
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse
+
+from app.core.config import settings
 
 router = APIRouter(include_in_schema=False)
 
@@ -182,3 +184,25 @@ def render_reset_page() -> tuple[str, str]:
 def reset_password_page() -> HTMLResponse:
 	html, nonce = render_reset_page()
 	return HTMLResponse(content=html, headers=_headers(nonce))
+
+
+@router.get("/.well-known/assetlinks.json", response_class=JSONResponse)
+def android_asset_links() -> JSONResponse:
+	"""Android App Links verification manifest (populated from ANDROID_ASSETLINKS_SHA256)."""
+	fingerprints = [fp.strip() for fp in settings.android_assetlinks_sha256 if fp.strip()]
+	if not fingerprints:
+		raise HTTPException(status_code=404, detail="Android App Links not configured")
+	payload = [
+		{
+			"relation": ["delegate_permission/common.handle_all_urls"],
+			"target": {
+				"namespace": "android_app",
+				"package_name": settings.android_package_name,
+				"sha256_cert_fingerprints": fingerprints,
+			},
+		}
+	]
+	return JSONResponse(
+		content=payload,
+		headers={"Cache-Control": "public, max-age=3600", "X-Content-Type-Options": "nosniff"},
+	)

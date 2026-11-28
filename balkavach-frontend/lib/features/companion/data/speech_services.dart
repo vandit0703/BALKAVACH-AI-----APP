@@ -117,6 +117,9 @@ class PlatformSpeechInput implements SpeechInput {
   }
 
   void _status(String status) {
+    debugPrint(
+      'Panda[trace]: stt.status=$status hasWords=${_lastWords.trim().isNotEmpty} lastError=$_lastError',
+    );
     if (status == SpeechToText.doneStatus) {
       // Ended without a final result: use what was heard, or the last error
       // reported by the engine (never mask an engine/network error as notHeard).
@@ -126,6 +129,7 @@ class PlatformSpeechInput implements SpeechInput {
 
   void _error(SpeechRecognitionError error) {
     final msg = error.errorMsg;
+    debugPrint('Panda: speech error $msg (permanent=${error.permanent})');
     final kind = switch (msg) {
       'error_no_match' => SpeechInputError.notHeard,
       'error_speech_timeout' => SpeechInputError.timeout,
@@ -137,17 +141,19 @@ class PlatformSpeechInput implements SpeechInput {
       'error_language_unavailable' => SpeechInputError.unsupportedLanguage,
       'error_network' ||
       'error_network_timeout' ||
-      'error_server_disconnected' => SpeechInputError.network,
+      'error_server_disconnected' ||
+      'error_server' => SpeechInputError.network,
+      'error_not_available' ||
+      'error_recognition_not_available' => SpeechInputError.engineUnavailable,
       _ => SpeechInputError.failed,
     };
     if (kind == SpeechInputError.denied ||
-        kind == SpeechInputError.permanentlyDenied) {
+        kind == SpeechInputError.permanentlyDenied ||
+        kind == SpeechInputError.engineUnavailable) {
       _ready = false;
     }
     _lastError = kind;
-    if (error.permanent || kind != SpeechInputError.failed) {
-      _finish(error: kind);
-    }
+    _finish(error: kind);
   }
 
   @override
@@ -158,11 +164,14 @@ class PlatformSpeechInput implements SpeechInput {
       debugPrint('Panda: speech init failed (${error.runtimeType})');
       _ready = false;
     }
-    if (_ready) return SpeechAvailability.ready;
+    if (_ready) {
+      debugPrint('Panda[trace]: stt.prepare ready=true');
+      return SpeechAvailability.ready;
+    }
     final permitted = await _stt.hasPermission.catchError((_) => false);
-    return permitted
-        ? SpeechAvailability.unavailable
-        : SpeechAvailability.denied;
+    debugPrint('Panda[trace]: stt.prepare ready=false permitted=$permitted');
+    if (!permitted) return SpeechAvailability.denied;
+    return SpeechAvailability.unavailable;
   }
 
   @override
@@ -170,27 +179,69 @@ class PlatformSpeechInput implements SpeechInput {
 
   static const _channel = MethodChannel('balkavach/speech');
 
+  /// Opens the Android App Info settings screen so a permanently denied
+  /// microphone permission can be granted.
+  static Future<bool> openAppSettings() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
+    try {
+      return await _channel.invokeMethod<bool>('openAppSettings') ?? false;
+    } on Object {
+      return false;
+    }
+  }
+
   @override
   Future<bool> onDeviceAvailable() async {
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
     try {
-      return await _channel.invokeMethod<bool>('onDeviceAvailable') ?? false;
+      final available =
+          await _channel.invokeMethod<bool>('onDeviceAvailable') ?? false;
+      debugPrint('Panda[trace]: onDeviceAvailable=$available');
+      return available;
     } on Object {
+      debugPrint('Panda[trace]: onDeviceAvailable=error(false)');
       return false; // unknown: treat as cloud, which needs a parent's consent
     }
   }
 
   @override
   Future<String?> localeFor(String languageCode) async {
-    final locales = await _stt.locales().catchError((_) => <LocaleName>[]);
+    final locales = await _stt
+        .locales()
+        .timeout(const Duration(seconds: 2), onTimeout: () => <LocaleName>[])
+        .catchError((_) => <LocaleName>[]);
+    if (locales.isEmpty) {
+      // Some Android devices return an empty locale list until the service
+      // warms up; pass the primary regional locale and let the engine confirm.
+      final fallback = _ttsLocales[languageCode]?.firstOrNull?.replaceAll(
+        '-',
+        '_',
+      );
+      debugPrint(
+        'Panda[trace]: stt.localeFor($languageCode) locales=0 fallback=$fallback',
+      );
+      return fallback;
+    }
     String norm(String id) => id.replaceAll('-', '_').toLowerCase();
     final ids = [for (final l in locales) norm(l.localeId)];
     for (final wanted in _ttsLocales[languageCode] ?? const <String>[]) {
       final i = ids.indexOf(norm(wanted));
-      if (i >= 0) return locales[i].localeId;
+      if (i >= 0) {
+        final chosen = locales[i].localeId;
+        debugPrint(
+          'Panda[trace]: stt.localeFor($languageCode) locales=${locales.length} chosen=$chosen',
+        );
+        return chosen;
+      }
     }
-    final i = ids.indexWhere((id) => id.startsWith('${languageCode}_'));
-    return i >= 0 ? locales[i].localeId : null;
+    final i = ids.indexWhere(
+      (id) => id.startsWith('${languageCode}_') || id == languageCode,
+    );
+    final chosen = i >= 0 ? locales[i].localeId : null;
+    debugPrint(
+      'Panda[trace]: stt.localeFor($languageCode) locales=${locales.length} chosen=$chosen',
+    );
+    return chosen;
   }
 
   @override
@@ -201,6 +252,12 @@ class PlatformSpeechInput implements SpeechInput {
     required void Function(SpeechInputError error) onError,
     bool onDevice = false,
   }) async {
+    debugPrint(
+      'Panda[trace]: stt.listen start locale=$localeId onDevice=$onDevice ready=$_ready wasListening=${_stt.isListening}',
+    );
+    if (_stt.isListening) {
+      await _stt.cancel().catchError((_) {});
+    }
     _onFinal = onFinal;
     _onError = onError;
     _lastWords = '';
@@ -221,11 +278,11 @@ class PlatformSpeechInput implements SpeechInput {
         },
         listenOptions: SpeechListenOptions(
           localeId: localeId,
-          listenFor: const Duration(seconds: 10),
+          listenFor: const Duration(seconds: 15),
           pauseFor: const Duration(seconds: 3),
           partialResults: true,
           cancelOnError: true,
-          listenMode: ListenMode.confirmation,
+          listenMode: ListenMode.dictation,
           onDevice: onDevice,
         ),
       );
@@ -333,11 +390,16 @@ class PlatformSpeechOutput implements SpeechOutput {
 
   @override
   Future<void> stop() async {
+    final wasActive = _current != null && !(_current!.isCompleted);
     _speakEpoch++;
     _end(SpeakOutcome.interrupted);
     try {
       await _tts.stop();
     } catch (_) {}
+    if (wasActive && !kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      // Allow Android's audio focus / TTS engine to release the mic/audio path.
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+    }
   }
 }
 
@@ -350,3 +412,7 @@ final speechOutputProvider = Provider<SpeechOutput>((ref) {
   ref.onDispose(output.stop);
   return output;
 });
+
+final openAppSettingsProvider = Provider<Future<bool> Function()>(
+  (ref) => PlatformSpeechInput.openAppSettings,
+);

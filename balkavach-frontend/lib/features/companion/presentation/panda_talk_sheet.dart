@@ -229,8 +229,11 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
   }
 
   Future<void> _mic() async {
-    if (_chatAccess?.approved != true) return;
     final state = ref.read(pandaTalkControllerProvider);
+    debugPrint(
+      'Panda[trace]: micTap phase=${state.phase.name} busy=${state.busy} chatApproved=${_chatAccess?.approved} voiceAllowed=${state.voiceAllowed}',
+    );
+    if (_chatAccess?.approved != true) return;
     if (state.phase == PandaPhase.listening) {
       await _controller.finishListening();
       return;
@@ -449,7 +452,26 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
             ],
             if (problem != null) ...[
               const SizedBox(height: AppSpacing.sm),
-              _Notice(key: const Key('panda.talk.problem'), text: problem),
+              _Notice(
+                key: const Key('panda.talk.problem'),
+                text: problem,
+                actionLabel:
+                    state.problem == PandaProblem.micPermanentlyDenied
+                    ? l10n.pandaOpenSettings
+                    : _isRetryableSpeechProblem(state.problem)
+                    ? l10n.retry
+                    : null,
+                actionKey:
+                    state.problem == PandaProblem.micPermanentlyDenied
+                    ? const Key('panda.talk.openSettings')
+                    : const Key('panda.talk.retry'),
+                onAction:
+                    state.problem == PandaProblem.micPermanentlyDenied
+                    ? () => unawaited(ref.read(openAppSettingsProvider)())
+                    : _isRetryableSpeechProblem(state.problem)
+                    ? () => unawaited(_mic())
+                    : null,
+              ),
             ],
             if (state.voiceMissing) ...[
               const SizedBox(height: AppSpacing.sm),
@@ -712,10 +734,28 @@ class _Bubble extends StatelessWidget {
   }
 }
 
+bool _isRetryableSpeechProblem(PandaProblem? problem) => switch (problem) {
+  PandaProblem.notHeard ||
+  PandaProblem.listenTimeout ||
+  PandaProblem.speechFailed ||
+  PandaProblem.network ||
+  PandaProblem.micDenied => true,
+  _ => false,
+};
+
 class _Notice extends StatelessWidget {
-  const _Notice({required this.text, super.key});
+  const _Notice({
+    required this.text,
+    this.actionLabel,
+    this.actionKey,
+    this.onAction,
+    super.key,
+  });
 
   final String text;
+  final String? actionLabel;
+  final Key? actionKey;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -732,6 +772,14 @@ class _Notice extends StatelessWidget {
             Icon(Icons.info_outline_rounded, color: colors.onTertiaryContainer),
             const SizedBox(width: AppSpacing.sm),
             Expanded(child: Text(text, style: context.text.bodyMedium)),
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(width: AppSpacing.xs),
+              TextButton(
+                key: actionKey,
+                onPressed: onAction,
+                child: Text(actionLabel!),
+              ),
+            ],
           ],
         ),
       ),

@@ -1532,6 +1532,7 @@ void main() {
           listenOptions: any(named: 'listenOptions'),
         ),
       ).thenAnswer((_) async {});
+      when(() => mockStt.isListening).thenReturn(false);
       when(() => mockStt.cancel()).thenAnswer((_) async {});
 
       final input = PlatformSpeechInput(mockStt);
@@ -1577,6 +1578,112 @@ void main() {
       );
       capturedOnError!(SpeechRecognitionError('error_permission', true));
       expect(lastError, SpeechInputError.permanentlyDenied);
+    });
+
+    test('platform errors are not masked as notHeard and locales fall back when empty', () async {
+      final stt = _MockSpeechToText();
+      void Function(SpeechRecognitionError)? capturedOnError;
+      void Function(String)? capturedOnStatus;
+
+      when(
+        () => stt.initialize(
+          onError: any(named: 'onError'),
+          onStatus: any(named: 'onStatus'),
+        ),
+      ).thenAnswer((invocation) async {
+        capturedOnError =
+            invocation.namedArguments[#onError]
+                as void Function(SpeechRecognitionError)?;
+        capturedOnStatus =
+            invocation.namedArguments[#onStatus] as void Function(String)?;
+        return true;
+      });
+      when(() => stt.isListening).thenReturn(false);
+      when(() => stt.locales()).thenAnswer((_) async => <LocaleName>[]);
+      when(
+        () => stt.listen(
+          onResult: any(named: 'onResult'),
+          listenOptions: any(named: 'listenOptions'),
+        ),
+      ).thenAnswer((_) async {});
+
+      final input = PlatformSpeechInput(stt);
+      expect(await input.prepare(), SpeechAvailability.ready);
+
+      // Empty locale list falls back to primary regional locale.
+      expect(await input.localeFor('en'), 'en_IN');
+      expect(await input.localeFor('hi'), 'hi_IN');
+      expect(await input.localeFor('gu'), 'gu_IN');
+
+      // Non-empty locale list without Gujarati still returns null.
+      when(() => stt.locales()).thenAnswer((_) async => [LocaleName('en_IN', 'English')]);
+      expect(await input.localeFor('gu'), isNull);
+
+      // Hanging locales() on Android 13+ falls back instead of blocking startListening.
+      when(() => stt.locales()).thenAnswer((_) => Completer<List<LocaleName>>().future);
+      expect(await input.localeFor('en'), 'en_IN');
+
+      SpeechInputError? lastError;
+      await input.listen(
+        localeId: 'en_IN',
+        onPartial: (_) {},
+        onFinal: (_) {},
+        onError: (e) => lastError = e,
+      );
+      capturedOnError!(SpeechRecognitionError('error_audio', false));
+      capturedOnStatus!(SpeechToText.doneStatus);
+      expect(lastError, SpeechInputError.failed);
+
+      lastError = null;
+      await input.listen(
+        localeId: 'en_IN',
+        onPartial: (_) {},
+        onFinal: (_) {},
+        onError: (e) => lastError = e,
+      );
+      capturedOnError!(SpeechRecognitionError('error_not_available', false));
+      expect(lastError, SpeechInputError.engineUnavailable);
+    });
+
+    pandaTest('permanently denied mic shows Open Settings button and retry shows on speech failure', (
+      tester,
+      w,
+    ) async {
+      var settingsOpened = false;
+      resetPandaMicExplanation();
+      await pumpScreen(
+        tester,
+        const Scaffold(body: PandaTalkSheet()),
+        overrides: [
+          ...w.overrides,
+          pandaChatAccessRepositoryProvider.overrideWithValue(w.chatAccess),
+          openAppSettingsProvider.overrideWithValue(() async {
+            settingsOpened = true;
+            return true;
+          }),
+        ],
+      );
+      await flush(tester);
+
+      // Tap Talk, allow mic explanation, then simulate recoverable speech error.
+      await tester.tap(find.byKey(const Key('panda.talk.mic')));
+      await flush(tester);
+      if (find.byKey(const Key('panda.talk.micAllow')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('panda.talk.micAllow')));
+        await flush(tester);
+      }
+      w.input.failed!(SpeechInputError.failed);
+      await flush(tester);
+      expect(find.byKey(const Key('panda.talk.retry')), findsOneWidget);
+
+      // Permanent denial shows Open Settings and invokes openAppSettingsProvider.
+      w.input.availability = SpeechAvailability.permanentlyDenied;
+      await tester.tap(find.byKey(const Key('panda.talk.retry')));
+      await flush(tester);
+      expect(find.byKey(const Key('panda.talk.openSettings')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('panda.talk.openSettings')));
+      await flush(tester);
+      expect(settingsOpened, isTrue);
     });
   });
 }

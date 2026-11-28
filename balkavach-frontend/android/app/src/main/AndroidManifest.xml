@@ -35,6 +35,16 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="balkavach" android:host="app" android:pathPrefix="/reset-password"/>
             </intent-filter>
+            <!-- Android App Links: https://api.balkavach.tech/reset-password?token=... -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="https"
+                    android:host="api.balkavach.tech"
+                    android:pathPrefix="/reset-password"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

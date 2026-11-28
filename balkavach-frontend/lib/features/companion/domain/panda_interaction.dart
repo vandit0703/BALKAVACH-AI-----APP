@@ -227,7 +227,7 @@ class PandaTalkState {
 /// * Every waiting state has a watchdog, so Panda cannot get stuck.
 /// * The microphone is used only between a tap and the end of that phrase.
 class PandaTalkController extends Notifier<PandaTalkState> {
-  static const listenWatchdog = Duration(seconds: 14);
+  static const listenWatchdog = Duration(seconds: 18);
   static const thinkWatchdog = Duration(seconds: 12);
   static const happyRest = Duration(milliseconds: 2500);
 
@@ -309,9 +309,13 @@ class PandaTalkController extends Notifier<PandaTalkState> {
   Future<PandaVoiceConsent> _evaluateVoice() async {
     final onDevice = await _input.onDeviceAvailable();
     final consent = await _chat.voiceConsentStatus();
+    final allowed = !consent.refused && (onDevice || consent.granted);
+    debugPrint(
+      'Panda[trace]: voiceEval onDevice=$onDevice granted=${consent.granted} refused=${consent.refused} allowed=$allowed',
+    );
     state = state.copyWith(
       onDeviceSpeech: onDevice,
-      voiceAllowed: !consent.refused && (onDevice || consent.granted),
+      voiceAllowed: allowed,
     );
     return consent;
   }
@@ -375,7 +379,7 @@ class PandaTalkController extends Notifier<PandaTalkState> {
     }
     final onDevice = state.onDeviceSpeech == true;
     final epoch = ++_epoch;
-    if (state.talking) await _output.stop();
+    await _output.stop();
     if (epoch != _epoch) return;
 
     if (!_speechPrepared) {
@@ -418,6 +422,9 @@ class PandaTalkController extends Notifier<PandaTalkState> {
     }
 
     if (!_go(PandaPhase.listening)) return;
+    debugPrint(
+      'Panda[trace]: enterListening locale=$localeId onDevice=$onDevice',
+    );
     state = state.copyWith(heard: '', clearProblem: true, spokenWords: 0);
     _arm(listenWatchdog, epoch, () {
       unawaited(_input.cancel().catchError((_) {}));

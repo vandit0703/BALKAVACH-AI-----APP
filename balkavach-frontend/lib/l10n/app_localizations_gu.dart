@@ -3930,4 +3930,7 @@ class AppLocalizationsGu extends AppLocalizations {
   @override
   String get rewardsMyRequestsEmpty =>
       'તમે હજી કોઈ ઇનામ માટે પૂછ્યું નથી. પૂરતા સ્ટાર થાય ત્યારે ઉપરથી ઇનામ પસંદ કરો અને મોટાને પૂછો.';
+
+  @override
+  String get pandaOpenSettings => 'સેટિંગ્સ ખોલો';
 }

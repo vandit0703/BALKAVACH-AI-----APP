@@ -3946,4 +3946,7 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get rewardsMyRequestsEmpty =>
       'आपने अभी तक कोई इनाम नहीं माँगा है. जब आपके पास काफ़ी स्टार हों, तो ऊपर से इनाम चुनें और किसी बड़े से पूछें.';
+
+  @override
+  String get pandaOpenSettings => 'सेटिंग्स खोलें';
 }

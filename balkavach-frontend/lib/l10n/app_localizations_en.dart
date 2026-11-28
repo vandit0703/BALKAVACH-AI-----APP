@@ -3946,4 +3946,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get rewardsMyRequestsEmpty =>
       'You haven\'t asked for a reward yet. When you have enough stars, choose a reward above and ask a grown-up.';
+
+  @override
+  String get pandaOpenSettings => 'Open Settings';
 }

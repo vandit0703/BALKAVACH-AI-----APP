@@ -6566,6 +6566,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You haven\'t asked for a reward yet. When you have enough stars, choose a reward above and ask a grown-up.'**
   String get rewardsMyRequestsEmpty;
+
+  /// No description provided for @pandaOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get pandaOpenSettings;
 }
 
 class _AppLocalizationsDelegate

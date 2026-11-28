@@ -47,6 +47,8 @@ class Settings(BaseSettings):
 	parent_mode_refresh_hours: int = Field(default=12, ge=1, le=720)
 	password_reset_expire_minutes: int = Field(default=30, ge=5, le=1440)
 	password_reset_url: str | None = None
+	android_package_name: str = "com.balkavach.balkavach_app"
+	android_assetlinks_sha256: list[str] = Field(default_factory=list)
 	password_reset_from_email: str | None = Field(
 		default=None,
 		validation_alias=AliasChoices("SMTP_FROM_EMAIL", "PASSWORD_RESET_FROM_EMAIL"),

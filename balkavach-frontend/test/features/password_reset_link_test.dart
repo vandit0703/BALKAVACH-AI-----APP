@@ -87,6 +87,8 @@ void main() {
   for (final link in [
     'balkavach://app/reset-password?token=$_token',
     'balkavach://app/reset-password/?token=$_token',
+    'https://api.balkavach.tech/reset-password?token=$_token',
+    'https://api.balkavach.tech/reset-password/?token=$_token',
   ]) {
     testWidgets('cold start keeps the token: $link', (tester) async {
       final (c, _) = await _start(tester, coldLink: link);

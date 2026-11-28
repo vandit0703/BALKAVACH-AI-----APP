@@ -57,3 +57,33 @@ def test_page_has_english_hindi_and_gujarati_text_in_real_script():
 
 def test_page_is_not_part_of_the_published_api_schema():
 	assert "/reset-password" not in app.openapi()["paths"]
+	assert "/.well-known/assetlinks.json" not in app.openapi()["paths"]
+
+
+def test_assetlinks_returns_404_when_unconfigured(monkeypatch):
+	from app.core.config import settings
+
+	monkeypatch.setattr(settings, "android_assetlinks_sha256", [])
+	response = client.get("/.well-known/assetlinks.json")
+	assert response.status_code == 404
+
+
+def test_assetlinks_returns_valid_manifest_when_configured(monkeypatch):
+	from app.core.config import settings
+
+	fp = "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99"
+	monkeypatch.setattr(settings, "android_assetlinks_sha256", [fp])
+	monkeypatch.setattr(settings, "android_package_name", "com.balkavach.balkavach_app")
+	response = client.get("/.well-known/assetlinks.json")
+	assert response.status_code == 200
+	data = response.json()
+	assert data == [
+		{
+			"relation": ["delegate_permission/common.handle_all_urls"],
+			"target": {
+				"namespace": "android_app",
+				"package_name": "com.balkavach.balkavach_app",
+				"sha256_cert_fingerprints": [fp],
+			},
+		}
+	]
