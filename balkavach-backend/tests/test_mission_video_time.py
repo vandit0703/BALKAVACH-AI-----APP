@@ -1,4 +1,5 @@
-"""Each approved mission unlocks exactly 15 minutes of video, and those 15 minutes are counted genuinely.
+"""Each approved standard mission unlocks exactly MISSION_REWARD_ALLOWANCE_SECONDS (225 s) of video, whole or nothing,
+on top of the free daily allowance, and that time is counted genuinely.
 
 Test type: in-memory SQLite (``tests/feed_world.py``) with the real grant, allowance and charging code and the real
 progress route; the server clock is controlled by moving the stored last-heartbeat time back. Not PostgreSQL.
@@ -38,20 +39,22 @@ def remaining(session, child):
 	return get_child_video_allowance_today(session, child.id, child.family_id)["remaining_seconds"]
 
 
-def test_one_approved_mission_unlocks_exactly_fifteen_minutes(feed_db):
+def test_one_approved_mission_unlocks_exactly_one_missions_time(feed_db):
 	child = make_child(feed_db)
 	before = remaining(feed_db, child)
 	entitlement = approve_mission(feed_db, child)
-	assert MISSION_REWARD_ALLOWANCE_SECONDS == 15 * 60
-	assert entitlement.granted_seconds == 900
-	assert remaining(feed_db, child) - before == 900
+	assert MISSION_REWARD_ALLOWANCE_SECONDS == 225
+	assert FREE_DAILY_ALLOWANCE_SECONDS == 900
+	assert before == FREE_DAILY_ALLOWANCE_SECONDS
+	assert entitlement.granted_seconds == 225
+	assert remaining(feed_db, child) - before == 225
 
 
-def test_each_mission_adds_another_fifteen_minutes(feed_db):
+def test_each_mission_adds_another_missions_time(feed_db):
 	child = make_child(feed_db)
 	for count in (1, 2, 3):
 		approve_mission(feed_db, child)
-		assert remaining(feed_db, child) == FREE_DAILY_ALLOWANCE_SECONDS + count * 900
+		assert remaining(feed_db, child) == FREE_DAILY_ALLOWANCE_SECONDS + count * MISSION_REWARD_ALLOWANCE_SECONDS
 
 
 def test_approving_the_same_submission_twice_pays_once(feed_db):
@@ -62,18 +65,19 @@ def test_approving_the_same_submission_twice_pays_once(feed_db):
 	second = grant_mission_video_entitlement(feed_db, child, task, submission)
 	feed_db.commit()
 	assert first.id == second.id
-	assert remaining(feed_db, child) == FREE_DAILY_ALLOWANCE_SECONDS + 900
+	assert remaining(feed_db, child) == FREE_DAILY_ALLOWANCE_SECONDS + MISSION_REWARD_ALLOWANCE_SECONDS
 
 
 def test_a_mission_never_unlocks_a_partial_slice_when_the_cap_is_nearly_used(feed_db):
 	child = make_child(feed_db)
-	set_cap(feed_db, child, 1000)  # room for one whole mission, plus 100 s that is not a mission's worth
-	assert approve_mission(feed_db, child).granted_seconds == 900
+	set_cap(feed_db, child, 1000)  # room for four whole missions (900 s), plus 100 s that is not a mission's worth
+	for _ in range(4):
+		assert approve_mission(feed_db, child).granted_seconds == MISSION_REWARD_ALLOWANCE_SECONDS
 	assert approve_mission(feed_db, child) is None
-	assert remaining(feed_db, child) == FREE_DAILY_ALLOWANCE_SECONDS + 900
+	assert remaining(feed_db, child) == FREE_DAILY_ALLOWANCE_SECONDS + 4 * MISSION_REWARD_ALLOWANCE_SECONDS
 
 
-# ---- counting the 15 minutes genuinely, through the real progress route ----------------------------------------
+# ---- counting one mission's time genuinely, through the real progress route ----------------------------------------
 
 
 @pytest.fixture
@@ -121,23 +125,23 @@ def use_free_time(session, child):
 	session.commit()
 
 
-def test_fifteen_minutes_of_real_playback_uses_exactly_one_missions_time(api):
+def test_one_missions_worth_of_real_playback_uses_exactly_one_missions_time(api):
 	http, child, session = api
 	video = add_youtube(session, title="Long", duration_seconds=3600).video
 	use_free_time(session, child)
 	approve_mission(session, child)
-	assert remaining(session, child) == 900
+	assert remaining(session, child) == MISSION_REWARD_ALLOWANCE_SECONDS
 
 	position = 0
 	assert report(http, session, child, video, position, playing=True, seconds_since_last=0).status_code == 200
 	charged = 0
-	for _ in range(30):  # 30 reports x 30 s of server time = 15 minutes
-		position += 30
-		response = report(http, session, child, video, position)
+	for _ in range(MISSION_REWARD_ALLOWANCE_SECONDS // 15):  # 15 reports x 15 s of server time = 225 s
+		position += 15
+		response = report(http, session, child, video, position, seconds_since_last=15)
 		assert response.status_code == 200, response.text
 		charged += response.json()["accepted_seconds"]
 
-	assert charged == 900
+	assert charged == MISSION_REWARD_ALLOWANCE_SECONDS
 	assert remaining(session, child) == 0
 	assert report(http, session, child, video, position + 30).status_code == 403  # time is up
 
@@ -157,7 +161,7 @@ def test_paused_time_and_long_gaps_are_not_counted(api):
 	assert resumed.json()["accepted_seconds"] == 0
 	gap = report(http, session, child, video, 40, playing=True, seconds_since_last=3600)
 	assert gap.json()["accepted_seconds"] == 0, "a disconnected interval is not verified playback"
-	assert remaining(session, child) == 900 - 10
+	assert remaining(session, child) == MISSION_REWARD_ALLOWANCE_SECONDS - 10
 
 
 def test_the_client_cannot_inflate_or_deflate_the_count_by_its_position(api):
@@ -173,7 +177,7 @@ def test_the_client_cannot_inflate_or_deflate_the_count_by_its_position(api):
 	assert sneaky.json()["accepted_seconds"] == 25, "the interval before pause remains verified"
 	paused_position = report(http, session, child, video, 1550, playing=False, seconds_since_last=25)
 	assert paused_position.json()["accepted_seconds"] == 0, "paused playback is not verified"
-	assert remaining(session, child) == 900 - 25
+	assert remaining(session, child) == MISSION_REWARD_ALLOWANCE_SECONDS - 25
 
 
 def test_two_devices_share_one_daily_cap(api):

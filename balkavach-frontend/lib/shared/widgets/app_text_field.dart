@@ -63,6 +63,13 @@ class _AppTextFieldState extends State<AppTextField> {
   late bool _obscured = widget.obscure;
 
   @override
+  void didUpdateWidget(covariant AppTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A reused state must not carry a password's hidden state to another field.
+    if (oldWidget.obscure != widget.obscure) _obscured = widget.obscure;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -92,7 +99,8 @@ class _AppTextFieldState extends State<AppTextField> {
           keyboardType: widget.keyboardType,
           textInputAction: widget.textInputAction,
           autofillHints: widget.autofillHints,
-          obscureText: _obscured,
+          // Only a password field is ever masked.
+          obscureText: widget.obscure && _obscured,
           enableSuggestions: !widget.obscure,
           autocorrect: !widget.obscure,
           maxLength: widget.maxLength,

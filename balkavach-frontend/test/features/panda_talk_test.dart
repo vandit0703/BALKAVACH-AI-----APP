@@ -19,6 +19,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:speech_to_text/speech_recognition_error.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 import '../helpers/harness.dart';
 
@@ -362,7 +365,7 @@ void main() {
       await w.controller.startListening();
       expect(w.state.phase, PandaPhase.listening);
       w.input.failed!(SpeechInputError.failed);
-      expect(w.state.problem, PandaProblem.micUnavailable);
+      expect(w.state.problem, PandaProblem.speechFailed);
       expect(w.state.typing, isTrue);
       expect(w.chat.calls, isEmpty);
     });
@@ -399,7 +402,7 @@ void main() {
       await w.controller.startListening();
       await tester.pump(PandaTalkController.listenWatchdog);
       expect(w.state.phase, PandaPhase.error);
-      expect(w.state.problem, PandaProblem.notHeard);
+      expect(w.state.problem, PandaProblem.listenTimeout);
       expect(w.input.cancels, greaterThan(0));
     });
 
@@ -716,7 +719,7 @@ void main() {
       w.input.failed!(SpeechInputError.failed);
       await flush(tester);
       expect(w.input.listens, 1);
-      expect(w.state.problem, PandaProblem.micUnavailable);
+      expect(w.state.problem, PandaProblem.speechFailed);
       expect(w.state.typing, isTrue);
     });
 
@@ -1322,4 +1325,290 @@ void main() {
       });
     }
   });
+
+  group('Phase 4 voice reliability', () {
+    pandaTest('permanent permission denial stops re-prompting and opens typing', (
+      tester,
+      w,
+    ) async {
+      w.input.availability = SpeechAvailability.permanentlyDenied;
+      await w.controller.startListening();
+      expect(w.state.phase, PandaPhase.error);
+      expect(w.state.problem, PandaProblem.micPermanentlyDenied);
+      expect(w.state.typing, isTrue);
+      expect(w.input.prepares, 1);
+
+      // Subsequent tap does not re-prompt OS permission.
+      await w.controller.startListening();
+      expect(w.input.prepares, 1);
+      expect(w.state.problem, PandaProblem.micPermanentlyDenied);
+    });
+
+    pandaTest('unavailable speech engine is distinct from permission denial', (
+      tester,
+      w,
+    ) async {
+      w.input.availability = SpeechAvailability.unavailable;
+      await w.controller.startListening();
+      expect(w.state.phase, PandaPhase.error);
+      expect(w.state.problem, PandaProblem.micUnavailable);
+      expect(w.state.typing, isTrue);
+      expect(w.input.listens, 0);
+    });
+
+    pandaTest('recognition timeout and network errors are not masked as notHeard', (
+      tester,
+      w,
+    ) async {
+      await w.controller.startListening();
+      w.input.failed!(SpeechInputError.timeout);
+      expect(w.state.problem, PandaProblem.listenTimeout);
+      expect(w.state.typing, isTrue);
+
+      await w.controller.startListening();
+      w.input.failed!(SpeechInputError.network);
+      expect(w.state.problem, PandaProblem.network);
+      expect(w.state.typing, isTrue);
+    });
+
+    pandaTest('repeated startListening calls during prepare do not duplicate sessions', (
+      tester,
+      w,
+    ) async {
+      final gate = Completer<SpeechAvailability>();
+      final gatedInput = _GatedPrepareInput(gate);
+      final container = ProviderContainer(
+        overrides: [
+          speechInputProvider.overrideWithValue(gatedInput),
+          speechOutputProvider.overrideWithValue(w.output),
+          companionChatRepositoryProvider.overrideWithValue(w.chat),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(pandaTalkControllerProvider, (_, _) {});
+      final ctrl = container.read(pandaTalkControllerProvider.notifier);
+
+      final f1 = ctrl.startListening();
+      await flush(tester);
+      expect(
+        container.read(pandaTalkControllerProvider).phase,
+        PandaPhase.requestingPermission,
+      );
+      final f2 = ctrl.startListening();
+      await flush(tester);
+
+      gate.complete(SpeechAvailability.ready);
+      await Future.wait([f1, f2]);
+      expect(gatedInput.prepares, 1);
+      expect(gatedInput.listens, 1);
+      await ctrl.stop();
+      container.dispose();
+    });
+
+    pandaTest('cloud consent withdrawal after sheet open blocks mic immediately', (
+      tester,
+      w,
+    ) async {
+      w.input.onDevice = false;
+      w.chat.consent = true;
+      await w.controller.refreshVoiceConsent();
+      expect(w.state.voiceAllowed, isTrue);
+
+      // Parent withdraws consent before child taps the mic.
+      w.chat.consent = false;
+      await w.controller.startListening();
+      expect(w.input.listens, 0);
+      expect(w.state.problem, PandaProblem.voiceNeedsParent);
+      expect(w.state.voiceAllowed, isFalse);
+      expect(w.state.typing, isTrue);
+    });
+
+    pandaTest('TTS failure preserves text response and does not crash', (
+      tester,
+      w,
+    ) async {
+      final failingOutput = _FailingOutput();
+      final container = ProviderContainer(
+        overrides: [
+          speechInputProvider.overrideWithValue(w.input),
+          speechOutputProvider.overrideWithValue(failingOutput),
+          companionChatRepositoryProvider.overrideWithValue(w.chat),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(pandaTalkControllerProvider, (_, _) {});
+
+      await container.read(pandaTalkControllerProvider.notifier).send('hello');
+      final st = container.read(pandaTalkControllerProvider);
+      expect(st.pandaText, contains('schools'));
+      expect(st.phase, PandaPhase.happy);
+      await tester.pump(PandaTalkController.happyRest);
+    });
+
+    pandaTest('sending a new message stops outdated speech without overlap', (
+      tester,
+      w,
+    ) async {
+      unawaited(w.controller.send('first'));
+      await flush(tester);
+      expect(w.state.phase, PandaPhase.speaking);
+      final stopsBefore = w.output.stops;
+
+      unawaited(w.controller.send('second'));
+      await flush(tester);
+      expect(w.output.stops, greaterThan(stopsBefore));
+      expect(w.output.spoken, hasLength(2));
+      w.output.finish();
+      await flush(tester);
+    });
+
+    testWidgets('closing the sheet while listening cancels active session', (
+      tester,
+    ) async {
+      resetPandaMicExplanation();
+      final world = World();
+      world.output.instant = true;
+      await pumpScreen(
+        tester,
+        Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showPandaTalk(context),
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+        overrides: [
+          ...world.overrides,
+          pandaChatAccessRepositoryProvider.overrideWithValue(world.chatAccess),
+          videoAllowanceProvider.overrideWith(
+            (_) async => const VideoAllowance(
+              childId: 'c',
+              localDate: '2026-11-19',
+              timezone: 'UTC',
+              totalEarnedTodaySeconds: 900,
+              consumedTodaySeconds: 0,
+              remainingSeconds: 900,
+              dailyCapSeconds: 4500,
+              isExhausted: false,
+              activeEntitlementsCount: 1,
+            ),
+          ),
+        ],
+      );
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('panda.talk.mic')));
+      await tester.pumpAndSettle();
+      expect(world.input.listens, 1);
+
+      await tester.tap(find.byKey(const Key('panda.talk.close')));
+      await tester.pumpAndSettle();
+      expect(world.input.cancels, greaterThan(0));
+    });
+
+    test('PlatformSpeechInput maps non-permanent errors without masking as notHeard', () async {
+      final mockStt = _MockSpeechToText();
+      void Function(SpeechRecognitionError)? capturedOnError;
+      void Function(String)? capturedOnStatus;
+
+      when(
+        () => mockStt.initialize(
+          onStatus: any(named: 'onStatus'),
+          onError: any(named: 'onError'),
+        ),
+      ).thenAnswer((invocation) async {
+        capturedOnStatus =
+            invocation.namedArguments[#onStatus] as void Function(String)?;
+        capturedOnError =
+            invocation.namedArguments[#onError]
+                as void Function(SpeechRecognitionError)?;
+        return true;
+      });
+      when(
+        () => mockStt.listen(
+          onResult: any(named: 'onResult'),
+          listenOptions: any(named: 'listenOptions'),
+        ),
+      ).thenAnswer((_) async {});
+      when(() => mockStt.cancel()).thenAnswer((_) async {});
+
+      final input = PlatformSpeechInput(mockStt);
+      expect(await input.prepare(), SpeechAvailability.ready);
+
+      SpeechInputError? lastError;
+      await input.listen(
+        localeId: 'en_IN',
+        onPartial: (_) {},
+        onFinal: (_) {},
+        onError: (e) => lastError = e,
+      );
+      capturedOnError!(SpeechRecognitionError('error_network', false));
+      expect(lastError, SpeechInputError.network);
+
+      lastError = null;
+      await input.listen(
+        localeId: 'en_IN',
+        onPartial: (_) {},
+        onFinal: (_) {},
+        onError: (e) => lastError = e,
+      );
+      capturedOnError!(SpeechRecognitionError('error_audio', false));
+      capturedOnStatus!(SpeechToText.doneStatus);
+      expect(lastError, SpeechInputError.failed);
+
+      lastError = null;
+      await input.listen(
+        localeId: 'en_IN',
+        onPartial: (_) {},
+        onFinal: (_) {},
+        onError: (e) => lastError = e,
+      );
+      capturedOnError!(SpeechRecognitionError('error_language_unavailable', false));
+      expect(lastError, SpeechInputError.unsupportedLanguage);
+
+      lastError = null;
+      await input.listen(
+        localeId: 'en_IN',
+        onPartial: (_) {},
+        onFinal: (_) {},
+        onError: (e) => lastError = e,
+      );
+      capturedOnError!(SpeechRecognitionError('error_permission', true));
+      expect(lastError, SpeechInputError.permanentlyDenied);
+    });
+  });
+}
+
+class _MockSpeechToText extends Mock implements SpeechToText {}
+
+class _GatedPrepareInput extends FakeInput {
+  _GatedPrepareInput(this.gate);
+  final Completer<SpeechAvailability> gate;
+
+  @override
+  bool get permission => false;
+
+  @override
+  Future<bool> hasPermission() async => false;
+
+  @override
+  Future<SpeechAvailability> prepare() {
+    prepares++;
+    return gate.future;
+  }
+}
+
+class _FailingOutput implements SpeechOutput {
+  @override
+  Future<SpeakOutcome> speak(
+    String text, {
+    required String languageCode,
+    void Function()? onStart,
+    void Function(SpokenWord word)? onWord,
+  }) async => SpeakOutcome.failed;
+
+  @override
+  Future<void> stop() async {}
 }

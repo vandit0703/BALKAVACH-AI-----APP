@@ -1,5 +1,6 @@
 import 'package:balkavach_app/features/authentication/presentation/child_login_screen.dart';
 import 'package:balkavach_app/features/child_profile/presentation/child_interests_and_link_cards.dart';
+import 'package:balkavach_app/features/child_profile/presentation/child_profile_screen.dart';
 import 'package:balkavach_app/features/settings/presentation/help_support_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -183,5 +184,36 @@ void main() {
       expect(find.byKey(const Key('help.faq.0')), findsOneWidget);
       expect(find.byKey(const Key('help.faq.6')), findsOneWidget);
     }
+  });
+
+  testWidgets('parent child profile hides interests card and keeps linking card', (
+    tester,
+  ) async {
+    final h = await Harness.create(session: Fx.parentSession());
+    h.backend
+      ..reply('GET', '/api/v1/families', [Fx.family()])
+      ..reply('GET', '/api/v1/families/${Fx.familyId}/children', [Fx.child()])
+      ..reply('GET', '/api/v1/progress/children/${Fx.childId}', {
+        'child_id': Fx.childId,
+        'star_balance': 20,
+        'xp_total': 40,
+        'activity_days': <Object?>[],
+      })
+      ..reply('GET', '/api/v1/achievements/children/${Fx.childId}', <Object?>[])
+      ..reply('GET', '/api/v1/quizzes/children/${Fx.childId}/history', <Object?>[]);
+
+    await pumpScreen(
+      tester,
+      const ChildProfileScreen(childId: Fx.childId),
+      overrides: h.overrides,
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('parent.link.card')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.byKey(const Key('parent.interests.card')), findsNothing);
+    expect(find.byKey(const Key('parent.link.card')), findsOneWidget);
   });
 }

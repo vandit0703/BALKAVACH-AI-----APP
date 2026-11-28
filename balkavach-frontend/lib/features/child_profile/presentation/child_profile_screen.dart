@@ -229,7 +229,6 @@ class _Profile extends ConsumerWidget {
                     ],
                   ),
                 ),
-                ParentChildInterestsCard(familyId: familyId, childId: child.id),
                 ParentChildLinkCard(familyId: familyId, childId: child.id),
                 ParentAchievementsSection(childId: child.id),
                 ParentQuizHistorySection(childId: child.id),

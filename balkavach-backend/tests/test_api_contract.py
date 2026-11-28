@@ -15,6 +15,14 @@ PUBLIC = {
     "POST /api/v1/auth/login",
     "POST /api/v1/auth/refresh",
     "POST /api/v1/auth/logout",
+    # Pre-sign-in flows; each proves possession of a single-use secret (email code, reset token, link code).
+    "POST /api/v1/auth/verify-email",
+    "POST /api/v1/auth/resend-verification",
+    "POST /api/v1/auth/login-code/request",
+    "POST /api/v1/auth/login-code/verify",
+    "POST /api/v1/auth/password/forgot",
+    "POST /api/v1/auth/password/reset",
+    "POST /api/v1/auth/child-link/redeem",
     "GET /api/v1/app-config",
     "GET /health",
     "GET /ready",
@@ -62,7 +70,7 @@ def test_every_non_public_operation_requires_authentication(api):
 
 
 def test_only_the_documented_routes_are_public():
-    assert len(PUBLIC) == 7
+    assert len(PUBLIC) == 14
 
 
 # -- tenant isolation: another family can never read or change this family's data ----------

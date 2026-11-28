@@ -95,8 +95,8 @@ class HelpSupportScreen extends StatelessWidget {
         'દરેક મંજૂર મિશન પર 15 મિનિટ (900 સેકન્ડ) મળે છે. મફત દૈનિક સમય શૂન્ય છે. વણવપરાયેલ કમાયેલો સમય આગળના દિવસે પણ જળવાઈ રહે છે અને સમય શૂન્ય થતાં પ્લેબેક બંધ થાય છે.',
       ),
       (
-        'વિડિયો સલામતી અને રુચિઓ',
-        'માતા-પિતા દ્વારા મંજૂર કરાયેલ ઉંમર-યોગ્ય અને મોડરેટેડ વિડિયો જ દેખાય છે. બાળક રુચિઓની વિનંતી કરી શકે છે, પરંતુ માતા-પિતાની મંજૂરી પછી જ તે સક્રિય થાય છે.',
+        'વિડિયો સલામતી',
+        'માત્ર ઉંમર-યોગ્ય, મોડરેટેડ અને અધિકારો-મંજૂર કરાયેલા વિડિયો જ દેખાય છે.',
       ),
       (
         'એકાઉન્ટ ડિલીટ અને ગોપનીયતા',
@@ -125,8 +125,8 @@ class HelpSupportScreen extends StatelessWidget {
         'प्रत्येक स्वीकृत मिशन पर 15 मिनट (900 सेकंड) मिलते हैं। निःशुल्क दैनिक समय शून्य है। बचा हुआ अर्जित समय अगले दिन भी उपलब्ध रहता है और शून्य होने पर प्लेबैक रुक जाता है।',
       ),
       (
-        'वीडियो सुरक्षा और रुचियाँ',
-        'केवल आयु-उपयुक्त और मॉडरेटेड वीडियो ही दिखाए जाते हैं। बच्चा रुचियों का अनुरोध कर सकता है, लेकिन माता-पिता की स्वीकृति के बाद ही वे सक्रिय होती हैं।',
+        'वीडियो सुरक्षा',
+        'केवल आयु-उपयुक्त, मॉडरेटेड और अधिकार-स्वीकृत वीडियो ही दिखाए जाते हैं।',
       ),
       (
         'खाता हटाना और गोपनीयता',
@@ -155,8 +155,8 @@ class HelpSupportScreen extends StatelessWidget {
         'Each approved mission grants 15 minutes (900 seconds). Free daily allowance is zero. Unused earned time carries forward across days, and playback stops immediately at zero.',
       ),
       (
-        'How are video safety and child interests controlled?',
-        'Only age-appropriate, moderated, rights-cleared videos appear. Children can request interests, and parents approve or edit active interests.',
+        'How is video safety controlled?',
+        'Only age-appropriate, moderated, rights-cleared videos appear.',
       ),
       (
         'How do account deletion and privacy work?',

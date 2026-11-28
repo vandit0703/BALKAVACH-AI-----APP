@@ -11,10 +11,19 @@ import 'package:speech_to_text/speech_to_text.dart';
 import '../domain/lip_sync.dart' show SpokenWord;
 
 /// Whether the device can listen right now.
-enum SpeechAvailability { ready, denied, unavailable }
+enum SpeechAvailability { ready, denied, permanentlyDenied, unavailable }
 
 /// Why a listen ended without words.
-enum SpeechInputError { notHeard, denied, failed }
+enum SpeechInputError {
+  notHeard,
+  timeout,
+  denied,
+  permanentlyDenied,
+  engineUnavailable,
+  unsupportedLanguage,
+  network,
+  failed,
+}
 
 /// Tap-to-talk speech recognition. One listen at a time, never in the
 /// background, and no audio is kept by the app: only the recognised words
@@ -92,12 +101,14 @@ class PlatformSpeechInput implements SpeechInput {
   void Function(String)? _onFinal;
   void Function(SpeechInputError)? _onError;
   String _lastWords = '';
+  SpeechInputError? _lastError;
 
   void _finish({String? words, SpeechInputError? error}) {
     final onFinal = _onFinal;
     final onError = _onError;
     _onFinal = null;
     _onError = null;
+    _lastError = null;
     if (words != null && words.trim().isNotEmpty) {
       onFinal?.call(words);
     } else if (onFinal != null || onError != null) {
@@ -107,19 +118,33 @@ class PlatformSpeechInput implements SpeechInput {
 
   void _status(String status) {
     if (status == SpeechToText.doneStatus) {
-      // Ended without a final result: use what was heard, if anything.
-      _finish(words: _lastWords);
+      // Ended without a final result: use what was heard, or the last error
+      // reported by the engine (never mask an engine/network error as notHeard).
+      _finish(words: _lastWords, error: _lastError);
     }
   }
 
   void _error(SpeechRecognitionError error) {
     final msg = error.errorMsg;
     final kind = switch (msg) {
-      'error_no_match' || 'error_speech_timeout' => SpeechInputError.notHeard,
-      'error_permission' ||
-      'error_insufficient_permissions' => SpeechInputError.denied,
+      'error_no_match' => SpeechInputError.notHeard,
+      'error_speech_timeout' => SpeechInputError.timeout,
+      'error_permission' || 'error_insufficient_permissions' =>
+        error.permanent
+            ? SpeechInputError.permanentlyDenied
+            : SpeechInputError.denied,
+      'error_language_not_supported' ||
+      'error_language_unavailable' => SpeechInputError.unsupportedLanguage,
+      'error_network' ||
+      'error_network_timeout' ||
+      'error_server_disconnected' => SpeechInputError.network,
       _ => SpeechInputError.failed,
     };
+    if (kind == SpeechInputError.denied ||
+        kind == SpeechInputError.permanentlyDenied) {
+      _ready = false;
+    }
+    _lastError = kind;
     if (error.permanent || kind != SpeechInputError.failed) {
       _finish(error: kind);
     }
@@ -179,6 +204,11 @@ class PlatformSpeechInput implements SpeechInput {
     _onFinal = onFinal;
     _onError = onError;
     _lastWords = '';
+    _lastError = null;
+    if (!_ready) {
+      _finish(error: SpeechInputError.engineUnavailable);
+      return;
+    }
     try {
       await _stt.listen(
         onResult: (SpeechRecognitionResult result) {
@@ -206,13 +236,20 @@ class PlatformSpeechInput implements SpeechInput {
   }
 
   @override
-  Future<void> stop() => _stt.stop();
+  Future<void> stop() async {
+    try {
+      await _stt.stop();
+    } catch (_) {}
+  }
 
   @override
   Future<void> cancel() async {
     _onFinal = null;
     _onError = null;
-    await _stt.cancel();
+    _lastError = null;
+    try {
+      await _stt.cancel();
+    } catch (_) {}
   }
 }
 
@@ -234,6 +271,7 @@ class PlatformSpeechOutput implements SpeechOutput {
   Completer<SpeakOutcome>? _current;
   void Function()? _onStart;
   void Function(SpokenWord word)? _onWord;
+  int _speakEpoch = 0;
 
   void _end(SpeakOutcome outcome) {
     _onStart = null;
@@ -265,16 +303,26 @@ class PlatformSpeechOutput implements SpeechOutput {
     void Function(SpokenWord word)? onWord,
   }) async {
     await stop();
+    final epoch = ++_speakEpoch;
     final locale = await _language(languageCode);
+    if (epoch != _speakEpoch) return SpeakOutcome.interrupted;
     if (locale == null) return SpeakOutcome.unsupported;
     final completer = _current = Completer<SpeakOutcome>();
     _onStart = onStart;
     _onWord = onWord;
     try {
       await _tts.setLanguage(locale);
+      if (epoch != _speakEpoch) {
+        _end(SpeakOutcome.interrupted);
+        return SpeakOutcome.interrupted;
+      }
       await _tts.setSpeechRate(0.45);
       await _tts.setPitch(1.15);
       final started = await _tts.speak(text);
+      if (epoch != _speakEpoch) {
+        _end(SpeakOutcome.interrupted);
+        return SpeakOutcome.interrupted;
+      }
       if (started != 1) _end(SpeakOutcome.failed);
     } catch (error) {
       debugPrint('Panda: speak failed (${error.runtimeType})');
@@ -285,6 +333,7 @@ class PlatformSpeechOutput implements SpeechOutput {
 
   @override
   Future<void> stop() async {
+    _speakEpoch++;
     _end(SpeakOutcome.interrupted);
     try {
       await _tts.stop();

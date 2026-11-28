@@ -259,6 +259,48 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter your parent account email and we will send a reset link if an account exists.';
 
   @override
+  String get authUseEmailCode => 'Sign in with an email code instead';
+
+  @override
+  String get loginCodeTitle => 'Sign in with an email code';
+
+  @override
+  String get loginCodeBody =>
+      'Enter your parent account email. If it has a verified account, we will send a 6-digit sign-in code.';
+
+  @override
+  String get loginCodeSend => 'Send code';
+
+  @override
+  String loginCodeSentBody(String email) {
+    return 'If $email belongs to a verified parent account, a 6-digit code is on its way. It expires in 10 minutes.';
+  }
+
+  @override
+  String get loginCodeLabel => '6-digit sign-in code';
+
+  @override
+  String get loginCodeVerify => 'Sign in';
+
+  @override
+  String get loginCodeInvalid =>
+      'This code is incorrect or has expired. Request a new code.';
+
+  @override
+  String get loginCodeChangeEmail => 'Use a different email';
+
+  @override
+  String get loginCodeUsePassword => 'Sign in with password instead';
+
+  @override
+  String get emailUnavailable =>
+      'Email codes are not available right now. Please try again later or use your password.';
+
+  @override
+  String get emailVerificationSignedIn =>
+      'Email verified. Welcome to BALKAVACH!';
+
+  @override
   String get forgotPasswordSend => 'Send reset link';
 
   @override
@@ -3823,4 +3865,85 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get childLinkAction => 'Link device';
+
+  @override
+  String get pandaStateRequestingPermission =>
+      'Checking microphone permission…';
+
+  @override
+  String get pandaStateInitializing => 'Getting Panda’s ears ready…';
+
+  @override
+  String get pandaErrorMicPermanentlyDenied =>
+      'Microphone permission is turned off in phone settings. You can type to me instead!';
+
+  @override
+  String get pandaErrorListenTimeout =>
+      'I didn’t hear anything in time. Tap Talk to try again, or type to me!';
+
+  @override
+  String get pandaErrorSpeechFailed =>
+      'Something went wrong with listening. You can try again or type to me!';
+
+  @override
+  String videoDurationMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String videoDurationMinutesSeconds(int minutes, int seconds) {
+    return '$minutes min $seconds s';
+  }
+
+  @override
+  String videoDurationSeconds(int seconds) {
+    return '$seconds s';
+  }
+
+  @override
+  String approvalsVideoTime(String duration) {
+    return '$duration video';
+  }
+
+  @override
+  String approvalsApprovedToastVideo(
+    String name,
+    int stars,
+    int xp,
+    String duration,
+  ) {
+    return 'Approved! $name earned $stars stars, $xp XP and $duration of video time.';
+  }
+
+  @override
+  String approvalsApprovedToastCapped(
+    String name,
+    int stars,
+    int xp,
+    String granted,
+    String offered,
+  ) {
+    return 'Approved! $name earned $stars stars, $xp XP and $granted of video time. The daily video limit reduced it from $offered.';
+  }
+
+  @override
+  String approvalsApprovedToastNoVideo(String name, int stars, int xp) {
+    return 'Approved! $name earned $stars stars and $xp XP. No video time was added: the daily video limit is reached, or this repeating mission already earned video time today.';
+  }
+
+  @override
+  String get missionVideoReward => 'Video time earned';
+
+  @override
+  String get missionVideoRewardHint =>
+      'Added to your child\'s video time when you approve this mission. The daily video limit still applies.';
+
+  @override
+  String missionVideoRewardStandard(String duration) {
+    return '$duration (standard)';
+  }
+
+  @override
+  String get rewardsMyRequestsEmpty =>
+      'You haven\'t asked for a reward yet. When you have enough stars, choose a reward above and ask a grown-up.';
 }

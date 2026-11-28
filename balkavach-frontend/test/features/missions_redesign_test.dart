@@ -233,7 +233,7 @@ void main() {
     });
 
     testWidgets(
-      'one chosen: it continues, the others cannot be started (no dead taps)',
+      'one chosen: it continues, and the other choices can still be started',
       (tester) async {
         final h = await _child(
           selected: _a1,
@@ -245,11 +245,10 @@ void main() {
         );
         await _missions(tester, h);
         expect(find.byKey(const Key('missions.choice.open.$_a1')), findsOne);
-        expect(
-          find.byKey(const Key('missions.choice.start.$_a2')),
-          findsNothing,
-        );
-        expect(find.text(_en.missionsChoiceTaken), findsOneWidget);
+        // All three daily choices can be completed: choosing one never locks
+        // the others.
+        expect(find.byKey(const Key('missions.choice.start.$_a2')), findsOne);
+        expect(find.text(_en.missionsChoiceTaken), findsNothing);
         // The chosen task is not repeated in the general list.
         expect(find.text('Sound Map'), findsOneWidget);
         expect(find.byKey(const Key('mission.$_choiceTask')), findsNothing);

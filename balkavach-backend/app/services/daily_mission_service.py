@@ -365,19 +365,9 @@ def select_assignment(session: Session, child, assignment_id: UUID):
     ensure_assignment_eligible(assignment, child_age_band(session, child, _now())[1])
     if assignment.status != "available":
         return assignment
-    selected = (
-        session.query(Assignment)
-        .filter(
-            Assignment.child_id == child.id,
-            Assignment.local_date == assignment.local_date,
-            Assignment.is_current.is_(True),
-            Assignment.status.in_(["selected", "in_progress", "pending_parent_approval", "approved", "rejected"]),
-        )
-        .with_for_update()
-        .first()
-    )
-    if selected is not None and selected.id != assignment.id:
-        raise APIError(409, "daily_mission_already_selected", "Only one daily mission can be selected")
+    # Each of today's three offered missions can be chosen and completed: choosing one never uses up another
+    # (parent-created missions are separate Tasks and are not counted here either). The row lock above makes a
+    # repeated select of the same choice return it instead of creating a second Task.
     Task = get_model("Task")
     now = utc_naive(_now())
     task = Task(

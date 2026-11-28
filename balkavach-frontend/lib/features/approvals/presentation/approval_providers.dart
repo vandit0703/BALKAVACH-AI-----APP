@@ -143,15 +143,16 @@ final proofImageProvider = FutureProvider.family<Uint8List, String>((
 /// Rethrows [ApiException] so the screen can show it. A 409
 /// `submission_already_reviewed` still refreshes the inbox, because another
 /// parent got there first.
-Future<void> reviewSubmission(
+Future<TaskSubmission> reviewSubmission(
   WidgetRef ref, {
   required String familyId,
   required ReviewItem item,
   required ReviewDecision decision,
   String? note,
 }) async {
+  final TaskSubmission result;
   try {
-    await ref
+    result = await ref
         .read(approvalsRepositoryProvider)
         .review(item.submission.id, decision, note: note);
   } on ConflictException {
@@ -165,6 +166,7 @@ Future<void> reviewSubmission(
     ..invalidate(childProgressProvider(item.submission.childId))
     ..invalidate(achievementsProvider(item.submission.childId))
     ..invalidate(videoAllowanceProvider);
+  return result;
 }
 
 /// Marks the `task_submitted` notification(s) for [submissionId] as read so

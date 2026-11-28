@@ -124,6 +124,33 @@ class SessionController extends AsyncNotifier<Session?> {
     await _adopt(session);
   }
 
+  /// Verifies a new parent's email with the registration code. When the
+  /// server returns a session (it does so only after consuming the code) it is
+  /// stored like any sign-in and `true` is returned; `false` means an older
+  /// server verified the email without signing in.
+  Future<bool> verifyRegistrationEmail({
+    required String email,
+    required String otp,
+  }) async {
+    final session = await ref
+        .read(authRepositoryProvider)
+        .verifyEmail(email: email, otp: otp);
+    if (session == null) return false;
+    await _adopt(session);
+    return true;
+  }
+
+  /// Passwordless sign-in: exchanges an emailed sign-in code for a session.
+  Future<void> signInWithCode({
+    required String email,
+    required String otp,
+  }) async {
+    final session = await ref
+        .read(authRepositoryProvider)
+        .verifyLoginCode(email: email, otp: otp);
+    await _adopt(session);
+  }
+
   Future<void> linkWithCode(String code) async {
     final session = await ref
         .read(authRepositoryProvider)

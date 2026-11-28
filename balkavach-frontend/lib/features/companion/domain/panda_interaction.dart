@@ -12,6 +12,8 @@ import 'lip_sync.dart';
 enum PandaPhase {
   idle,
   greeting,
+  requestingPermission,
+  initializing,
   listening,
   thinking,
   speaking,
@@ -24,9 +26,12 @@ enum PandaPhase {
 /// Child-friendly problems Panda can explain.
 enum PandaProblem {
   micDenied,
+  micPermanentlyDenied,
   micUnavailable,
   listenLanguageMissing,
   notHeard,
+  listenTimeout,
+  speechFailed,
   network,
   busy,
 
@@ -46,17 +51,32 @@ enum PandaProblem {
 const pandaTransitions = <PandaPhase, Set<PandaPhase>>{
   PandaPhase.idle: {
     PandaPhase.greeting,
+    PandaPhase.requestingPermission,
+    PandaPhase.initializing,
     PandaPhase.listening,
     PandaPhase.thinking,
     PandaPhase.error,
   },
   PandaPhase.greeting: {
     PandaPhase.idle,
+    PandaPhase.requestingPermission,
+    PandaPhase.initializing,
     PandaPhase.listening,
     PandaPhase.thinking,
     PandaPhase.happy,
     PandaPhase.curious,
     PandaPhase.sleepy,
+    PandaPhase.error,
+  },
+  PandaPhase.requestingPermission: {
+    PandaPhase.idle,
+    PandaPhase.initializing,
+    PandaPhase.listening,
+    PandaPhase.error,
+  },
+  PandaPhase.initializing: {
+    PandaPhase.idle,
+    PandaPhase.listening,
     PandaPhase.error,
   },
   PandaPhase.listening: {
@@ -67,6 +87,8 @@ const pandaTransitions = <PandaPhase, Set<PandaPhase>>{
   PandaPhase.thinking: {PandaPhase.idle, PandaPhase.speaking, PandaPhase.error},
   PandaPhase.speaking: {
     PandaPhase.idle,
+    PandaPhase.requestingPermission,
+    PandaPhase.initializing,
     PandaPhase.listening,
     PandaPhase.thinking,
     PandaPhase.happy,
@@ -75,24 +97,32 @@ const pandaTransitions = <PandaPhase, Set<PandaPhase>>{
   },
   PandaPhase.happy: {
     PandaPhase.idle,
+    PandaPhase.requestingPermission,
+    PandaPhase.initializing,
     PandaPhase.listening,
     PandaPhase.thinking,
     PandaPhase.error,
   },
   PandaPhase.curious: {
     PandaPhase.idle,
+    PandaPhase.requestingPermission,
+    PandaPhase.initializing,
     PandaPhase.listening,
     PandaPhase.thinking,
     PandaPhase.error,
   },
   PandaPhase.sleepy: {
     PandaPhase.idle,
+    PandaPhase.requestingPermission,
+    PandaPhase.initializing,
     PandaPhase.listening,
     PandaPhase.thinking,
     PandaPhase.error,
   },
   PandaPhase.error: {
     PandaPhase.idle,
+    PandaPhase.requestingPermission,
+    PandaPhase.initializing,
     PandaPhase.listening,
     PandaPhase.thinking,
   },
@@ -148,7 +178,10 @@ class PandaTalkState {
   final bool? onDeviceSpeech;
 
   bool get busy =>
-      phase == PandaPhase.listening || phase == PandaPhase.thinking;
+      phase == PandaPhase.requestingPermission ||
+      phase == PandaPhase.initializing ||
+      phase == PandaPhase.listening ||
+      phase == PandaPhase.thinking;
 
   bool get talking =>
       phase == PandaPhase.speaking || phase == PandaPhase.greeting;
@@ -213,6 +246,10 @@ class PandaTalkController extends Notifier<PandaTalkState> {
   String _language = 'en';
   String? _followUp;
   bool _speechPrepared = false;
+  bool _permanentlyDenied = false;
+
+  /// Whether microphone permission was permanently denied in this session.
+  bool get isMicPermanentlyDenied => _permanentlyDenied;
 
   @override
   PandaTalkState build() {
@@ -314,41 +351,65 @@ class PandaTalkController extends Notifier<PandaTalkState> {
   }
 
   /// The child tapped the mic (or Panda). Interrupts Panda if talking.
-  /// Voice must be allowed ([checkVoiceConsent]): checked first unless it was
-  /// just confirmed.
+  /// Voice must be allowed ([checkVoiceConsent]): always re-checked from the
+  /// authoritative server source for cloud speech, and checked if unknown or
+  /// changed for on-device speech.
   Future<void> startListening() async {
     if (state.busy) return; // a turn is already in flight
-    // Allowed because the recogniser is on-device? Make sure it still is:
-    // otherwise the plugin would quietly use the cloud recogniser, which
-    // needs a parent's consent.
-    if (state.voiceAllowed == true &&
-        state.onDeviceSpeech == true &&
-        !await _input.onDeviceAvailable()) {
-      state = state.copyWith(clearVoiceAllowed: true, onDeviceSpeech: false);
+    if (_permanentlyDenied) {
+      _fail(PandaProblem.micPermanentlyDenied, typing: true);
+      return;
     }
-    // No microphone unless voice is allowed, whoever calls this.
-    if (state.voiceAllowed != true && !await checkVoiceConsent()) return;
-    final onDevice = state.onDeviceSpeech == true;
-    final epoch = ++_epoch;
     _rest?.cancel();
     lipSync.cancel(); // the mouth stops with the voice, before anything awaits
+    // Always check whether on-device speech is still available. If it is not,
+    // we must never quietly fall back to the cloud recogniser without consent.
+    final onDeviceNow = await _input.onDeviceAvailable();
+    if (onDeviceNow != state.onDeviceSpeech) {
+      state = state.copyWith(clearVoiceAllowed: true, onDeviceSpeech: onDeviceNow);
+    }
+    // For cloud speech, always verify active parent consent from the server so
+    // a recent withdrawal is respected immediately.
+    if (!onDeviceNow || state.voiceAllowed != true) {
+      if (!await checkVoiceConsent()) return;
+    }
+    final onDevice = state.onDeviceSpeech == true;
+    final epoch = ++_epoch;
     if (state.talking) await _output.stop();
     if (epoch != _epoch) return;
 
     if (!_speechPrepared) {
+      final hasPerm = await _input.hasPermission();
+      if (epoch != _epoch) return;
+      if (!_go(
+        hasPerm
+            ? PandaPhase.initializing
+            : PandaPhase.requestingPermission,
+      )) {
+        return;
+      }
       final availability = await _input.prepare();
       if (epoch != _epoch) return;
       if (availability != SpeechAvailability.ready) {
-        _fail(
-          availability == SpeechAvailability.denied
-              ? PandaProblem.micDenied
-              : PandaProblem.micUnavailable,
-          typing: true,
-        );
+        _speechPrepared = false;
+        if (availability == SpeechAvailability.permanentlyDenied) {
+          _permanentlyDenied = true;
+          _fail(PandaProblem.micPermanentlyDenied, typing: true);
+        } else {
+          _fail(
+            availability == SpeechAvailability.denied
+                ? PandaProblem.micDenied
+                : PandaProblem.micUnavailable,
+            typing: true,
+          );
+        }
         return;
       }
       _speechPrepared = true;
+    } else if (!_go(PandaPhase.initializing)) {
+      return;
     }
+
     final localeId = await _input.localeFor(_language);
     if (epoch != _epoch) return;
     if (localeId == null) {
@@ -359,8 +420,8 @@ class PandaTalkController extends Notifier<PandaTalkState> {
     if (!_go(PandaPhase.listening)) return;
     state = state.copyWith(heard: '', clearProblem: true, spokenWords: 0);
     _arm(listenWatchdog, epoch, () {
-      unawaited(_input.cancel());
-      _fail(PandaProblem.notHeard);
+      unawaited(_input.cancel().catchError((_) {}));
+      _fail(PandaProblem.listenTimeout, typing: true);
     });
     await _input.listen(
       localeId: localeId,
@@ -376,11 +437,29 @@ class PandaTalkController extends Notifier<PandaTalkState> {
       },
       onError: (error) {
         if (epoch != _epoch || state.phase != PandaPhase.listening) return;
-        _fail(switch (error) {
-          SpeechInputError.denied => PandaProblem.micDenied,
-          SpeechInputError.notHeard => PandaProblem.notHeard,
-          SpeechInputError.failed => PandaProblem.micUnavailable,
-        }, typing: error != SpeechInputError.notHeard);
+        switch (error) {
+          case SpeechInputError.denied:
+            _speechPrepared = false;
+            _fail(PandaProblem.micDenied, typing: true);
+          case SpeechInputError.permanentlyDenied:
+            _speechPrepared = false;
+            _permanentlyDenied = true;
+            _fail(PandaProblem.micPermanentlyDenied, typing: true);
+          case SpeechInputError.engineUnavailable:
+            _speechPrepared = false;
+            _fail(PandaProblem.micUnavailable, typing: true);
+          case SpeechInputError.unsupportedLanguage:
+            _fail(PandaProblem.listenLanguageMissing, typing: true);
+          case SpeechInputError.timeout:
+            _fail(PandaProblem.listenTimeout, typing: true);
+          case SpeechInputError.network:
+            _fail(PandaProblem.network, typing: true);
+          case SpeechInputError.notHeard:
+            _fail(PandaProblem.notHeard);
+          case SpeechInputError.failed:
+            _speechPrepared = false;
+            _fail(PandaProblem.speechFailed, typing: true);
+        }
       },
       // Never retried through the cloud recogniser if this fails: the child
       // is offered typing instead.

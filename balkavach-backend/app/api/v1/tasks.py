@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import APIError
 from app.core.dependencies import get_current_user, require_admin_permission, require_child, require_parent
 from app.db.base import get_model
 from app.db.session import get_db
@@ -142,6 +143,14 @@ def create_task(
 	).first():
 		raise HTTPException(status_code=404, detail="Child profile not found")
 	Task = get_model("Task")
+	stores_video_reward = hasattr(Task, "reward_video_seconds")
+	if not stores_video_reward and "reward_video_seconds" in request.model_fields_set:
+		# Never drop a parent's setting silently: the column arrives with migration 0026.
+		raise APIError(
+			503,
+			"custom_video_time_unavailable",
+			"Custom video time cannot be saved right now. Please try again later.",
+		)
 	task = Task(
 		family_id=request.family_id,
 		category_id=request.category_id,
@@ -157,6 +166,8 @@ def create_task(
 		is_custom=True,
 		is_active=True,
 	)
+	if stores_video_reward:
+		task.reward_video_seconds = request.reward_video_seconds
 	session.add(task)
 	session.flush()
 	notify_task_assigned(session, task)
@@ -233,6 +244,20 @@ def update_task(
 	# amounts a client sends: otherwise a scripted parent client could make approval pay inflated rewards.
 	updates.pop("star_reward", None)
 	updates.pop("xp_reward", None)
+	if "reward_video_seconds" in updates:
+		if not getattr(task, "is_custom", False):
+			# Daily missions earn the standard amount; only a parent's own missions carry a custom duration.
+			raise APIError(
+				409,
+				"video_reward_not_configurable",
+				"Video time can only be set on missions you created.",
+			)
+		if not hasattr(Task, "reward_video_seconds"):
+			raise APIError(
+				503,
+				"custom_video_time_unavailable",
+				"Custom video time cannot be saved right now. Please try again later.",
+			)
 	if updates.get("due_at") is not None:
 		updates["due_at"] = utc_naive(updates["due_at"])
 	if "assigned_child_id" in updates and updates["assigned_child_id"] is not None:

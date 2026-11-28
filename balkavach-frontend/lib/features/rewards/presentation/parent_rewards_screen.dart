@@ -17,6 +17,7 @@ import '../../../shared/widgets/state_views.dart';
 import '../../child_profile/presentation/family_providers.dart';
 import '../../progress/data/progress_repository.dart';
 import '../data/rewards_repository.dart';
+import 'reward_title_row.dart';
 
 /// Parent Rewards: answer the children's requests and manage the catalog.
 ///
@@ -414,32 +415,27 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: AppSpacing.md,
         children: [
-          Row(
+          RewardTitleRow(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: 2,
-                  children: [
-                    Text(
-                      l10n.rewardsAskedBy(child, reward),
-                      style: context.text.titleMedium,
-                    ),
-                    Text(
-                      DateFormat.MMMd(
-                        locale,
-                      ).add_jm().format(r.requestedAt.toLocal()),
-                      style: context.text.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+            stars: r.starCost,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 2,
+              children: [
+                Text(
+                  l10n.rewardsAskedBy(child, reward),
+                  style: context.text.titleMedium,
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              StarPill(count: r.starCost),
-            ],
+                Text(
+                  DateFormat.MMMd(
+                    locale,
+                  ).add_jm().format(r.requestedAt.toLocal()),
+                  style: context.text.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
           if (r.isPending) ...[
             PrimaryButton(
@@ -586,25 +582,26 @@ class _RewardRow extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: AppSpacing.xs,
-              children: [
-                Text(reward.name, style: context.text.titleMedium),
-                if (description != null && description.isNotEmpty)
-                  Text(
-                    description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.text.bodySmall?.copyWith(
-                      color: context.colors.onSurfaceVariant,
+            child: RewardTitleRow(
+              stars: reward.starCost,
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: AppSpacing.xs,
+                children: [
+                  Text(reward.name, style: context.text.titleMedium),
+                  if (description != null && description.isNotEmpty)
+                    Text(
+                      description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.text.bodySmall?.copyWith(
+                        color: context.colors.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
-          StarPill(count: reward.starCost),
           IconButton(
             key: Key('catalog.remove.${reward.id}'),
             tooltip: l10n.rewardsRemove,

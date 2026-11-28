@@ -8,7 +8,9 @@ from app.core.config import settings
 from app.core.dependencies import current_session_id, get_current_user, require_child, require_parent
 from app.core.rate_limit import (
 	enforce,
+	login_code_request_limiter,
 	login_limiter,
+	otp_verify_limiter,
 	password_reset_limiter,
 	parent_mode_limiter,
 	password_change_limiter,
@@ -31,10 +33,12 @@ from app.schemas.auth import (
 	RegistrationRequest,
 	EmailVerificationRequest,
 	EmailVerificationResendRequest,
+	LoginCodeRequest,
+	LoginCodeVerify,
 	TokenResponse,
 	UserPublic,
 )
-from app.services import account_security_service
+from app.services import account_security_service, login_code_service
 from app.services.auth_service import authenticate_user, register_parent, set_parent_pin
 from app.services.email_verification_service import resend_verification, verify_parent_email
 from app.services.password_reset_service import consume_reset_token, create_reset_token
@@ -61,9 +65,23 @@ def register(
 		limit=settings.registration_rate_limit,
 		window_seconds=settings.login_rate_window_seconds,
 	)
+	# No account is created when its verification code could never be delivered.
+	_require_email_delivery()
 	email, otp = register_parent(session, request)
 	background.add_task(_deliver_verification, email, otp)
 	return RegistrationAccepted(email=email)
+
+
+def _require_email_delivery() -> None:
+	"""Refuse (the same way for every address) when the server cannot send email at all.
+
+	Checked before any account lookup so the answer reveals nothing about accounts, and so the app is
+	never told a code was sent when none can be."""
+	from app.integrations import email as mailer
+
+	if not mailer.email_configured():
+		logger.error("A one-time code was requested but SMTP email is not configured")
+		raise APIError(503, "email_unavailable", "Email codes are not available right now. Please try again later.")
 
 
 def _deliver_verification(email: str, otp: str) -> None:
@@ -75,10 +93,34 @@ def _deliver_verification(email: str, otp: str) -> None:
 		logger.exception("Parent verification email delivery failed")
 
 
-@router.post("/verify-email", status_code=status.HTTP_204_NO_CONTENT)
-def verify_email(request: EmailVerificationRequest, session: Session = Depends(get_db)) -> Response:
-	verify_parent_email(session, str(request.email), request.otp)
-	return Response(status_code=status.HTTP_204_NO_CONTENT)
+def _enforce_code_verification_limits(purpose: str, email: str, http_request: Request) -> None:
+	"""Guesses at one-time codes: limited per address (any client) and per client (any address)."""
+	window = settings.otp_verify_window_seconds
+	enforce(
+		otp_verify_limiter,
+		f"{purpose}:email:{email.strip().lower()}",
+		limit=settings.otp_verify_rate_limit,
+		window_seconds=window,
+	)
+	enforce(
+		otp_verify_limiter,
+		f"{purpose}:ip:{_client_ip(http_request)}",
+		limit=settings.otp_verify_ip_rate_limit,
+		window_seconds=window,
+	)
+
+
+@router.post("/verify-email", response_model=TokenResponse)
+def verify_email(
+	request: EmailVerificationRequest,
+	http_request: Request,
+	session: Session = Depends(get_db),
+) -> TokenResponse:
+	"""Verify a new parent's email with the registration code and start their session.
+
+	The session is created only after this account's registration code was checked and consumed."""
+	_enforce_code_verification_limits("registration", str(request.email), http_request)
+	return verify_parent_email(session, str(request.email), request.otp)
 
 
 @router.post("/resend-verification", status_code=status.HTTP_202_ACCEPTED)
@@ -95,6 +137,7 @@ def resend_email_verification(
 		limit=settings.verification_resend_rate_limit,
 		window_seconds=60,
 	)
+	_require_email_delivery()
 	result = resend_verification(session, email)
 	if result is not None:
 		delivery_email, otp = result
@@ -113,6 +156,68 @@ def login(request: LoginRequest, http_request: Request, session: Session = Depen
 		window_seconds=settings.login_rate_window_seconds,
 	)
 	return authenticate_user(session, request)
+
+
+def _deliver_login_code(email: str, otp: str) -> None:
+	try:
+		from app.integrations import email as mailer
+
+		mailer.send_login_code(email, otp, minutes=login_code_service.CODE_EXPIRY_MINUTES)
+	except Exception:
+		logger.exception("Sign-in code email delivery failed")
+
+
+def _require_login_codes() -> None:
+	if not login_code_service.available():
+		logger.error("Sign-in codes requested but migration 0025 (auth_otp_challenges) is not applied")
+		raise APIError(503, "login_code_unavailable", "Sign-in with an email code is not available right now.")
+
+
+@router.post("/login-code/request", status_code=status.HTTP_202_ACCEPTED)
+def request_login_code(
+	request: LoginCodeRequest,
+	http_request: Request,
+	background: BackgroundTasks,
+	session: Session = Depends(get_db),
+) -> Response:
+	"""Email a one-time sign-in code to an existing, verified parent account.
+
+	Every address gets the same 202 (sent, unknown, unverified or still in the resend cooldown), so the
+	answer does not reveal whether an account exists. Delivery runs after the response for the same reason.
+	"""
+	email = str(request.email).strip().lower()
+	window = settings.login_code_request_window_seconds
+	enforce(
+		login_code_request_limiter,
+		f"ip:{_client_ip(http_request)}",
+		limit=settings.login_code_request_ip_rate_limit,
+		window_seconds=window,
+	)
+	enforce(
+		login_code_request_limiter,
+		f"email:{email}",
+		limit=settings.login_code_request_rate_limit,
+		window_seconds=window,
+	)
+	_require_login_codes()
+	_require_email_delivery()
+	issued = login_code_service.issue_login_code(session, email)
+	session.commit()
+	if issued is not None:
+		background.add_task(_deliver_login_code, *issued)
+	return Response(status_code=status.HTTP_202_ACCEPTED)
+
+
+@router.post("/login-code/verify", response_model=TokenResponse)
+def verify_login_code(
+	request: LoginCodeVerify,
+	http_request: Request,
+	session: Session = Depends(get_db),
+) -> TokenResponse:
+	"""Exchange a correct, unexpired, unused sign-in code for a normal parent session."""
+	_enforce_code_verification_limits("login", str(request.email), http_request)
+	_require_login_codes()
+	return login_code_service.sign_in_with_code(session, str(request.email), request.otp)
 
 
 def _deliver_password_reset(email: str, token: str) -> None:
@@ -137,6 +242,17 @@ def forgot_password(
 		limit=settings.password_reset_rate_limit,
 		window_seconds=settings.password_reset_window_seconds,
 	)
+	from app.integrations import email as mailer
+
+	if not mailer.password_reset_configured():
+		# Checked before the account lookup, so every address gets the same answer (no enumeration), and
+		# the parent is not told "sent" when no email can ever leave the server.
+		logger.error("Password reset requested but reset email is not configured (SMTP or PASSWORD_RESET_URL)")
+		raise APIError(
+			503,
+			"password_reset_unavailable",
+			"Password reset by email is not available right now. Please try again later.",
+		)
 	User = get_model("User")
 	user = session.query(User).filter(User.email == str(request.email).lower(), User.is_active.is_(True)).one_or_none()
 	if user is not None and user.role == "parent":

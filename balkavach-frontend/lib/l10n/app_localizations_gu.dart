@@ -258,6 +258,48 @@ class AppLocalizationsGu extends AppLocalizations {
       'તમારા પેરેન્ટ ખાતાનું ઇમેઇલ દાખલ કરો. ખાતું હોય તો રીસેટ લિંક મોકલીશું.';
 
   @override
+  String get authUseEmailCode => 'તેના બદલે ઇમેઇલ કોડથી સાઇન ઇન કરો';
+
+  @override
+  String get loginCodeTitle => 'ઇમેઇલ કોડથી સાઇન ઇન કરો';
+
+  @override
+  String get loginCodeBody =>
+      'તમારા પેરેન્ટ ખાતાનું ઇમેઇલ દાખલ કરો. ચકાસાયેલું ખાતું હોય તો 6 અંકનો સાઇન-ઇન કોડ મોકલીશું.';
+
+  @override
+  String get loginCodeSend => 'કોડ મોકલો';
+
+  @override
+  String loginCodeSentBody(String email) {
+    return 'જો $email ચકાસાયેલા પેરેન્ટ ખાતાનું હોય, તો 6 અંકનો કોડ મોકલાઈ રહ્યો છે. તે 10 મિનિટમાં સમાપ્ત થશે.';
+  }
+
+  @override
+  String get loginCodeLabel => '6 અંકનો સાઇન-ઇન કોડ';
+
+  @override
+  String get loginCodeVerify => 'સાઇન ઇન કરો';
+
+  @override
+  String get loginCodeInvalid =>
+      'આ કોડ ખોટો છે અથવા સમાપ્ત થઈ ગયો છે. નવો કોડ મંગાવો.';
+
+  @override
+  String get loginCodeChangeEmail => 'બીજું ઇમેઇલ વાપરો';
+
+  @override
+  String get loginCodeUsePassword => 'તેના બદલે પાસવર્ડથી સાઇન ઇન કરો';
+
+  @override
+  String get emailUnavailable =>
+      'ઇમેઇલ કોડ હમણાં ઉપલબ્ધ નથી. પછી ફરી પ્રયાસ કરો અથવા તમારો પાસવર્ડ વાપરો.';
+
+  @override
+  String get emailVerificationSignedIn =>
+      'ઇમેઇલ ચકાસાયું. BALKAVACH માં તમારું સ્વાગત છે!';
+
+  @override
   String get forgotPasswordSend => 'રીસેટ લિંક મોકલો';
 
   @override
@@ -3807,4 +3849,85 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get childLinkAction => 'ડિવાઇસ લિંક કરો';
+
+  @override
+  String get pandaStateRequestingPermission =>
+      'માઇક્રોફોનની પરવાનગી તપાસી રહ્યા છીએ…';
+
+  @override
+  String get pandaStateInitializing => 'પાંડાના કાન તૈયાર કરી રહ્યા છીએ…';
+
+  @override
+  String get pandaErrorMicPermanentlyDenied =>
+      'ફોનની સેટિંગ્સમાં માઇક્રોફોનની પરવાનગી બંધ છે. તમે તેની જગ્યાએ ટાઇપ કરી શકો છો!';
+
+  @override
+  String get pandaErrorListenTimeout =>
+      'મને સમયસર કંઈ સંભળાયું નહીં. ફરી પ્રયાસ કરવા માટે વાત કરો દબાવો, અથવા ટાઇપ કરો!';
+
+  @override
+  String get pandaErrorSpeechFailed =>
+      'સાંભળવામાં કંઈક ખોટું થયું. તમે ફરી પ્રયાસ કરી શકો છો અથવા ટાઇપ કરી શકો છો!';
+
+  @override
+  String videoDurationMinutes(int minutes) {
+    return '$minutes મિનિટ';
+  }
+
+  @override
+  String videoDurationMinutesSeconds(int minutes, int seconds) {
+    return '$minutes મિનિટ $seconds સેકન્ડ';
+  }
+
+  @override
+  String videoDurationSeconds(int seconds) {
+    return '$seconds સેકન્ડ';
+  }
+
+  @override
+  String approvalsVideoTime(String duration) {
+    return '$duration વિડિયો';
+  }
+
+  @override
+  String approvalsApprovedToastVideo(
+    String name,
+    int stars,
+    int xp,
+    String duration,
+  ) {
+    return 'મંજૂર! $name ને $stars સ્ટાર, $xp XP અને $duration વિડિયો સમય મળ્યો.';
+  }
+
+  @override
+  String approvalsApprovedToastCapped(
+    String name,
+    int stars,
+    int xp,
+    String granted,
+    String offered,
+  ) {
+    return 'મંજૂર! $name ને $stars સ્ટાર, $xp XP અને $granted વિડિયો સમય મળ્યો. દૈનિક વિડિયો મર્યાદાને કારણે તે $offered થી ઘટાડવામાં આવ્યો.';
+  }
+
+  @override
+  String approvalsApprovedToastNoVideo(String name, int stars, int xp) {
+    return 'મંજૂર! $name ને $stars સ્ટાર અને $xp XP મળ્યા. કોઈ વિડિયો સમય ઉમેરાયો નથી: દૈનિક વિડિયો મર્યાદા પૂરી થઈ ગઈ છે, અથવા આ પુનરાવર્તિત મિશને આજે વિડિયો સમય પહેલેથી મેળવ્યો છે.';
+  }
+
+  @override
+  String get missionVideoReward => 'મળતો વિડિયો સમય';
+
+  @override
+  String get missionVideoRewardHint =>
+      'તમે આ મિશન મંજૂર કરો ત્યારે તમારા બાળકના વિડિયો સમયમાં ઉમેરાય છે. દૈનિક વિડિયો મર્યાદા લાગુ રહે છે.';
+
+  @override
+  String missionVideoRewardStandard(String duration) {
+    return '$duration (સામાન્ય)';
+  }
+
+  @override
+  String get rewardsMyRequestsEmpty =>
+      'તમે હજી કોઈ ઇનામ માટે પૂછ્યું નથી. પૂરતા સ્ટાર થાય ત્યારે ઉપરથી ઇનામ પસંદ કરો અને મોટાને પૂછો.';
 }

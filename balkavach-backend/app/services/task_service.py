@@ -19,7 +19,11 @@ from app.services.mission_rewards import effective_star_reward, effective_xp_rew
 from app.services.progress_service import badge_qualifies
 from app.services.timezone_service import local_date_of
 from app.services.upload_service import claim_upload_for_submission, proof_url
-from app.services.video_entitlement_service import missing_mission_allowance_columns
+from app.services.video_entitlement_service import (
+	is_repeating_custom,
+	missing_mission_allowance_columns,
+	missing_repeat_reward_columns,
+)
 from app.utils import utc_naive
 
 logger = logging.getLogger(__name__)
@@ -211,6 +215,17 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 				"video_allowance_unavailable",
 				"Video time cannot be granted right now, so this mission was not approved. Nothing was awarded.",
 			)
+		if is_repeating_custom(task) and missing_repeat_reward_columns():
+			# Without migration 0026 the once-a-day rule for repeating missions cannot be enforced.
+			logger.critical(
+				"Repeating mission approval refused: apply migration 0026_custom_mission_video_reward (%s).",
+				", ".join(missing_repeat_reward_columns()),
+			)
+			raise APIError(
+				503,
+				"video_allowance_unavailable",
+				"Video time cannot be granted right now, so this mission was not approved. Nothing was awarded.",
+			)
 
 	approved_at = datetime.now(timezone.utc)  # one instant for every write this approval makes
 	now = utc_naive(approved_at)
@@ -370,8 +385,8 @@ def review_submission(session: Session, submission_id: UUID, reviewer, request: 
 					session, child.user_id, "streak_continued", c_streak
 				)
 
-		# Each approved mission unlocks 900 s of video time (whole or nothing, see
-		# grant_mission_video_entitlement), in this same transaction: if anything below fails,
+		# Each approved mission unlocks its video time (see grant_mission_video_entitlement: the standard
+		# amount whole or nothing, or a custom mission's stored amount), in this same transaction: if anything below fails,
 		# _all_or_nothing rolls back the approval, stars, XP and the grant together.
 		from app.services import video_entitlement_service as entitlements
 		from app.services.notification_service import notify_video_entitlement_event

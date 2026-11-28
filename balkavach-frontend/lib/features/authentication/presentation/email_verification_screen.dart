@@ -15,6 +15,7 @@ import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/buttons.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../data/auth_repository.dart';
+import 'session_controller.dart';
 
 class EmailVerificationScreen extends ConsumerStatefulWidget {
   const EmailVerificationScreen({required this.email, super.key});
@@ -66,16 +67,25 @@ class _EmailVerificationScreenState
     final l10n = AppLocalizations.of(context);
     setState(() => _error = null);
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (_busy) return;
     setState(() => _busy = true);
     try {
-      await ref
-          .read(authRepositoryProvider)
-          .verifyEmail(email: widget.email, otp: _otp.text);
+      // The session (if any) is stored by the controller before we navigate.
+      final signedIn = await ref
+          .read(sessionControllerProvider.notifier)
+          .verifyRegistrationEmail(email: widget.email, otp: _otp.text);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.emailVerificationSuccess)),
+        SnackBar(
+          content: Text(
+            signedIn
+                ? l10n.emailVerificationSignedIn
+                : l10n.emailVerificationSuccess,
+          ),
+        ),
       );
-      context.go(AppRoutes.parentAuth);
+      // Parent home: the router still applies consent requirements.
+      context.go(signedIn ? AppRoutes.parentHome : AppRoutes.parentAuth);
     } on ApiException catch (error) {
       if (!mounted) return;
       setState(() {
@@ -84,6 +94,7 @@ class _EmailVerificationScreenState
           'verification_attempts_exceeded' =>
             l10n.emailVerificationAttemptsExceeded,
           'invalid_verification_code' => l10n.emailVerificationInvalid,
+          'email_unavailable' => l10n.emailUnavailable,
           _ => describeError(l10n, error),
         };
       });
@@ -103,7 +114,11 @@ class _EmailVerificationScreenState
       if (mounted) _startCountdown();
     } on ApiException catch (error) {
       if (!mounted) return;
-      setState(() => _error = describeError(l10n, error));
+      setState(
+        () => _error = error.code == 'email_unavailable'
+            ? l10n.emailUnavailable
+            : describeError(l10n, error),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }

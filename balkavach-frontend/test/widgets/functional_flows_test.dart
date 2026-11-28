@@ -453,6 +453,8 @@ void main() {
         'category_id': Fx.categoryId,
         'assigned_child_id': Fx.childId,
         'due_at': '2026-11-03T18:29:00.000Z',
+        // A mission without a stored value shows and keeps the standard amount.
+        'reward_video_seconds': 225,
       });
       expect(find.text('Mission saved'), findsOneWidget);
       expect(find.text('Hello, Priya Sharma'), findsOneWidget);
@@ -626,6 +628,75 @@ void main() {
       expect(body['due_at'], isA<String>());
       expect(body['title'], 'Water');
       expect(body.containsKey('assigned_child_id'), isFalse);
+    });
+
+    testWidgets('a new mission sends the video time the parent picks', (
+      tester,
+    ) async {
+      final h = await _parent();
+      h.backend.reply('POST', '/api/v1/tasks', Fx.task(), status: 201);
+      await pumpScreen(
+        tester,
+        const CreateMissionScreen(),
+        overrides: h.overrides,
+      );
+
+      // The standard amount is shown exactly, marked as the standard.
+      expect(find.text('3 min 45 s (standard)'), findsOneWidget);
+      expect(find.text('Video time earned'), findsOneWidget);
+
+      await tester.enterText(find.byKey(const Key('mission.title')), 'Water');
+      await _tap(tester, find.byKey(const Key('mission.video.reward')));
+      await _tap(tester, find.text('20 min').last);
+      await _tap(tester, find.byKey(const Key('mission.submit')));
+
+      final body =
+          h.backend.requestsTo('POST', '/api/v1/tasks').single.data
+              as Map<String, Object?>;
+      expect(body['reward_video_seconds'], 1200);
+    });
+
+    testWidgets('editing shows the stored video time and saves a change', (
+      tester,
+    ) async {
+      final h = await _parent();
+      h.backend
+        ..reply('GET', '/api/v1/tasks', [
+          {...Fx.task(), 'reward_video_seconds': 1234, 'is_custom': true},
+        ])
+        ..reply('PATCH', taskPath, Fx.task());
+      await openEditor(tester, h);
+
+      // A value not in the list (set elsewhere) is shown as it is.
+      expect(find.text('20 min 34 s'), findsOneWidget);
+      await _tap(tester, find.byKey(const Key('mission.video.reward')));
+      await _tap(tester, find.text('10 min').last);
+      await _tap(tester, find.byKey(const Key('mission.submit')));
+
+      expect(
+        h.backend.requestsTo('PATCH', taskPath).single.data,
+        containsPair('reward_video_seconds', 600),
+      );
+    });
+
+    testWidgets('a chosen daily mission has no video time setting', (
+      tester,
+    ) async {
+      final h = await _parent();
+      h.backend
+        ..reply('GET', '/api/v1/tasks', [
+          {...Fx.task(), 'is_custom': false},
+        ])
+        ..reply('PATCH', taskPath, Fx.task());
+      await openEditor(tester, h);
+
+      expect(find.byKey(const Key('mission.video.reward')), findsNothing);
+      await _tap(tester, find.byKey(const Key('mission.submit')));
+      expect(
+        (h.backend.requestsTo('PATCH', taskPath).single.data as Map)
+            .containsKey('reward_video_seconds'),
+        isFalse,
+      );
     });
 
     testWidgets('long mission lists start collapsed and expand on demand', (

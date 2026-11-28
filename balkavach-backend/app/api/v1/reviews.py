@@ -8,10 +8,10 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import require_parent
 from app.db.base import get_model, has_model
 from app.db.session import get_db
-from app.schemas.task import PendingSubmissionPublic, TaskReviewCreate, TaskSubmissionPublic
+from app.schemas.task import PendingSubmissionPublic, TaskReviewCreate, TaskReviewResultPublic, TaskSubmissionPublic
 from app.services.mission_rewards import effective_star_reward, effective_xp_reward
 from app.services.task_service import review_submission
-from app.services.video_entitlement_service import MISSION_REWARD_ALLOWANCE_SECONDS
+from app.services.video_entitlement_service import offered_reward_seconds
 
 SubmissionStatus = Literal["pending", "approved", "rejected", "resubmission_requested", "cancelled"]
 
@@ -70,7 +70,8 @@ def _review_queue(
 			child_name=child.display_name,
 			star_reward=effective_star_reward(task.star_reward),
 			xp_reward=effective_xp_reward(task.xp_reward),
-			video_minutes_reward=MISSION_REWARD_ALLOWANCE_SECONDS // 60,
+			video_minutes_reward=offered_reward_seconds(task) // 60,
+			video_seconds_reward=offered_reward_seconds(task),
 			required_video_seconds=getattr(task, "required_video_seconds", None),
 			verified_video_seconds=verified_seconds.get((task.id, submission.child_id), 0),
 		)
@@ -104,12 +105,29 @@ def list_family_submissions(
 	)
 
 
-@router.post("/submissions/{submission_id}", response_model=TaskSubmissionPublic)
+@router.post("/submissions/{submission_id}", response_model=TaskReviewResultPublic)
 def review_task_submission(
 	submission_id: UUID,
 	request: TaskReviewCreate,
 	parent=Depends(require_parent),
 	session: Session = Depends(get_db),
-) -> TaskSubmissionPublic:
+) -> TaskReviewResultPublic:
 	submission = review_submission(session, submission_id, parent, request)
-	return TaskSubmissionPublic.model_validate(submission)
+	# What was actually granted comes from the entitlement ledger (also for a repeated, idempotent approval).
+	Task = get_model("Task")
+	task = session.get(Task, submission.task_id)
+	granted = 0
+	if submission.status == "approved" and has_model("VideoAccessEntitlement"):
+		Entitlement = get_model("VideoAccessEntitlement")
+		if hasattr(Entitlement, "submission_id"):
+			granted = int(
+				session.query(func.coalesce(func.sum(Entitlement.granted_seconds), 0))
+				.filter(Entitlement.submission_id == submission.id)
+				.scalar()
+				or 0
+			)
+	return TaskReviewResultPublic(
+		**TaskSubmissionPublic.model_validate(submission).model_dump(),
+		video_seconds_reward=offered_reward_seconds(task) if task is not None else 0,
+		video_seconds_granted=granted,
+	)

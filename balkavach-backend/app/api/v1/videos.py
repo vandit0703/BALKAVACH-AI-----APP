@@ -1,7 +1,9 @@
+from typing import Any
 from uuid import UUID
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -105,14 +107,21 @@ def my_video_interests(
 	}
 
 
+class _InterestRequestBody(BaseModel):
+	interests: Any = None
+
+
 @router.post("/interests/request")
 def request_video_interests(
-	payload: dict,
+	payload: _InterestRequestBody,
 	child=Depends(require_child),
 	session: Session = Depends(get_db),
 ) -> dict:
-	"""Child submits interest change requests; parent approval is required before active interests change (DEC-04)."""
-	raw = payload.get("interests")
+	"""Deprecated compatibility endpoint: interests are retired.
+
+	Preserves existing stored interest records without generating notifications.
+	"""
+	raw = payload.interests
 	if not isinstance(raw, list):
 		raise HTTPException(status_code=422, detail="interests must be a list")
 	VideoCategory = get_model("VideoCategory")
@@ -125,42 +134,9 @@ def request_video_interests(
 	allowed = {str(slug).lower() for slug, _ in cats if slug}
 	requested = list(dict.fromkeys(str(item).strip().lower() for item in raw if str(item).strip().lower() in allowed))
 	if not hasattr(child, "pending_interest_requests"):
-		# Schema without migration 0022: refuse rather than report a request
-		# that was never stored.
 		raise HTTPException(status_code=503, detail="Interest requests are not available yet")
 	if not requested:
-		# Nothing valid to ask for (empty, unknown or inactive topics). Storing [] would answer 200
-		# while the parent sees no request at all, and would wipe a request already waiting.
 		raise APIError(422, "interest_request_empty", "Choose at least one available topic.")
-	# Lock the child's row so two simultaneous identical requests (a double tap) are serialised: the second
-	# one sees the first one's list and notifies no one. populate_existing re-reads the locked row.
-	ChildProfile = get_model("ChildProfile")
-	child = (
-		session.query(ChildProfile)
-		.filter(ChildProfile.id == child.id)
-		.with_for_update()
-		.populate_existing()
-		.one()
-	)
-	# The same topics in another order are the same request.
-	changed = set(requested) != set(child.pending_interest_requests or [])
-	child.pending_interest_requests = requested
-	if changed:
-		# Tell every parent in the family, in the same transaction as the request: the in-app
-		# notification (bell badge) is persisted with it. The push is sent only after commit and
-		# its failure cannot undo the request (push_service.stage_push / deliver_ready).
-		# Repeating the same request notifies no one again.
-		from app.services.notification_service import create_notification, family_parent_ids
-
-		for parent_id in family_parent_ids(session, child.family_id):
-			create_notification(
-				session,
-				parent_id,
-				"interest_requested",
-				"New topic request",
-				f"{child.display_name} asked to watch new topics. Open their profile to review the request.",
-			)
-	session.commit()
 	return {
 		"interests": list(getattr(child, "interests", None) or []),
 		"pending_requests": requested,

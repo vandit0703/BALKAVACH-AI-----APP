@@ -10,6 +10,9 @@ abstract final class AppRoutes {
     static const verifyEmail = '/verify-email';
     static const forgotPassword = '/forgot-password';
 
+  /// Passwordless parent sign-in with an emailed code.
+  static const loginCode = '/login-code';
+
   /// Password-reset landing (deep link `balkavach://app/reset-password?token=…`).
   static const resetPassword = '/reset-password';
 
@@ -73,5 +76,6 @@ abstract final class AppRoutes {
         parentAuth,
         verifyEmail,
         forgotPassword,
+        loginCode,
     };
 }

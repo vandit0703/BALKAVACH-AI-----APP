@@ -67,7 +67,8 @@ def _counts(session, submission_id: str) -> dict:
 
 
 NOTHING = {"star_rows": 0, "stars": 0, "xp_rows": 0, "xp": 0, "grants": 0, "seconds": 0, "reviews": 0, "status": "pending"}
-PAID = {"star_rows": 1, "stars": 10, "xp_rows": 1, "xp": 15, "grants": 1, "seconds": 900, "reviews": 1, "status": "approved"}
+# 225 s: the approved standard mission video amount (video_entitlement_service.MISSION_REWARD_ALLOWANCE_SECONDS).
+PAID = {"star_rows": 1, "stars": 10, "xp_rows": 1, "xp": 15, "grants": 1, "seconds": 225, "reviews": 1, "status": "approved"}
 
 
 def _notifications(session, recipient_user_id, kind: str) -> int:
@@ -97,7 +98,7 @@ def _queue_counts(api, ctx) -> dict:
 # ---- 1. success, counts, repeats, conflicts, foreign family (real auth, real routes) -------------------------------------
 
 
-def test_a_successful_approval_pays_exactly_ten_stars_fifteen_xp_and_900_seconds(api):
+def test_a_successful_approval_pays_exactly_ten_stars_fifteen_xp_and_225_seconds(api):
 	ctx, sid = _pending(api)
 	assert _queue_counts(api, ctx) == {"pending": 1, "approved": 0, "retry": 0}
 	response = api.review(ctx["parent"]["token"], sid, "approved")

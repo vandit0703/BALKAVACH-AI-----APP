@@ -24,7 +24,7 @@ def test_registration_sends_hashed_otp_and_blocks_login_until_verified(api, isol
 	verification = isolated_test_session.query(Verification).filter(Verification.user_id == user.id).one()
 	assert user.email_verified_at is None
 	assert verification.otp_hash != otp
-	assert api.post("/auth/verify-email", json={"email": email, "otp": otp}).status_code == 204
+	assert api.post("/auth/verify-email", json={"email": email, "otp": otp}).status_code == 200
 	assert api.post("/auth/login", json={"email": email, "password": PASSWORD}).status_code == 200
 
 
@@ -63,4 +63,4 @@ def test_resend_invalidates_previous_code_and_is_rate_limited(api, isolated_test
 	assert new_otp != old_otp
 	assert api.post("/auth/resend-verification", json={"email": email}).status_code == 429
 	assert api.post("/auth/verify-email", json={"email": email, "otp": old_otp}).status_code == 400
-	assert api.post("/auth/verify-email", json={"email": email, "otp": new_otp}).status_code == 204
+	assert api.post("/auth/verify-email", json={"email": email, "otp": new_otp}).status_code == 200

@@ -63,7 +63,7 @@ def test_approving_twice_credits_stars_xp_and_video_time_exactly_once(api):
 	assert (progress["star_balance"], progress["total_xp"]) == (10, 15)  # the standard mission reward, once
 	Entitlement = get_model("VideoAccessEntitlement")
 	grants = api.session.query(Entitlement).filter(Entitlement.submission_id == UUID(submission_id)).all()
-	assert len(grants) == 1 and grants[0].granted_seconds == 900
+	assert len(grants) == 1 and grants[0].granted_seconds == 225  # the standard mission amount, once
 
 
 def test_a_rejected_then_resubmitted_mission_counts_for_the_resubmission_day(api):

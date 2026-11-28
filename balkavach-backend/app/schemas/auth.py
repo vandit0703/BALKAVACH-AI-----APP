@@ -23,6 +23,17 @@ class EmailVerificationResendRequest(BaseModel):
 	email: EmailStr
 
 
+class LoginCodeRequest(BaseModel):
+	"""Ask for a passwordless sign-in code (existing, verified parent accounts)."""
+
+	email: EmailStr
+
+
+class LoginCodeVerify(BaseModel):
+	email: EmailStr
+	otp: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
 class LoginRequest(BaseModel):
 	email: EmailStr | None = None
 	username: str | None = Field(default=None, min_length=3, max_length=32)

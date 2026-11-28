@@ -55,6 +55,8 @@ MODEL_TABLES = {
 	"AuditLog": "audit_logs",
 	"AuthSession": "auth_sessions",
 	"ParentEmailVerification": "parent_email_verifications",
+	# Migration 0025. Use has_model("AuthOtpChallenge") to degrade where it may not be applied yet.
+	"AuthOtpChallenge": "auth_otp_challenges",
 	"PasswordResetToken": "password_reset_tokens",
 	"DeviceToken": "device_tokens",
 	"ProofUpload": "proof_uploads",

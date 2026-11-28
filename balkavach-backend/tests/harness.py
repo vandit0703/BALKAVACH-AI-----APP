@@ -17,10 +17,11 @@ PASSWORD = "a-long-integration-password"
 
 
 class ApiHarness:
-    def __init__(self, client: TestClient, session, verification_mailbox=None) -> None:
+    def __init__(self, client: TestClient, session, verification_mailbox=None, login_code_mailbox=None) -> None:
         self.client = client
         self.session = session
         self.verification_mailbox = verification_mailbox if verification_mailbox is not None else []
+        self.login_code_mailbox = login_code_mailbox if login_code_mailbox is not None else []
 
     # -- low level ---------------------------------------------------------
     @staticmethod
@@ -50,7 +51,7 @@ class ApiHarness:
         delivery = next((item for item in reversed(self.verification_mailbox) if item[0] == email), None)
         assert delivery is not None, "registration verification email was not captured"
         verified = self.post("/auth/verify-email", json={"email": email, "otp": delivery[1]})
-        assert verified.status_code == 204, verified.text
+        assert verified.status_code == 200, verified.text  # verification now also starts a session
         login = self.post("/auth/login", json={"email": email, "password": PASSWORD})
         assert login.status_code == 200, login.text
         body = login.json()

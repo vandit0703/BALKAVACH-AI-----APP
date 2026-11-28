@@ -60,7 +60,7 @@ class Task(Base):
 	star_reward: Mapped[int] = mapped_column(Integer, default=10)
 	xp_reward: Mapped[int] = mapped_column(Integer, default=15)
 	required_video_seconds: Mapped[int | None] = mapped_column(Integer)
-	repeat_rule: Mapped[str | None] = mapped_column(String)
+	repeat_rule: Mapped[dict | None] = mapped_column(JSON)
 	is_custom: Mapped[bool] = mapped_column(Boolean, default=False)
 	is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 

@@ -168,7 +168,6 @@ def eligible_feed(
 	preferred_rank = case((Video.language_code == user.preferred_language, 0), else_=1)
 	if has_model("ChildVideoWatchHistory"):
 		WatchHistory = get_model("ChildVideoWatchHistory")
-		explicit_interests = _child_interest_slugs(child)
 		PreferredVideo = aliased(Video)
 		partially_watched = exists().where(
 			WatchHistory.child_id == child.id,
@@ -215,9 +214,6 @@ def eligible_feed(
 				or_(WatchHistory.is_completed.is_(True), WatchHistory.completion_percentage >= 50),
 			)
 		)
-		explicit_rank = case(
-			(func.lower(func.trim(VideoCategory.slug)).in_(explicit_interests), 0), else_=1
-		)
 		implicit_rank = case((preferred_category, 0), else_=1)
 		rotation_rank = case(
 			(watch_bucket == 3, literal("")),
@@ -227,7 +223,6 @@ def eligible_feed(
 		)
 		result = query.order_by(
 			watch_bucket,
-			explicit_rank,
 			implicit_rank,
 			case((watch_bucket == 3, finished_last_watched)).asc().nullsfirst(),
 			preferred_rank,

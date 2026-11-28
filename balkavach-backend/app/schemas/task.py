@@ -6,6 +6,12 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_serializer, fi
 
 from app.utils import utc_aware
 
+# Video time a parent may attach to one custom mission: 0 up to the largest daily cap a family can set
+# (video_entitlement_service.MAX_DAILY_ALLOWANCE_SECONDS); the default is the standard mission amount
+# (MISSION_REWARD_ALLOWANCE_SECONDS). Kept as literals so this module imports no service code.
+REWARD_VIDEO_SECONDS_MAX = 14400
+REWARD_VIDEO_SECONDS_DEFAULT = 225
+
 
 class TaskCategoryPublic(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
@@ -32,6 +38,8 @@ class TaskCreate(BaseModel):
 	star_reward: int = Field(default=10, ge=0, le=10000)
 	xp_reward: int = Field(default=15, ge=0, le=100000)
 	required_video_seconds: int | None = Field(default=None, ge=1, le=86400)
+	# Video seconds an approval of this custom mission unlocks (stored server-side; the child never sends it).
+	reward_video_seconds: int = Field(default=REWARD_VIDEO_SECONDS_DEFAULT, ge=0, le=REWARD_VIDEO_SECONDS_MAX, strict=True)
 	due_at: datetime | None = None
 	repeat_rule: dict[str, Any] | None = Field(default=None, max_length=30)
 
@@ -51,6 +59,7 @@ class TaskUpdate(BaseModel):
 	star_reward: int | None = Field(default=None, ge=0, le=10000)
 	xp_reward: int | None = Field(default=None, ge=0, le=100000)
 	required_video_seconds: int | None = Field(default=None, ge=1, le=86400)
+	reward_video_seconds: int | None = Field(default=None, ge=0, le=REWARD_VIDEO_SECONDS_MAX, strict=True)
 	due_at: datetime | None = None
 	repeat_rule: dict[str, Any] | None = Field(default=None, max_length=30)
 
@@ -60,6 +69,13 @@ class TaskUpdate(BaseModel):
 		if value is not None and (value.tzinfo is None or value.utcoffset() is None):
 			raise ValueError("due_at must include a timezone")
 		return value
+
+	@model_validator(mode="after")
+	def reward_video_seconds_is_not_null(self):
+		# Omit the field to keep the stored value; an explicit null would erase the parent's setting.
+		if "reward_video_seconds" in self.model_fields_set and self.reward_video_seconds is None:
+			raise ValueError("reward_video_seconds must be a number of seconds")
+		return self
 
 
 class TaskPublic(BaseModel):
@@ -75,9 +91,28 @@ class TaskPublic(BaseModel):
 	star_reward: int
 	xp_reward: int
 	required_video_seconds: int | None = None
+	# Parent-configured video seconds for a custom mission (None: a daily mission or a legacy row, which earn
+	# the standard amount).
+	reward_video_seconds: int | None = None
+	is_custom: bool | None = None
+	# A repeating mission's rule as stored (JSON object; None = one-time). A legacy text value that is not a JSON
+	# object is shown as None rather than failing the whole list.
+	repeat_rule: dict[str, Any] | None = None
 	due_at: datetime | None
 	is_active: bool
 	created_at: datetime
+
+	@field_validator("repeat_rule", mode="before")
+	@classmethod
+	def stored_repeat_rule(cls, value: Any) -> Any:
+		if isinstance(value, str):
+			import json
+
+			try:
+				value = json.loads(value) if value.strip() else None
+			except ValueError:
+				return None
+		return value if isinstance(value, dict) or value is None else None
 
 	@field_serializer("due_at", "created_at")
 	def serialize_timestamp(self, value: datetime | None) -> datetime | None:
@@ -118,6 +153,16 @@ class TaskSubmissionPublic(BaseModel):
 		return utc_aware(value) if value else None
 
 
+class TaskReviewResultPublic(TaskSubmissionPublic):
+	"""A review decision plus the video time it actually granted, read from the entitlement ledger.
+
+	``video_seconds_granted`` can be lower than ``video_seconds_reward`` when the daily cap reduced the grant,
+	or 0 when a repeating mission already earned video time that family-local day."""
+
+	video_seconds_reward: int = 0
+	video_seconds_granted: int = 0
+
+
 class TaskReviewCreate(BaseModel):
 	decision: Literal["approved", "rejected", "resubmission_requested"]
 	review_note: str | None = Field(default=None, max_length=2000)
@@ -134,6 +179,8 @@ class PendingSubmissionPublic(TaskSubmissionPublic):
 	xp_reward: int
 	# Minutes of video time an approval unlocks (the backend's rule; the app only displays it).
 	video_minutes_reward: int = 0
+	# The same in seconds (exact; the standard mission amount is not a whole number of minutes).
+	video_seconds_reward: int = 0
 	required_video_seconds: int | None = None
 	verified_video_seconds: int = 0
 

@@ -544,6 +544,78 @@ abstract class AppLocalizations {
   /// **'Enter your parent account email and we will send a reset link if an account exists.'**
   String get forgotPasswordBody;
 
+  /// No description provided for @authUseEmailCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with an email code instead'**
+  String get authUseEmailCode;
+
+  /// No description provided for @loginCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with an email code'**
+  String get loginCodeTitle;
+
+  /// No description provided for @loginCodeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your parent account email. If it has a verified account, we will send a 6-digit sign-in code.'**
+  String get loginCodeBody;
+
+  /// No description provided for @loginCodeSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get loginCodeSend;
+
+  /// No description provided for @loginCodeSentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'If {email} belongs to a verified parent account, a 6-digit code is on its way. It expires in 10 minutes.'**
+  String loginCodeSentBody(String email);
+
+  /// No description provided for @loginCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'6-digit sign-in code'**
+  String get loginCodeLabel;
+
+  /// No description provided for @loginCodeVerify.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get loginCodeVerify;
+
+  /// No description provided for @loginCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is incorrect or has expired. Request a new code.'**
+  String get loginCodeInvalid;
+
+  /// No description provided for @loginCodeChangeEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a different email'**
+  String get loginCodeChangeEmail;
+
+  /// No description provided for @loginCodeUsePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with password instead'**
+  String get loginCodeUsePassword;
+
+  /// No description provided for @emailUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Email codes are not available right now. Please try again later or use your password.'**
+  String get emailUnavailable;
+
+  /// No description provided for @emailVerificationSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Email verified. Welcome to BALKAVACH!'**
+  String get emailVerificationSignedIn;
+
   /// No description provided for @forgotPasswordSend.
   ///
   /// In en, this message translates to:
@@ -6387,6 +6459,113 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Link device'**
   String get childLinkAction;
+
+  /// No description provided for @pandaStateRequestingPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking microphone permission…'**
+  String get pandaStateRequestingPermission;
+
+  /// No description provided for @pandaStateInitializing.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting Panda’s ears ready…'**
+  String get pandaStateInitializing;
+
+  /// No description provided for @pandaErrorMicPermanentlyDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone permission is turned off in phone settings. You can type to me instead!'**
+  String get pandaErrorMicPermanentlyDenied;
+
+  /// No description provided for @pandaErrorListenTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'I didn’t hear anything in time. Tap Talk to try again, or type to me!'**
+  String get pandaErrorListenTimeout;
+
+  /// No description provided for @pandaErrorSpeechFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong with listening. You can try again or type to me!'**
+  String get pandaErrorSpeechFailed;
+
+  /// No description provided for @videoDurationMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String videoDurationMinutes(int minutes);
+
+  /// No description provided for @videoDurationMinutesSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min {seconds} s'**
+  String videoDurationMinutesSeconds(int minutes, int seconds);
+
+  /// No description provided for @videoDurationSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} s'**
+  String videoDurationSeconds(int seconds);
+
+  /// No description provided for @approvalsVideoTime.
+  ///
+  /// In en, this message translates to:
+  /// **'{duration} video'**
+  String approvalsVideoTime(String duration);
+
+  /// No description provided for @approvalsApprovedToastVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved! {name} earned {stars} stars, {xp} XP and {duration} of video time.'**
+  String approvalsApprovedToastVideo(
+    String name,
+    int stars,
+    int xp,
+    String duration,
+  );
+
+  /// No description provided for @approvalsApprovedToastCapped.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved! {name} earned {stars} stars, {xp} XP and {granted} of video time. The daily video limit reduced it from {offered}.'**
+  String approvalsApprovedToastCapped(
+    String name,
+    int stars,
+    int xp,
+    String granted,
+    String offered,
+  );
+
+  /// No description provided for @approvalsApprovedToastNoVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved! {name} earned {stars} stars and {xp} XP. No video time was added: the daily video limit is reached, or this repeating mission already earned video time today.'**
+  String approvalsApprovedToastNoVideo(String name, int stars, int xp);
+
+  /// No description provided for @missionVideoReward.
+  ///
+  /// In en, this message translates to:
+  /// **'Video time earned'**
+  String get missionVideoReward;
+
+  /// No description provided for @missionVideoRewardHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to your child\'s video time when you approve this mission. The daily video limit still applies.'**
+  String get missionVideoRewardHint;
+
+  /// No description provided for @missionVideoRewardStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'{duration} (standard)'**
+  String missionVideoRewardStandard(String duration);
+
+  /// No description provided for @rewardsMyRequestsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t asked for a reward yet. When you have enough stars, choose a reward above and ask a grown-up.'**
+  String get rewardsMyRequestsEmpty;
 }
 
 class _AppLocalizationsDelegate

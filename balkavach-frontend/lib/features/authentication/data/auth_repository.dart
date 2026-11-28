@@ -51,14 +51,49 @@ class AuthRepository {
     return response.data!['email'] as String;
   });
 
-  Future<void> verifyEmail({required String email, required String otp}) =>
+  /// `POST /api/v1/auth/verify-email` with the registration code. Returns the
+  /// new parent's session (200 + tokens), issued by the server only after it
+  /// checked and consumed the code. `null` from an older server that answers
+  /// 204 without tokens: the parent then signs in as before.
+  Future<Session?> verifyEmail({required String email, required String otp}) =>
       guardApi(() async {
-        await _dio.post<void>(
+        final response = await _dio.post<Map<String, dynamic>>(
           '/api/v1/auth/verify-email',
           data: {'email': email.trim(), 'otp': otp},
           options: Options(extra: _unauthenticated),
         );
+        final body = response.data;
+        return body != null && body['access_token'] is String
+            ? Session.fromTokenResponse(body)
+            : null;
       });
+
+  /// `POST /api/v1/auth/login-code/request`: emails a sign-in code to an
+  /// existing, verified parent account. Always 202 for a valid address
+  /// (whether or not an account exists); 503 `email_unavailable` when the
+  /// server cannot send email.
+  Future<void> requestLoginCode(String email) => guardApi(() async {
+    await _dio.post<void>(
+      '/api/v1/auth/login-code/request',
+      data: {'email': email.trim()},
+      options: Options(extra: _unauthenticated),
+    );
+  });
+
+  /// `POST /api/v1/auth/login-code/verify`: exchanges the emailed code for a
+  /// normal parent session. 400 `invalid_login_code` for any wrong, expired
+  /// or used code.
+  Future<Session> verifyLoginCode({
+    required String email,
+    required String otp,
+  }) => guardApi(() async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/auth/login-code/verify',
+      data: {'email': email.trim(), 'otp': otp},
+      options: Options(extra: _unauthenticated),
+    );
+    return Session.fromTokenResponse(response.data!);
+  });
 
   Future<void> resendVerification(String email) => guardApi(() async {
     await _dio.post<void>(

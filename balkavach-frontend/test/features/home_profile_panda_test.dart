@@ -254,4 +254,14 @@ void main() {
     expect(find.byType(MissionDetailScreen), findsOneWidget);
     expect(find.byType(PandaCompanion), findsOneWidget);
   });
+
+  testWidgets('child profile no longer exposes interests UI', (tester) async {
+    final h = await _child();
+    await _pumpApp(tester, h);
+    await tester.tap(find.text('Profile').last);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('profile.dashboard')), findsOneWidget);
+    expect(find.byKey(const Key('profile.language')), findsOneWidget);
+    expect(find.byKey(const Key('child.interests.card')), findsNothing);
+  });
 }

@@ -130,15 +130,12 @@ class _MissionsScreenState extends ConsumerState<MissionsScreen> {
       }
     }
 
-    // Still to do: every mission not yet approved, plus today's daily mission
-    // when none has been chosen yet.
+    // Still to do: every mission not yet approved, plus each of today's daily
+    // choices not chosen yet (all three can be done; a chosen one is already
+    // counted above through its mission).
     final open =
         allMissions.where((m) => statusOf(m) != MissionStatus.approved).length +
-        (today != null &&
-                today.selectedAssignmentId == null &&
-                today.choices.any((c) => c.isSelectable)
-            ? 1
-            : 0);
+        (today?.choices.where((c) => c.isSelectable).length ?? 0);
 
     Widget card(Mission mission) {
       final attempt = earned[mission.id];
@@ -632,7 +629,7 @@ class _DailyChoicesState extends ConsumerState<_DailyChoices> {
         children: [
           _SectionTitle(
             title: l10n.todaysMissions,
-            subtitle: value.selectedAssignmentId == null
+            subtitle: value.choices.any((c) => c.isSelectable)
                 ? l10n.missionsChoosePrompt
                 : null,
             icon: Icons.wb_sunny_rounded,
@@ -644,9 +641,6 @@ class _DailyChoicesState extends ConsumerState<_DailyChoices> {
               for (final choice in value.choices)
                 _ChoiceCard(
                   choice: choice,
-                  anotherChosen:
-                      value.selectedAssignmentId != null &&
-                      value.selectedAssignmentId != choice.id,
                   selecting: _selecting == choice.id,
                   onSelect: () => _select(choice.id),
                 ),
@@ -698,21 +692,19 @@ class _DailyChoicesState extends ConsumerState<_DailyChoices> {
 }
 
 /// One of today's daily choices, drawn from its real status:
-/// * `available`: Start Mission (chooses it), or nothing to do when another
-///   mission was already chosen today (the server allows one a day);
+/// * `available`: Start Mission (chooses it); each of the three can be chosen
+///   and completed, choosing one never locks the others;
 /// * `selected` / `in_progress` / `rejected`: Continue (opens the same task);
 /// * `pending_parent_approval`: waiting for a parent;
 /// * `approved`: done, with what it earned.
 class _ChoiceCard extends StatelessWidget {
   const _ChoiceCard({
     required this.choice,
-    required this.anotherChosen,
     required this.selecting,
     required this.onSelect,
   });
 
   final DailyMissionAssignment choice;
-  final bool anotherChosen;
   final bool selecting;
   final VoidCallback onSelect;
 
@@ -729,7 +721,6 @@ class _ChoiceCard extends StatelessWidget {
     final inPlay =
         taskId != null &&
         const {'selected', 'in_progress', 'rejected'}.contains(choice.status);
-    final muted = choice.isSelectable && anotherChosen;
 
     final visual = _choiceVisual(context, content);
     final Widget? chip = approved
@@ -740,7 +731,7 @@ class _ChoiceCard extends StatelessWidget {
         ? missionStatusChip(context, MissionStatus.rejected)
         : null;
 
-    final Widget? action = choice.isSelectable && !anotherChosen
+    final Widget? action = choice.isSelectable
         ? PrimaryButton(
             key: Key('missions.choice.start.${choice.id}'),
             label: l10n.missionStartMission,
@@ -765,12 +756,8 @@ class _ChoiceCard extends StatelessWidget {
         : null;
 
     return AppCard(
-      color: muted
-          ? colors.surfaceContainerLow
-          : approved
-          ? colors.surfaceContainerLow
-          : null,
-      elevated: !muted && !approved,
+      color: approved ? colors.surfaceContainerLow : null,
+      elevated: !approved,
       onTap: taskId != null && (approved || pending || inPlay) ? open : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -818,15 +805,6 @@ class _ChoiceCard extends StatelessWidget {
               ),
             ],
           ),
-          if (muted) ...[
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              l10n.missionsChoiceTaken,
-              style: context.text.labelLarge?.copyWith(
-                color: colors.onSurfaceVariant,
-              ),
-            ),
-          ],
           if (action != null) ...[
             const SizedBox(height: AppSpacing.md),
             action,

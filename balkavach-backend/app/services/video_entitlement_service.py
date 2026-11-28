@@ -10,6 +10,16 @@ Mission reward allowance rules:
 - The daily cap is enforced against the total mission allowance *granted today* in the
   family's local calendar day, NOT remaining balance. Consumed time does not create room.
 - Idempotency is enforced by unique submission_id on video_access_entitlements.
+
+Custom (parent-created) missions:
+- The parent configures the seconds per mission (``tasks.reward_video_seconds``, migration 0026); approval grants
+  that stored value, never anything the child sends. A legacy custom mission without a value grants the standard
+  amount exactly like a daily mission. A configured amount larger than the room left under the daily cap is
+  reduced to that room (the parent sees what was granted); the cap is never exceeded.
+- A repeating custom mission grants video time at most once per family-local day per child (the day the child
+  did it, from the server-stamped ``submitted_at``). Stars and XP are unaffected and still pay per approval.
+  Approvals of one task are serialised by the task row lock in ``review_submission``; the partial unique index
+  ``uq_video_entitlement_repeat_reward_day`` enforces the same rule in the database.
 """
 
 from datetime import datetime, timezone
@@ -22,6 +32,7 @@ from sqlalchemy.orm import Session
 from app.db.base import get_model, has_model
 from app.services.timezone_service import (
     family_timezone_name,
+    local_date_of,
     local_day_bounds_utc_naive,
     local_today,
     parse_timezone,
@@ -155,6 +166,39 @@ MISSION_ALLOWANCE_COLUMNS = (
 )
 
 
+def configured_reward_seconds(task) -> int | None:
+    """The parent-configured video seconds of a custom mission, or None (daily mission or legacy row)."""
+    if getattr(task, "is_custom", False) is not True:
+        return None
+    value = getattr(task, "reward_video_seconds", None)
+    if not isinstance(value, int) or isinstance(value, bool):
+        return None  # NULL (legacy) or not a stored number: the standard amount applies
+    return max(0, value)
+
+
+def offered_reward_seconds(task) -> int:
+    """What an approval of this mission offers before the daily cap (shown to the parent before approving)."""
+    configured = configured_reward_seconds(task)
+    return MISSION_REWARD_ALLOWANCE_SECONDS if configured is None else configured
+
+
+def is_repeating_custom(task) -> bool:
+    return getattr(task, "is_custom", False) is True and getattr(task, "repeat_rule", None) is not None
+
+
+def missing_repeat_reward_columns() -> list[str]:
+    """Columns a repeating custom mission's once-a-day video award needs (migration 0026); empty = ready."""
+    if not has_model("VideoAccessEntitlement"):
+        return ["video_access_entitlements (table)"]
+    model = get_model("VideoAccessEntitlement")
+    return [] if hasattr(model, "repeat_reward_local_date") else ["video_access_entitlements.repeat_reward_local_date"]
+
+
+def repeat_reward_day(session: Session, task, submission, now_utc: datetime):
+    """The family-local day a repeating mission's video award belongs to: the day the child did it."""
+    return local_date_of(session, task.family_id, submission.submitted_at or utc_naive(now_utc))
+
+
 def missing_mission_allowance_columns() -> list[str]:
     """Columns the mission video grant needs that the reflected database does not have (empty = ready).
 
@@ -214,13 +258,35 @@ def grant_mission_video_entitlement(
         )
         return existing
 
-    # 2. Local calendar day boundaries
+    # 2. A repeating custom mission earns video time once per family-local day (stars/XP are not affected).
+    repeat_day = None
+    if is_repeating_custom(task):
+        repeat_day = repeat_reward_day(session, task, submission, now_utc)
+        already = (
+            session.query(VideoAccessEntitlement.id)
+            .filter(
+                VideoAccessEntitlement.task_id == task.id,
+                VideoAccessEntitlement.child_id == child.id,
+                VideoAccessEntitlement.repeat_reward_local_date == repeat_day,
+            )
+            .first()
+        )
+        if already is not None:
+            logger.info(
+                "Repeating mission %s already earned video time for child %s on %s; no second grant",
+                task.id,
+                child.id,
+                repeat_day,
+            )
+            return None
+
+    # 3. Local calendar day boundaries
     tz_name = family_timezone_name(session, task.family_id)
     zone = parse_timezone(tz_name)
     today = local_today(session, task.family_id, now_utc)
     start, end = local_day_bounds_utc_naive(zone, today, 1)
 
-    # 3. Sum total mission allowance granted today (strictly against daily cap)
+    # 3b. Sum total mission allowance granted today (strictly against daily cap)
     today_entitlements = (
         session.query(VideoAccessEntitlement)
         .filter(
@@ -236,9 +302,13 @@ def grant_mission_video_entitlement(
     # 4. Check remaining cap room
     daily_cap = get_daily_cap_seconds(session, task.family_id)
     cap_room = max(0, daily_cap - total_granted_today)
-    # A mission unlocks a whole 15 minutes or nothing: never a leftover slice of the cap,
-    # so "one mission = 15 minutes" is always what the child and parent are told.
-    grant_amount = MISSION_REWARD_ALLOWANCE_SECONDS if cap_room >= MISSION_REWARD_ALLOWANCE_SECONDS else 0
+    configured = configured_reward_seconds(task)
+    if configured is None:
+        # A standard mission unlocks its whole amount or nothing: never a leftover slice of the cap.
+        grant_amount = MISSION_REWARD_ALLOWANCE_SECONDS if cap_room >= MISSION_REWARD_ALLOWANCE_SECONDS else 0
+    else:
+        # The parent's configured amount, reduced to the room left under the cap (never above it).
+        grant_amount = min(configured, cap_room)
 
     if grant_amount <= 0:
         logger.info(
@@ -265,6 +335,8 @@ def grant_mission_video_entitlement(
         expires_at=None,
         status="active",
     )
+    if repeat_day is not None:
+        entitlement.repeat_reward_local_date = repeat_day
     session.add(entitlement)
     session.flush()
     logger.info(

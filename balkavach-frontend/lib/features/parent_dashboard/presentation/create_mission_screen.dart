@@ -16,6 +16,21 @@ import '../../child_profile/presentation/family_providers.dart';
 import '../../missions/data/missions_repository.dart';
 import '../../missions/domain/mission_models.dart';
 import '../../missions/presentation/mission_providers.dart';
+import '../../missions/presentation/video_time_label.dart';
+
+/// Video time a parent can attach to a mission, in seconds: the standard
+/// amount first, then whole minutes up to an hour. The server stores the
+/// choice and grants it on approval, within the family's daily video limit.
+const _rewardVideoChoices = [
+  kStandardMissionVideoSeconds,
+  300,
+  600,
+  900,
+  1200,
+  1800,
+  2700,
+  3600,
+];
 
 /// Parent creates a mission (`POST /api/v1/tasks`) or, when [mission] is
 /// given, edits it (`PATCH /api/v1/tasks/{id}`) or removes it
@@ -50,6 +65,8 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
         : '${(widget.mission!.requiredVideoSeconds! / 60).ceil()}',
   );
   late bool _requiresVideo = widget.mission?.requiredVideoSeconds != null;
+  late int _rewardVideoSeconds =
+      widget.mission?.rewardVideoSeconds ?? kStandardMissionVideoSeconds;
   late String? _categoryId = widget.mission?.categoryId;
   late String? _childId = widget.mission?.assignedChildId;
   late DateTime? _dueAt = widget.mission?.dueAt?.toLocal();
@@ -57,6 +74,10 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
   bool _removing = false;
 
   bool get _editing => widget.mission != null;
+
+  /// A daily mission the child chose keeps the standard reward; only the
+  /// parent's own missions carry a configurable video time.
+  bool get _videoRewardConfigurable => widget.mission?.isCustom != false;
 
   @override
   void dispose() {
@@ -156,6 +177,9 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
         xpReward: int.parse(_xp.text),
         requiredVideoSeconds: _requiresVideo
             ? int.parse(_videoMinutes.text) * 60
+            : null,
+        rewardVideoSeconds: _videoRewardConfigurable
+            ? _rewardVideoSeconds
             : null,
         description: _description.text,
         categoryId: _categoryId,
@@ -373,6 +397,44 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
                 ),
               ],
             ),
+            if (_videoRewardConfigurable)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: AppSpacing.xs,
+                children: [
+                  _Dropdown<int>(
+                    key: const Key('mission.video.reward'),
+                    label: l10n.missionVideoReward,
+                    value: _rewardVideoSeconds,
+                    items: {
+                      for (final seconds in {
+                        ..._rewardVideoChoices,
+                        // A value set elsewhere (another device, the API) is
+                        // shown as it is rather than silently replaced.
+                        _rewardVideoSeconds,
+                      })
+                        seconds: seconds == kStandardMissionVideoSeconds
+                            ? l10n.missionVideoRewardStandard(
+                                videoTimeLabel(l10n, seconds),
+                              )
+                            : videoTimeLabel(l10n, seconds),
+                    },
+                    onChanged: busy
+                        ? null
+                        : (v) {
+                            if (v != null) {
+                              setState(() => _rewardVideoSeconds = v);
+                            }
+                          },
+                  ),
+                  Text(
+                    l10n.missionVideoRewardHint,
+                    style: context.text.bodySmall?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             SwitchListTile.adaptive(
               key: const Key('mission.video.required'),
               contentPadding: EdgeInsets.zero,
@@ -501,7 +563,7 @@ class _Dropdown<T> extends StatelessWidget {
   final String label;
   final T value;
   final Map<T, String> items;
-  final ValueChanged<T?> onChanged;
+  final ValueChanged<T?>? onChanged;
 
   @override
   Widget build(BuildContext context) {

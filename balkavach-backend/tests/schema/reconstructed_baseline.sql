@@ -83,6 +83,8 @@ CREATE TABLE tasks (
 	star_reward integer NOT NULL DEFAULT 0 CHECK (star_reward >= 0),
 	xp_reward integer NOT NULL DEFAULT 0 CHECK (xp_reward >= 0),
 	due_at timestamp,
+	-- Kept as text on purpose: the API stores a JSON object here, and migration 0028 converts a text column to jsonb
+	-- (production's real type is unknown), so every fresh local build exercises that conversion.
 	repeat_rule text,
 	is_custom boolean NOT NULL DEFAULT true,
 	is_active boolean NOT NULL DEFAULT true,

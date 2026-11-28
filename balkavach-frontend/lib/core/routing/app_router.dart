@@ -6,6 +6,7 @@ import '../../features/approvals/presentation/approvals_screen.dart';
 import '../../features/authentication/presentation/child_login_screen.dart';
 import '../../features/authentication/presentation/email_verification_screen.dart';
 import '../../features/authentication/presentation/forgot_password_screen.dart';
+import '../../features/authentication/presentation/login_code_screen.dart';
 import '../../features/authentication/presentation/parent_auth_screen.dart';
 import '../../features/authentication/presentation/parent_mode_screen.dart';
 import '../../features/authentication/presentation/reset_password_screen.dart';
@@ -116,6 +117,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.verifyEmail,
         builder: (_, state) => EmailVerificationScreen(
           email: state.uri.queryParameters['email'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.loginCode,
+        builder: (_, state) => LoginCodeScreen(
+          initialEmail: state.uri.queryParameters['email'] ?? '',
         ),
       ),
       GoRoute(

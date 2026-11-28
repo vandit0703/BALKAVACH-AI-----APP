@@ -86,6 +86,7 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
           ForbiddenException(code: 'email_not_verified') =>
             l10n.authEmailNotVerified,
           ConflictException() => l10n.authEmailInUse,
+          ApiException(code: 'email_unavailable') => l10n.emailUnavailable,
           ValidationException() => null,
           _ => describeError(l10n, error),
         };
@@ -106,6 +107,13 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
   void _forgotPassword() => context.go(
     Uri(
       path: AppRoutes.forgotPassword,
+      queryParameters: {'email': _email.text.trim()},
+    ).toString(),
+  );
+
+  void _useEmailCode() => context.go(
+    Uri(
+      path: AppRoutes.loginCode,
       queryParameters: {'email': _email.text.trim()},
     ).toString(),
   );
@@ -164,8 +172,11 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
                               _fieldErrors = const {};
                             }),
                     ),
+                    // Stable keys: the name field appears only when
+                    // registering, and must not shift the other fields' state.
                     if (registering)
                       AppTextField(
+                        key: const ValueKey('auth.nameField'),
                         fieldKey: const Key('auth.name'),
                         label: l10n.authFullName,
                         controller: _name,
@@ -176,6 +187,7 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
                         errorText: _fieldErrors['full_name'],
                       ),
                     AppTextField(
+                      key: const ValueKey('auth.emailField'),
                       fieldKey: const Key('auth.email'),
                       label: l10n.authEmail,
                       controller: _email,
@@ -186,6 +198,7 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
                       errorText: _fieldErrors['email'],
                     ),
                     AppTextField(
+                      key: const ValueKey('auth.passwordField'),
                       fieldKey: const Key('auth.password'),
                       label: l10n.authPassword,
                       controller: _password,
@@ -214,6 +227,15 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen> {
                           key: const Key('auth.forgotPassword'),
                           onPressed: _busy ? null : _forgotPassword,
                           child: Text(l10n.authForgotPassword),
+                        ),
+                      ),
+                    if (!registering)
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: TextButton(
+                          key: const Key('auth.useEmailCode'),
+                          onPressed: _busy ? null : _useEmailCode,
+                          child: Text(l10n.authUseEmailCode),
                         ),
                       ),
                     if (_formError != null)

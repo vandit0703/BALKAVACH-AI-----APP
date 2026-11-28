@@ -18,6 +18,7 @@ import '../../../shared/widgets/state_views.dart';
 import '../../child_profile/presentation/family_providers.dart';
 import '../../missions/domain/mission_models.dart';
 import '../../missions/presentation/mission_providers.dart';
+import '../../missions/presentation/video_time_label.dart';
 import '../../missions/presentation/widgets/mission_visuals.dart';
 import '../domain/review_models.dart';
 import 'approval_providers.dart';
@@ -419,25 +420,53 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
     setState(() => _busy = decision);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await reviewSubmission(
+      final result = await reviewSubmission(
         ref,
         familyId: widget.familyId,
         item: widget.item,
         decision: decision,
         note: note,
       );
-      // Shown only after the server confirmed the approval; the amounts are the
-      // ones the server stated for this mission (the same it just paid).
+      // Shown only after the server confirmed the approval. Stars and XP are
+      // the amounts the server stated for this mission; the video time is
+      // what the server's ledger says this approval actually granted (the
+      // daily limit can reduce it, and a repeating mission earns video time
+      // once a day).
       final submission = widget.item.submission;
       final stars =
           submission.starReward ?? widget.item.mission?.starReward ?? 0;
       final xp = submission.xpReward;
       final minutes = submission.videoMinutesReward;
+      final granted = result.videoSecondsGranted;
+      final offered =
+          result.videoSecondsReward ?? submission.videoSecondsReward;
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
             content: Text(switch (decision) {
+              ReviewDecision.approved when xp != null && granted == 0 =>
+                l10n.approvalsApprovedToastNoVideo(_childName, stars, xp),
+              ReviewDecision.approved
+                  when xp != null &&
+                      granted != null &&
+                      offered != null &&
+                      granted < offered =>
+                l10n.approvalsApprovedToastCapped(
+                  _childName,
+                  stars,
+                  xp,
+                  videoTimeLabel(l10n, granted),
+                  videoTimeLabel(l10n, offered),
+                ),
+              ReviewDecision.approved when xp != null && granted != null =>
+                l10n.approvalsApprovedToastVideo(
+                  _childName,
+                  stars,
+                  xp,
+                  videoTimeLabel(l10n, granted),
+                ),
+              // An older server that does not report the grant.
               ReviewDecision.approved when xp != null && minutes != null =>
                 l10n.approvalsApprovedToastFull(_childName, stars, xp, minutes),
               ReviewDecision.approved => l10n.approvalsApprovedToast(
@@ -471,6 +500,7 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
     final stars = submission.starReward ?? mission?.starReward ?? 0;
     final xp = submission.xpReward;
     final minutes = submission.videoMinutesReward;
+    final videoSeconds = submission.videoSecondsReward;
     final child = widget.item.child;
     final avatar = child == null
         ? null
@@ -534,7 +564,15 @@ class _PendingCardState extends ConsumerState<_PendingCard> {
                   icon: Icons.bolt_rounded,
                   label: '+${l10n.missionXpCount(xp)}',
                 ),
-              if (minutes != null && minutes > 0)
+              if (videoSeconds != null && videoSeconds > 0)
+                _RewardPill(
+                  key: const Key('review.reward.video'),
+                  icon: Icons.play_circle_rounded,
+                  label: l10n.approvalsVideoTime(
+                    videoTimeLabel(l10n, videoSeconds),
+                  ),
+                )
+              else if (videoSeconds == null && minutes != null && minutes > 0)
                 _RewardPill(
                   key: const Key('review.reward.video'),
                   icon: Icons.play_circle_rounded,

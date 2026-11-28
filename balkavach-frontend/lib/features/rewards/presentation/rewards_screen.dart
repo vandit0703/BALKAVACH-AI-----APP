@@ -20,6 +20,12 @@ import '../../missions/presentation/mission_providers.dart';
 import '../../progress/data/progress_repository.dart';
 import '../../progress/presentation/achievements_widgets.dart';
 import '../data/rewards_repository.dart';
+import 'reward_title_row.dart';
+
+/// Narrowest reward card: a long reward name, its star cost and the Ask
+/// button need this much (cards were 160 px on a 360 px phone, and the name
+/// was squeezed to a few characters per line).
+const _rewardTileMinWidth = 260.0;
 
 Future<void> _shareProgress(
   BuildContext context,
@@ -87,6 +93,7 @@ class RewardsScreen extends ConsumerWidget {
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: AppSpacing.md),
         children: [
           ResponsiveContent(
             child: switch (progress) {
@@ -202,11 +209,17 @@ class _VaultCard extends ConsumerWidget {
                             color: context.brand.star,
                             size: 40,
                           ),
-                          Text(
-                            '${progress.starBalance}',
-                            style: context.text.displaySmall?.copyWith(
-                              color: onVault,
-                              fontWeight: FontWeight.w700,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: AlignmentDirectional.centerStart,
+                            child: Text(
+                              NumberFormat.decimalPattern(
+                                Localizations.localeOf(context).toLanguageTag(),
+                              ).format(progress.starBalance),
+                              style: context.text.displaySmall?.copyWith(
+                                color: onVault,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                           Text(
@@ -412,6 +425,8 @@ class _CatalogSectionState extends ConsumerState<_CatalogSection> {
           ),
           AsyncData(:final value) => AdaptiveWrap(
             spacing: AppSpacing.sm,
+            minTileWidth: _rewardTileMinWidth,
+            maxColumns: 3,
             children: [
               for (final reward in value)
                 _RewardCard(
@@ -435,7 +450,20 @@ class _CatalogSectionState extends ConsumerState<_CatalogSection> {
           _ => const LoadingView(),
         },
         switch (redemptions) {
-          AsyncData(:final value) when value.isEmpty => const SizedBox.shrink(),
+          AsyncData(:final value) when value.isEmpty => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: AppSpacing.xs,
+            children: [
+              Text(l10n.rewardsMyRequests, style: context.text.titleMedium),
+              Text(
+                l10n.rewardsMyRequestsEmpty,
+                key: const Key('rewards.requests.empty'),
+                style: context.text.bodyMedium?.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
           AsyncData(:final value) => Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             spacing: AppSpacing.sm,
@@ -449,11 +477,32 @@ class _CatalogSectionState extends ConsumerState<_CatalogSection> {
                 ),
             ],
           ),
-          AsyncError() => InlineNotice(
-            icon: Icons.cloud_off_rounded,
-            message: l10n.rewardsRequestsUnavailable,
+          AsyncError() => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: AppSpacing.xs,
+            children: [
+              InlineNotice(
+                icon: Icons.cloud_off_rounded,
+                message: l10n.rewardsRequestsUnavailable,
+              ),
+              TextButton.icon(
+                key: const Key('rewards.requests.retry'),
+                onPressed: () => ref.invalidate(myRedemptionsProvider),
+                icon: const Icon(Icons.refresh_rounded),
+                label: Text(l10n.retry),
+              ),
+            ],
           ),
-          _ => const SizedBox.shrink(),
+          _ => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: AppSpacing.xs,
+            children: [
+              Text(l10n.rewardsMyRequests, style: context.text.titleMedium),
+              const LinearProgressIndicator(
+                key: Key('rewards.requests.loading'),
+              ),
+            ],
+          ),
         },
       ],
     );
@@ -537,14 +586,9 @@ class _RewardCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: AppSpacing.sm,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(reward.name, style: context.text.titleMedium),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              StarPill(count: reward.starCost),
-            ],
+          RewardTitleRow(
+            title: Text(reward.name, style: context.text.titleMedium),
+            stars: reward.starCost,
           ),
           if (description != null && description.isNotEmpty)
             Text(
@@ -636,31 +680,27 @@ class _RedemptionTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: AppSpacing.sm,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      rewardName == null
-                          ? l10n.rewardsRequest
-                          : l10n.rewardsRequestNamed(rewardName!),
-                      style: context.text.titleMedium,
-                    ),
-                    Text(
-                      DateFormat.yMMMd(
-                        locale,
-                      ).format(redemption.requestedAt.toLocal()),
-                      style: context.text.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+          RewardTitleRow(
+            stars: redemption.starCost,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  rewardName == null
+                      ? l10n.rewardsRequest
+                      : l10n.rewardsRequestNamed(rewardName!),
+                  style: context.text.titleMedium,
                 ),
-              ),
-              StarPill(count: redemption.starCost),
-            ],
+                Text(
+                  DateFormat.yMMMd(
+                    locale,
+                  ).format(redemption.requestedAt.toLocal()),
+                  style: context.text.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
           StatusChip(
             label: label,
@@ -744,61 +784,71 @@ class BadgeTile extends StatelessWidget {
 
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
-      child: Stack(
-        children: [
-          PositionedDirectional(
-            top: 0,
-            start: 0,
-            child: Icon(Icons.verified_rounded, color: accent, size: 18),
-          ),
-          // Share button top-right
-          PositionedDirectional(
-            top: -4,
-            end: -4,
-            child: Consumer(
-              builder: (context, ref, _) => IconButton(
-                icon: Icon(Icons.share_rounded, size: 20, color: accent),
-                tooltip: l10n.rewardsShareAction,
-                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                onPressed: () => _shareBadge(context, ref, badge),
+      child: LayoutBuilder(
+        builder: (context, constraints) => Stack(
+          children: [
+            PositionedDirectional(
+              top: 0,
+              start: 0,
+              child: Icon(Icons.verified_rounded, color: accent, size: 18),
+            ),
+            // Share button top-right
+            PositionedDirectional(
+              top: -4,
+              end: -4,
+              child: Consumer(
+                builder: (context, ref, _) => IconButton(
+                  icon: Icon(Icons.share_rounded, size: 20, color: accent),
+                  tooltip: l10n.rewardsShareAction,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                  onPressed: () => _shareBadge(context, ref, badge),
+                ),
               ),
             ),
-          ),
-          Column(
-            children: [
-              const SizedBox(height: 4),
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: tint,
-                child: Icon(icon, color: accent, size: 28),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                badge.name,
-                textAlign: TextAlign.center,
-                style: context.text.titleMedium,
-              ),
-              if (badge.description != null) ...[
-                const SizedBox(height: AppSpacing.xs),
+            Column(
+              children: [
+                // The share button (48 px, 4 px outside the corner) needs 44 px
+                // beside the 56 px avatar; on a narrower tile the avatar starts
+                // below it instead of under it.
+                SizedBox(
+                  height: (constraints.maxWidth - 56) / 2 >= 44 ? 4 : 44,
+                ),
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: tint,
+                  child: Icon(icon, color: accent, size: 28),
+                ),
+                const SizedBox(height: AppSpacing.sm),
                 Text(
-                  badge.description!,
+                  badge.name,
                   textAlign: TextAlign.center,
-                  style: context.text.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
+                  style: context.text.titleMedium,
+                ),
+                if (badge.description != null) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    badge.description!,
+                    textAlign: TextAlign.center,
+                    style: context.text.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
                   ),
+                ],
+                const SizedBox(height: AppSpacing.sm),
+                EyebrowPill(
+                  label: l10n.badgeUnlockedOn(
+                    DateFormat.MMMd(locale).format(badge.unlockedAt.toLocal()),
+                  ),
+                  background: tint,
+                  foreground: colors.onSurface,
                 ),
               ],
-              const SizedBox(height: AppSpacing.sm),
-              EyebrowPill(
-                label: l10n.badgeUnlockedOn(
-                  DateFormat.MMMd(locale).format(badge.unlockedAt.toLocal()),
-                ),
-                background: tint,
-                foreground: colors.onSurface,
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

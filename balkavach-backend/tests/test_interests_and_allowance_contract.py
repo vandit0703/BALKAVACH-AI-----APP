@@ -126,6 +126,35 @@ def test_interest_request_without_schema_column_is_refused_not_faked(monkeypatch
 	assert session.commits == 0
 
 
+def test_interest_request_generates_no_notifications_and_preserves_stored_data(monkeypatch, client):
+	import app.services.notification_service as notification_service
+
+	created = []
+	monkeypatch.setattr(
+		notification_service,
+		"create_notification",
+		lambda *args, **kwargs: created.append((args, kwargs)),
+	)
+	child = SimpleNamespace(
+		id=uuid4(),
+		family_id=uuid4(),
+		display_name="Aarav",
+		interests=["science"],
+		pending_interest_requests=["art"],
+	)
+	session = _as_child(monkeypatch, child, [("stories", "Stories")])
+
+	res = client.post("/api/v1/videos/interests/request", json={"interests": ["stories"]})
+
+	assert res.status_code == 200
+	assert created == []
+	assert session.commits == 0
+	assert child.interests == ["science"]
+	assert child.pending_interest_requests == ["art"]
+	assert res.json()["interests"] == ["science"]
+	assert res.json()["pending_requests"] == ["stories"]
+
+
 def test_parent_approval_updates_active_interests_and_clears_pending(monkeypatch, client):
 	import app.api.v1.families as family_routes
 	import app.services.admin_service as admin_service
@@ -183,6 +212,35 @@ def test_parent_update_without_schema_column_is_refused_not_faked(monkeypatch, c
 
 	assert res.status_code == 503
 	assert session.commits == 0
+
+
+def test_interest_request_generates_no_notifications_and_preserves_stored_data(monkeypatch, client):
+	import app.services.notification_service as notification_service
+
+	created = []
+	monkeypatch.setattr(
+		notification_service,
+		"create_notification",
+		lambda *args, **kwargs: created.append((args, kwargs)),
+	)
+	child = SimpleNamespace(
+		id=uuid4(),
+		family_id=uuid4(),
+		display_name="Aarav",
+		interests=["science"],
+		pending_interest_requests=["art"],
+	)
+	session = _as_child(monkeypatch, child, [("stories", "Stories")])
+
+	res = client.post("/api/v1/videos/interests/request", json={"interests": ["stories"]})
+
+	assert res.status_code == 200
+	assert created == []
+	assert session.commits == 0
+	assert child.interests == ["science"]
+	assert child.pending_interest_requests == ["art"]
+	assert res.json()["interests"] == ["science"]
+	assert res.json()["pending_requests"] == ["stories"]
 
 
 def test_pending_requests_never_influence_recommendations():

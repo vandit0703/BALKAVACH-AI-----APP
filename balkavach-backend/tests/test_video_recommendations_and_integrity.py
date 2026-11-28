@@ -11,9 +11,12 @@ from app.services.mission_rewards import MISSION_STAR_REWARD, MISSION_XP_REWARD
 from app.services.video_service import _child_interest_slugs
 
 
-def test_free_daily_allowance_is_zero():
-	assert ves.FREE_DAILY_ALLOWANCE_SECONDS == 0
-	assert ves.MISSION_REWARD_ALLOWANCE_SECONDS == 900
+def test_allowance_constants_match_the_approved_rules():
+	# Approved 2026-11-28: 225 s per approved standard mission, 900 s free per day, 3600 s default cap (900-14400).
+	assert ves.FREE_DAILY_ALLOWANCE_SECONDS == 900
+	assert ves.MISSION_REWARD_ALLOWANCE_SECONDS == 225
+	assert ves.DEFAULT_DAILY_ALLOWANCE_SECONDS == 3600
+	assert (ves.MIN_DAILY_ALLOWANCE_SECONDS, ves.MAX_DAILY_ALLOWANCE_SECONDS) == (900, 14400)
 
 
 def test_mission_reward_constants():
@@ -176,9 +179,10 @@ def test_unused_video_allowance_carries_forward_across_midnight(monkeypatch):
 	monkeypatch.setattr(ves, "get_model", lambda name: _FakeModel)
 
 	summary = ves.get_child_video_allowance_today(FakeSession(), child_id, family_id)
-	assert summary["remaining_seconds"] == 600
+	# Yesterday's unused 600 mission seconds carry forward, next to today's untouched free allowance.
+	assert summary["remaining_seconds"] == ves.FREE_DAILY_ALLOWANCE_SECONDS + 600
 	assert summary["mission_remaining_seconds"] == 600
-	assert summary["free_remaining_seconds"] == 0
+	assert summary["free_remaining_seconds"] == ves.FREE_DAILY_ALLOWANCE_SECONDS
 	assert summary["is_exhausted"] is False
 
 

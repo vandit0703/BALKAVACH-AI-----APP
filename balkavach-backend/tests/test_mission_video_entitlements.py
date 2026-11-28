@@ -197,7 +197,7 @@ def mock_entitlement_models():
         yield
 
 
-def test_grant_first_mission_grants_900_seconds():
+def test_grant_first_mission_grants_one_standard_missions_time():
     child_id = uuid4()
     family_id = uuid4()
     child = MagicMock(id=child_id, family_id=family_id)
@@ -206,14 +206,14 @@ def test_grant_first_mission_grants_900_seconds():
 
     session = FakeSession()
 
-    with patch("app.services.video_entitlement_service.family_timezone_name", return_value="Asia/Kolkata"), \
-         patch("app.services.video_entitlement_service.local_today", return_value=date(2026, 11, 13)):
+    with patch("app.services.video_entitlement_service.family_timezone_name", return_value="Asia/Kolkata"),          patch("app.services.video_entitlement_service.local_today", return_value=date(2026, 11, 13)):
         entitlement = grant_mission_video_entitlement(
             session, child, task, submission, now_utc=TEST_NOW
         )
 
+    assert MISSION_REWARD_ALLOWANCE_SECONDS == 225
     assert entitlement is not None
-    assert entitlement.granted_seconds == 900
+    assert entitlement.granted_seconds == MISSION_REWARD_ALLOWANCE_SECONDS
     assert entitlement.source_type == "mission_reward"
     assert entitlement.child_id == child_id
     assert entitlement.submission_id == submission.id
@@ -224,38 +224,26 @@ def test_grant_first_mission_grants_900_seconds():
     assert entitlement.status == "active"
 
 
-def test_grant_stacking_additive_up_to_four_missions():
+def test_grant_stacking_additive_up_to_the_default_cap():
+    """225 s per approved standard mission stacks additively: 16 missions fill the 3600 s default cap exactly."""
     child_id = uuid4()
     family_id = uuid4()
     child = MagicMock(id=child_id, family_id=family_id)
     task = MagicMock(id=uuid4(), family_id=family_id)
 
     session = FakeSession()
+    missions_to_fill = DEFAULT_DAILY_ALLOWANCE_SECONDS // MISSION_REWARD_ALLOWANCE_SECONDS
+    assert (DEFAULT_DAILY_ALLOWANCE_SECONDS, missions_to_fill) == (3600, 16)
 
-    with patch("app.services.video_entitlement_service.family_timezone_name", return_value="Asia/Kolkata"), \
-         patch("app.services.video_entitlement_service.local_today", return_value=date(2026, 11, 13)):
-        # Mission 1 -> 15 min (900s)
-        sub1 = MagicMock(id=uuid4())
-        e1 = grant_mission_video_entitlement(session, child, task, sub1, now_utc=TEST_NOW)
-        assert e1.granted_seconds == 900
+    with patch("app.services.video_entitlement_service.family_timezone_name", return_value="Asia/Kolkata"),          patch("app.services.video_entitlement_service.local_today", return_value=date(2026, 11, 13)):
+        for n in range(1, missions_to_fill + 1):
+            entitlement = grant_mission_video_entitlement(session, child, task, MagicMock(id=uuid4()), now_utc=TEST_NOW)
+            assert entitlement.granted_seconds == MISSION_REWARD_ALLOWANCE_SECONDS
+            assert sum(e.granted_seconds for e in session.entitlements) == n * MISSION_REWARD_ALLOWANCE_SECONDS
 
-        # Mission 2 -> 15 min (900s) -> total 1800s (30m)
-        sub2 = MagicMock(id=uuid4())
-        e2 = grant_mission_video_entitlement(session, child, task, sub2, now_utc=TEST_NOW)
-        assert e2.granted_seconds == 900
+        assert grant_mission_video_entitlement(session, child, task, MagicMock(id=uuid4()), now_utc=TEST_NOW) is None
 
-        # Mission 3 -> 15 min (900s) -> total 2700s (45m)
-        sub3 = MagicMock(id=uuid4())
-        e3 = grant_mission_video_entitlement(session, child, task, sub3, now_utc=TEST_NOW)
-        assert e3.granted_seconds == 900
-
-        # Mission 4 -> 15 min (900s) -> total 3600s (60m)
-        sub4 = MagicMock(id=uuid4())
-        e4 = grant_mission_video_entitlement(session, child, task, sub4, now_utc=TEST_NOW)
-        assert e4.granted_seconds == 900
-
-        total_granted = sum(e.granted_seconds for e in session.entitlements)
-        assert total_granted == 3600
+    assert sum(e.granted_seconds for e in session.entitlements) == DEFAULT_DAILY_ALLOWANCE_SECONDS
 
 
 def test_grant_fifth_mission_capped_at_60_minutes_by_default():
@@ -308,14 +296,14 @@ def test_stacking_invariant_consumed_time_does_not_create_cap_room():
 
 
 def test_cap_remainder_smaller_than_a_mission_grants_nothing():
-    """If daily limit is 1200s (20m) and 900s was already granted, the next mission grants nothing:
-    a mission unlocks a whole 15 minutes or nothing, never a 5-minute slice."""
+    """If daily limit is 1200s (20m) and 1000s was already granted, the next standard mission grants nothing:
+    it unlocks its whole 225 s or nothing, never a 200 s slice."""
     child_id = uuid4()
     family_id = uuid4()
     child = MagicMock(id=child_id, family_id=family_id)
     task = MagicMock(id=uuid4(), family_id=family_id)
 
-    existing = [FakeEntitlement(child_id=child_id, granted_seconds=900, source_type="mission_reward")]
+    existing = [FakeEntitlement(child_id=child_id, granted_seconds=1000, source_type="mission_reward")]
     session = FakeSession(entitlements=existing, settings_dict={"daily_limit_seconds": 1200})
 
     with patch("app.services.video_entitlement_service.family_timezone_name", return_value="Asia/Kolkata"), \

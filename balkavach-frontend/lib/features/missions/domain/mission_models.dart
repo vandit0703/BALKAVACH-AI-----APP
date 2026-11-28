@@ -55,6 +55,8 @@ class Mission {
     this.description,
     this.dueAt,
     this.requiredVideoSeconds,
+    this.rewardVideoSeconds,
+    this.isCustom,
   });
 
   factory Mission.fromJson(Map<String, dynamic> json) => Mission(
@@ -69,6 +71,8 @@ class Mission {
     xpReward: json['xp_reward'] as int? ?? 0,
     dueAt: _parseDate(json['due_at']),
     requiredVideoSeconds: (json['required_video_seconds'] as num?)?.toInt(),
+    rewardVideoSeconds: (json['reward_video_seconds'] as num?)?.toInt(),
+    isCustom: json['is_custom'] as bool?,
     isActive: json['is_active'] as bool? ?? true,
     createdAt: DateTime.parse(json['created_at'] as String),
   );
@@ -87,6 +91,15 @@ class Mission {
   final int xpReward;
   final DateTime? dueAt;
   final int? requiredVideoSeconds;
+
+  /// Video seconds the parent set for this mission (granted on approval,
+  /// within the daily limit). `null` for a daily mission, a legacy mission or
+  /// an older server: those earn the standard amount.
+  final int? rewardVideoSeconds;
+
+  /// `false` for a daily mission the child chose (its reward is fixed);
+  /// `null` from an older server.
+  final bool? isCustom;
   final bool isActive;
   final DateTime createdAt;
 
@@ -101,7 +114,9 @@ class Mission {
       other.categoryId == categoryId &&
       other.assignedChildId == assignedChildId &&
       other.dueAt == dueAt &&
-      other.requiredVideoSeconds == requiredVideoSeconds;
+      other.requiredVideoSeconds == requiredVideoSeconds &&
+      other.rewardVideoSeconds == rewardVideoSeconds &&
+      other.isCustom == isCustom;
 
   @override
   int get hashCode => Object.hash(
@@ -114,8 +129,14 @@ class Mission {
     assignedChildId,
     dueAt,
     requiredVideoSeconds,
+    rewardVideoSeconds,
+    isCustom,
   );
 }
+
+/// Video seconds an approved standard mission earns (the server's rule,
+/// shown as the default for a new mission).
+const kStandardMissionVideoSeconds = 225;
 
 /// Default mission rewards; parents may configure per-mission values.
 const kMissionStarReward = 10;
@@ -134,6 +155,7 @@ class NewMission {
     this.assignedChildId,
     this.dueAt,
     this.requiredVideoSeconds,
+    this.rewardVideoSeconds,
   });
 
   final String familyId;
@@ -141,6 +163,10 @@ class NewMission {
   final int starReward;
   final int xpReward;
   final int? requiredVideoSeconds;
+
+  /// Parent-configured video seconds; left out of the request when `null`
+  /// (the server keeps or defaults its stored value).
+  final int? rewardVideoSeconds;
   final String? description;
   final String? categoryId;
   final String? assignedChildId;
@@ -160,6 +186,7 @@ class NewMission {
     'star_reward': starReward,
     'xp_reward': xpReward,
     'required_video_seconds': ?requiredVideoSeconds,
+    'reward_video_seconds': ?rewardVideoSeconds,
     'description': ?_trimmedDescription,
     'category_id': ?categoryId,
     'assigned_child_id': ?assignedChildId,
@@ -174,6 +201,7 @@ class NewMission {
     'star_reward': starReward,
     'xp_reward': xpReward,
     'required_video_seconds': requiredVideoSeconds,
+    'reward_video_seconds': ?rewardVideoSeconds,
     'description': _trimmedDescription,
     'category_id': categoryId,
     'assigned_child_id': assignedChildId,
@@ -205,6 +233,8 @@ class TaskSubmission {
     this.starsAwarded,
     this.xpAwarded,
     this.videoMinutesReward,
+    this.videoSecondsReward,
+    this.videoSecondsGranted,
     this.requiredVideoSeconds,
     this.verifiedVideoSeconds = 0,
   });
@@ -230,6 +260,8 @@ class TaskSubmission {
     starsAwarded: json['stars_awarded'] as int?,
     xpAwarded: json['xp_awarded'] as int?,
     videoMinutesReward: json['video_minutes_reward'] as int?,
+    videoSecondsReward: (json['video_seconds_reward'] as num?)?.toInt(),
+    videoSecondsGranted: (json['video_seconds_granted'] as num?)?.toInt(),
     requiredVideoSeconds: (json['required_video_seconds'] as num?)?.toInt(),
     verifiedVideoSeconds:
         (json['verified_video_seconds'] as num?)?.toInt() ?? 0,
@@ -261,6 +293,15 @@ class TaskSubmission {
   /// Review queue only: minutes of video time an approval unlocks, as the
   /// server states it. `null` from a server that predates it (nothing shown).
   final int? videoMinutesReward;
+
+  /// The same in exact seconds (review queue and review result). `null` from
+  /// a server that predates it.
+  final int? videoSecondsReward;
+
+  /// Review result only: the video seconds this approval actually granted,
+  /// read from the server's ledger (less than [videoSecondsReward] when the
+  /// daily limit reduced it). `null` from a server that predates it.
+  final int? videoSecondsGranted;
   final int? requiredVideoSeconds;
   final int verifiedVideoSeconds;
   final int submissionNumber;

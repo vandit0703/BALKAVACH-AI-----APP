@@ -82,13 +82,24 @@ def api(isolated_test_session, monkeypatch):
         "login_limiter",
         "password_reset_limiter",
         "verification_resend_limiter",
+        "otp_verify_limiter",
+        "login_code_request_limiter",
     ):
         monkeypatch.setattr(auth_api, limiter_name, FixedWindowLimiter())
+    # Email counts as configured; the senders below capture codes instead of sending anything.
+    monkeypatch.setattr(settings, "smtp_host", "smtp.test.invalid")
+    monkeypatch.setattr(settings, "password_reset_from_email", "noreply@test.invalid")
     verification_mailbox = []
     monkeypatch.setattr(
         email_module,
         "send_parent_verification",
         lambda email, otp: verification_mailbox.append((email, otp)),
+    )
+    login_code_mailbox = []
+    monkeypatch.setattr(
+        email_module,
+        "send_login_code",
+        lambda email, otp, **kwargs: login_code_mailbox.append((email, otp)),
     )
     from app.services.push_service import deliver_ready
 
@@ -104,7 +115,7 @@ def api(isolated_test_session, monkeypatch):
     app.dependency_overrides[get_db] = _get_db
     try:
         with TestClient(app) as client:
-            yield ApiHarness(client, isolated_test_session, verification_mailbox)
+            yield ApiHarness(client, isolated_test_session, verification_mailbox, login_code_mailbox)
     finally:
         app.dependency_overrides.pop(get_db, None)
 

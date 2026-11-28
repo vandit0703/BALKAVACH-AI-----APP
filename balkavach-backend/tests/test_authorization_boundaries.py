@@ -22,6 +22,12 @@ PUBLIC_ROUTES = {
 	("POST", "/api/v1/auth/logout"),
 	("POST", "/api/v1/auth/password/forgot"),
 	("POST", "/api/v1/auth/password/reset"),
+	# One-time codes: a session is issued only for a correct, consumed code (tests/test_otp_authentication.py).
+	("POST", "/api/v1/auth/verify-email"),
+	("POST", "/api/v1/auth/resend-verification"),
+	("POST", "/api/v1/auth/login-code/request"),
+	("POST", "/api/v1/auth/login-code/verify"),
+	("POST", "/api/v1/auth/child-link/redeem"),  # single-use, short-lived linking code
 	("POST", "/api/v1/auth/parent-pin/verify"),  # tombstone: always 410, evaluates nothing
 	("GET", "/api/v1/app-config"),
 }

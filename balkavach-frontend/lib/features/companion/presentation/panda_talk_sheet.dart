@@ -235,6 +235,11 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
       await _controller.finishListening();
       return;
     }
+    if (state.busy) return;
+    if (_controller.isMicPermanentlyDenied) {
+      await _controller.startListening();
+      return;
+    }
     // Voice must be allowed first (on-device recogniser, or a parent's
     // consent for the cloud one, and not turned off by a parent): otherwise
     // the child is never asked for the permission and the mic never opens.
@@ -317,6 +322,8 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
 
     final status = switch (state.phase) {
       PandaPhase.idle || PandaPhase.error => l10n.pandaStateIdle,
+      PandaPhase.requestingPermission => l10n.pandaStateRequestingPermission,
+      PandaPhase.initializing => l10n.pandaStateInitializing,
       PandaPhase.greeting || PandaPhase.speaking => l10n.pandaStateSpeaking,
       PandaPhase.listening => l10n.pandaStateListening,
       PandaPhase.thinking => l10n.pandaStateThinking,
@@ -327,9 +334,13 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
     final problem = switch (state.problem) {
       null => null,
       PandaProblem.micDenied => l10n.pandaErrorMicDenied,
+      PandaProblem.micPermanentlyDenied =>
+        l10n.pandaErrorMicPermanentlyDenied,
       PandaProblem.micUnavailable => l10n.pandaErrorMicUnavailable,
       PandaProblem.listenLanguageMissing => l10n.pandaListenLanguageMissing,
       PandaProblem.notHeard => l10n.pandaErrorNotHeard,
+      PandaProblem.listenTimeout => l10n.pandaErrorListenTimeout,
+      PandaProblem.speechFailed => l10n.pandaErrorSpeechFailed,
       PandaProblem.network => l10n.pandaErrorNetwork,
       PandaProblem.busy => l10n.pandaErrorBusy,
       PandaProblem.voiceNeedsParent => l10n.pandaVoiceNeedsParent,
@@ -533,7 +544,9 @@ class _PandaTalkSheetState extends ConsumerState<PandaTalkSheet>
                           ? colors.error
                           : null,
                     ),
-                    onPressed: _mic,
+                    onPressed: state.phase == PandaPhase.listening
+                        ? _mic
+                        : (state.busy ? null : _mic),
                     icon: Icon(
                       state.phase == PandaPhase.listening
                           ? Icons.check_rounded

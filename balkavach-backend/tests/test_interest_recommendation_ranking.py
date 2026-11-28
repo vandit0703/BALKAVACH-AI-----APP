@@ -1,9 +1,8 @@
-"""Approved interests reorder the real feed query; pending requests never do.
+"""Retired interests no longer influence video recommendation ranking or filtering.
 
-Uses the SQLite feed world (tests/feed_world.py) and the production ``eligible_feed``. The child row's
-``interests`` / ``pending_interest_requests`` are set as plain attributes: that is what the reflected
-production model exposes after migration 0022 (JSONB columns), and all ranking reads is
-``getattr(child, "interests")``.
+Uses the SQLite feed world (tests/feed_world.py) and the production ``eligible_feed``.
+Stored ``interests`` / ``pending_interest_requests`` on ``child`` are preserved but ignored,
+while age suitability, safety filtering, and category filtering remain enforced.
 """
 
 from app.services.video_service import eligible_feed
@@ -26,29 +25,44 @@ def _world(session):
 	return make_child(session)
 
 
-def _first_three(session, child, seed):
-	return {video.title.split()[0] for video in eligible_feed(session, child, None, 6, 0, video_format="regular", seed=seed)[:3]}
+def _feed_ids(session, child, seed, category_id=None):
+	return [video.id for video in eligible_feed(session, child, category_id, 6, 0, video_format="regular", seed=seed)]
 
 
-def test_approved_interest_categories_rank_first(feed_db):
+def test_stored_interests_do_not_change_recommendation_ranking(feed_db):
 	child = _world(feed_db)
-	child.interests = ["stories"]
+	child.interests = []
 	child.pending_interest_requests = []
-	for seed in ("a", "b", "c"):
-		assert _first_three(feed_db, child, seed) == {"Story"}
+	baseline = _feed_ids(feed_db, child, "s")
 
+	child.interests = ["stories"]
+	child.pending_interest_requests = ["science"]
+	with_stories = _feed_ids(feed_db, child, "s")
 
-def test_pending_interest_request_does_not_change_ranking(feed_db):
-	child = _world(feed_db)
 	child.interests = ["science"]
 	child.pending_interest_requests = ["stories"]
-	for seed in ("a", "b", "c"):
-		assert _first_three(feed_db, child, seed) == {"Science"}
+	with_science = _feed_ids(feed_db, child, "s")
+
+	assert with_stories == baseline
+	assert with_science == baseline
+	assert child.interests == ["science"]
+	assert child.pending_interest_requests == ["stories"]
 
 
-def test_parent_change_takes_effect_on_next_feed_request(feed_db):
+def test_age_suitability_and_safety_filters_remain_enforced(feed_db):
+	child = _world(feed_db)
+	child.interests = ["science", "stories"]
+	add_youtube(feed_db, title="Too Old", age_min=14, age_max=15)
+	add_youtube(feed_db, title="Unsafe Rating", content_rating="restricted")
+	titles = [v.title for v in eligible_feed(feed_db, child, None, 20, 0, video_format="regular", seed="s")]
+	assert "Too Old" not in titles
+	assert "Unsafe Rating" not in titles
+	assert len(titles) == 6
+
+
+def test_explicit_category_filter_still_works(feed_db):
 	child = _world(feed_db)
 	child.interests = ["science"]
-	assert _first_three(feed_db, child, "s") == {"Science"}
-	child.interests = ["stories"]  # what PUT /families/{f}/children/{c}/interests persists
-	assert _first_three(feed_db, child, "s") == {"Story"}
+	stories = feed_db.query(VideoCategory).filter(VideoCategory.slug == "stories").one()
+	titles = [v.title for v in eligible_feed(feed_db, child, stories.id, 10, 0, video_format="regular", seed="s")]
+	assert set(titles) == {"Story 0", "Story 1", "Story 2"}

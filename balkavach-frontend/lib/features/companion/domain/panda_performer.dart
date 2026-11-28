@@ -117,6 +117,18 @@ class PandaPose {
 /// sleepy.
 const pandaPoses = <PandaPhase, PandaPose>{
   PandaPhase.idle: PandaPose(),
+  PandaPhase.requestingPermission: PandaPose(
+    browLeft: 0.25,
+    browRight: 0.25,
+    headTilt: 0.05,
+    earPerk: 0.5,
+  ),
+  PandaPhase.initializing: PandaPose(
+    browLeft: 0.25,
+    browRight: 0.25,
+    headTilt: 0.08,
+    earPerk: 0.8,
+  ),
   PandaPhase.greeting: PandaPose(
     browLeft: 0.5,
     browRight: 0.5,

@@ -10,6 +10,7 @@ from uuid import uuid4
 import pytest
 
 from app.services import task_service
+from app.services.video_entitlement_service import MISSION_REWARD_ALLOWANCE_SECONDS as STD
 from tests import sqlite_world as shared
 from tests import video_world
 from tests.approval_world import (
@@ -77,7 +78,7 @@ def assignment_status(session):
 # ---- approve ---------------------------------------------------------------------------------------------------
 
 
-def test_approving_pays_ten_stars_fifteen_xp_and_fifteen_minutes_exactly_once(client):
+def test_approving_pays_ten_stars_fifteen_xp_and_one_missions_video_time_exactly_once(client):
 	http, family, session = client
 	item = make_submission(session, family)
 	assert counts(http, family) == {"pending": 1, "approved": 0, "retry": 0}
@@ -86,7 +87,7 @@ def test_approving_pays_ten_stars_fifteen_xp_and_fifteen_minutes_exactly_once(cl
 
 	assert response.status_code == 200, response.text
 	assert response.json()["status"] == "approved" and response.json()["id"] == str(item.submission.id)
-	assert paid(session) == ([10], [15], [900], 1)
+	assert paid(session) == ([10], [15], [STD], 1)
 	assert assignment_status(session) == "approved"
 	assert session.query(ChildProgress).one().total_xp == 15
 	assert counts(http, family) == {"pending": 0, "approved": 1, "retry": 0}
@@ -98,7 +99,9 @@ def test_the_queue_shows_what_an_approval_pays_from_the_backend(client):
 	http, family, session = client
 	make_submission(session, family)
 	item = http.get(f"/api/v1/reviews/submissions?family_id={family.family_id}&status=pending").json()[0]
-	assert (item["star_reward"], item["xp_reward"], item["video_minutes_reward"]) == (10, 15, 15)
+	assert STD == 225
+	assert (item["star_reward"], item["xp_reward"], item["video_seconds_reward"]) == (10, 15, STD)
+	assert item["video_minutes_reward"] == STD // 60  # whole minutes only; the exact value is in seconds
 
 
 def test_approval_pays_and_displays_configured_task_rewards(client):
@@ -112,24 +115,23 @@ def test_approval_pays_and_displays_configured_task_rewards(client):
 
 	response = review(http, item.submission)
 	assert response.status_code == 200, response.text
-	assert paid(session) == ([25], [40], [900], 1)
+	assert paid(session) == ([25], [40], [STD], 1)
 	assert session.query(ChildProgress).one().total_xp == 40
 
 
 def test_the_three_rewards_are_independent_a_full_daily_cap_still_pays_stars_and_xp(client):
 	http, family, session = client
 	row = session.query(shared.FamilySetting).one()
-	row.video_settings = {"daily_limit_seconds": 900}
+	row.video_settings = {"daily_limit_seconds": 900}  # the smallest cap: exactly four standard missions
 	session.commit()
-	first = make_submission(session, family, title="First", daily=False)
-	second = make_submission(session, family, title="Second", daily=False)
+	items = [make_submission(session, family, title=f"Mission {n}", daily=False) for n in range(5)]
 
-	assert review(http, first.submission).status_code == 200
-	assert review(http, second.submission).status_code == 200
+	for item in items:
+		assert review(http, item.submission).status_code == 200
 
 	stars, xp, seconds, reviews = paid(session)
-	assert (stars, xp) == ([10, 10], [15, 15])
-	assert seconds == [900], "the second mission found the daily cap full and unlocked no time"
+	assert (stars, xp) == ([10] * 5, [15] * 5)
+	assert seconds == [STD] * 4, "the fifth mission found the daily cap full and unlocked no time"
 
 
 # ---- reject and retry --------------------------------------------------------------------------------------------
@@ -164,7 +166,7 @@ def test_repeating_an_approval_returns_the_existing_result_and_pays_nothing_more
 
 	assert first.status_code == again.status_code == third.status_code == 200
 	assert again.json() == first.json()
-	assert paid(session) == ([10], [15], [900], 1)
+	assert paid(session) == ([10], [15], [STD], 1)
 	assert session.query(ChildProgress).one().total_xp == 15
 	assert session.query(Notification).filter_by(notification_type="task_approved").count() == 1
 
@@ -176,7 +178,7 @@ def test_a_conflicting_second_decision_is_refused_and_changes_nothing(client):
 	response = review(http, item.submission, "rejected")
 	assert response.status_code == 409
 	assert response.json()["error"]["code"] == "submission_already_reviewed"
-	assert paid(session) == ([10], [15], [900], 1)
+	assert paid(session) == ([10], [15], [STD], 1)
 	assert status_of(session, item.submission) == "approved"
 
 
@@ -268,7 +270,7 @@ def test_a_failing_allowance_grant_rolls_everything_back_with_a_clear_error_and_
 	monkeypatch.setattr(entitlements, "grant_mission_video_entitlement", real)
 	retry = review(http, item.submission)
 	assert retry.status_code == 200
-	assert paid(session) == ([10], [15], [900], 1)
+	assert paid(session) == ([10], [15], [STD], 1)
 
 
 def test_a_duplicate_reward_row_fails_the_whole_approval_instead_of_half_paying(client):

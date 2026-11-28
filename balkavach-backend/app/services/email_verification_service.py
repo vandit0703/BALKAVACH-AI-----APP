@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import APIError
 from app.core.security import hash_password, verify_password
 from app.db.base import get_model
+from app.schemas.auth import TokenResponse
+from app.services.session_service import start_session
 
 OTP_EXPIRY_MINUTES = 5
 OTP_MAX_ATTEMPTS = 5
@@ -54,17 +56,28 @@ def resend_verification(session: Session, email: str) -> tuple[str, str] | None:
 	return user.email, create_verification(session, user)
 
 
-def verify_parent_email(session: Session, email: str, otp: str) -> None:
+def verify_parent_email(session: Session, email: str, otp: str) -> TokenResponse:
+	"""Check and consume a *registration* code, mark the email verified and start the parent's session.
+
+	Only a correct, unexpired, unconsumed registration code for this exact account reaches the session.
+	An unknown or already-verified account is answered exactly like a wrong code (and costs the same
+	hashing work): an already-verified account never gets a session from this endpoint, whatever code
+	is sent. Sign-in for verified accounts is the password or the separate sign-in code.
+
+	Consumption is the deletion of the locked verification row, in the same transaction that creates
+	the session, so two concurrent requests with the same code cannot both succeed.
+	"""
 	User = get_model("User")
 	user = session.query(User).filter(
 		User.email == email.strip().lower(),
 		User.role == "parent",
 		User.is_active.is_(True),
 	).one_or_none()
-	if user is None:
+	if user is None or user.email_verified_at is not None:
+		from app.services.auth_service import _dummy_password_hash
+
+		verify_password(otp, _dummy_password_hash())
 		raise APIError(400, "invalid_verification_code", "The verification code is invalid")
-	if user.email_verified_at is not None:
-		return
 	Verification = get_model("ParentEmailVerification")
 	row = session.query(Verification).filter(Verification.user_id == user.id).with_for_update().one_or_none()
 	if row is None or row.expires_at <= _now():
@@ -77,6 +90,11 @@ def verify_parent_email(session: Session, email: str, otp: str) -> None:
 		if row.attempts >= OTP_MAX_ATTEMPTS:
 			raise APIError(429, "verification_attempts_exceeded", "Too many incorrect verification attempts")
 		raise APIError(400, "invalid_verification_code", "The verification code is invalid")
-	user.email_verified_at = _now()
+	now = _now()
+	user.email_verified_at = now
 	session.delete(row)
+	session.flush()
+	user.last_login_at = now.replace(tzinfo=None)
+	response = start_session(session, user)
 	session.commit()
+	return response

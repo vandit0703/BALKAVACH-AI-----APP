@@ -23,6 +23,14 @@ class Settings(BaseSettings):
 	login_rate_window_seconds: int = Field(default=300, ge=10, le=3600)
 	registration_rate_limit: int = Field(default=5, ge=1, le=50)
 	verification_resend_rate_limit: int = Field(default=1, ge=1, le=10)
+	# One-time codes (registration verification and passwordless sign-in). Verification attempts are
+	# limited per address and per client; sign-in code requests per client and per address.
+	otp_verify_rate_limit: int = Field(default=10, ge=1, le=100)
+	otp_verify_ip_rate_limit: int = Field(default=30, ge=1, le=500)
+	otp_verify_window_seconds: int = Field(default=900, ge=60, le=86400)
+	login_code_request_rate_limit: int = Field(default=5, ge=1, le=50)
+	login_code_request_ip_rate_limit: int = Field(default=10, ge=1, le=200)
+	login_code_request_window_seconds: int = Field(default=900, ge=60, le=86400)
 	password_reset_rate_limit: int = Field(default=3, ge=1, le=20)
 	password_reset_window_seconds: int = Field(default=900, ge=60, le=86400)
 	parent_pin_rate_limit: int = Field(default=5, ge=1, le=30)

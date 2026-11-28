@@ -95,6 +95,8 @@ class RedisRateLimiter:
 login_limiter = RedisRateLimiter("login")
 registration_limiter = RedisRateLimiter("registration")
 verification_resend_limiter = RedisRateLimiter("verification-resend")
+otp_verify_limiter = RedisRateLimiter("otp-verify")
+login_code_request_limiter = RedisRateLimiter("login-code-request")
 password_reset_limiter = RedisRateLimiter("password-reset")
 parent_pin_limiter = RedisRateLimiter("parent-pin")
 parent_mode_limiter = RedisRateLimiter("parent-mode-entry")

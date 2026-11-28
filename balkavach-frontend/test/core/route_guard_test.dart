@@ -31,6 +31,31 @@ void main() {
     expect(go(AppRoutes.parentHome, resolved: false), AppRoutes.splash);
   });
 
+  test('a reset link opened while the app starts is never redirected', () {
+    // The single-use token is in the link; redirecting to splash loses it.
+    for (final resolved in [false, true]) {
+      for (final onboarding in [fresh, languageOnly, onboarded]) {
+        expect(
+          go(
+            AppRoutes.resetPassword,
+            resolved: resolved,
+            onboarding: onboarding,
+          ),
+          isNull,
+        );
+        expect(go('${AppRoutes.resetPassword}/', resolved: resolved), isNull);
+      }
+      expect(
+        go(AppRoutes.resetPassword, resolved: resolved, parent: true),
+        isNull,
+      );
+      expect(
+        go(AppRoutes.resetPassword, resolved: resolved, child: true),
+        isNull,
+      );
+    }
+  });
+
   test('fresh install goes to welcome, then consent', () {
     expect(go(AppRoutes.splash, onboarding: fresh), AppRoutes.welcome);
     expect(go(AppRoutes.role, onboarding: fresh), AppRoutes.welcome);
@@ -68,5 +93,25 @@ void main() {
       reason: 'prefix sibling',
     );
     expect(go(AppRoutes.childMissionSubmit(Fx.taskId), child: true), isNull);
+  });
+
+  test('code and recovery screens are signed-out only', () {
+    for (final location in [
+      AppRoutes.verifyEmail,
+      AppRoutes.loginCode,
+      AppRoutes.forgotPassword,
+    ]) {
+      // Reachable while signed out, even before onboarding finishes.
+      expect(go(location), isNull);
+      expect(go(location, onboarding: fresh), isNull);
+      // A session (e.g. just issued for a verified code) goes to its own
+      // area; the parent's consent requirement still applies.
+      expect(go(location, parent: true), AppRoutes.parentHome);
+      expect(
+        go(location, parent: true, onboarding: languageOnly),
+        AppRoutes.consent,
+      );
+      expect(go(location, child: true), AppRoutes.childHome);
+    }
   });
 }

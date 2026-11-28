@@ -11,15 +11,23 @@ String? resolveRedirect({
   required OnboardingState onboarding,
   required Session? session,
 }) {
+  // The password-reset link must survive start-up, onboarding and any session
+  // state: the token in it is single-use and cannot be re-fetched. Checked
+  // before the splash hold, which would otherwise replace the link when the
+  // app is opened from it (cold start).
+  if (_isWithin(location, AppRoutes.resetPassword)) return null;
+
   if (!sessionResolved) {
     return location == AppRoutes.splash ? null : AppRoutes.splash;
   }
 
-  // The password-reset link must survive onboarding and any session state: the
-  // token in it is single-use and cannot be re-fetched.
-  if (_isWithin(location, AppRoutes.resetPassword) ||
-      location == AppRoutes.verifyEmail ||
-      location == AppRoutes.forgotPassword) {
+  // Signed-out code and recovery screens. Once a session exists (for example
+  // right after a code was verified) the session rules below take over, so a
+  // signed-in parent always lands in their own area, behind consent.
+  if (session == null &&
+      (location == AppRoutes.verifyEmail ||
+          location == AppRoutes.forgotPassword ||
+          location == AppRoutes.loginCode)) {
     return null;
   }
 

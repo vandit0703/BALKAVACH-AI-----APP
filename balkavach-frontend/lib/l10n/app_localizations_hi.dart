@@ -261,6 +261,48 @@ class AppLocalizationsHi extends AppLocalizations {
       'अपना पैरेंट खाता ईमेल दर्ज करें। खाता होने पर हम रीसेट लिंक भेजेंगे।';
 
   @override
+  String get authUseEmailCode => 'इसके बजाय ईमेल कोड से साइन इन करें';
+
+  @override
+  String get loginCodeTitle => 'ईमेल कोड से साइन इन करें';
+
+  @override
+  String get loginCodeBody =>
+      'अपना पैरेंट खाता ईमेल दर्ज करें। सत्यापित खाता होने पर हम 6 अंकों का साइन-इन कोड भेजेंगे।';
+
+  @override
+  String get loginCodeSend => 'कोड भेजें';
+
+  @override
+  String loginCodeSentBody(String email) {
+    return 'अगर $email किसी सत्यापित पैरेंट खाते का है, तो 6 अंकों का कोड भेजा जा रहा है। यह 10 मिनट में समाप्त हो जाएगा।';
+  }
+
+  @override
+  String get loginCodeLabel => '6 अंकों का साइन-इन कोड';
+
+  @override
+  String get loginCodeVerify => 'साइन इन करें';
+
+  @override
+  String get loginCodeInvalid =>
+      'यह कोड गलत है या समाप्त हो गया है। नया कोड मँगाएँ।';
+
+  @override
+  String get loginCodeChangeEmail => 'दूसरा ईमेल इस्तेमाल करें';
+
+  @override
+  String get loginCodeUsePassword => 'इसके बजाय पासवर्ड से साइन इन करें';
+
+  @override
+  String get emailUnavailable =>
+      'ईमेल कोड अभी उपलब्ध नहीं हैं। बाद में फिर कोशिश करें या अपना पासवर्ड इस्तेमाल करें।';
+
+  @override
+  String get emailVerificationSignedIn =>
+      'ईमेल सत्यापित हो गया। BALKAVACH में आपका स्वागत है!';
+
+  @override
   String get forgotPasswordSend => 'रीसेट लिंक भेजें';
 
   @override
@@ -3823,4 +3865,85 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get childLinkAction => 'डिवाइस लिंक करें';
+
+  @override
+  String get pandaStateRequestingPermission =>
+      'माइक्रोफ़ोन की अनुमति जाँच रहे हैं…';
+
+  @override
+  String get pandaStateInitializing => 'पांडा के कान तैयार कर रहे हैं…';
+
+  @override
+  String get pandaErrorMicPermanentlyDenied =>
+      'फ़ोन की सेटिंग में माइक्रोफ़ोन की अनुमति बंद है। आप इसके बजाय टाइप कर सकते हैं!';
+
+  @override
+  String get pandaErrorListenTimeout =>
+      'मुझे समय पर कुछ सुनाई नहीं दिया। फिर से कोशिश करने के लिए बात करें दबाएँ, या टाइप करें!';
+
+  @override
+  String get pandaErrorSpeechFailed =>
+      'सुनने में कुछ गड़बड़ हो गई। आप फिर से कोशिश कर सकते हैं या टाइप कर सकते हैं!';
+
+  @override
+  String videoDurationMinutes(int minutes) {
+    return '$minutes मिनट';
+  }
+
+  @override
+  String videoDurationMinutesSeconds(int minutes, int seconds) {
+    return '$minutes मिनट $seconds सेकंड';
+  }
+
+  @override
+  String videoDurationSeconds(int seconds) {
+    return '$seconds सेकंड';
+  }
+
+  @override
+  String approvalsVideoTime(String duration) {
+    return '$duration वीडियो';
+  }
+
+  @override
+  String approvalsApprovedToastVideo(
+    String name,
+    int stars,
+    int xp,
+    String duration,
+  ) {
+    return 'मंज़ूर! $name को $stars स्टार, $xp XP और $duration वीडियो समय मिला।';
+  }
+
+  @override
+  String approvalsApprovedToastCapped(
+    String name,
+    int stars,
+    int xp,
+    String granted,
+    String offered,
+  ) {
+    return 'मंज़ूर! $name को $stars स्टार, $xp XP और $granted वीडियो समय मिला। दैनिक वीडियो सीमा के कारण इसे $offered से घटाया गया।';
+  }
+
+  @override
+  String approvalsApprovedToastNoVideo(String name, int stars, int xp) {
+    return 'मंज़ूर! $name को $stars स्टार और $xp XP मिले। कोई वीडियो समय नहीं जोड़ा गया: दैनिक वीडियो सीमा पूरी हो गई है, या इस दोहराए जाने वाले मिशन ने आज पहले ही वीडियो समय कमा लिया है।';
+  }
+
+  @override
+  String get missionVideoReward => 'मिलने वाला वीडियो समय';
+
+  @override
+  String get missionVideoRewardHint =>
+      'जब आप यह मिशन मंज़ूर करेंगे, तब यह आपके बच्चे के वीडियो समय में जुड़ जाएगा। दैनिक वीडियो सीमा लागू रहती है।';
+
+  @override
+  String missionVideoRewardStandard(String duration) {
+    return '$duration (सामान्य)';
+  }
+
+  @override
+  String get rewardsMyRequestsEmpty =>
+      'आपने अभी तक कोई इनाम नहीं माँगा है. जब आपके पास काफ़ी स्टार हों, तो ऊपर से इनाम चुनें और किसी बड़े से पूछें.';
 }

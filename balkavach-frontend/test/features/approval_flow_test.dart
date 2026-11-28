@@ -85,8 +85,91 @@ Future<String> _tabCount(WidgetTester tester, String tab) async {
   return texts.last ?? '';
 }
 
+/// A screen whose single pending row states [seconds] of video time (a
+/// server that reports exact seconds), approving with [granted] seconds.
+Future<Harness> _videoScreen(
+  WidgetTester tester, {
+  required int seconds,
+  int? granted,
+}) async {
+  final h = await Harness.create(
+    session: Fx.parentSession(),
+    prefs: onboardedPrefs,
+  );
+  var status = 'pending';
+  h.backend
+    ..on('GET', _queue, (options) {
+      final wanted = (options.queryParameters['status'] as List).first;
+      final row = {
+        ..._row(status: status),
+        'video_minutes_reward': seconds ~/ 60,
+        'video_seconds_reward': seconds,
+      };
+      return FakeReply(200, [if (wanted == status) row]);
+    })
+    ..on('POST', _review, (_) {
+      status = 'approved';
+      return FakeReply(200, {
+        ...Fx.submission(status: 'approved'),
+        'video_seconds_reward': seconds,
+        'video_seconds_granted': ?granted,
+      });
+    })
+    ..reply('GET', '/api/v1/notifications', <Object?>[]);
+  await pumpScreen(tester, const ApprovalsScreen(), overrides: h.overrides);
+  return h;
+}
+
 void main() {
   final l10n = AppLocalizationsEn();
+
+  group('custom mission video time', () {
+    testWidgets('the card shows the exact configured duration', (tester) async {
+      await _videoScreen(tester, seconds: 225);
+      expect(find.text('3 min 45 s video'), findsOneWidget);
+    });
+
+    testWidgets('the toast states what the server actually granted', (
+      tester,
+    ) async {
+      await _videoScreen(tester, seconds: 1500, granted: 1500);
+      expect(find.text('25 min video'), findsOneWidget);
+      await _tap(tester, const Key('review.approve'));
+      expect(
+        find.text(l10n.approvalsApprovedToastVideo('Aarav', 10, 15, '25 min')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a grant reduced by the daily limit says so', (tester) async {
+      await _videoScreen(tester, seconds: 1500, granted: 600);
+      await _tap(tester, const Key('review.approve'));
+      expect(
+        find.text(
+          l10n.approvalsApprovedToastCapped(
+            'Aarav',
+            10,
+            15,
+            '10 min',
+            '25 min',
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('no video time granted is never shown as earned', (
+      tester,
+    ) async {
+      await _videoScreen(tester, seconds: 1500, granted: 0);
+      await _tap(tester, const Key('review.approve'));
+      expect(
+        find.text(l10n.approvalsApprovedToastNoVideo('Aarav', 10, 15)),
+        findsOneWidget,
+      );
+      expect(find.textContaining('25 min of video time'), findsNothing);
+    });
+  });
 
   testWidgets(
     'the card shows the three rewards the server states, separately',
